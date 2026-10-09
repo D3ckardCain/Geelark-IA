@@ -135,7 +135,7 @@ CREATE TABLE cluster_control.idempotency_records (
     idempotency_id      uuid PRIMARY KEY,
     scope               text NOT NULL CHECK (length(trim(scope)) BETWEEN 1 AND 160),
     idempotency_key     text NOT NULL CHECK (length(idempotency_key) BETWEEN 16 AND 200),
-    payload_sha256      text NOT NULL CHECK (length(payload_sha256) = 64 AND payload_sha256 ~ '^[0-9a-f]{64}
+    payload_sha256      text NOT NULL CHECK (length(payload_sha256) = 64 AND payload_sha256 ~ '^[0-9a-f]{64}$'),
     operation_id        uuid REFERENCES cluster_control.operations(operation_id) ON DELETE RESTRICT,
     response_summary    jsonb NOT NULL DEFAULT '{}'::jsonb
         CHECK (jsonb_typeof(response_summary) = 'object'),
