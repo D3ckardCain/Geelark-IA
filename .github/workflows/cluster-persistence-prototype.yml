@@ -50,6 +50,14 @@ jobs:
           PGPASSWORD: test-only-password
           PGDATABASE: cluster_test
         run: psql -v ON_ERROR_STOP=1 -f packages/cluster-persistence/prototype/002_assign_instance.sql
+      - name: Apply fenced agent-result function
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGPASSWORD: test-only-password
+          PGDATABASE: cluster_test
+        run: psql -v ON_ERROR_STOP=1 -f packages/cluster-persistence/prototype/003_apply_agent_result.sql
       - name: Test core database constraints
         env:
           PGHOST: localhost
@@ -66,6 +74,14 @@ jobs:
           PGPASSWORD: test-only-password
           PGDATABASE: cluster_test
         run: psql -v ON_ERROR_STOP=1 -f packages/cluster-persistence/prototype/test_assignment_function.sql
+      - name: Test agent-result fencing and idempotency
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGPASSWORD: test-only-password
+          PGDATABASE: cluster_test
+        run: psql -v ON_ERROR_STOP=1 -f packages/cluster-persistence/prototype/test_agent_result.sql
       - name: Test concurrent active reservation exclusion
         env:
           PGHOST: localhost
