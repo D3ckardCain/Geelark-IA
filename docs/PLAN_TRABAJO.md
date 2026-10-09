@@ -85,3 +85,8 @@ Orden de trabajo vigente:
 La auditoría añadió evidencia concreta para carga masiva de archivos en Synchronizer, árbol UI y análisis de layout, etiquetas/vistas de Library, parámetros de tareas publicados y seguimiento de AIGC. Estas capacidades se reflejan en el catálogo y la matriz; no se consideran implementadas.
 
 La siguiente línea de investigación es completar el inventario de bloques RPA y especificar contratos de API/CLI local; los detalles que no aparecen en documentación pública se marcarán como desconocidos en lugar de inferirlos.
+
+
+## Requisito transversal añadido — seguridad (2026-10-09)
+
+El documento [MODELO_AMENAZAS_SEGURIDAD.md](MODELO_AMENAZAS_SEGURIDAD.md) y la [issue #9](https://github.com/D3ckardCain/Geelark-IA/issues/9) establecen requisitos de seguridad para API local, ADB/shell, aislamiento, archivos, RPA, secretos, importación, backups y operación offline. Estos controles deberán integrarse en las pruebas de cada módulo; el documento no significa que estén implementados.
