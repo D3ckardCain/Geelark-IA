@@ -232,4 +232,4 @@ def test_generated_schema_forbids_unknown_fields():
 
 def test_generated_schema_documents_protocol_version_pattern():
     schema = Heartbeat.model_json_schema()
-    assert schema["properties"]["protocol_version"]["pattern"] == r"^\\d+\\.\\d+$"
+    assert schema["properties"]["protocol_version"]["pattern"] == r"^\d+\.\d+$"
