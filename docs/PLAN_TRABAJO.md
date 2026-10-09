@@ -78,3 +78,10 @@ Orden de trabajo vigente:
 3. Completar Library, Members, Logs, Analytics, cámara, sensores, GPS y conectividad.
 4. Completar criterios de aceptación de cada fila de la matriz.
 5. Ejecutar la prueba del motor en el anfitrión real una vez disponibles sus especificaciones.
+
+
+## Actualización — revisión de notas v4.5.1/v4.5.2
+
+La auditoría añadió evidencia concreta para carga masiva de archivos en Synchronizer, árbol UI y análisis de layout, etiquetas/vistas de Library, parámetros de tareas publicados y seguimiento de AIGC. Estas capacidades se reflejan en el catálogo y la matriz; no se consideran implementadas.
+
+La siguiente línea de investigación es completar el inventario de bloques RPA y especificar contratos de API/CLI local; los detalles que no aparecen en documentación pública se marcarán como desconocidos en lugar de inferirlos.
