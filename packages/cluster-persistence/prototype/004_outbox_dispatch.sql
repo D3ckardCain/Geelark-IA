@@ -18,8 +18,8 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     IF p_worker_id IS NULL OR length(trim(p_worker_id)) NOT BETWEEN 1 AND 120
-       OR p_claim_lease <= interval '0 seconds'
-       OR p_batch_size NOT BETWEEN 1 AND 100 THEN
+       OR p_claim_lease IS NULL OR p_claim_lease <= interval '0 seconds'
+       OR p_batch_size IS NULL OR p_batch_size NOT BETWEEN 1 AND 100 THEN
         RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'INVALID_OUTBOX_CLAIM_INPUT';
     END IF;
 
@@ -55,6 +55,10 @@ AS $$
 DECLARE
     v_delivered_at timestamptz;
 BEGIN
+    IF p_event_id IS NULL OR p_worker_id IS NULL OR length(trim(p_worker_id)) NOT BETWEEN 1 AND 120 THEN
+        RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'INVALID_OUTBOX_DELIVERY_INPUT';
+    END IF;
+
     SELECT o.delivered_at INTO v_delivered_at
       FROM cluster_control.outbox AS o
      WHERE o.event_id = p_event_id
@@ -92,8 +96,9 @@ RETURNS boolean
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    IF p_error_code IS NULL OR length(trim(p_error_code)) NOT BETWEEN 1 AND 120
-       OR p_retry_after <= interval '0 seconds' THEN
+    IF p_event_id IS NULL OR p_worker_id IS NULL OR length(trim(p_worker_id)) NOT BETWEEN 1 AND 120
+       OR p_error_code IS NULL OR length(trim(p_error_code)) NOT BETWEEN 1 AND 120
+       OR p_retry_after IS NULL OR p_retry_after <= interval '0 seconds' THEN
         RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'INVALID_OUTBOX_RETRY_INPUT';
     END IF;
 
