@@ -20,12 +20,12 @@
 | ID | Área de GeeLark | Capacidades observadas/documentadas | Adaptación objetivo local | Evidencia | Estado | Prueba pendiente |
 |---|---|---|---|---|---|---|
 | P-001 | Perfiles/cloud phone | Crear perfiles individuales, rápidos y por lotes; elegir grupo, Android, proxy y modelo | Crear, configurar, iniciar, detener y eliminar instancias Android virtuales | Ayuda de perfiles | Investigación inicial | Crear y reiniciar instancias, persistencia y aislamiento |
-| P-002 | Identidad/huella | Se publicita huella única y opción de huella personalizada | Identidad configurable por instancia solo donde la virtualización lo permita | Página de producto/precios | No especificado | Identificar campos exactos y detectar diferencias de virtualización |
+| P-002 | Identidad/huella | Se publicita huella única y opción de huella personalizada; v4.5.0 documenta Change IP URL y Auto Refresh para proxy personalizado | Identidad sintética configurable donde el motor lo permita; refresco IP opcional para proxy compatible | Página de producto/precios y nota v4.5.0; catálogo sección 23 | Investigación inicial | Identificar campos; validar URL de cambio de IP, frecuencia y diferencias de señales de red |
 | P-003 | Grupos/etiquetas | Organización de perfiles | Grupos, etiquetas, filtros y operaciones por grupo | Centro de ayuda | Investigación inicial | CRUD, filtrado y acciones masivas |
 | P-004 | Proxies | Proxies guardados/personalizados, prueba de conexión | Gestión de endpoints y asignación por instancia | Ayuda de perfiles | Investigación inicial | Conexión, credenciales protegidas y errores |
 | P-005 | Aplicaciones | Operaciones de apps por perfil/grupo | Listar, instalar, iniciar, detener, actualizar y quitar APK | Centro de ayuda/notas de versión | Investigación inicial | Compatibilidad, permisos y operación por lotes |
 | P-006 | Archivos/Library | Biblioteca multimedia para automatización | Biblioteca local persistente, etiquetas, búsqueda y asignación | Ayuda Library | Investigación inicial | Importar/exportar, deduplicar y recuperación |
-| P-007 | RPA visual | Taps, swipes, escritura, esperas, lógica, bucles, variables, manejo de errores | Editor visual y motor de flujos | Página RPA | Investigación inicial | Ejecutar flujo simple y validar errores/reintentos |
+| P-007 | RPA visual | Flujos drag-and-drop, reutilizables/programables; inspector de layout; Get Element Data con opción Is checked; límites de tamaño al guardar | Editor visual versionado, validación, inspección UI, resultados y límites explícitos | Guía Automaton y notas v4.5.0; catálogo secciones 17 y 23 | Investigación inicial | Catálogo de bloques; validar selectores/estado marcado, límites de flujo, reintentos y errores |
 | P-008 | Plantillas | Flujos listos para tareas repetitivas | Catálogo local versionado/importable | Página de automatización | Investigación inicial | Importar, validar, versionar y ejecutar |
 | P-009 | Synchronizer | Copiar interacciones de una instancia principal a otras; texto masivo | Replicar eventos entre instancias seleccionadas | Página Synchronizer | Investigación inicial | Resolución distinta, latencia, exclusiones y pausa |
 | P-010 | API | Operaciones de perfiles, automatización, apps, archivos y Library | API local autenticada | Página API | Investigación inicial | Contratos, autenticación, idempotencia y errores |
@@ -34,7 +34,7 @@
 | P-013 | Analytics | Paneles/analítica por plan | Métricas locales de tareas y recursos | Precios/centro de ayuda | Investigación inicial | Exactitud y exportación |
 | P-014 | Logs | Registros de operación | Logs filtrables, trazabilidad y exportación | Centro de ayuda/precios | Investigación inicial | Correlación tarea-dispositivo y redacción de secretos |
 | P-015 | Miembros/roles | Miembros, permisos y roles | Usuarios/roles locales si el alcance lo requiere | Precios/centro de ayuda | Investigación inicial | Pruebas de autorización y auditoría |
-| P-016 | AIGC/IA | Generación de contenido y asistente IA | Alternativas locales libres, según hardware | Centro de ayuda | Investigación inicial | Licencia, calidad, rendimiento y memoria |
+| P-016 | AIGC/IA | Generación de contenido/medios con modelos integrados y cargos comerciales en funciones documentadas | Alternativa local opcional solo si licencia y hardware lo permiten; sin API comercial obligatoria | Centro de ayuda, guía AI Generation Function y catálogo sección 23 | Diferencia estructural pendiente de alternativa | Probar calidad/rendimiento local o marcar explícitamente no equivalente |
 | P-017 | Recursos/marketplace | Recursos y plantillas compartidas | Repositorio local importable/exportable | Centro de ayuda | Investigación inicial | Procedencia, validación y versiones |
 | P-018 | Facturación/planes | Planes, límites, uso por minuto y servicios pagados | No replicar cobros; medir y limitar recursos locales | Página precios/facturación | Diferencia estructural | Definir límites de recursos y reportes locales |
 | P-019 | Cámara/sensores/GPS | Documentación parcial sobre cámara; no se han verificado todos los sensores | Emular solo lo soportado por el virtualizador | Centro de ayuda | No investigado a fondo | Probar cámara, ubicación, sensores, audio y notificaciones |
@@ -146,3 +146,6 @@ El catálogo funcional contiene la evidencia y el contexto. Esta tabla convierte
 | IA/AIGC | Deshabilitada por defecto hasta comprobar licencia, hardware y coste cero; alternativa local aislada y opcional | Calidad/velocidad dependen del anfitrión | Pendiente |
 
 Estos criterios no indican implementación ni pruebas realizadas. La etiqueta “Especificación preliminar” significa que hay un criterio inicial, pero faltan diseño completo y aprobación.
+
+
+La nota v4.5.0 y la guía AIGC se registraron en `docs/CATALOGO_FUNCIONAL_GEELARK.md`, sección 23. Los cambios de versión se consideran evidencia de funciones y no una especificación completa; se requieren pruebas antes de cambiar el estado de paridad.
