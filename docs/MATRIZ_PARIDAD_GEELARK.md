@@ -44,7 +44,7 @@
 | P-023 | Android versions | Páginas consultadas enumeran Android 9–15 y Synchronizer menciona Android 9–16; fuentes no coinciden | Seleccionar imágenes locales compatibles tras investigar | Página Synchronizer/precios | Pendiente de aclarar | Confirmar soporte vigente y requisitos por versión |
 | P-024 | Perfiles clonados | La página de precios indica clonado en planes superiores | Clonar configuración/imagen de instancia sin compartir accidentalmente identidad | Precios | Investigación inicial | Clonación, independencia y limpieza de datos |
 | P-025 | Operaciones masivas | Crear perfiles y operar apps en grupos; Synchronizer | Cola de tareas por grupos con resultados individuales | Perfil/RPA/Synchronizer | Investigación inicial | Fallos parciales, cancelación y recuperación |
-| P-026 | Motor Android local | Candidatos: redroid, Android Emulator, Waydroid, Android-x86 | Seleccionar motor según compatibilidad, aislamiento, automatización, rendimiento y coste | Documentación oficial de cada proyecto | Investigación inicial | Benchmark y prueba de paridad en el anfitrión real |
+| P-026 | Motor Android local | Candidatos: redroid, Android Emulator, Waydroid, Android-x86/derivados | Seleccionar motor según compatibilidad, aislamiento, automatización, rendimiento y coste | [Comparativa de motores](COMPARATIVA_MOTORES_ANDROID.md) y documentación oficial | Investigación documental inicial | Benchmark y prueba de paridad en el anfitrión real; ver issue #8 |
 
 ## Reglas para completar cada fila
 
@@ -110,3 +110,17 @@ Se aprueban dos vías de configuración por instancia: **identidad sintética** 
 | P-031 | Trazabilidad y seguridad de la importación | Registrar fecha y resultado sin secretos; permitir cancelar y borrar el perfil de importación | No especificado |
 
 **Límite de paridad:** no afirmar que se clona íntegramente una identidad física. Los identificadores protegidos, claves de hardware, attestation, SIM/módem y señales derivadas del host pueden no ser accesibles o reproducibles. No se eludirán mecanismos de seguridad ni antiabuso.
+
+
+## 2.4 Comparativa de motores Android locales (2026-10-09)
+
+La comparación documental y el protocolo de pruebas están en [COMPARATIVA_MOTORES_ANDROID.md](COMPARATIVA_MOTORES_ANDROID.md). No se ha aprobado ningún motor. Se revisarán licencias, componentes de terceros, requisitos de host, ADB, gráficos, persistencia, aislamiento, APK, sensores y seguridad.
+
+| Candidato | Evaluación inicial | Prueba que falta | Estado de decisión |
+|---|---|---|---|
+| redroid | Prioridad para probar si el host es Linux compatible; orientado a múltiples instancias; requiere funciones de kernel y atención especial a privilegios/ADB | Arranque, aislamiento, persistencia, control, recursos y revisión de componentes | No seleccionado |
+| Android Emulator oficial | Referencia útil de AVD/ADB; la licencia del SDK e imágenes debe revisarse para el uso concreto del producto | Licencia aplicable, multiinstancia, automatización y rendimiento | Condicionado |
+| Waydroid | Alternativa de contenedor para GNU/Linux; investigar el manejo de instancias separadas y licencias de todos los componentes | Control independiente, aislamiento, estabilidad y compatibilidad de apps | No seleccionado |
+| Android-x86/derivado | Solo evaluable al seleccionar una distribución concreta con mantenimiento verificable | Versión, licencia, gráficos, ADB y soporte de aplicaciones | Pendiente de concretar |
+
+Issue de seguimiento: [#8 — Comparar y validar motores Android locales](https://github.com/D3ckardCain/Geelark-IA/issues/8). Las conclusiones documentales no sustituyen las pruebas del hardware anfitrión.
