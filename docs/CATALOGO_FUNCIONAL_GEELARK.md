@@ -684,3 +684,48 @@ La nota v4.5.1 menciona permisos para contraseñas, claves 2FA y gestor de contr
 4. Parámetros de tarea: la vista posterior a publicar coincide con la instantánea usada para esa ejecución, incluso si el flujo se edita después.
 5. Recursos por etiqueta: el motor define comportamiento ante etiqueta vacía, archivo eliminado y archivo incompatible.
 6. Presupuestos: límites de tareas/recursos locales no se confunden con cargos comerciales; sin llamadas de IA externas obligatorias.
+
+
+## 30. Notas históricas de versiones v3.6.0, v3.8.0, v3.9.0 y v3.9.1
+
+Fuentes oficiales:
+- https://help.geelark.com/v3-6-0-3080be7d9e4181748064e63be60784dd?pvs=21
+- https://help.geelark.com/v3-8-0-3080be7d9e41816a8b2bc0bbc2964ed1?pvs=21
+- https://help.geelark.com/v3-9-0-3080be7d9e4181099973d62272a9c309?pvs=21
+- https://help.geelark.com/v3-9-1-3080be7d9e4181788653c8f6790f8e1f?pvs=21
+
+### 30.1 Operaciones de perfiles y red
+
+Las notas históricas v3.6.0 describen etiquetas, operaciones por lotes de hasta 100 dispositivos en una acción concreta y con los dispositivos apagados, configuración de proxy en tiempo real y acceso ROOT en dispositivos encendidos. Estas cantidades y restricciones pertenecen a esa versión/plan y no se asumen como límites actuales.
+
+La nota v3.9.0 documenta clonado de perfiles y configuración personalizada de red celular/Wi-Fi solo para Android 12/13/15 en esa versión.
+
+**Adaptación local:** límites de operaciones masivas configurables según recursos y resultados por instancia; edición de red solo si el motor admite el campo; root no se activa por defecto; clonar no debe duplicar accidentalmente secretos, cuentas ni identidad de origen.
+
+### 30.2 Operaciones de aplicaciones
+
+La nota v3.8.0 describe operaciones masivas por grupo para abrir, cerrar, reiniciar y desinstalar aplicaciones, además de actualización de versiones de aplicaciones del equipo.
+
+**Adaptación local:** cola de tareas con progreso por instancia y por paquete, cancelación cuando sea segura, errores parciales y recuperación ante reinicio. No replicar la tienda propietaria como dependencia.
+
+### 30.3 API, medios y tareas
+
+La nota v3.8.0 documenta autenticación Bearer y endpoints OpenAPI para administrar medios con etiquetas (añadir, eliminar, consultar, configurar etiquetas) y consultar informes de tareas. La nota v3.9.1 documenta creación masiva de perfiles por OpenAPI.
+
+**Adaptación local:** autenticar el API propio mediante credenciales locales revocables; especificar recursos de medios, etiquetas e informes; admitir creación masiva idempotente con validación por fila. No copiar tokens, URL privadas ni dependencias del servicio de GeeLark.
+
+### 30.4 RPA y Synchronizer
+
+La nota v3.9.1 registra opción de entrada por coordenadas para automatización, soporte de portadas en una plantilla específica, selección de plataforma al compartir plantillas y modo de pantalla completa en Synchronizer. Estas funciones son evidencia histórica; no garantizan el comportamiento en la versión actual.
+
+**Adaptación local:** soportar selectores semánticos cuando existan y coordenadas como alternativa frágil documentada; los flujos deben declarar resolución/orientación esperadas y fallar con diagnóstico cuando cambien. El modo de pantalla completa es una función de presentación, separada del motor de sincronización.
+
+### 30.5 Retención de perfiles eliminados
+
+La nota v3.7.0 describe una papelera en la que perfiles eliminados se conservaban durante siete días en esa versión.
+
+**Adaptación local:** ofrecer papelera recuperable y periodo de retención configurable, con borrado definitivo explícito y pruebas de restauración. No copiar siete días como límite fijo sin validar el comportamiento actual de referencia.
+
+### 30.6 Límites de evidencia histórica
+
+Los números de perfiles por lote, tareas por lote, retención, restricciones de plan, versiones Android, características de root y opciones de red pueden haber cambiado. Cada dato histórico debe incluir versión y fuente y no debe convertirse en una promesa actual. El comportamiento final local se basará en recursos anfitriones, pruebas y decisiones explícitas del proyecto.
