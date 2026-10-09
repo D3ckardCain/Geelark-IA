@@ -635,3 +635,52 @@ La adaptación local prevista se mantiene como propuesta de diseño: eventos est
 ## 27. Historial
 
 - 2026-10-09: se verificaron las guías públicas de Library, Members, Analytics, ADB y cámara; se registraron límites de evidencia, adaptaciones locales y criterios de aceptación.
+
+
+## 28. Revisión de notas oficiales v4.5.1 y v4.5.2
+
+Fuentes:
+- https://help.geelark.com/v4-5-1-3d60be7d9e4180c5a0bef756578b881e?pvs=21
+- https://help.geelark.com/v4-5-2-3e40be7d9e418006a508d2f22696e0fb?pvs=21
+
+### 28.1 Synchronizer — carga masiva de archivos (v4.5.1)
+
+La nota v4.5.1 documenta carga masiva de archivos en Synchronizer para cloud phones y un listado/historial de cargas accesible después de la operación.
+
+**Requisito local:** permitir seleccionar explícitamente instancias destino, archivos y destino de almacenamiento; mostrar progreso y resultado por archivo/instancia; conservar un historial local consultable; permitir cancelación cuando el motor lo soporte; reanudar o repetir de forma idempotente sin crear duplicados inesperados.
+
+### 28.2 Inspector de interfaz / árbol UI (v4.5.1)
+
+La nota v4.5.1 separa el inspector de layout en un diálogo e indica acciones para analizar el alcance del layout, abrir un archivo de árbol UI y guardar el árbol UI.
+
+**Requisito local:** inspector de solo lectura para depuración y construcción de selectores, con exportación a un formato documentado. No incluir valores de campos sensibles por defecto. Los selectores deben volver a validarse después de cambios de versión o layout; no confiar solo en coordenadas absolutas.
+
+### 28.3 Library, etiquetas y tareas (v4.5.2)
+
+La nota v4.5.2 documenta:
+- Editar etiquetas desde el menú de acciones de Library.
+- Seleccionar etiquetas al subir archivos locales.
+- Alternar vista de tarjetas/lista.
+- Iterar activos por etiqueta en una plantilla concreta de publicación de vídeo.
+- Consultar desde Logs la opción View Task para ver parámetros configurados después de publicar una tarea.
+
+**Requisito local:** etiquetas editables, selector de etiquetas en carga, vistas de lista/tarjetas, iteración de recursos en flujos genéricos y visualización de una instantánea inmutable de los parámetros publicados. Las funciones específicas de plantillas comerciales de plataformas no se consideran bloques universales ni se replican automáticamente.
+
+### 28.4 AIGC y presupuestos (v4.5.1/v4.5.2)
+
+Las notas describen integración de modelos y seguimiento de uso AIGC; v4.5.1 incluye presupuesto AIGC por miembro. Estas funciones dependen de proveedores/modelos y de las condiciones comerciales de GeeLark.
+
+**Requisito local:** el sistema de permisos puede tener cuotas de recursos locales, pero no se copiará un modelo de créditos de generación pagada. No se usará IA externa de pago como dependencia. El uso de modelos locales debe registrar modelo, licencia, hardware y consumo aproximado, sin telemetría externa obligatoria.
+
+### 28.5 Seguridad de contraseñas en perfiles de navegador
+
+La nota v4.5.1 menciona permisos para contraseñas, claves 2FA y gestor de contraseñas de perfiles de navegador. Esta función es de navegador y queda fuera del alcance Android principal; no obstante, refuerza una regla de diseño transversal: secretos deben poder ocultarse por permisos y nunca aparecer en logs/exportaciones por defecto.
+
+## 29. Criterios de aceptación adicionales
+
+1. Carga masiva: resultado por archivo y destino, historial persistente y comportamiento definido ante desconexión.
+2. Inspector UI: abrir/guardar árbol UI, buscar un elemento y exportar una muestra sin valores sensibles.
+3. Etiquetas: crear/renombrar/eliminar etiqueta, asignar a múltiples activos, filtrar y seleccionar activos por etiqueta en un flujo.
+4. Parámetros de tarea: la vista posterior a publicar coincide con la instantánea usada para esa ejecución, incluso si el flujo se edita después.
+5. Recursos por etiqueta: el motor define comportamiento ante etiqueta vacía, archivo eliminado y archivo incompatible.
+6. Presupuestos: límites de tareas/recursos locales no se confunden con cargos comerciales; sin llamadas de IA externas obligatorias.
