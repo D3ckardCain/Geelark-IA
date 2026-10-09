@@ -328,3 +328,61 @@ Esto define un objetivo de compatibilidad amplia, no una garantía inmediata de 
 - No asumir que una versión de Android reciente, un fabricante específico o un teléfono con ADB autorizado expone todos los mismos campos.
 
 **Criterio de aceptación:** cada combinación incluida en la lista de compatibilidad debe tener resultados de pruebas reproducibles, lista de campos admitidos y no admitidos, errores conocidos y versión de herramientas utilizada. Hasta entonces, se describe como objetivo de diseño, no como compatibilidad demostrada.
+
+
+## 17. Verificación directa de guías oficiales — RPA, API y Synchronizer
+
+**Consulta:** 2026-10-09. Estas observaciones proceden del texto visible de las guías oficiales; no sustituyen la inspección de todas las pantallas ni pruebas del producto.
+
+### 17.1 Automaton / RPA
+
+La guía oficial «Automaton» confirma explícitamente:
+- Editor de flujos de arrastrar y soltar para usuarios no técnicos.
+- Reutilización de flujos y posibilidad de programarlos.
+- Biblioteca de plantillas para escenarios/plataformas; selección de plantilla, configuración y publicación de una tarea automatizada.
+- Creación de flujos propios en la sección de tareas personalizadas.
+- Selección previa de los cloud phones que ejecutarán cada tarea.
+- Acceso a una función de generación de contenido llamada GeeLark AI, descrita en esa guía como integrada con DeepSeek.
+
+Fuente: https://help.geelark.com/AI-featured-RPA-b93ed760fada424291afe759a27ff7e3?pvs=21
+
+**Implicaciones para la especificación local:**
+1. Separar el editor/definición del flujo de la tarea publicada y de sus ejecuciones concretas.
+2. Guardar una selección explícita de instancias destino al crear una tarea, con validación si la instancia no existe, está apagada o no admite la versión requerida.
+3. Versionar el flujo y registrar qué versión se ejecutó, quién la inició, destinos, programación, estado y resultados parciales.
+4. La biblioteca local debe permitir plantillas propias/importables de formato documentado, pero no depender del marketplace propietario ni copiar sus activos.
+5. La IA integrada comercial se auditará como función separada. No se usará una API de pago ni se afirmará que el proveedor mencionado en GeeLark cumple el objetivo de 0 USD; cualquier alternativa debe evaluarse para ejecución local y licencia compatible.
+
+**Pendiente de evidencia:** la guía general no enumera todos los bloques, parámetros, tipos de dato, reglas de reintento ni formato de archivo. No inferirlos; deben extraerse de la documentación técnica específica y probarse.
+
+### 17.2 API y CLI
+
+La guía oficial GeeHub/API indica que la API de GeeLark permite, programáticamente, crear, iniciar, detener y eliminar cloud phones, gestionar archivos y aplicaciones, ejecutar comandos ADB y procesar tareas automatizadas. También indica que el cliente dispone de un API Key y enlaza un CLI para gestionar cloud phones, navegadores, proxies, grupos, etiquetas, facturación y otras funciones.
+
+Fuentes:
+- https://help.geelark.com/API-2f50be7d9e4180358f4ee14f4c958889
+- https://open.geelark.com/api
+- https://github.com/geelark-tech/geelark-cli
+
+**Implicaciones para la API local:**
+- La primera especificación de endpoints debe cubrir ciclo de vida de instancia, estado, aplicaciones, archivos, ejecución ADB y tareas.
+- Separar el API local de cualquier endpoint o clave de GeeLark. No copiar ni requerir API Keys de GeeLark.
+- Diseñar autenticación local revocable, permisos mínimos, límites de tasa, validación, trazabilidad, operaciones idempotentes y errores por elemento.
+- La CLI local debe ser una interfaz del API propio y no una dependencia del CLI de GeeLark.
+- La lista completa de endpoints, métodos HTTP, parámetros, esquemas de respuesta, paginación y errores sigue pendiente de revisar en la documentación técnica publicada.
+
+### 17.3 Synchronizer
+
+La guía oficial consultada señala que Synchronizer está disponible en suscripción Pro de GeeLark y enumera compatibilidad Android 9 a 15 para la función descrita. También indica que las acciones de un cloud phone se sincronizan con otros cloud phones y recomienda seleccionar dispositivos apagados y del mismo tipo para reducir diferencias de interfaz. La misma página distingue la sincronización de perfiles de navegador como función diferente.
+
+Fuente: https://help.geelark.com/Synchronizer-82c1c9a8f62d489ca81b1f753d2a7bfa
+
+**Implicaciones para Geelark-IA:**
+- No copiar la restricción comercial Pro como dependencia: el sincronizador local se evaluará como función propia sin servicio de suscripción obligatorio.
+- La selección de destinos y la compatibilidad se comprobarán antes de iniciar; la interfaz mostrará diferencias de resolución, versión y estado.
+- Tratar sincronización Android y sincronización de perfiles de navegador como áreas distintas; esta última queda fuera del alcance principal Android.
+- La guía general no determina todos los eventos ni garantiza que cada acción sea reproducible en destinos diferentes. La matriz de eventos soportados requiere pruebas.
+
+## 18. Registro de cambios
+
+- 2026-10-09: contraste directo de las guías oficiales de Automaton, GeeHub/API y Synchronizer; se añadieron implicaciones de diseño y límites de evidencia sin declarar paridad.
