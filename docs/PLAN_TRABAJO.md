@@ -176,3 +176,8 @@ Siguiente secuencia técnica:
 3. Añadir pruebas de concurrencia e idempotencia para la persistencia.
 4. Probar desconexión/reinicio/reconciliación.
 5. Solo después comenzar el agente y scheduler ejecutables.
+
+
+## Implementación inicial del contrato (PR en borrador)
+
+El [PR #16](https://github.com/D3ckardCain/Geelark-IA/pull/16) contiene los primeros modelos Pydantic y una máquina de estados pura. Próximo gate: ejecutar el checkout exacto del branch en entorno limpio, confirmar instalación local y suite completa, revisar modelos/estados y luego integrar. Después implementar persistencia transaccional e idempotencia durable en una rama separada; no simular coordinación distribuida con memoria de proceso.
