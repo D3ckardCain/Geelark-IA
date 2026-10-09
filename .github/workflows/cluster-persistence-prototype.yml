@@ -50,3 +50,11 @@ jobs:
           PGPASSWORD: test-only-password
           PGDATABASE: cluster_test
         run: psql -v ON_ERROR_STOP=1 -f packages/cluster-persistence/prototype/test_constraints.sql
+      - name: Test concurrent active reservation exclusion
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGPASSWORD: test-only-password
+          PGDATABASE: cluster_test
+        run: bash packages/cluster-persistence/prototype/test_concurrency.sh
