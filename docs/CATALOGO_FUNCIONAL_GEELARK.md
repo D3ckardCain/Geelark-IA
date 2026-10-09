@@ -523,3 +523,47 @@ Para cada endpoint se debe especificar método/ruta, autenticación, permisos, e
 5. Los logs omiten contraseñas, tokens, cookies, datos personales y cuerpos sensibles.
 6. La API local funciona sin Internet para las operaciones de administración local, salvo funciones claramente marcadas como externas.
 7. Ningún endpoint requiere token, saldo, plan o API comercial de GeeLark.
+
+
+## 23. Notas de versión y restricciones adicionales verificadas
+
+### 23.1 GeeLark v4.5.0 — perfiles y automatización
+
+La nota oficial v4.5.0, editada el 27 de agosto de 2026, documenta:
+- Acceso de mantenimiento remoto por parte del equipo de soporte GeeLark, filtro de perfiles con dicho acceso y ampliación del número de perfiles con mantenimiento simultáneo.
+- En creación de perfil con proxy personalizado, campo Change IP URL, con opción Auto Refresh y frecuencia configurable.
+- En automatización de cloud phones: nombres de activos en los informes de ejecución, inspector de layout para flujos canvas, opción “Is checked” en el paso Get Element Data y límites de tamaño del flujo al guardar.
+- Funciones adicionales de plantillas concretas de TikTok, que deben considerarse específicas de esa plantilla, no bloques universales.
+
+Fuente: https://help.geelark.com/v4-5-0-3c90be7d9e4180a2b575c7112e7b34d0
+
+**Adaptación local y límites:**
+- El mantenimiento remoto de GeeLark no se replica como acceso de un tercero; el diagnóstico local debe ser controlado por el propietario y quedar registrado.
+- Auto Refresh solo se puede soportar cuando el proxy proporcionado por el usuario tenga una URL de cambio de IP válida. La aplicación no debe inventar ni llamar una URL sin consentimiento.
+- La frecuencia de refresco debe tener límites, validación de URL, timeout y registro de resultado; no se debe asumir que cambiar IP cambia todas las señales de red.
+- El editor RPA debe mostrar errores de tamaño/límites de flujo antes de guardar y dar ubicación del problema.
+- Los informes deben incluir el nombre/ID de los activos usados y la versión del flujo.
+- El inspector de UI y la opción de estado marcado requieren pruebas por versión Android y motor; no se declara equivalencia hasta comprobar selectores y estados.
+
+### 23.2 Plantillas y límites de flujo
+
+La nota de versión v3.9.8 menciona importación/exportación de plantillas de automatización mediante GeeLark Automation Language, operación Get element data y Page operations / Clear the folder; también describe entrada masiva de textos diferentes para Synchronizer.
+
+Fuente: https://help.geelark.com/v3-9-8-2630be7d9e4180858643d02184fb694c
+
+El catálogo registra estos elementos como evidencia histórica de existencia, no como contrato actual completo. Antes de implementar importación/exportación se debe conocer el formato exacto y sus reglas de versión; el formato local será propio y documentado, sin afirmar compatibilidad binaria con GeeLark Automation Language.
+
+### 23.3 Límites de las funciones de IA y costes
+
+La guía oficial AI Generation Function consultada indica que la generación de imágenes/vídeos y edición de vídeo están disponibles bajo suscripción Pro y presenta cargos por uso (por ejemplo, generación de imagen y vídeo).
+
+Fuente: https://help.geelark.com/AI-Generation-Function-2f90be7d74e443b8a5f57f5123669e60
+
+Esta función comercial no puede ser dependencia obligatoria de Geelark-IA. La alternativa candidata será una capacidad local opcional solo si el hardware y la licencia del modelo lo permiten; de lo contrario, la función se marcará como no equivalente bajo el objetivo de coste obligatorio cero. No se prometerá generación de vídeo local sin pruebas de rendimiento y calidad.
+
+## 24. Cambios y decisiones derivados
+
+- Se añade a la auditoría el requisito de un inspector de UI, Get Element Data con condición de marcado, límites de tamaño de flujo y nombres de activos en informes.
+- Se añade a perfiles la configuración opcional de URL de cambio de IP y refresco automático, únicamente cuando el usuario disponga de un proxy compatible.
+- El acceso de mantenimiento remoto de GeeLark se marca como función cloud propietaria no equivalente; el diagnóstico local será explícito y controlado por el propietario.
+- Las funciones AIGC con cargo por uso se marcan como incompatibles con una dependencia obligatoria de coste cero.
