@@ -48,7 +48,8 @@ La investigación y la matriz son preliminares: aún falta desglosar cada pantal
 
 - [ ] Desglosar los artículos del centro de ayuda y notas de versión por función.
 - [ ] Registrar evidencia y criterios de aceptación en la matriz.
-- [ ] Investigar motores de virtualización/emulación Android local, licencias, compatibilidad y límites.
+- [x] Investigar preliminarmente motores de virtualización/emulación Android local y registrar candidatos.
+- [ ] Comparar licencias, compatibilidad y límites con mayor profundidad y ejecutar pruebas.
 - [ ] Recopilar especificaciones del equipo anfitrión.
 - [ ] Definir una prueba técnica reproducible de una instancia Android virtual.
 - [ ] Ejecutar y documentar la prueba antes de seleccionar stack definitivo.
@@ -63,3 +64,5 @@ No están aprobados el sistema operativo anfitrión, el stack, la base de datos,
 - 2026-10-09: se aclara que el hardware físico será el anfitrión y los dispositivos objetivo serán Android virtualizados/emulados localmente, no teléfonos físicos.
 - 2026-10-09: se crea la investigación funcional inicial y la matriz de paridad, con fuentes oficiales y límites aún no verificados.
 - 2026-10-09: se corrige el plan maestro para eliminar el supuesto de teléfonos Android físicos como requisito.
+- 2026-10-09: se registran candidatos de virtualización local (redroid, Android Emulator, Waydroid y Android-x86) sin seleccionar todavía un motor.
+- 2026-10-09: se crea la issue [#5 — Evaluar motores de Android virtualizado local](https://github.com/D3ckardCain/Geelark-IA/issues/5) con criterios de selección y entregables.
