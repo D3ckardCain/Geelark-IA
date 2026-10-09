@@ -66,3 +66,17 @@ No están aprobados el sistema operativo anfitrión, el stack, la base de datos,
 - 2026-10-09: se corrige el plan maestro para eliminar el supuesto de teléfonos Android físicos como requisito.
 - 2026-10-09: se registran candidatos de virtualización local (redroid, Android Emulator, Waydroid y Android-x86) sin seleccionar todavía un motor.
 - 2026-10-09: se crea la issue [#5 — Evaluar motores de Android virtualizado local](https://github.com/D3ckardCain/Geelark-IA/issues/5) con criterios de selección y entregables.
+
+
+## Actualización de auditoría — 2026-10-09
+
+Se creó el [catálogo funcional detallado de GeeLark](CATALOGO_FUNCIONAL_GEELARK.md), que desglosa de forma preliminar perfiles, proxies, RPA, Synchronizer, Library, aplicaciones, API/CLI/ADB, logs y AIGC a partir del centro de ayuda y notas de versión oficiales hasta v4.5.2. Se detectaron funciones que deben añadirse a la especificación: clonado de perfiles, configuración de red celular/Wi-Fi en versiones Android específicas, importación/exportación de RPA, inspección del árbol UI, carga masiva de archivos desde Synchronizer, etiquetado de activos y consulta posterior de parámetros de tareas.
+
+- [x] Crear catálogo funcional detallado inicial.
+- [x] Registrar la issue [#6 — Completar el catálogo funcional](https://github.com/D3ckardCain/Geelark-IA/issues/6).
+- [ ] Completar campos, acciones, errores y restricciones de cada módulo.
+- [ ] Completar el inventario de bloques RPA y contratos API/ADB.
+- [ ] Añadir criterios de aceptación verificables a todas las filas relevantes de la matriz.
+- [ ] Continuar investigación de motores Android y prueba práctica tras recopilar las especificaciones del anfitrión.
+
+La investigación sigue siendo documental y parcial. No se ha seleccionado un motor, no hay pruebas de ejecución local y no se declara ningún módulo implementado ni equivalente.
