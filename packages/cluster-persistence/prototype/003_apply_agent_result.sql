@@ -21,7 +21,7 @@ DECLARE
     v_operation_state text;
     v_error_code text;
 BEGIN
-    IF p_assignment_epoch < 1
+    IF p_assignment_epoch < 0
        OR p_new_state NOT IN ('starting','running','stopping','stopped','failed','unknown','reconciling')
        OR p_result_summary IS NULL
        OR jsonb_typeof(p_result_summary) <> 'object' THEN
