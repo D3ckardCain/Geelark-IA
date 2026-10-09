@@ -39,6 +39,8 @@ Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la refer
 - `docs/ARQUITECTURA_TECNOLOGICA_PROPUESTA.md`: combinación tecnológica local-first propuesta.
 - `docs/decisiones/ADR-001-STACK-PRINCIPAL.md`: decisión inicial de stack y anfitrión de referencia.
 - `docs/INVENTARIO_LICENCIAS_COSTE.md`: licencias, costes y restricciones de redistribución.
+- `docs/CONTRATO_ADAPTADOR_ANDROID.md`: contrato agnóstico para motores Android.
+- `docs/ESPECIFICACION_MOTOR_RPA.md`: diseño de automatización por bloques tipados.
 - GitHub Issues: tareas, dudas, incidencias, decisiones y soluciones.
 
 ## Decisiones aún no tomadas
