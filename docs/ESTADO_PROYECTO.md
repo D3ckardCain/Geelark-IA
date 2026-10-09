@@ -28,6 +28,7 @@ Replicar las funciones de GeeLark aplicables a Android en una plataforma local. 
 - [Matriz de paridad funcional](MATRIZ_PARIDAD_GEELARK.md)
 - [Plan de trabajo](PLAN_TRABAJO.md)
 - [Comparativa de motores Android locales](COMPARATIVA_MOTORES_ANDROID.md)
+- [Modelo de amenazas y requisitos de seguridad](MODELO_AMENAZAS_SEGURIDAD.md)
 - [Requisitos](REQUISITOS.md)
 
 ## Investigación documental inicial
@@ -163,3 +164,14 @@ Se revisaron las notas oficiales recientes y se añadieron al catálogo criterio
 - [ ] Validar el motor Android en hardware anfitrión real.
 
 La fase continúa siendo investigación. El inventario todavía no está completo y no hay módulos implementados.
+
+
+## Actualización — modelo de amenazas y seguridad (2026-10-09)
+
+Se creó [MODELO_AMENAZAS_SEGURIDAD.md](MODELO_AMENAZAS_SEGURIDAD.md) y la [issue #9 — Controles de seguridad local, ADB, RPA e importación](https://github.com/D3ckardCain/Geelark-IA/issues/9). Es un documento de requisitos, no evidencia de que el producto actual ya sea seguro.
+
+Incluye límites de confianza, protección de credenciales, aislamiento entre instancias, restricciones de ADB/shell, validación de archivos, seguridad de webhooks, importación de solo lectura desde Android físico, backups, operación offline y pruebas de seguridad antes de publicar. Se subraya el riesgo de contenedores privilegiados y puertos ADB expuestos.
+
+- [x] Registrar modelo de amenazas y controles.
+- [ ] Implementar y probar controles después de seleccionar motor y arquitectura.
+- [ ] Revisar riesgos residuales antes de cualquier versión usable.
