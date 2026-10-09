@@ -116,3 +116,6 @@ Antes de empaquetar o redistribuir se generará un SBOM, un inventario de licenc
 - [Especificación del motor RPA](ESPECIFICACION_MOTOR_RPA.md)
 
 La implementación deberá convertir estos contratos en modelos, código y pruebas de conformidad antes de habilitar los módulos en la interfaz.
+
+
+- [ADR-002 — Estrategia de selección del motor Android](decisiones/ADR-002-ESTRATEGIA-MOTOR-ANDROID.md): criterios de comparación y bloqueos de seguridad/licencia.
