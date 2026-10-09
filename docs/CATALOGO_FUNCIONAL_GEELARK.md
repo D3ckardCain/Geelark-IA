@@ -310,3 +310,21 @@ Se contemplan dos vías compatibles, no excluyentes:
 - Comparar resultados observables del origen y del destino, documentando cada diferencia.
 
 Esta capacidad amplía el alcance aprobado, pero sigue siendo investigación hasta completar las pruebas con hardware compatible.
+
+
+### 16.1 Compatibilidad objetivo: Android de cualquier marca y versión (progresiva)
+
+**Decisión del usuario, 2026-10-09:** el objetivo es admitir cualquier teléfono Android que permita conexión mediante ADB, sin limitar el diseño inicial a una marca concreta.
+
+Esto define un objetivo de compatibilidad amplia, no una garantía inmediata de que todos los dispositivos, versiones o fabricantes funcionarán igual. La compatibilidad se incorporará progresivamente y se publicará con evidencia.
+
+- Diseñar un adaptador ADB genérico y separar la detección de dispositivo de las capacidades específicas de fabricante/versión.
+- Detectar y registrar fabricante, modelo, versión Android/API, estado ADB y capacidades observadas; evitar almacenar identificadores completos innecesarios.
+- Crear una matriz de compatibilidad por versión Android, fabricante/modelo probado, sistema anfitrión, versión de herramientas ADB y campos que realmente se pueden leer/importar.
+- Clasificar cada combinación como **no probada**, **detectada**, **lectura validada**, **importación parcial validada** o **compatibilidad validada para campos concretos**. No usar una etiqueta genérica de “compatible” sin indicar qué se probó.
+- Empezar con dispositivos disponibles para pruebas y añadir fabricantes/versiones según se obtenga hardware o evidencia reproducible.
+- Ante campos no disponibles, restricciones del fabricante o permisos denegados, mostrar una explicación y continuar con el resto cuando sea seguro.
+- Mantener la lectura como modo predeterminado; cualquier operación de importación/aplicación requiere vista previa y confirmación explícita.
+- No asumir que una versión de Android reciente, un fabricante específico o un teléfono con ADB autorizado expone todos los mismos campos.
+
+**Criterio de aceptación:** cada combinación incluida en la lista de compatibilidad debe tener resultados de pruebas reproducibles, lista de campos admitidos y no admitidos, errores conocidos y versión de herramientas utilizada. Hasta entonces, se describe como objetivo de diseño, no como compatibilidad demostrada.
