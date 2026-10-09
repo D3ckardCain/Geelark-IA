@@ -66,3 +66,15 @@ No se inicia implementación de producto ni se selecciona stack definitivo duran
 Se completó una primera comparación documental de redroid, Android Emulator oficial, Waydroid y Android-x86/derivados. La revisión detecta que no basta con comparar funciones: las condiciones de licencia de SDK/imágenes, las funciones del kernel Linux, el aislamiento entre instancias y los privilegios/puertos ADB son criterios de bloqueo.
 
 La issue [#8 — Comparar y validar motores Android locales](https://github.com/D3ckardCain/Geelark-IA/issues/8) controla los siguientes entregables. redroid queda como primer candidato a probar si el anfitrión resulta ser Linux compatible; no es aún el motor aprobado. La selección permanece bloqueada hasta obtener las especificaciones del anfitrión y completar una prueba reproducible.
+
+
+## Actualización del orden de auditoría — 2026-10-09
+
+La revisión directa de guías oficiales permitió concretar criterios de aceptación preliminares para perfiles, proxies, aplicaciones, grupos, RPA, Synchronizer, API/CLI, webhooks, logs y operación offline. Estos criterios están en la sección 2.5 de la matriz y no significan que exista implementación.
+
+Orden de trabajo vigente:
+1. Completar los bloques RPA y sus contratos de flujo.
+2. Enumerar los endpoints API públicos con sus esquemas y errores; definir contratos locales propios.
+3. Completar Library, Members, Logs, Analytics, cámara, sensores, GPS y conectividad.
+4. Completar criterios de aceptación de cada fila de la matriz.
+5. Ejecutar la prueba del motor en el anfitrión real una vez disponibles sus especificaciones.
