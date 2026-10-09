@@ -78,3 +78,20 @@ El catálogo funcional ampliado está en [CATALOGO_FUNCIONAL_GEELARK.md](CATALOG
 ### Criterio para estado
 
 No marcar estas subáreas como “Especificado” hasta que el catálogo incluya campos/acciones, entradas/salidas, errores, restricciones, fuente y prueba de aceptación concreta. Las páginas de marketing y las notas de versión sirven como evidencia de existencia, no como especificación completa.
+
+
+## 2.2 Hallazgos adicionales de gestión de perfiles (2026-10-09)
+
+Fuente de apoyo: [gestión de perfiles y grupos](https://help.geelark.com/Group-management-c91b6291bb954a69a5d231781a03d0e1), [aplicaciones](https://help.geelark.com/Applications-95cfce3d74e443b8a5f57f5123669e60), [Add Custom Phone](https://help.geelark.com/Add-Custom-Phone-2ee0be7d9e418045ac69ffd6eb043e63?pvs=21).
+
+| Función concreta | Evidencia | Adaptación local | Estado / diferencia |
+|---|---|---|---|
+| Filtrar perfiles y editar solo cerrados | La guía de gestión describe filtros y edición de perfiles cerrados | Filtros locales; edición con reglas de estado para evitar corrupción | Investigación inicial |
+| Crear, renombrar, borrar y fusionar grupos | Guía de gestión de perfiles | CRUD de grupos y fusión con tratamiento de conflictos | Investigación inicial |
+| Mover perfiles y gestionar acceso de miembros | Guía de gestión de perfiles | Cambiar grupo/propietario/permisos, registrar auditoría | Investigación inicial |
+| Instalar/actualizar apps individualmente y por lotes | Guía Applications | APK aportados por usuario, asignación a grupo y estado por instancia | Investigación inicial |
+| Extraer huella desde teléfono físico | Guía Add Custom Phone requiere un Android físico conectado por USB/ADB | No se puede replicar exactamente sin contradecir el alcance de no depender de teléfonos físicos; alternativa: identidad sintética configurable y limitaciones documentadas | Diferencia estructural explícita |
+| Retención/recuperación de perfiles eliminados | Notas históricas de versión mencionan papelera y retención temporal | Diseñar papelera local configurable y recuperación probada | Investigación inicial |
+| Sustitución/configuración masiva | Notas de versión documentan operaciones masivas con límites de versión/plan | Cola local con resultados por elemento y límite basado en recursos reales | Investigación inicial |
+
+**Nota de paridad importante:** la función de extracción de huella de un teléfono real queda registrada como **no equivalente bajo el alcance actual**, no como tarea de implementación pendiente que se pueda resolver solo con software. Si el alcance cambia en el futuro, habrá que revisar esta decisión expresamente.
