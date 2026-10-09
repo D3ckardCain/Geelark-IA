@@ -7,20 +7,20 @@
 
 | Equipo | CPU recordada (no verificada) | RAM | Disco |
 |---|---|---:|---:|
-| PC-MASTER | Intel Core i7-11700 (pendiente de confirmar) | 16 GB | 500 GB |
-| WORKER-01 | Intel Core i5-11400 (pendiente de confirmar) | 32 GB | NVMe M.2 de 500 GB |
-| WORKER-02 | Intel Core i5-11400 (pendiente de confirmar) | 32 GB | NVMe M.2 de 500 GB |
-| WORKER-03 | Intel Core i5-11400 (pendiente de confirmar) | 32 GB | NVMe M.2 de 500 GB |
+| PC-MASTER | Intel Core i7 (modelo exacto pendiente de confirmar; el usuario recuerda i7-11700) | 16 GB | 500 GB |
+| WORKER-01 | Intel Core i5-11400 (confirmado por el usuario) | 32 GB | NVMe M.2 de 500 GB |
+| WORKER-02 | Intel Core i5-11400 (confirmado por el usuario) | 32 GB | NVMe M.2 de 500 GB |
+| WORKER-03 | Intel Core i5-11400 (confirmado por el usuario) | 32 GB | NVMe M.2 de 500 GB |
 
-No hay sistema operativo instalado. LAN Gigabit. Los equipos pueden estar encendidos todo el día. La suma declarada es 112 GB de RAM física entre cuatro nodos, no una memoria unificada. El almacenamiento conocido suma 2 TB entre los cuatro equipos.
+No hay tarjetas gráficas dedicadas en ninguno de los equipos. Esto no confirma ni descarta la presencia de gráficos integrados en la CPU; las capacidades de la iGPU y su soporte en Linux deben comprobarse. LAN Gigabit. Los equipos pueden estar encendidos todo el día. La suma declarada es 112 GB de RAM física entre cuatro nodos, no una memoria unificada. El almacenamiento conocido suma 2 TB entre los cuatro equipos.
 
 ## 2. Opciones evaluadas
 
 ### A. redroid — candidato prioritario para un prototipo
 
 - Proyecto: https://github.com/remote-android/redroid-doc
-- El proyecto describe Android en contenedores Linux, con arquitecturas amd64/arm64 y posibilidad de ejecutar múltiples instancias en un host.
-- Puede encajar mejor que una VM completa por instancia para investigar densidad de dispositivos, pero no se debe prometer cuántas instancias caben por worker antes de medir RAM, CPU, gráficos, almacenamiento y compatibilidad de aplicaciones.
+- El proyecto describe Android en contenedores Linux, con arquitecturas amd64/arm64 y posibilidad de ejecutar múltiples instancias en un host. Como no hay GPU dedicada, hay que comprobar si el motor y la imagen elegida funcionan con gráficos integrados o renderizado por software.
+- Puede encajar mejor que una VM completa por instancia para investigar densidad de dispositivos, pero el renderizado por software podría elevar mucho el consumo de CPU. No se debe prometer cuántas instancias caben por worker antes de medir RAM, CPU, gráficos, almacenamiento y compatibilidad de aplicaciones.
 - Requiere características/módulos del kernel y permisos elevados en el host; el ejemplo de despliegue usa modo privilegiado. Eso aumenta el impacto potencial de una vulnerabilidad y obliga a aislar los workers, limitar la administración y no publicar ADB en Internet.
 - La licencia del proyecto principal es Apache-2.0, pero el propio proyecto advierte que hay componentes de terceros cuyas licencias deben revisarse. Google Mobile Services/Play Store, imágenes propietarias y traducción de aplicaciones ARM no se deben dar por incluidos ni legalmente redistribuibles.
 - **Veredicto:** mejor candidato inicial para una prueba aislada, sujeto a comprobar kernel, GPU, servicios necesarios y licencias.
@@ -28,7 +28,7 @@ No hay sistema operativo instalado. LAN Gigabit. Los equipos pueden estar encend
 ### B. Android Emulator oficial — útil como referencia de prueba
 
 - Documentación: https://developer.android.com/studio/run/emulator-acceleration
-- En Linux, la aceleración depende de KVM y de que VT-x/Intel 64/XD estén disponibles y habilitados.
+- En Linux, la aceleración depende de KVM y de que VT-x/Intel 64/XD estén disponibles y habilitados. La disponibilidad de aceleración gráfica también debe medirse; sin GPU dedicada, el rendimiento de gráficos puede convertirse en un límite.
 - Está orientado al desarrollo y pruebas de Android. Puede servir para una prueba comparativa de compatibilidad, pero aún no se ha validado como motor de operación continua de muchas instancias gestionadas remotamente en este clúster.
 - Deben evaluarse tamaño de imágenes, descargas del SDK, uso de RAM/GPU y condiciones de uso antes de elegirlo.
 - **Veredicto:** referencia secundaria de pruebas, no decisión de producción por ahora.
@@ -37,7 +37,7 @@ No hay sistema operativo instalado. LAN Gigabit. Los equipos pueden estar encend
 
 - Documentación: https://docs.blissos.org/installation/install-in-a-virtual-machine/install-in-qemu/
 - QEMU/KVM permite asignar CPU, RAM, disco y red a cada VM; la documentación de Bliss OS advierte que ciertos modos/ versiones pueden tener limitaciones gráficas o de compatibilidad.
-- Una VM completa ofrece un límite de aislamiento más claro que compartir el kernel del host, pero normalmente consume más recursos por instancia y requiere validar cuidadosamente arranque, gráficos, entrada y compatibilidad con aplicaciones.
+- Una VM completa ofrece un límite de aislamiento más claro que compartir el kernel del host, pero normalmente consume más recursos por instancia y requiere validar cuidadosamente arranque, gráficos, entrada y compatibilidad con aplicaciones. La falta de GPU dedicada hace especialmente importante probar la aceleración disponible y el coste del renderizado por software.
 - **Veredicto:** plan alternativo si redroid falla con las aplicaciones objetivo o si la compatibilidad/aislamiento pesa más que la densidad.
 
 ## 3. Propuesta inicial de arquitectura
@@ -67,12 +67,12 @@ La primera candidata para evaluar es una distribución Linux Server con soporte 
 
 ## 6. Pruebas obligatorias antes de desplegar
 
-1. Confirmar CPU exacta, GPU, RAM, disco y soporte VT-x en cada PC; comprobar VT-x habilitado en BIOS/UEFI.
+1. Confirmar modelo exacto del i7 de PC-MASTER; los tres i5-11400 de los workers están confirmados por el usuario. Inventariar la iGPU disponible, RAM, disco y soporte VT-x en cada PC; comprobar VT-x habilitado en BIOS/UEFI.
 2. Arrancar un entorno Live USB sin instalar ni modificar discos para inventariar hardware, cuando el usuario esté listo.
 3. Instalar solo en un worker de prueba después de revisar y aprobar el plan de recuperación.
 4. Validar arranque/parada, persistencia de datos, ADB restringido a LAN, streaming/visualización remota y recuperación tras reinicio.
 5. Probar las aplicaciones reales requeridas: arquitectura ABI, servicios Google si son necesarios, notificaciones, red, cámara/sensores si aplican y comportamiento de autenticación. No asumir que las aplicaciones bancarias, DRM o apps con detección de emulador funcionarán.
-6. Medir memoria y CPU en reposo y bajo carga, latencia, estabilidad durante 24 horas y densidad máxima sostenible con margen de seguridad.
+6. Medir memoria, CPU y carga gráfica en reposo y bajo carga, latencia, estabilidad durante 24 horas y densidad máxima sostenible con margen de seguridad. Comparar aceleración integrada y renderizado por software cuando ambas opciones existan.
 7. Probar fallo de red, reinicio de worker, actualización fallida, rollback y restauración de caché.
 8. Revisar licencias y seguridad antes de permitir uso continuo.
 
@@ -86,7 +86,7 @@ La primera candidata para evaluar es una distribución Linux Server con soporte 
 
 ## 8. Decisión provisional
 
-**Continuar con redroid como primer candidato experimental**, manteniendo Android Emulator como comparación de pruebas y Bliss OS/QEMU-KVM como alternativa. Esta es una recomendación para el siguiente ciclo de investigación, no una aprobación para instalar. El siguiente bloqueo técnico es confirmar hardware exacto y listar las aplicaciones/funciones que deben funcionar en cada teléfono virtual.
+**Continuar con redroid como primer candidato experimental**, manteniendo Android Emulator como comparación de pruebas y Bliss OS/QEMU-KVM como alternativa. Esta es una recomendación para el siguiente ciclo de investigación, no una aprobación para instalar. El siguiente bloqueo técnico es confirmar el modelo exacto del i7 de PC-MASTER, identificar las capacidades gráficas integradas y listar las aplicaciones/funciones que deben funcionar en cada teléfono virtual.
 
 ## Fuentes oficiales
 
