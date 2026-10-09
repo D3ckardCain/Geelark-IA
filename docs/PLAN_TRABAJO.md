@@ -108,3 +108,11 @@ La [propuesta de arquitectura](ARQUITECTURA_TECNOLOGICA_PROPUESTA.md) se creó p
 - [Inventario de licencias y coste](INVENTARIO_LICENCIAS_COSTE.md)
 
 Antes de empaquetar o redistribuir se generará un SBOM, un inventario de licencias transitivas y una verificación de licencias de imágenes Android y APK.
+
+
+## Contratos previos a implementación
+
+- [Contrato del adaptador Android](CONTRATO_ADAPTADOR_ANDROID.md)
+- [Especificación del motor RPA](ESPECIFICACION_MOTOR_RPA.md)
+
+La implementación deberá convertir estos contratos en modelos, código y pruebas de conformidad antes de habilitar los módulos en la interfaz.
