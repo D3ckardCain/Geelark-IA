@@ -7,7 +7,7 @@
 ## 1. Decisión técnica provisional
 
 - Usar WORKER-01 (Intel Core i5-11400, 32 GB RAM, NVMe 500 GB) como primer equipo de laboratorio. No usar PC-MASTER para el primer experimento.
-- Primera opción de sistema host a evaluar: **Ubuntu Server 24.04.5 LTS**, instalación mínima, por madurez y soporte estándar de seguridad hasta 2029. Comparar con Debian Stable antes de fijar la versión definitiva. La elección no se considera cerrada hasta comprobar los requisitos exactos del motor Android y el hardware.
+- Primera opción de sistema host a evaluar: **Debian 13.7 Stable (Trixie)**, instalación mínima, por su ciclo publicado de soporte hasta el 30 de junio de 2030 y su enfoque estable. **Ubuntu Server 24.04.5 LTS** queda como alternativa si las dependencias documentadas del motor Android o los controladores funcionan mejor allí. La elección no se considera cerrada hasta comprobar los requisitos exactos del motor Android y el hardware. Ambas opciones son descargables sin cuota obligatoria; no usar suscripciones ni servicios de pago.
 - Mantener **redroid bloqueado** mientras no exista evidencia reproducible de que la versión concreta evita modificar `/proc/sys/kernel/modprobe` del host.
 - Alternativa prioritaria para el primer prototipo Android: una VM QEMU/KVM. Bliss OS es solo candidato; primero hay que verificar compatibilidad de la imagen y las aplicaciones objetivo. Una VM completa mejora el límite de aislamiento frente a compartir kernel, pero no garantiza compatibilidad ni seguridad por sí sola.
 
@@ -51,6 +51,7 @@ dmesg | grep -Ei 'kvm|vmx|i915|xe|drm|firmware' | tail -n 100
 ```
 
 Notas:
+- Intel especifica que el Core i5-11400 incluye Intel UHD Graphics 730 y admite VT-x/VT-d. Esto no confirma que cada equipo tenga exactamente ese SKU (no debe ser i5-11400F), que la iGPU esté habilitada en firmware o que el controlador acelere el motor Android elegido; se debe comprobar en cada worker.
 - Que aparezca `vmx` indica que la CPU anuncia Intel VT-x; no demuestra por sí solo que esté habilitado en firmware ni que KVM funcione.
 - La GPU integrada exacta y su controlador se deben confirmar con `lspci -nnk`; no asumir que existe aceleración gráfica utilizable solo por tratarse de un i5-11400.
 - No ejecutar comandos de particionado, formateo, instalación, actualización de firmware ni escritura en sysctl en esta fase.
@@ -102,6 +103,7 @@ Tras aprobación e instalación del host:
 
 - Esta guía no es una autorización para instalar.
 - La primera fase solo recopila información en Live USB.
+- Fuentes para revisar antes de fijar versión: Debian 13 lifecycle (https://www.debian.org/releases/trixie/index), Ubuntu 24.04 lifecycle (https://ubuntu.com/about/release-cycle?product=ubuntu&release=ubuntu&version=24.04+LTS), Intel i5-11400 specifications (https://www.intel.com/content/www/us/en/products/sku/212270/intel-core-i511400-processor-12m-cache-up-to-4-40-ghz/specifications.html), QEMU/KVM documentation (https://www.qemu.org/docs/master/system/target-i386.html).
 - No se han modificado discos, BIOS/UEFI, Supabase ni el sistema en ninguno de los cuatro equipos.
 - No hay todavía una cifra fiable de instancias Android por nodo; solo una prueba de carga puede establecerla.
 - La electricidad, el desgaste, la conectividad y el tiempo de mantenimiento siguen siendo costes indirectos aunque no haya cuotas de software.
