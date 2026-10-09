@@ -134,3 +134,18 @@ Se amplió el catálogo funcional con verificaciones directas de Profile, Proxie
 - [ ] Validar funciones en el motor Android local tras elegirlo mediante pruebas.
 
 La nueva evidencia no cambia los estados a “implementado” o “equivalente”. El producto sigue sin módulos implementados. La selección del motor está bloqueada hasta conocer el anfitrión y ejecutar pruebas reproducibles.
+
+
+## Actualización de auditoría — Library, Members, Analytics, ADB y cámara (2026-10-09)
+
+Se incorporaron al catálogo los hallazgos de las guías oficiales de Library, Members, Analytics, ADB y cámara, y se actualizaron las filas P-006, P-011, P-013, P-015 y P-019 de la matriz.
+
+Puntos clave:
+- Library de GeeLark se describe como función Pro y con retención cloud temporal; Geelark-IA prioriza archivos locales persistentes.
+- La guía ADB consultada enumera Android 11–16; el acceso local se diseñará restringido y no se expondrá públicamente.
+- Analytics de redes sociales es una integración externa distinta de las métricas locales del motor.
+- Multiusuario/roles requieren matriz de permisos; no se obliga a crear cuentas cloud para uso local.
+- La cámara se evaluará por fuente (imagen, webcam, vídeo pregrabado, cámara física opcional), sin afirmar equivalencia física.
+- La guía pública de Logs no aporta contenido suficiente para inferir su esquema; P-014 sigue pendiente de evidencia.
+
+No hay implementación ni pruebas de motor. El inventario continúa en fase A.
