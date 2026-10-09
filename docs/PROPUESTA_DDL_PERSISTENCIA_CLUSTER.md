@@ -213,15 +213,17 @@ El branch contiene ahora estos artefactos separados:
 - `packages/cluster-persistence/prototype/001_schema.sql`: tablas y restricciones, incluida la capacidad utilizable por nodo.
 - `packages/cluster-persistence/prototype/002_assign_instance.sql`: función transaccional `cluster_control.assign_instance`.
 - `packages/cluster-persistence/prototype/003_apply_agent_result.sql`: función `cluster_control.apply_agent_result`, que verifica identidad de nodo proporcionada por el servicio, propietario, operación y epoch antes de actualizar estado.
+- `packages/cluster-persistence/prototype/004_outbox_dispatch.sql`: funciones para reclamar eventos pendientes con `FOR UPDATE SKIP LOCKED`, marcar entrega y reprogramar fallos.
 - `packages/cluster-persistence/prototype/test_assignment_function.sql`: asignación, repetición idempotente, conflicto de hash y rechazo por capacidad insuficiente.
 - `packages/cluster-persistence/prototype/test_agent_result.sql`: resultado válido, resultado terminal repetido, epoch antiguo y nodo no propietario.
+- `packages/cluster-persistence/prototype/test_outbox_dispatch.sql`: claims exclusivos, retry diferido, recuperación de claim vencido y entrega idempotente.
 - `packages/cluster-persistence/prototype/test_concurrency.sh`: carrera de dos inserciones de reserva.
 - `packages/cluster-persistence/prototype/test_concurrent_assignments.sh`: dos transacciones intentan asignar la misma instancia a nodos distintos.
 - `.github/workflows/cluster-persistence-prototype.yml`: pruebas en PostgreSQL 16 efímero.
 
-La función de prueba bloquea en orden instancia, nodo y capacidad; valida telemetría reciente, vuelve a calcular reservas activas, incrementa el epoch y escribe propietario, reserva, operación, auditoría, idempotencia y outbox dentro de la misma transacción. La entrega del outbox no forma parte de estas funciones. La función de resultados no autentica por sí misma al agente: el identificador de nodo debe derivarse de una sesión autenticada por el servicio de dominio.
+La función de prueba bloquea en orden instancia, nodo y capacidad; valida telemetría reciente, vuelve a calcular reservas activas, incrementa el epoch y escribe propietario, reserva, operación, auditoría, idempotencia y outbox dentro de la misma transacción. Las funciones del outbox prueban reclamación y reintento, pero no ejecutan una entrega de red; la entrega real del outbox no está implementada. La función de resultados no autentica por sí misma al agente: el identificador de nodo debe derivarse de una sesión autenticada por el servicio de dominio.
 
-**Limitaciones explícitas:** no se ha implementado aún el endpoint/servicio de aplicación que invoque la función; no hay autenticación real de agentes, comprobación de compatibilidad del motor Android, dispatcher del outbox, reconciliación tras caídas ni restauración probada. El fencing SQL tiene una prueba inicial, pero depende de una identidad autenticada suministrada por una capa de servicio aún inexistente. La función es un prototipo para validar invariantes de base de datos, no una API segura para exponer a nodos.
+**Limitaciones explícitas:** no se ha implementado aún el endpoint/servicio de aplicación que invoque la función; no hay autenticación real de agentes, comprobación de compatibilidad del motor Android, proceso dispatcher de larga duración, reconciliación tras caídas ni restauración probada. El fencing SQL tiene una prueba inicial, pero depende de una identidad autenticada suministrada por una capa de servicio aún inexistente. La función es un prototipo para validar invariantes de base de datos, no una API segura para exponer a nodos.
 
 ## Obligaciones de la capa transaccional
 
@@ -264,7 +266,7 @@ Antes de convertir esto en migración real:
 
 ## Estado honesto
 
-Este documento sigue siendo una propuesta técnica, pero el SQL de prototipo asociado sí se ha ejecutado en PostgreSQL 16 temporal mediante GitHub Actions. Las pruebas cubren restricciones básicas, repetición idempotente, conflicto de hash, capacidad insuficiente, una carrera de dos asignaciones completas y rechazo de resultados con epoch antiguo o de un nodo no propietario. No constituyen todavía persistencia productiva ni prueban dispatcher, fencing de resultados, recuperación distribuida o restauración.
+Este documento sigue siendo una propuesta técnica, pero el SQL de prototipo asociado sí se ha ejecutado en PostgreSQL 16 temporal mediante GitHub Actions. Las pruebas cubren restricciones básicas, repetición idempotente, conflicto de hash, capacidad insuficiente, una carrera de dos asignaciones completas, rechazo de resultados con epoch antiguo o de un nodo no propietario y las primitivas SQL de claim/retry del outbox. No constituyen todavía persistencia productiva ni prueban dispatcher, fencing de resultados, recuperación distribuida o restauración.
 ),
     operation_id        uuid REFERENCES cluster_control.operations(operation_id) ON DELETE RESTRICT,
     response_summary    jsonb NOT NULL DEFAULT '{}'::jsonb
