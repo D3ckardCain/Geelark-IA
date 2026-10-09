@@ -31,6 +31,8 @@ Replicar las funciones de GeeLark aplicables a Android en una plataforma local. 
 - [Modelo de amenazas y requisitos de seguridad](MODELO_AMENAZAS_SEGURIDAD.md)
 - [Guía de inventario del equipo anfitrión](GUIA_INVENTARIO_EQUIPO.md)
 - [Arquitectura tecnológica propuesta](ARQUITECTURA_TECNOLOGICA_PROPUESTA.md)
+- [ADR-001 — Stack principal](decisiones/ADR-001-STACK-PRINCIPAL.md)
+- [Inventario de licencias y coste](INVENTARIO_LICENCIAS_COSTE.md)
 - [Requisitos](REQUISITOS.md)
 
 ## Investigación documental inicial
@@ -193,3 +195,11 @@ Se acepta la directriz de no bloquear la estrategia en las especificaciones de u
 Propuesta inicial: Tauri 2 + React/TypeScript/Vite; FastAPI/Python; SQLite con migraciones; adaptadores desacoplados para motores Android; Android Emulator oficial como baseline de compatibilidad y redroid en Linux como experimento de densidad; ADB encapsulado; RPA propio con estados, límites y recuperación; Appium/UIAutomator2 y Playwright para pruebas.
 
 La elección del motor sigue pendiente de pruebas comparativas, pero ya no se requiere hardware del usuario para diseñar el stack y los contratos. Se continuará con decisiones tecnológicas, licencias, contratos y pruebas reproducibles genéricas. Ninguna función se considera implementada por la sola creación de estos documentos.
+
+
+## Decisiones tecnológicas preliminares registradas
+
+- [ADR-001 — Stack principal](decisiones/ADR-001-STACK-PRINCIPAL.md): Linux Ubuntu LTS x86_64 como anfitrión de referencia; Tauri/React/TypeScript, FastAPI/Python, SQLite; Android Emulator como baseline y redroid como candidato de densidad sujeto a pruebas.
+- [Inventario de licencias y coste](INVENTARIO_LICENCIAS_COSTE.md): licencias de componentes principales, advertencias sobre imágenes/APK y build local obligatorio.
+
+Estas son decisiones de diseño para prototipo; no certifican todavía la compatibilidad del motor Android ni la seguridad de una instalación real.
