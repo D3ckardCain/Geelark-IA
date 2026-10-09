@@ -80,3 +80,8 @@ Se creó el [catálogo funcional detallado de GeeLark](CATALOGO_FUNCIONAL_GEELAR
 - [ ] Continuar investigación de motores Android y prueba práctica tras recopilar las especificaciones del anfitrión.
 
 La investigación sigue siendo documental y parcial. No se ha seleccionado un motor, no hay pruebas de ejecución local y no se declara ningún módulo implementado ni equivalente.
+
+
+### Hallazgo crítico de paridad: huella extraída de teléfono físico
+
+La documentación oficial de GeeLark para “Add Custom Phone” describe la extracción de parámetros desde un Android físico conectado por USB/ADB. Como el proyecto se definió sin depender de teléfonos físicos, esa función específica no puede reproducirse de forma idéntica bajo el alcance actual. Se registró como diferencia estructural: la alternativa posible es una identidad sintética por instancia, limitada a los campos que admita el motor y sin prometer equivalencia con un dispositivo físico real. Este hallazgo queda desarrollado en `docs/CATALOGO_FUNCIONAL_GEELARK.md` y `docs/MATRIZ_PARIDAD_GEELARK.md`.
