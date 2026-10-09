@@ -103,3 +103,6 @@ Avanzar de forma autónoma por la siguiente tarea técnicamente justificada y re
 ### Implementación técnica en revisión
 
 - [PR #16 — contratos tipados y máquina de estados](https://github.com/D3ckardCain/Geelark-IA/pull/16) (borrador; no integrado).
+
+
+- [Especificación de persistencia segura de asignaciones](docs/ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md) (diseño, no implementación).
