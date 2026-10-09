@@ -3,7 +3,7 @@
 **Actualizado:** 2026-10-09  
 **Fase activa:** A — inventario funcional de GeeLark y viabilidad de Android virtualizado local.
 
-El plan maestro está en [PLAN_PARIDAD_GEELARK.md](PLAN_PARIDAD_GEELARK.md). La investigación documental está en [INVESTIGACION_FUNCIONAL_GEELARK.md](INVESTIGACION_FUNCIONAL_GEELARK.md) y la matriz en [MATRIZ_PARIDAD_GEELARK.md](MATRIZ_PARIDAD_GEELARK.md).
+El plan maestro está en [PLAN_PARIDAD_GEELARK.md](PLAN_PARIDAD_GEELARK.md). La investigación documental está en [INVESTIGACION_FUNCIONAL_GEELARK.md](INVESTIGACION_FUNCIONAL_GEELARK.md), la matriz en [MATRIZ_PARIDAD_GEELARK.md](MATRIZ_PARIDAD_GEELARK.md) y la comparativa de motores en [COMPARATIVA_MOTORES_ANDROID.md](COMPARATIVA_MOTORES_ANDROID.md).
 
 ## Objetivo confirmado
 
@@ -59,3 +59,10 @@ La issue activa para este trabajo es [#6 — Completar el catálogo de perfiles,
 6. Solo después, continuar selección de motor mediante prueba reproducible en el hardware anfitrión.
 
 No se inicia implementación de producto ni se selecciona stack definitivo durante esta auditoría.
+
+
+## Comparativa documental de motores (2026-10-09)
+
+Se completó una primera comparación documental de redroid, Android Emulator oficial, Waydroid y Android-x86/derivados. La revisión detecta que no basta con comparar funciones: las condiciones de licencia de SDK/imágenes, las funciones del kernel Linux, el aislamiento entre instancias y los privilegios/puertos ADB son criterios de bloqueo.
+
+La issue [#8 — Comparar y validar motores Android locales](https://github.com/D3ckardCain/Geelark-IA/issues/8) controla los siguientes entregables. redroid queda como primer candidato a probar si el anfitrión resulta ser Linux compatible; no es aún el motor aprobado. La selección permanece bloqueada hasta obtener las especificaciones del anfitrión y completar una prueba reproducible.
