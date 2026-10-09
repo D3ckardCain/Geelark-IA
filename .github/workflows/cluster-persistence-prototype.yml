@@ -34,7 +34,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes postgresql-client
-      - name: Apply prototype to disposable PostgreSQL
+      - name: Apply prototype schema to disposable PostgreSQL
         env:
           PGHOST: localhost
           PGPORT: "5432"
@@ -42,6 +42,14 @@ jobs:
           PGPASSWORD: test-only-password
           PGDATABASE: cluster_test
         run: psql -v ON_ERROR_STOP=1 -f packages/cluster-persistence/prototype/001_schema.sql
+      - name: Apply transactional assignment function
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGPASSWORD: test-only-password
+          PGDATABASE: cluster_test
+        run: psql -v ON_ERROR_STOP=1 -f packages/cluster-persistence/prototype/002_assign_instance.sql
       - name: Test core database constraints
         env:
           PGHOST: localhost
@@ -50,6 +58,14 @@ jobs:
           PGPASSWORD: test-only-password
           PGDATABASE: cluster_test
         run: psql -v ON_ERROR_STOP=1 -f packages/cluster-persistence/prototype/test_constraints.sql
+      - name: Test transactional assignment and idempotency
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGPASSWORD: test-only-password
+          PGDATABASE: cluster_test
+        run: psql -v ON_ERROR_STOP=1 -f packages/cluster-persistence/prototype/test_assignment_function.sql
       - name: Test concurrent active reservation exclusion
         env:
           PGHOST: localhost
@@ -58,3 +74,11 @@ jobs:
           PGPASSWORD: test-only-password
           PGDATABASE: cluster_test
         run: bash packages/cluster-persistence/prototype/test_concurrency.sh
+      - name: Test concurrent complete assignments
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGPASSWORD: test-only-password
+          PGDATABASE: cluster_test
+        run: bash packages/cluster-persistence/prototype/test_concurrent_assignments.sh
