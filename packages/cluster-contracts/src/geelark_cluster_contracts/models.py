@@ -168,8 +168,12 @@ class OperationResult(ProtocolEnvelope):
 
     @model_validator(mode="after")
     def rejected_result_requires_error(self):
-        if self.status == OperationStatus.REJECTED and self.error is None:
-            raise ValueError("Un resultado rejected debe incluir error")
-        if self.status != OperationStatus.REJECTED and self.error is not None:
-            raise ValueError("error solo se permite con status rejected en esta versión")
+        if self.status in {OperationStatus.REJECTED, OperationStatus.FAILED} and self.error is None:
+            raise ValueError("Los resultados rejected/failed deben incluir error")
+        if self.status not in {
+            OperationStatus.REJECTED,
+            OperationStatus.FAILED,
+            OperationStatus.UNKNOWN,
+        } and self.error is not None:
+            raise ValueError("Este estado no admite error en la versión actual")
         return self
