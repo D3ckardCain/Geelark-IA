@@ -119,3 +119,24 @@ La implementación deberá convertir estos contratos en modelos, código y prueb
 
 
 - [ADR-002 — Estrategia de selección del motor Android](decisiones/ADR-002-ESTRATEGIA-MOTOR-ANDROID.md): criterios de comparación y bloqueos de seguridad/licencia.
+
+
+## Actualización de arquitectura distribuida — 2026-10-09
+
+La arquitectura de clúster heterogéneo queda incorporada como línea prioritaria; no se tratará como ampliación futura.
+
+Documentos nuevos:
+- [Arquitectura de clúster heterogéneo](ARQUITECTURA_CLUSTER_HETEROGENEO.md).
+- [Contrato del agente de nodo y planificador distribuido](CONTRATO_AGENTE_NODO_PLANIFICADOR.md).
+- [Comparativa Proxmox VE frente a Linux directo](COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md).
+- [ADR-003 — Arquitectura distribuida](decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md).
+- [Issue #14 — Integrar clúster y planificador](https://github.com/D3ckardCain/Geelark-IA/issues/14).
+
+Orden de trabajo actualizado:
+1. Cerrar el contrato del agente de nodo, alta/autorización, heartbeat, capacidades, tareas, leases, seguridad y reconciliación.
+2. Diseñar el modelo de recursos y la asignación explicable para CPU, RAM, disco, ABI, motor Android y salud.
+3. Mantener Proxmox VE y Linux directo como candidatos hasta comparar licencias, mantenimiento, aislamiento y rendimiento.
+4. Definir una prueba reproducible de dos nodos heterogéneos y un workload Android común.
+5. Solo después de la prueba, decidir infraestructura y motor; luego implementar el núcleo distribuido con pruebas y manual en español.
+
+La especificación de agente/planificador ya está documentada, pero no implementada ni probada. No se afirmará alta disponibilidad, failover, migración en vivo ni densidad de instancias sin evidencia.
