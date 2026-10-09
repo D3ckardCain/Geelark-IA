@@ -94,6 +94,12 @@ CREATE TABLE cluster_control.resource_reservations (
     )
 );
 
+-- Defensa adicional en la base: una instancia no puede tener dos reservas
+-- vigentes, incluso si por un error de aplicación se intenta usar otro epoch.
+CREATE UNIQUE INDEX reservations_one_active_per_instance_idx
+    ON cluster_control.resource_reservations (instance_id)
+    WHERE reservation_state IN ('held','uncertain');
+
 CREATE INDEX reservations_node_state_idx
     ON cluster_control.resource_reservations (node_id, reservation_state);
 CREATE INDEX reservations_instance_epoch_idx
@@ -207,7 +213,6 @@ El DDL no puede expresar por sí solo todos los invariantes. El servicio de domi
 Antes de convertir esto en migración real:
 
 - Revisar la regla de propietario/estado: acordar exactamente qué estados permiten `owner_node_id IS NULL` y cuáles lo exigen.
-- Decidir si las reservas activas requieren índice único parcial adicional; hoy `UNIQUE(instance_id, assignment_epoch)` evita duplicar la misma reserva de epoch, pero la capa transaccional debe impedir más de una reserva vigente por instancia.
 - Definir política de retención de eventos y registros idempotentes.
 - Definir autenticación, privilegios SQL mínimos y auditoría de cambios.
 - Probar deadlocks, dos asignaciones concurrentes, caídas antes/después del envío, reinicio y restauración.
