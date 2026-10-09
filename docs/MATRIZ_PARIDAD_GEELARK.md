@@ -124,3 +124,25 @@ La comparación documental y el protocolo de pruebas están en [COMPARATIVA_MOTO
 | Android-x86/derivado | Solo evaluable al seleccionar una distribución concreta con mantenimiento verificable | Versión, licencia, gráficos, ADB y soporte de aplicaciones | Pendiente de concretar |
 
 Issue de seguimiento: [#8 — Comparar y validar motores Android locales](https://github.com/D3ckardCain/Geelark-IA/issues/8). Las conclusiones documentales no sustituyen las pruebas del hardware anfitrión.
+
+
+## 2.5 Criterios de aceptación preliminares derivados del contraste documental (2026-10-09)
+
+El catálogo funcional contiene la evidencia y el contexto. Esta tabla convierte una parte de esa evidencia en pruebas concretas para cuando exista motor y UI local.
+
+| Área | Criterios de aceptación de Geelark-IA | Dependencia / límite | Estado |
+|---|---|---|---|
+| Creación de perfiles | Crear uno; crear lote con validación por fila; asignar grupo/versión; mostrar estado de instancia; reintento no duplica recursos | Requiere motor Android aprobado | Especificación preliminar |
+| Clonación | Copiar configuración declarada, generar identidad local nueva por defecto y no copiar cuentas/tokens/datos privados sin selección explícita | Solo campos que soporte el motor | Pendiente |
+| Proxies | Importar lista con vista previa; validar formato y conexión; proteger credenciales; diferenciar fallo de proxy y fallo de geolocalización | Consulta geográfica externa opcional | Especificación preliminar |
+| Aplicaciones | Instalar APK legítima; consultar paquetes; operar por grupo; reportar éxito/fallo por instancia; persistir política de instalación automática | Compatibilidad de ABI, firma y Android | Especificación preliminar |
+| Grupos | CRUD, filtros, mover instancias, fusionar con reglas explícitas y confirmar acciones destructivas | No borrar instancias al borrar grupo sin confirmación | Especificación preliminar |
+| RPA | Guardar/versionar flujo; validar bloques; seleccionar destinos; programar; ejecutar/cancelar; consultar historial y errores | Catálogo exhaustivo de bloques aún pendiente | Investigación inicial |
+| Synchronizer | Seleccionar fuente/destinos; mostrar compatibilidad; reproducir eventos soportados; informar fallos individuales; pausar/detener | Diferencias de resolución/Android y estado de destino | Investigación inicial |
+| API/CLI | Operaciones de instancia, apps, archivos, ADB y tareas con permisos, idempotencia, errores tipados y resultados por elemento | Contratos exactos aún por diseñar | Especificación preliminar |
+| Webhooks | Firma, validación de destino, cola persistente, reintentos, deduplicación e indicador de entrega | Requiere red para receptores externos; eventos locales pueden persistir offline | Pendiente |
+| Logs | Correlación por instancia/tarea/bloque; exportación; redacción de secretos; resultados parciales explícitos | No registrar contenido privado por defecto | Especificación preliminar |
+| Offline | Abrir catálogo/configuración local, inspeccionar tareas ya guardadas y mantener cola de operaciones locales; sincronización externa se pausa y reanuda | Aplicaciones objetivo y descargas pueden requerir Internet | Diseño pendiente |
+| IA/AIGC | Deshabilitada por defecto hasta comprobar licencia, hardware y coste cero; alternativa local aislada y opcional | Calidad/velocidad dependen del anfitrión | Pendiente |
+
+Estos criterios no indican implementación ni pruebas realizadas. La etiqueta “Especificación preliminar” significa que hay un criterio inicial, pero faltan diseño completo y aprobación.
