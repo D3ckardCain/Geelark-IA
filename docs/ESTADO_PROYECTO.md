@@ -29,6 +29,7 @@ Replicar las funciones de GeeLark aplicables a Android en una plataforma local. 
 - [Plan de trabajo](PLAN_TRABAJO.md)
 - [Comparativa de motores Android locales](COMPARATIVA_MOTORES_ANDROID.md)
 - [Modelo de amenazas y requisitos de seguridad](MODELO_AMENAZAS_SEGURIDAD.md)
+- [Guía de inventario del equipo anfitrión](GUIA_INVENTARIO_EQUIPO.md)
 - [Requisitos](REQUISITOS.md)
 
 ## Investigación documental inicial
@@ -175,3 +176,10 @@ Incluye límites de confianza, protección de credenciales, aislamiento entre in
 - [x] Registrar modelo de amenazas y controles.
 - [ ] Implementar y probar controles después de seleccionar motor y arquitectura.
 - [ ] Revisar riesgos residuales antes de cualquier versión usable.
+
+
+## Bloqueo para pruebas físicas — especificaciones del anfitrión
+
+La investigación documental y los protocolos están preparados, pero la comparación final requiere datos del equipo real. Se creó [GUIA_INVENTARIO_EQUIPO.md](GUIA_INVENTARIO_EQUIPO.md) con comandos de lectura para Windows, Linux y macOS, y la [issue #10 — Recopilar especificaciones del anfitrión](https://github.com/D3ckardCain/Geelark-IA/issues/10).
+
+No se requiere instalar nada ni compartir números de serie. Hasta recibir los datos, se continuará con la documentación funcional; no se inventarán resultados de rendimiento ni se aprobará un motor por intuición.
