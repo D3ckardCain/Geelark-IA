@@ -39,6 +39,13 @@ class SimulationResult:
     changed: bool
 
 
+@dataclass(frozen=True)
+class SimulationSnapshot:
+    instance_id: UUID
+    assignment_epoch: int
+    observed_state: InstanceState
+
+
 class RuntimeSimulator:
     """In-memory fake adapter with epoch fencing and idempotency.
 
@@ -63,15 +70,13 @@ class RuntimeSimulator:
             raise ValueError("El estado inicial debe ser stopped o running")
         self._instances[instance_id] = (assignment_epoch, initial_state)
 
-    def inspect(self, instance_id: UUID) -> SimulationResult:
+    def inspect(self, instance_id: UUID) -> SimulationSnapshot:
+        """Return current simulated state without inventing an operation ID."""
         epoch, state = self._require_instance(instance_id)
-        return SimulationResult(
-            operation_id=uuid4(),
+        return SimulationSnapshot(
             instance_id=instance_id,
             assignment_epoch=epoch,
-            desired_state=state.value,
             observed_state=state,
-            changed=False,
         )
 
     def execute(
