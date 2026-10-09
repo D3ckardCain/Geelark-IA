@@ -157,3 +157,10 @@ Orden inmediato:
 5. Implementar el núcleo distribuido, pruebas automatizadas y manual de usuario antes de pasar al siguiente módulo.
 
 Los documentos son especificaciones y planes; no hay planificador, agente ni clúster implementados, y la prueba de concepto sigue pendiente.
+
+
+## Decisión previa necesaria — persistencia del clúster (2026-10-09)
+
+Se documentó [ADR-004 — Persistencia y consistencia del plano de control](decisiones/ADR-004-PERSISTENCIA-CONSISTENCIA-CLUSTER.md). La propuesta para el MVP es PostgreSQL local en la Master con un único controlador activo y sin failover automático: si la Master cae, se pausan nuevas asignaciones mientras las instancias existentes continúan cuando sea seguro. Esto prioriza no duplicar instancias sobre una promesa de alta disponibilidad no probada.
+
+La propuesta queda condicionada a revisión de licencias y a la prueba de concepto. Antes de implementar el scheduler se deben validar transacciones, epochs, idempotencia, fencing, backup/restauración y reconciliación. No se considera decisión final hasta completar esas verificaciones.
