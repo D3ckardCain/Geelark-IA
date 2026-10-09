@@ -44,6 +44,7 @@
 | P-023 | Android versions | Páginas consultadas enumeran Android 9–15 y Synchronizer menciona Android 9–16; fuentes no coinciden | Seleccionar imágenes locales compatibles tras investigar | Página Synchronizer/precios | Pendiente de aclarar | Confirmar soporte vigente y requisitos por versión |
 | P-024 | Perfiles clonados | La página de precios indica clonado en planes superiores | Clonar configuración/imagen de instancia sin compartir accidentalmente identidad | Precios | Investigación inicial | Clonación, independencia y limpieza de datos |
 | P-025 | Operaciones masivas | Crear perfiles y operar apps en grupos; Synchronizer | Cola de tareas por grupos con resultados individuales | Perfil/RPA/Synchronizer | Investigación inicial | Fallos parciales, cancelación y recuperación |
+| P-026 | Motor Android local | Candidatos: redroid, Android Emulator, Waydroid, Android-x86 | Seleccionar motor según compatibilidad, aislamiento, automatización, rendimiento y coste | Documentación oficial de cada proyecto | Investigación inicial | Benchmark y prueba de paridad en el anfitrión real |
 
 ## Reglas para completar cada fila
 
