@@ -729,3 +729,34 @@ La nota v3.7.0 describe una papelera en la que perfiles eliminados se conservaba
 ### 30.6 Límites de evidencia histórica
 
 Los números de perfiles por lote, tareas por lote, retención, restricciones de plan, versiones Android, características de root y opciones de red pueden haber cambiado. Cada dato histórico debe incluir versión y fuente y no debe convertirse en una promesa actual. El comportamiento final local se basará en recursos anfitriones, pruebas y decisiones explícitas del proyecto.
+
+
+## 31. Conexión de dispositivo físico local: evidencia adicional para importación
+
+La guía oficial «How to connect a local device» describe activar opciones de desarrollador y depuración USB, autorizar el equipo anfitrión en el teléfono, conectar por USB, abrir el área Local Device y reconocer el modelo. También describe que, tras conectar primero por USB, se puede conectar mediante Wi-Fi cuando el ordenador y el dispositivo estén en la misma red.
+
+Fuente: https://help.geelark.com/connect-real-device
+
+**Distinción importante:** esta guía documenta conexión y operación de un dispositivo físico local en GeeLark; no demuestra que todos sus parámetros de identidad puedan leerse o importarse. La importación de Geelark-IA seguirá limitada a los campos disponibles mediante interfaces autorizadas y comprobados por pruebas.
+
+**Requisitos derivados:**
+- Detectar los estados ADB habituales: dispositivo autorizado, no autorizado, offline, desconectado y múltiples dispositivos conectados.
+- Mostrar instrucciones de autorización sin intentar saltarse el diálogo del sistema.
+- Identificar el dispositivo de forma segura y enmascarar el serial en la interfaz/logs salvo necesidad técnica explícita.
+- Permitir seleccionar el dispositivo cuando hay varios conectados; nunca escoger automáticamente uno para una operación de escritura.
+- Admitir conexión USB como camino inicial; valorar conexión Wi-Fi solo tras emparejamiento autorizado, con una explicación del riesgo de red.
+- La desconexión del cable no debe provocar pérdida silenciosa de una importación ni modificar el origen.
+- Mantener por separado la función de control de un teléfono físico, la inspección de campos y la aplicación de configuración a una instancia virtual.
+
+### Pruebas adicionales de compatibilidad ADB
+
+1. Un solo dispositivo autorizado.
+2. Un dispositivo que no ha aceptado la clave RSA.
+3. Dos o más dispositivos conectados.
+4. Dispositivo desconectado durante lectura.
+5. ADB reiniciado o dispositivo marcado como offline.
+6. Depuración USB desactivada y permiso revocado.
+7. Conexión por Wi-Fi tras emparejamiento autorizado, si se decide implementar.
+8. Verificación de que la inspección no ejecuta comandos de escritura en el origen.
+
+No se afirma compatibilidad universal a partir de esta guía: cada fabricante/versión se validará progresivamente.
