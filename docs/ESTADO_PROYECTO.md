@@ -253,3 +253,15 @@ Documentos: [ESPECIFICACION_PLANIFICADOR_RECURSOS.md](ESPECIFICACION_PLANIFICADO
 ### Propuesta de persistencia del plano de control (2026-10-09)
 
 Se añadió [ADR-004 — Persistencia y consistencia del clúster](decisiones/ADR-004-PERSISTENCIA-CONSISTENCIA-CLUSTER.md). La propuesta para el MVP es PostgreSQL local en la Master, un solo controlador activo y sin failover automático hasta contar con pruebas de fencing/quorum. Si la Master cae, se pausan nuevas asignaciones; no se deben detener automáticamente instancias existentes. La propuesta requiere validación y no está implementada.
+
+
+### Contrato de mensajes del agente (2026-10-09)
+
+- [x] Definir documentalmente mensajes de alta, heartbeat, inventario, asignación y resultado.
+- [x] Definir códigos de error, reglas de idempotencia, epochs y estados inciertos.
+- [ ] Crear modelos Pydantic y fixtures.
+- [ ] Ejecutar pruebas de contrato, concurrencia y reconciliación.
+
+Documento: [CONTRATO_MENSAJES_AGENTE_CLUSTER.md](CONTRATO_MENSAJES_AGENTE_CLUSTER.md).
+
+**Límite:** contrato documental sin código ni pruebas ejecutadas.
