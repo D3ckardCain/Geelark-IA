@@ -270,3 +270,43 @@ Esta limitación no impide estudiar ni replicar el resto del sistema de perfiles
 Las notas de versión consultadas documentan límites/operaciones concretos en distintas versiones: sustitución por lotes de dispositivos (v3.6.0), prueba por lotes de proxies (v3.9.1), creación por lotes por API (v3.9.1) y configuración de red por perfil para ciertas versiones Android (v3.9.0). Esas notas demuestran que las capacidades han cambiado con el tiempo; no deben tratarse como garantía de que cada límite sigue vigente en la versión actual.
 
 La implementación local deberá usar límites configurables según recursos anfitriones y mostrar el resultado por elemento. Los límites históricos de GeeLark sirven como evidencia de funcionalidad, no como límites obligatorios para nuestro producto.
+
+
+## 16. Decisión de alcance: importar configuración e identidad desde Android físico
+
+**Fecha:** 2026-10-09. **Estado:** aprobado como vía candidata de investigación por decisión del usuario; viabilidad técnica pendiente de pruebas.
+
+Se contemplan dos vías compatibles, no excluyentes:
+
+1. **Identidad sintética:** definir una configuración propia para cada instancia Android virtual, dentro de los campos que el motor y Android permitan controlar.
+2. **Importación desde Android físico:** conectar un dispositivo compatible por USB/ADB, consultar los parámetros disponibles y permitir seleccionar cuáles se importarán como configuración de una instancia virtual.
+
+### Flujo local propuesto
+1. Detectar dispositivos ADB conectados y mostrar modelo, versión Android, estado de autorización y número de serie enmascarado cuando corresponda.
+2. Explicar los permisos solicitados y solicitar confirmación explícita antes de leer o importar parámetros.
+3. Obtener únicamente los campos documentados y técnicamente accesibles mediante interfaces autorizadas.
+4. Presentar una vista previa campo por campo: valor detectado, importable sí/no, editable sí/no, motivo de incompatibilidad y efecto previsto.
+5. Permitir seleccionar campos; excluir por defecto datos privados, credenciales, cuentas, tokens, contenido de usuario y datos de aplicaciones.
+6. Guardar un perfil de importación local, con fecha, dispositivo de origen identificado de forma segura y procedencia de cada campo.
+7. Aplicar solo los campos que admita la instancia destino; verificar el resultado tras reinicio y mostrar diferencias.
+8. Mantener separados el origen físico, el perfil de importación y la identidad efectiva de la instancia virtual.
+
+### Límites y salvaguardas
+- No prometer una copia íntegra ni una identidad indistinguible de un teléfono físico real.
+- Algunos identificadores protegidos, claves de hardware, señales de integridad/attestation, datos de SIM, módem, sensores y atributos derivados del host pueden ser inaccesibles o no modificables desde una VM/contenedor.
+- No eludir controles de seguridad, attestation ni mecanismos antiabuso de aplicaciones.
+- No copiar datos personales no solicitados; permitir revisar y excluir cada campo.
+- No hacer escritura ni cambios en el dispositivo físico de origen durante la importación.
+- Cifrar los perfiles exportados cuando contengan información sensible; nunca incluir secretos en logs.
+- Verificar licencias, permisos, compatibilidad Android/ADB y límites de cada motor antes de implementar.
+
+### Pruebas de aceptación pendientes
+- Detectar un dispositivo compatible y uno no autorizado, con errores comprensibles.
+- Mostrar inventario de campos realmente legibles sin modificar el origen.
+- Importar una selección a un perfil de prueba y documentar campos aplicados/no aplicados.
+- Reiniciar la instancia y comprobar persistencia de cada campo aplicable.
+- Confirmar que cuentas, archivos personales, tokens y datos de apps no se importan por defecto.
+- Probar desconexión USB, cancelación, permisos denegados y fallos parciales.
+- Comparar resultados observables del origen y del destino, documentando cada diferencia.
+
+Esta capacidad amplía el alcance aprobado, pero sigue siendo investigación hasta completar las pruebas con hardware compatible.
