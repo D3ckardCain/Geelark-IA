@@ -24,6 +24,18 @@ CREATE TABLE cluster_control.nodes (
 CREATE INDEX nodes_schedulable_idx
     ON cluster_control.nodes (admin_state, health_state, last_seen_at);
 
+-- Capacidad utilizable, ya descontadas las reservas de seguridad del sistema.
+-- El agente actualiza esta instantánea; la asignación siempre la vuelve a validar.
+CREATE TABLE cluster_control.node_capacity (
+    node_id                 uuid PRIMARY KEY REFERENCES cluster_control.nodes(node_id) ON DELETE RESTRICT,
+    memory_usable_bytes     bigint NOT NULL CHECK (memory_usable_bytes > 0),
+    storage_usable_bytes    bigint NOT NULL CHECK (storage_usable_bytes > 0),
+    cpu_usable_units        numeric(10,3) NOT NULL CHECK (cpu_usable_units > 0),
+    observed_at             timestamptz NOT NULL,
+    capacity_revision       bigint NOT NULL DEFAULT 1 CHECK (capacity_revision >= 1)
+);
+
+
 CREATE TABLE cluster_control.instances (
     instance_id         uuid PRIMARY KEY,
     display_name        text NOT NULL CHECK (length(trim(display_name)) BETWEEN 1 AND 160),
