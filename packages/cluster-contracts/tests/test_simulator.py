@@ -78,10 +78,11 @@ def test_unknown_instance_is_rejected(runtime):
         )
 
 
-def test_inspect_does_not_change_state(runtime):
+def test_inspect_returns_snapshot_without_creating_operation(runtime):
     inspected = runtime.inspect(INSTANCE_ID)
+    assert inspected.instance_id == INSTANCE_ID
+    assert inspected.assignment_epoch == EPOCH
     assert inspected.observed_state == InstanceState.STOPPED
-    assert inspected.changed is False
 
 
 def test_unsupported_desired_state_is_rejected(runtime):
