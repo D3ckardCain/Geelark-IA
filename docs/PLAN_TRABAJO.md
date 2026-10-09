@@ -90,3 +90,8 @@ La siguiente línea de investigación es completar el inventario de bloques RPA 
 ## Requisito transversal añadido — seguridad (2026-10-09)
 
 El documento [MODELO_AMENAZAS_SEGURIDAD.md](MODELO_AMENAZAS_SEGURIDAD.md) y la [issue #9](https://github.com/D3ckardCain/Geelark-IA/issues/9) establecen requisitos de seguridad para API local, ADB/shell, aislamiento, archivos, RPA, secretos, importación, backups y operación offline. Estos controles deberán integrarse en las pruebas de cada módulo; el documento no significa que estén implementados.
+
+
+## Inventario del anfitrión pendiente
+
+Antes de ejecutar la prueba del motor, obtener los datos del equipo siguiendo [GUIA_INVENTARIO_EQUIPO.md](GUIA_INVENTARIO_EQUIPO.md). La tarea se controla en la [issue #10](https://github.com/D3ckardCain/Geelark-IA/issues/10). La guía usa comandos de lectura y evita solicitar números de serie o secretos.
