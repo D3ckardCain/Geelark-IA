@@ -182,7 +182,7 @@ def test_naive_datetime_is_rejected():
         Heartbeat.model_validate(payload)
 
 
-def test_failed_result_requires_typed_error():
+def test_failed_result_accepts_typed_error():
     payload = {
         "protocol_version": "0.2",
         "request_id": str(REQUEST_ID),
@@ -201,3 +201,26 @@ def test_failed_result_requires_typed_error():
         },
     }
     assert OperationResult.model_validate(payload).status == OperationStatus.FAILED
+
+def test_failed_result_without_error_is_invalid():
+    payload = {
+        "protocol_version": "0.2",
+        "request_id": str(REQUEST_ID),
+        "sent_at": NOW.isoformat(),
+        "operation_id": str(OPERATION_ID),
+        "node_id": str(NODE_ID),
+        "instance_id": str(INSTANCE_ID),
+        "assignment_epoch": 1,
+        "status": "failed",
+        "observed_state": "failed",
+        "error": None,
+    }
+    with pytest.raises(ValidationError):
+        OperationResult.model_validate(payload)
+
+
+def test_protocol_version_must_have_major_minor_shape():
+    payload = valid_heartbeat()
+    payload["protocol_version"] = "v0"
+    with pytest.raises(ValidationError):
+        Heartbeat.model_validate(payload)
