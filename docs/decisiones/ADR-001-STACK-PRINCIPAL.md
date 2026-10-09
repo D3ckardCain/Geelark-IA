@@ -20,3 +20,15 @@
   - Elegir redroid como motor final sin pruebas: riesgo de asumir seguridad, compatibilidad y rendimiento.
 - **Condiciones de validación:** crear e iniciar una instancia, persistir datos tras reinicio, instalar APK de prueba, ejecutar ADB local, capturar pantalla, respaldar/restaurar, probar dos instancias aisladas, verificar puertos escuchando y registrar recursos.
 - **Revisión:** actualizar esta ADR cuando las pruebas comparativas indiquen que otro stack o motor ofrece mejor resultado.
+
+
+## Aclaración posterior: la aplicación debe operar sobre varios nodos
+
+La propuesta original de backend local se mantiene para el dominio y la API, pero el producto no se limitará a un único anfitrión. ADR-003 establece un plano de control distribuido y agentes por nodo. La base de datos local de una instalación mononodo no se considera automáticamente válida como almacén distribuido autoritativo. La decisión sobre persistencia, leases, quorum y recuperación se tomará junto con la implementación del clúster.
+
+Referencias:
+- [ADR-003 — Arquitectura distribuida](ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md)
+- [Contrato de agente y planificador](../CONTRATO_AGENTE_NODO_PLANIFICADOR.md)
+- [Comparativa de infraestructura](../COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md)
+
+Ubuntu LTS/Linux directo queda como opción de nodo candidata, no como decisión final para todos los equipos. Proxmox VE también se evaluará. La interfaz, API y modelo de dominio deben mantenerse desacoplados de ambos.
