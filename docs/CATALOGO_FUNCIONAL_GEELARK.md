@@ -220,3 +220,53 @@ La lista no es exhaustiva de todas las versiones históricas. Se debe continuar 
 ## 14. Historial
 
 - 2026-10-09: creación del catálogo detallado inicial con evidencia de Profile, Proxies, RPA, Synchronizer, Library, Applications, API/ADB y notas de versión hasta v4.5.2.
+
+
+## 15. Hallazgos adicionales: grupos, perfiles y huella de dispositivo
+
+### 15.1 Gestión de perfiles y grupos
+
+**Fuente:** [Profile management / Groups](https://help.geelark.com/Group-management-c91b6291bb954a69a5d231781a03d0e1).
+
+La guía documenta:
+- Filtrar perfiles por grupo, categoría y otros criterios.
+- Editar perfiles cuando están cerrados.
+- Transferir perfiles a otros usuarios; la transferencia descrita es irreversible para quien transfiere.
+- Crear grupos, editar sus nombres, eliminarlos y fusionarlos.
+- Consultar el número de perfiles de cada grupo.
+- Mover perfiles a otro grupo y conceder acceso a otros miembros.
+
+**Adaptación local requerida:**
+- Definir una papelera de reciclaje para instancias eliminadas y política de retención recuperable, configurable y documentada.
+- Operaciones de grupo deben ser transaccionales o informar qué elementos fallaron.
+- Las transferencias entre usuarios no se consideran idénticas a GeeLark: en modo local equivaldrán a cambiar propietario/permisos o exportar/importar un paquete cifrado, según el modo de operación.
+- Toda operación destructiva debe mostrar confirmación y registrar auditoría.
+
+### 15.2 Instalación y actualización de aplicaciones
+
+**Fuente:** [Applications](https://help.geelark.com/Applications-95cfce3d74e443b8a5f57f5123669e60).
+
+La ayuda documenta instalación individual desde una tienda disponible en el teléfono, Google Play o un APK aportado; instalación por lotes de aplicaciones asignadas a grupos; y actualización individual o masiva. Para APK/XAPK cargados, las operaciones por lotes se administran desde el apartado de aplicaciones del equipo.
+
+**Adaptación local requerida:**
+- Permitir APK proporcionado por el usuario y repositorios legítimos configurados voluntariamente.
+- No integrar una tienda propietaria ni redistribuir APKs de terceros sin permiso.
+- Validar firma, ABI, espacio libre, versión mínima de Android y resultado de instalación.
+- Una aplicación asignada a un grupo puede quedar en cola y aplicarse cuando la instancia vuelva a iniciar, si así se especifica.
+- Registrar estado por instancia y no dar por exitosa toda una operación por lotes si hubo fallos parciales.
+
+### 15.3 Huella de dispositivo y dependencia de teléfono físico
+
+**Fuente:** [Add Custom Phone / Team device library](https://help.geelark.com/Add-Custom-Phone-2ee0be7d9e418045ac69ffd6eb043e63?pvs=21).
+
+La documentación oficial describe una función que recopila parámetros de un dispositivo Android físico conectado por USB mediante ADB y permite aplicar esa información a un cloud phone. La guía menciona versiones Android 9, 10, 11, 12, 13 y 15.
+
+**Implicación crítica para Geelark-IA:** el alcance confirmado no contempla teléfonos físicos como fuente de huella. Por tanto, no debemos prometer equivalencia exacta con esta función concreta. La alternativa local será generar/configurar una identidad sintética por instancia con los campos que el motor realmente permita modificar y documentar de forma explícita qué señales permanecen fijas, derivadas del host o detectables como virtualizadas. No se afirmará que una identidad sintética equivale a la huella de un dispositivo físico real.
+
+Esta limitación no impide estudiar ni replicar el resto del sistema de perfiles, pero sí debe aparecer como diferencia funcional explícita en la matriz y en el manual de usuario.
+
+### 15.4 Operaciones masivas y límites de versiones
+
+Las notas de versión consultadas documentan límites/operaciones concretos en distintas versiones: sustitución por lotes de dispositivos (v3.6.0), prueba por lotes de proxies (v3.9.1), creación por lotes por API (v3.9.1) y configuración de red por perfil para ciertas versiones Android (v3.9.0). Esas notas demuestran que las capacidades han cambiado con el tiempo; no deben tratarse como garantía de que cada límite sigue vigente en la versión actual.
+
+La implementación local deberá usar límites configurables según recursos anfitriones y mostrar el resultado por elemento. Los límites históricos de GeeLark sirven como evidencia de funcionalidad, no como límites obligatorios para nuestro producto.
