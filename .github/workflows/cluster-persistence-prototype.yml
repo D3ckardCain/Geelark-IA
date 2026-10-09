@@ -6,9 +6,11 @@ on:
       - "packages/cluster-persistence/prototype/001_schema.sql"
       - "packages/cluster-persistence/prototype/002_assign_instance.sql"
       - "packages/cluster-persistence/prototype/003_apply_agent_result.sql"
+      - "packages/cluster-persistence/prototype/004_outbox_dispatch.sql"
       - "packages/cluster-persistence/prototype/test_constraints.sql"
       - "packages/cluster-persistence/prototype/test_assignment_function.sql"
       - "packages/cluster-persistence/prototype/test_agent_result.sql"
+      - "packages/cluster-persistence/prototype/test_outbox_dispatch.sql"
       - "packages/cluster-persistence/prototype/test_concurrency.sh"
       - "packages/cluster-persistence/prototype/test_concurrent_assignments.sh"
       - ".github/workflows/cluster-persistence-prototype.yml"
@@ -65,6 +67,14 @@ jobs:
           PGPASSWORD: test-only-password
           PGDATABASE: cluster_test
         run: psql -v ON_ERROR_STOP=1 -f packages/cluster-persistence/prototype/003_apply_agent_result.sql
+      - name: Apply outbox dispatch functions
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGPASSWORD: test-only-password
+          PGDATABASE: cluster_test
+        run: psql -v ON_ERROR_STOP=1 -f packages/cluster-persistence/prototype/004_outbox_dispatch.sql
       - name: Test core database constraints
         env:
           PGHOST: localhost
@@ -89,6 +99,14 @@ jobs:
           PGPASSWORD: test-only-password
           PGDATABASE: cluster_test
         run: psql -v ON_ERROR_STOP=1 -f packages/cluster-persistence/prototype/test_agent_result.sql
+      - name: Test outbox claim, retry and delivery
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGPASSWORD: test-only-password
+          PGDATABASE: cluster_test
+        run: psql -v ON_ERROR_STOP=1 -f packages/cluster-persistence/prototype/test_outbox_dispatch.sql
       - name: Test concurrent active reservation exclusion
         env:
           PGHOST: localhost
