@@ -35,6 +35,7 @@ Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la refer
 - `docs/INVESTIGACION_FUNCIONAL_GEELARK.md`: fuentes y análisis documental.
 - `docs/COMPARATIVA_MOTORES_ANDROID.md`: candidatos Android locales y protocolo de prueba; sin motor seleccionado.
 - `docs/MODELO_AMENAZAS_SEGURIDAD.md`: controles de seguridad requeridos, aún no implementados.
+- `docs/GUIA_INVENTARIO_EQUIPO.md`: comandos de lectura para conocer el hardware anfitrión antes de la prueba.
 - GitHub Issues: tareas, dudas, incidencias, decisiones y soluciones.
 
 ## Decisiones aún no tomadas
@@ -53,4 +54,5 @@ No guardar contraseñas, tokens, claves privadas ni otros secretos en el reposit
 - [#7 — Importación selectiva desde Android físico por USB/ADB](https://github.com/D3ckardCain/Geelark-IA/issues/7)
 - [#8 — Comparar y validar motores Android locales](https://github.com/D3ckardCain/Geelark-IA/issues/8)
 - [#9 — Controles de seguridad local, ADB, RPA e importación](https://github.com/D3ckardCain/Geelark-IA/issues/9)
+- [#10 — Recopilar especificaciones del equipo anfitrión](https://github.com/D3ckardCain/Geelark-IA/issues/10)
 
