@@ -4,7 +4,6 @@ Estos modelos validan la forma y coherencia local de mensajes. No implementan
 autenticación, persistencia, fencing, idempotencia durable ni autorización.
 """
 
-from datetime import datetime
 from enum import StrEnum
 from typing import Literal
 from uuid import UUID
