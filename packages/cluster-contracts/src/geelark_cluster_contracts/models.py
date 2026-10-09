@@ -3,7 +3,6 @@
 Estos modelos validan la forma y coherencia local de mensajes. No implementan
 autenticación, persistencia, fencing, idempotencia durable ni autorización.
 """
-
 from enum import StrEnum
 from typing import Literal
 from uuid import UUID
@@ -12,9 +11,13 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validato
 
 
 class ContractModel(BaseModel):
-    """Base estricta: no acepta campos desconocidos."""
+    """Base estricta: no acepta campos desconocidos ni floats no finitos."""
 
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+        allow_inf_nan=False,
+    )
 
 
 class ProtocolEnvelope(ContractModel):
@@ -62,7 +65,14 @@ class VolumeTelemetry(ContractModel):
 class TelemetryResources(ContractModel):
     cpu: CpuTelemetry
     memory: MemoryTelemetry
-    volumes: list[VolumeTelemetry] = Field(default_factory=list)
+    volumes: list[VolumeTelemetry] = Field(default_factory=list, max_length=64)
+
+    @model_validator(mode="after")
+    def volume_ids_must_be_unique(self):
+        ids = [volume.volume_id for volume in self.volumes]
+        if len(ids) != len(set(ids)):
+            raise ValueError("volume_id debe ser único dentro de resources.volumes")
+        return self
 
 
 class Heartbeat(ProtocolEnvelope):
@@ -70,7 +80,13 @@ class Heartbeat(ProtocolEnvelope):
     sequence: int = Field(ge=0)
     health: NodeHealth
     resources: TelemetryResources
-    active_assignments: list[UUID] = Field(default_factory=list)
+    active_assignments: list[UUID] = Field(default_factory=list, max_length=4096)
+
+    @model_validator(mode="after")
+    def active_assignments_must_be_unique(self):
+        if len(self.active_assignments) != len(set(self.active_assignments)):
+            raise ValueError("active_assignments no puede contener IDs duplicados")
+        return self
 
 
 class ResourceReservation(ContractModel):
@@ -143,7 +159,13 @@ class ErrorDetail(ContractModel):
     code: ErrorCode
     message: str = Field(min_length=1, max_length=500)
     retryable: bool
-    reasons: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list, max_length=32)
+
+    @model_validator(mode="after")
+    def reasons_must_be_bounded(self):
+        if any(len(reason) > 128 for reason in self.reasons):
+            raise ValueError("cada reason debe tener como máximo 128 caracteres")
+        return self
 
 
 class OperationResult(ProtocolEnvelope):
