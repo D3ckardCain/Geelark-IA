@@ -186,3 +186,8 @@ El [PR #16](https://github.com/D3ckardCain/Geelark-IA/pull/16) contiene los prim
 ### Revisión del contrato y estados
 
 El PR #16 incorpora validación cruzada de resultados para impedir combinaciones contradictorias de estado. La copia de trabajo local pasó 33 casos. Gate pendiente: ejecutar instalación y pruebas contra el checkout exacto del branch en un entorno limpio antes de integrar; después abordar persistencia transaccional e idempotencia durable.
+
+
+## Persistencia segura de asignaciones
+
+Se añadió [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md), que define invariantes de propiedad/epoch, reservas transaccionales, claves idempotentes, auditoría y outbox para recuperación de órdenes. Es una especificación, no una migración ni un repositorio implementado. El siguiente gate es revisar el diseño junto con ADR-004 y traducirlo a DDL/pruebas locales solo después de verificar el contrato inicial.
