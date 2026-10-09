@@ -76,3 +76,11 @@ El diseño contempla una PC principal para administrar y varios nodos físicos d
 - [Issue #14 — Integrar clúster y planificador](https://github.com/D3ckardCain/Geelark-IA/issues/14)
 
 La documentación describe decisiones y criterios, no implementación terminada. No se declaran probados el rendimiento, la recuperación, la migración en vivo ni la cantidad de instancias.
+
+
+## Planificador y validación del clúster
+
+- [Especificación del planificador de recursos](docs/ESPECIFICACION_PLANIFICADOR_RECURSOS.md)
+- [Plan de prueba de concepto del clúster](docs/PLAN_PRUEBA_CONCEPTO_CLUSTER.md)
+
+Ambos documentos son criterios de diseño y validación; no indican que el clúster esté implementado o probado.
