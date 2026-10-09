@@ -127,7 +127,20 @@ BEGIN
      AND event_type = 'assignment.requested';
   IF v_count <> 1 THEN RAISE EXCEPTION 'FAIL: expected exactly one outbox event'; END IF;
 
-  RAISE NOTICE 'PASS: atomic assignment, idempotent replay, hash conflict and capacity rejection';
+  IF EXISTS (
+      SELECT 1
+        FROM pg_proc AS p
+        JOIN pg_namespace AS n ON n.oid = p.pronamespace
+        CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) AS acl
+       WHERE n.nspname = 'cluster_control'
+         AND p.proname = 'assign_instance'
+         AND acl.grantee = 0
+         AND acl.privilege_type = 'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'FAIL: PUBLIC still has EXECUTE permission on assignment function';
+  END IF;
+
+  RAISE NOTICE 'PASS: atomic assignment, idempotent replay, hash conflict, capacity rejection and no PUBLIC execute grant';
 END $$;
 
 ROLLBACK;
