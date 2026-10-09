@@ -117,3 +117,20 @@ Se creó [COMPARATIVA_MOTORES_ANDROID.md](COMPARATIVA_MOTORES_ANDROID.md) con re
 - [ ] Comparar resultados de ADB, captura/entrada, APK, persistencia, aislamiento y recursos.
 
 Hallazgo provisional: redroid se prioriza para la primera prueba si el anfitrión es Linux compatible, por su enfoque de multiinstancia; esta prioridad no equivale a una selección definitiva. Android Emulator queda condicionado a revisión de las condiciones del SDK y las imágenes. Waydroid y Android-x86/derivados requieren validar modelo de instancias, mantenimiento y aislamiento.
+
+
+## Actualización de auditoría funcional y contratos locales — 2026-10-09
+
+Se amplió el catálogo funcional con verificaciones directas de Profile, Proxies, Applications, Profile management, Automaton/RPA, GeeHub/API, Synchronizer y el CLI público de GeeLark. El catálogo ahora separa funciones expresamente documentadas de los detalles que siguen sin evidencia y añade criterios de aceptación preliminares.
+
+- [x] Verificar campos y restricciones visibles de perfiles/proxies.
+- [x] Verificar operaciones descritas de aplicaciones y grupos.
+- [x] Verificar funciones generales de RPA, API/CLI y Synchronizer.
+- [x] Añadir una lista inicial de contratos funcionales para el API/CLI local.
+- [x] Añadir criterios de aceptación preliminares a la matriz.
+- [ ] Completar catálogo exhaustivo de bloques RPA y esquemas de importación/exportación.
+- [ ] Enumerar endpoints API publicados, métodos, esquemas, errores y límites.
+- [ ] Completar el inventario de funciones de Library, Members, Logs, Analytics, cámara y sensores.
+- [ ] Validar funciones en el motor Android local tras elegirlo mediante pruebas.
+
+La nueva evidencia no cambia los estados a “implementado” o “equivalente”. El producto sigue sin módulos implementados. La selección del motor está bloqueada hasta conocer el anfitrión y ejecutar pruebas reproducibles.
