@@ -193,3 +193,10 @@ BEGIN
     RETURN QUERY SELECT p_operation_id, v_epoch, false;
 END;
 $$;
+
+-- Cerrado por defecto: el servicio de dominio debe conceder EXECUTE a un rol
+-- dedicado cuando se defina el modelo de permisos. No exponer esta función a PUBLIC.
+REVOKE ALL ON FUNCTION cluster_control.assign_instance(
+    uuid, uuid, uuid, uuid, uuid, uuid, uuid, uuid,
+    text, text, text, bigint, bigint, numeric, interval, interval
+) FROM PUBLIC;
