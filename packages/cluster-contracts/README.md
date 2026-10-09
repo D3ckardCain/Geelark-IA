@@ -26,3 +26,10 @@ Las dependencias son software libre y no requieren API ni servicio cloud. La pri
 Modelos implementados: envelope común, telemetría CPU/RAM/volúmenes, heartbeat, requisitos Android, reserva de recursos, orden de asignación, códigos de error y resultado de operación.
 
 No se debe usar este paquete como única barrera de seguridad. El servidor debe verificar autorización, epoch durable, idempotencia, elegibilidad, propietario de instancia y estado de fencing.
+
+
+## Máquina de estados
+
+El paquete incluye una máquina de estados pura para rechazar transiciones peligrosas. En particular, un estado `unknown` solo puede pasar a `reconciling`; no puede iniciar directamente en otro nodo. `running` no puede saltar directamente a `stopped` sin pasar por `stopping` y una confirmación del adaptador.
+
+Estas funciones solo validan la transición local. La capa de persistencia deberá aplicar las reglas de forma transaccional y verificar propiedad, epoch y fencing; esta máquina no evita por sí sola carreras entre procesos o nodos.
