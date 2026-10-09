@@ -191,3 +191,8 @@ El PR #16 incorpora validación cruzada de resultados para impedir combinaciones
 ## Persistencia segura de asignaciones
 
 Se añadió [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md), que define invariantes de propiedad/epoch, reservas transaccionales, claves idempotentes, auditoría y outbox para recuperación de órdenes. Es una especificación, no una migración ni un repositorio implementado. El siguiente gate es revisar el diseño junto con ADR-004 y traducirlo a DDL/pruebas locales solo después de verificar el contrato inicial.
+
+
+### Próxima tarea técnica registrada
+
+La issue [#17 — persistencia transaccional de asignaciones y outbox](https://github.com/D3ckardCain/Geelark-IA/issues/17) queda preparada con criterios de aceptación para exclusión de doble propietario, idempotencia durable, epoch, reservas, outbox, recuperación y backups. No se empezará esa implementación hasta cerrar la revisión de contratos del PR #16.
