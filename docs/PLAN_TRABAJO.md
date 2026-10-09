@@ -164,3 +164,15 @@ Los documentos son especificaciones y planes; no hay planificador, agente ni cl�
 Se documentó [ADR-004 — Persistencia y consistencia del plano de control](decisiones/ADR-004-PERSISTENCIA-CONSISTENCIA-CLUSTER.md). La propuesta para el MVP es PostgreSQL local en la Master con un único controlador activo y sin failover automático: si la Master cae, se pausan nuevas asignaciones mientras las instancias existentes continúan cuando sea seguro. Esto prioriza no duplicar instancias sobre una promesa de alta disponibilidad no probada.
 
 La propuesta queda condicionada a revisión de licencias y a la prueba de concepto. Antes de implementar el scheduler se deben validar transacciones, epochs, idempotencia, fencing, backup/restauración y reconciliación. No se considera decisión final hasta completar esas verificaciones.
+
+
+## Contrato de mensajes del agente (2026-10-09)
+
+Se añadió [CONTRATO_MENSAJES_AGENTE_CLUSTER.md](CONTRATO_MENSAJES_AGENTE_CLUSTER.md), con ejemplos de alta de nodo, heartbeat, telemetría, asignación, resultado, errores tipados y transiciones de estado. Define reglas de idempotencia, epochs, frescura de telemetría y rechazo de mensajes incompatibles. El documento sigue siendo especificación, no una API o agente implementado.
+
+Siguiente secuencia técnica:
+1. Convertir el contrato a modelos Pydantic estrictos y fixtures JSON sintéticos.
+2. Crear pruebas automatizadas de validación y transiciones.
+3. Añadir pruebas de concurrencia e idempotencia para la persistencia.
+4. Probar desconexión/reinicio/reconciliación.
+5. Solo después comenzar el agente y scheduler ejecutables.
