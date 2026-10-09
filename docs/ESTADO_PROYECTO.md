@@ -33,6 +33,8 @@ Replicar las funciones de GeeLark aplicables a Android en una plataforma local. 
 - [Arquitectura tecnológica propuesta](ARQUITECTURA_TECNOLOGICA_PROPUESTA.md)
 - [ADR-001 — Stack principal](decisiones/ADR-001-STACK-PRINCIPAL.md)
 - [Inventario de licencias y coste](INVENTARIO_LICENCIAS_COSTE.md)
+- [Contrato del adaptador Android](CONTRATO_ADAPTADOR_ANDROID.md)
+- [Especificación del motor RPA](ESPECIFICACION_MOTOR_RPA.md)
 - [Requisitos](REQUISITOS.md)
 
 ## Investigación documental inicial
@@ -203,3 +205,8 @@ La elección del motor sigue pendiente de pruebas comparativas, pero ya no se re
 - [Inventario de licencias y coste](INVENTARIO_LICENCIAS_COSTE.md): licencias de componentes principales, advertencias sobre imágenes/APK y build local obligatorio.
 
 Estas son decisiones de diseño para prototipo; no certifican todavía la compatibilidad del motor Android ni la seguridad de una instalación real.
+
+
+## Contratos funcionales para la implementación
+
+Se añadieron [CONTRATO_ADAPTADOR_ANDROID.md](CONTRATO_ADAPTADOR_ANDROID.md) y [ESPECIFICACION_MOTOR_RPA.md](ESPECIFICACION_MOTOR_RPA.md). El primero define capacidades, estados, errores, idempotencia y pruebas de conformidad por motor. El segundo define bloques RPA tipados, límites, cancelación, recuperación y sincronización explícita. Ambos son especificaciones, no implementaciones.
