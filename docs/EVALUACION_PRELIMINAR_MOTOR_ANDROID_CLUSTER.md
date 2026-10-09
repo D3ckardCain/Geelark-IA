@@ -21,9 +21,9 @@ No hay tarjetas gráficas dedicadas en ninguno de los equipos. Esto no confirma 
 - Proyecto: https://github.com/remote-android/redroid-doc
 - El proyecto describe Android en contenedores Linux, con arquitecturas amd64/arm64 y posibilidad de ejecutar múltiples instancias en un host. Como no hay GPU dedicada, hay que comprobar si el motor y la imagen elegida funcionan con gráficos integrados o renderizado por software.
 - Puede encajar mejor que una VM completa por instancia para investigar densidad de dispositivos, pero el renderizado por software podría elevar mucho el consumo de CPU. No se debe prometer cuántas instancias caben por worker antes de medir RAM, CPU, gráficos, almacenamiento y compatibilidad de aplicaciones.
-- Requiere características/módulos del kernel y permisos elevados en el host; el ejemplo de despliegue usa modo privilegiado. Eso aumenta el impacto potencial de una vulnerabilidad y obliga a aislar los workers, limitar la administración y no publicar ADB en Internet.
+- Requiere características/módulos del kernel y permisos elevados en el host; el ejemplo de despliegue usa modo privilegiado. Eso aumenta el impacto potencial de una vulnerabilidad y obliga a aislar los workers, limitar la administración y no publicar ADB en Internet. Además, la documentación pública registra un reporte reciente (julio de 2026) donde el init de Android en un contenedor privilegiado modificó `/proc/sys/kernel/modprobe` del host, un ajuste no aislado por namespace. Antes de cualquier prueba hay que verificar la incidencia y mitigación en la versión elegida; hasta entonces, no ejecutar redroid en un host que también aloje servicios críticos.
 - La licencia del proyecto principal es Apache-2.0, pero el propio proyecto advierte que hay componentes de terceros cuyas licencias deben revisarse. Google Mobile Services/Play Store, imágenes propietarias y traducción de aplicaciones ARM no se deben dar por incluidos ni legalmente redistribuibles.
-- **Veredicto:** mejor candidato inicial para una prueba aislada, sujeto a comprobar kernel, GPU, servicios necesarios y licencias.
+- **Veredicto:** candidato para laboratorio, no seleccionado para producción. Su densidad potencial debe sopesarse contra el riesgo del modo privilegiado y la dependencia del kernel compartido. La prueba requiere un worker aislado, acceso físico/recuperación disponible, firewall restrictivo y revisión de la incidencia de seguridad antes de ejecutar.
 
 ### B. Android Emulator oficial — útil como referencia de prueba
 
@@ -65,7 +65,23 @@ No se debe copiar ni redistribuir automáticamente todo lo que se descargue. La 
 
 La primera candidata para evaluar es una distribución Linux Server con soporte vigente, paquetes disponibles sin suscripción obligatoria y soporte documentado de KVM/contenedores. Ubuntu Server LTS y Debian Stable son candidatos razonables para comparar; no se ha elegido aún una versión definitiva porque primero hay que validar los requisitos del kernel de redroid, controladores gráficos y soporte de seguridad. No instalar hasta cerrar esta matriz de compatibilidad.
 
-## 6. Pruebas obligatorias antes de desplegar
+## 6. Puerta de seguridad específica para redroid
+
+La documentación de redroid recomienda no exponer ADB en una red pública y usa `--privileged` en el ejemplo de arranque. Adicionalmente, el issue público #932 del proyecto reportó en julio de 2026 que el init de Android dentro de un contenedor privilegiado puede escribir en `/proc/sys/kernel/modprobe` del host y deshabilitar la carga automática de módulos del kernel; el reporte figura cerrado, pero el cierre por sí solo no demuestra que la versión concreta que usemos esté protegida.
+
+Antes de una prueba:
+1. Leer el issue #932 y su solución/discusión para la versión exacta de imagen y kernel.
+2. No ejecutar el primer experimento en PC-MASTER ni en un worker que aloje datos/servicios irremplazables.
+3. Usar un worker de laboratorio sin secretos, limitar ADB a loopback o a una VLAN/LAN de administración restringida, y bloquear cualquier publicación hacia Internet.
+4. Definir un procedimiento de recuperación por consola local/Live USB y una copia de seguridad previa de cualquier dato necesario.
+5. Si no puede demostrarse una mitigación aceptable, detener redroid y comparar una VM completa QEMU/KVM u otra alternativa; no relajar seguridad para conseguir que arranque.
+
+Fuentes relevantes:
+- Guía y advertencia ADB de redroid: https://github.com/remote-android/redroid-doc
+- Reporte de seguridad/impacto de host (issue #932): https://github.com/remote-android/redroid-doc/issues/932
+- Requisitos de kernel de redroid: https://github.com/remote-android/redroid-doc/blob/master/deploy/README.md
+
+## 7. Pruebas obligatorias antes de desplegar
 
 1. Confirmar modelo exacto del i7 de PC-MASTER; los tres i5-11400 de los workers están confirmados por el usuario. Inventariar la iGPU disponible, RAM, disco y soporte VT-x en cada PC; comprobar VT-x habilitado en BIOS/UEFI.
 2. Arrancar un entorno Live USB sin instalar ni modificar discos para inventariar hardware, cuando el usuario esté listo.
@@ -76,7 +92,7 @@ La primera candidata para evaluar es una distribución Linux Server con soporte 
 7. Probar fallo de red, reinicio de worker, actualización fallida, rollback y restauración de caché.
 8. Revisar licencias y seguridad antes de permitir uso continuo.
 
-## 7. Costos y límites conocidos
+## 8. Costos y límites conocidos
 
 - No se propone ningún servicio de pago obligatorio ni una API de pago.
 - El software de base seleccionado debe ser libre/gratuito y no requerir tarjeta o periodo de prueba.
@@ -84,13 +100,15 @@ La primera candidata para evaluar es una distribución Linux Server con soporte 
 - GitHub Actions y otros servicios con cuotas no deben ser una dependencia crítica de ejecución; las pruebas esenciales deben poder correr localmente.
 - No se promete paridad funcional con GeeLark. Cada módulo deberá tener manual, pruebas y matriz de brechas contra la referencia.
 
-## 8. Decisión provisional
+## 9. Decisión provisional
 
-**Continuar con redroid como primer candidato experimental**, manteniendo Android Emulator como comparación de pruebas y Bliss OS/QEMU-KVM como alternativa. Esta es una recomendación para el siguiente ciclo de investigación, no una aprobación para instalar. El siguiente bloqueo técnico es confirmar el modelo exacto del i7 de PC-MASTER, identificar las capacidades gráficas integradas y listar las aplicaciones/funciones que deben funcionar en cada teléfono virtual.
+**Mantener redroid como candidato de laboratorio condicionado a superar la puerta de seguridad**, con Android Emulator como comparación de pruebas y Bliss OS/QEMU-KVM como alternativa de aislamiento. Si el riesgo del contenedor privilegiado no queda resuelto de forma verificable, no usar redroid y priorizar la evaluación de una VM completa. Esta es una recomendación de investigación, no una aprobación para instalar. El siguiente bloqueo técnico es confirmar el modelo exacto del i7 de PC-MASTER, identificar las capacidades gráficas integradas y listar las aplicaciones/funciones que deben funcionar en cada teléfono virtual.
 
 ## Fuentes oficiales
 
 - redroid: https://github.com/remote-android/redroid-doc
+- Reporte sobre `kernel.modprobe` en contenedor privilegiado (issue #932): https://github.com/remote-android/redroid-doc/issues/932
+- Requisitos de kernel de redroid: https://github.com/remote-android/redroid-doc/blob/master/deploy/README.md
 - Aceleración de Android Emulator: https://developer.android.com/studio/run/emulator-acceleration
 - Bliss OS en QEMU: https://docs.blissos.org/installation/install-in-a-virtual-machine/install-in-qemu/
 - Documentación de Bliss OS: https://docs.blissos.org/
