@@ -84,3 +84,5 @@ La documentación describe decisiones y criterios, no implementación terminada.
 - [Plan de prueba de concepto del clúster](docs/PLAN_PRUEBA_CONCEPTO_CLUSTER.md)
 
 Ambos documentos son criterios de diseño y validación; no indican que el clúster esté implementado o probado.
+
+- [ADR-004 — Persistencia y consistencia del clúster](docs/decisiones/ADR-004-PERSISTENCIA-CONSISTENCIA-CLUSTER.md) (propuesta para el MVP, pendiente de pruebas).
