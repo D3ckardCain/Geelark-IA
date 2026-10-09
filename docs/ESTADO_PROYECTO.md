@@ -149,3 +149,17 @@ Puntos clave:
 - La guía pública de Logs no aporta contenido suficiente para inferir su esquema; P-014 sigue pendiente de evidencia.
 
 No hay implementación ni pruebas de motor. El inventario continúa en fase A.
+
+
+## Actualización — notas v4.5.1 y v4.5.2 (2026-10-09)
+
+Se revisaron las notas oficiales recientes y se añadieron al catálogo criterios para carga masiva de archivos e historial de Synchronizer, inspector/árbol UI, etiquetas y vistas de Library, parámetros de tareas publicados y seguimiento de uso AIGC. Se actualizaron las filas P-006, P-007, P-009 y P-014 de la matriz.
+
+- [x] Registrar novedades de v4.5.1 y v4.5.2 en el catálogo.
+- [x] Vincular criterios de aceptación en la matriz.
+- [ ] Completar el manual RPA por bloques y formato de exportación.
+- [ ] Completar contratos de API a partir de la documentación accesible.
+- [ ] Cerrar los huecos de evidencia de Logs y otras áreas de equipo.
+- [ ] Validar el motor Android en hardware anfitrión real.
+
+La fase continúa siendo investigación. El inventario todavía no está completo y no hay módulos implementados.
