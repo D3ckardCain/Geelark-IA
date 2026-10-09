@@ -2,7 +2,7 @@
 
 Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la referencia funcional para las capacidades que decidamos implementar. Este repositorio documenta requisitos y decisiones confirmados durante este proyecto; no se importará código, arquitectura, datos ni soluciones de proyectos o conversaciones anteriores.
 
-> **Estado actual:** inicio y definición del proyecto. No se considera implementada ni validada ninguna función hasta construirla y probarla.
+> **Estado actual:** fase A — auditoría funcional de GeeLark y viabilidad de Android virtualizado local. La documentación y matriz están en construcción. No hay módulos implementados ni se ha seleccionado un motor Android.
 
 ## Reglas de trabajo
 
@@ -29,8 +29,13 @@ Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la refer
 
 - `docs/ESTADO_PROYECTO.md`: etapa actual, acuerdos y preguntas abiertas.
 - `docs/REQUISITOS.md`: requisitos confirmados y criterios de aceptación.
-- `docs/PLAN_TRABAJO.md`: fases provisionales.
-- GitHub Issues: tareas, dudas, incidencias y soluciones.
+- `docs/PLAN_TRABAJO.md`: fases, dependencias y orden de trabajo.
+- `docs/CATALOGO_FUNCIONAL_GEELARK.md`: inventario funcional por módulos, evidencia, adaptaciones y límites.
+- `docs/MATRIZ_PARIDAD_GEELARK.md`: requisitos de paridad, estados y pruebas pendientes.
+- `docs/INVESTIGACION_FUNCIONAL_GEELARK.md`: fuentes y análisis documental.
+- `docs/COMPARATIVA_MOTORES_ANDROID.md`: candidatos Android locales y protocolo de prueba; sin motor seleccionado.
+- `docs/MODELO_AMENAZAS_SEGURIDAD.md`: controles de seguridad requeridos, aún no implementados.
+- GitHub Issues: tareas, dudas, incidencias, decisiones y soluciones.
 
 ## Decisiones aún no tomadas
 
@@ -39,3 +44,13 @@ El alcance detallado, el inventario de hardware, el sistema operativo/hipervisor
 ## Seguridad
 
 No guardar contraseñas, tokens, claves privadas ni otros secretos en el repositorio, commits o incidencias. Las automatizaciones deberán respetar las condiciones aplicables de los servicios y plataformas utilizados.
+
+
+## Issues principales
+
+- [#3 — Inventario funcional y matriz de paridad](https://github.com/D3ckardCain/Geelark-IA/issues/3)
+- [#6 — Completar el catálogo funcional](https://github.com/D3ckardCain/Geelark-IA/issues/6)
+- [#7 — Importación selectiva desde Android físico por USB/ADB](https://github.com/D3ckardCain/Geelark-IA/issues/7)
+- [#8 — Comparar y validar motores Android locales](https://github.com/D3ckardCain/Geelark-IA/issues/8)
+- [#9 — Controles de seguridad local, ADB, RPA e importación](https://github.com/D3ckardCain/Geelark-IA/issues/9)
+
