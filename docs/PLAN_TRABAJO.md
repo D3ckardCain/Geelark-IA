@@ -1,71 +1,56 @@
 # Plan de trabajo — Geelark-IA
 
-Este plan es provisional. Las fases se cierran con evidencia y documentación, no solo con código.
+Plan provisional para un proyecto nuevo. Cada fase se completa con acuerdos y evidencia; no solo con código.
 
-## Fase 0 — Consolidar requisitos y evidencias
-- [ ] Inventariar funciones de GeeLark y priorizarlas.
-- [ ] Registrar preguntas abiertas y decisiones en GitHub.
-- [ ] Inventariar hardware de cada PC.
-- [ ] Definir criterios de aceptación y prueba.
+## Fase 0 — Definición conjunta
 
-**Salida:** requisitos aprobados, inventario y matriz de referencia.
+- [ ] Acordar el objetivo principal de la primera versión.
+- [ ] Definir qué funciones de GeeLark son prioritarias.
+- [ ] Confirmar el hardware y las restricciones reales.
+- [ ] Definir criterios de aceptación y pruebas.
+- [ ] Registrar los acuerdos en GitHub.
 
-## Fase 1 — Prueba de viabilidad Android
-- [ ] Comparar Linux directo y Proxmox para el caso de uso.
-- [ ] Probar una única instancia Android con la versión prioritaria.
-- [ ] Medir CPU, RAM, almacenamiento, GPU, latencia y estabilidad.
-- [ ] Documentar compatibilidad, límites, coste y pasos reproducibles.
+**Salida:** alcance inicial pequeño, entendido por ambas partes y documentado.
 
-**Salida:** informe de viabilidad y recomendación fundamentada.
+## Fase 1 — Prueba técnica mínima
 
-## Fase 2 — Diseño de arquitectura
-- [ ] Definir controlador, agentes de nodo, protocolo y almacenamiento.
-- [ ] Definir identidad, roles, acceso remoto, logs y secretos.
-- [ ] Definir comportamiento ante pérdida del controlador o de red.
-- [ ] Diseñar estrategia de migración y respaldo.
+- [ ] Elegir una sola hipótesis técnica para probar.
+- [ ] Preparar un entorno de prueba reversible.
+- [ ] Medir compatibilidad, rendimiento, estabilidad y costo.
+- [ ] Registrar instrucciones para repetir la prueba y sus resultados.
 
-**Salida:** arquitectura revisada y ADRs (registros de decisiones).
+**Salida:** decisión técnica respaldada por evidencia.
 
-## Fase 3 — Módulo mínimo de gestión
-- [ ] Registrar un nodo.
-- [ ] Mostrar salud y capacidad del nodo.
-- [ ] Registrar y consultar una instancia de prueba.
-- [ ] Implementar manejo de errores y logs.
-- [ ] Completar pruebas, manual y documentación técnica.
+## Fase 2 — Arquitectura mínima
 
-**Salida:** primer módulo terminado de extremo a extremo.
+- [ ] Definir componentes solo a partir de los requisitos acordados.
+- [ ] Definir autenticación, permisos, logs y manejo de secretos.
+- [ ] Documentar fallos, recuperación y límites offline.
+- [ ] Revisar costo y posibilidad de migración.
 
-## Fase 4 — Escalado controlado
-- [ ] Añadir más instancias gradualmente.
-- [ ] Ejecutar pruebas de carga y estabilidad.
-- [ ] Establecer capacidad por nodo con datos medidos.
-- [ ] Probar desconexión/reconexión y recuperación.
+**Salida:** arquitectura mínima aprobada antes de ampliar el alcance.
 
-**Salida:** capacidad documentada; no asumir 50 instancias hasta verificarlo.
+## Fases posteriores — Construcción por módulos
 
-## Fase 5 — Interfaz y acceso remoto
-- [ ] Construir interfaz adaptable a PC/móvil.
-- [ ] Evaluar PWA y funciones offline específicas.
-- [ ] Probar acceso remoto seguro y revocación de sesiones.
-
-## Fase 6 — Replicación modular de funciones GeeLark
 Para cada módulo:
-- [ ] Especificación y comparación de referencia.
-- [ ] Implementación incremental.
-- [ ] Pruebas funcionales, seguridad y regresión.
-- [ ] Manual de usuario y guía técnica.
-- [ ] Registro de diferencias y aprobación antes de avanzar.
+- [ ] Acordar alcance y criterios de aceptación.
+- [ ] Registrar la tarea en GitHub.
+- [ ] Implementar un cambio pequeño.
+- [ ] Probar el funcionamiento y los errores.
+- [ ] Comparar con GeeLark cuando corresponda.
+- [ ] Crear manual de usuario y documentación técnica.
+- [ ] Registrar resultados, limitaciones y decisiones.
+- [ ] Cerrar el módulo antes de empezar el siguiente.
 
-## Flujo de trabajo obligatorio
+## Reglas para avanzar
 
-1. Crear/actualizar una GitHub Issue.
-2. Acordar criterios de aceptación antes de programar.
-3. Implementar en una rama cuando corresponda.
-4. Probar y registrar resultados.
-5. Documentar errores y soluciones.
-6. Revisar el módulo contra GeeLark.
-7. Cerrar la tarea solo con evidencia.
+1. Explicar el objetivo y por qué se hace.
+2. Dar instrucciones paso a paso y señalar qué debe ejecutar el usuario.
+3. No asumir acceso a equipos, cuentas o configuraciones que no se hayan confirmado.
+4. No afirmar que una acción fue realizada si no existe evidencia.
+5. No elegir un servicio antes de revisar que respete el objetivo de costo.
+6. Mantener en GitHub los acuerdos, problemas y soluciones.
 
-## No comenzar todavía
+## No decidido aún
 
-No desplegar un clúster completo ni comprometerse con 50 instancias hasta que la prueba con una instancia y el inventario real de hardware respalden la decisión.
+No se eligen todavía hipervisor, stack, base de datos, método Android ni número máximo de instancias. Primero se define el objetivo inicial y se valida la viabilidad técnica.
