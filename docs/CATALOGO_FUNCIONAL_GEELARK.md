@@ -557,7 +557,7 @@ El catálogo registra estos elementos como evidencia histórica de existencia, n
 
 La guía oficial AI Generation Function consultada indica que la generación de imágenes/vídeos y edición de vídeo están disponibles bajo suscripción Pro y presenta cargos por uso (por ejemplo, generación de imagen y vídeo).
 
-Fuente: https://help.geelark.com/AI-Generation-Function-2f90be7d74e443b8a5f57f5123669e60
+Fuente: https://help.geelark.com/AI-Generation-Function-2f90be7d9e418031a825ea76ce8528e2
 
 Esta función comercial no puede ser dependencia obligatoria de Geelark-IA. La alternativa candidata será una capacidad local opcional solo si el hardware y la licencia del modelo lo permiten; de lo contrario, la función se marcará como no equivalente bajo el objetivo de coste obligatorio cero. No se prometerá generación de vídeo local sin pruebas de rendimiento y calidad.
 
