@@ -140,3 +140,20 @@ Orden de trabajo actualizado:
 5. Solo después de la prueba, decidir infraestructura y motor; luego implementar el núcleo distribuido con pruebas y manual en español.
 
 La especificación de agente/planificador ya está documentada, pero no implementada ni probada. No se afirmará alta disponibilidad, failover, migración en vivo ni densidad de instancias sin evidencia.
+
+
+## Actualización — planificador y prueba de concepto (2026-10-09)
+
+Se añadieron dos documentos para convertir el diseño del clúster en criterios comprobables:
+
+- [Especificación del planificador de recursos](ESPECIFICACION_PLANIFICADOR_RECURSOS.md): filtros de elegibilidad, reservas, puntuación explicable, leases/epochs, reconciliación, seguridad y pruebas de aceptación.
+- [Plan de prueba de concepto del clúster](PLAN_PRUEBA_CONCEPTO_CLUSTER.md): protocolo reproducible para comparar Linux directo y Proxmox VE con dos nodos heterogéneos, medir cargas Android y comprobar desconexión, recuperación y backups.
+
+Orden inmediato:
+1. Revisar la persistencia autoritativa y las garantías de consistencia del plano de control antes de implementar asignaciones distribuidas.
+2. Definir y probar los esquemas del protocolo de agente y scheduler.
+3. Ejecutar la prueba de concepto con los equipos disponibles y registrar mediciones reales.
+4. Elegir infraestructura solo con resultados y revisión de licencias.
+5. Implementar el núcleo distribuido, pruebas automatizadas y manual de usuario antes de pasar al siguiente módulo.
+
+Los documentos son especificaciones y planes; no hay planificador, agente ni clúster implementados, y la prueba de concepto sigue pendiente.
