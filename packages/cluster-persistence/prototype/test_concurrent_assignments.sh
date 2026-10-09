@@ -25,6 +25,7 @@ SQL
 assign_to_node() {
   local node_id="$1"
   local suffix="$2"
+  local hash_char="$3"
   psql -v ON_ERROR_STOP=1 -c "
     SELECT * FROM cluster_control.assign_instance(
       '62000000-0000-4000-8000-000000000001',
@@ -37,16 +38,16 @@ assign_to_node() {
       '68000000-0000-4000-8000-$suffix',
       'concurrent-test',
       'concurrent-key-$suffix',
-      repeat('d',64),
+      repeat('$hash_char',64),
       10, 10, 1
     );
   "
 }
 
 set +e
-assign_to_node '61000000-0000-4000-8000-000000000001' '000000000001' > /tmp/cluster-assignment-a.log 2>&1 &
+assign_to_node '61000000-0000-4000-8000-000000000001' '000000000001' 'a' > /tmp/cluster-assignment-a.log 2>&1 &
 pid_a=$!
-assign_to_node '61000000-0000-4000-8000-000000000002' '000000000002' > /tmp/cluster-assignment-b.log 2>&1 &
+assign_to_node '61000000-0000-4000-8000-000000000002' '000000000002' 'b' > /tmp/cluster-assignment-b.log 2>&1 &
 pid_b=$!
 wait "$pid_a"
 status_a=$?
