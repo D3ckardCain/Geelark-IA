@@ -166,7 +166,7 @@ class OperationResult(ProtocolEnvelope):
     error: ErrorDetail | None = None
 
     @model_validator(mode="after")
-    def rejected_result_requires_error(self):
+    def result_fields_must_be_consistent(self):
         if self.status in {OperationStatus.REJECTED, OperationStatus.FAILED} and self.error is None:
             raise ValueError("Los resultados rejected/failed deben incluir error")
         if self.status not in {
@@ -175,4 +175,17 @@ class OperationResult(ProtocolEnvelope):
             OperationStatus.UNKNOWN,
         } and self.error is not None:
             raise ValueError("Este estado no admite error en la versión actual")
+
+        expected_states = {
+            OperationStatus.ACCEPTED: {"reserved", "starting"},
+            OperationStatus.REJECTED: {"pending", "failed"},
+            OperationStatus.RUNNING: {"running"},
+            OperationStatus.STOPPED: {"stopped"},
+            OperationStatus.FAILED: {"failed"},
+            OperationStatus.UNKNOWN: {"unknown", "reconciling"},
+        }
+        if self.observed_state not in expected_states[self.status]:
+            raise ValueError(
+                f"observed_state incompatible con status {self.status.value}"
+            )
         return self
