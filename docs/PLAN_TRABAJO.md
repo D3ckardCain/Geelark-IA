@@ -95,3 +95,8 @@ El documento [MODELO_AMENAZAS_SEGURIDAD.md](MODELO_AMENAZAS_SEGURIDAD.md) y la [
 ## Inventario del anfitrión pendiente
 
 Antes de ejecutar la prueba del motor, obtener los datos del equipo siguiendo [GUIA_INVENTARIO_EQUIPO.md](GUIA_INVENTARIO_EQUIPO.md). La tarea se controla en la [issue #10](https://github.com/D3ckardCain/Geelark-IA/issues/10). La guía usa comandos de lectura y evita solicitar números de serie o secretos.
+
+
+## Nueva línea de trabajo — arquitectura tecnológica
+
+La [propuesta de arquitectura](ARQUITECTURA_TECNOLOGICA_PROPUESTA.md) se creó para seleccionar software sin esperar especificaciones de hardware. La [issue #11](https://github.com/D3ckardCain/Geelark-IA/issues/11) controla su validación. Se puede diseñar la UI, API, datos, adaptadores y pruebas de manera agnóstica; las pruebas de rendimiento/compatibilidad del motor se ejecutarán después en hardware de referencia.
