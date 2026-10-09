@@ -463,3 +463,63 @@ Estos criterios se proponen para el producto local y no implican que ya estén i
 ## 21. Historial adicional
 
 - 2026-10-09: revisión directa de las guías Profile, Proxies, Applications y Profile management; se registraron campos, restricciones y criterios de aceptación pendientes.
+
+
+## 22. Inventario ampliado del CLI público de GeeLark (solo referencia funcional)
+
+**Fuente revisada:** repositorio público oficial GeeLark CLI, README y comandos documentados: https://github.com/GeeLark/geelark-cli  
+**Licencia que declara el repositorio:** MIT. Esta revisión se usa únicamente para inventariar capacidades observables; Geelark-IA tendrá implementación propia y no copiará código ni dependerá del CLI, API, token o servicio de GeeLark.
+
+### 22.1 Categorías funcionales documentadas
+
+El README del CLI publica estas familias de capacidades:
+
+| Categoría | Acciones que enumera la documentación | Tratamiento en Geelark-IA |
+|---|---|---|
+| Gestión de teléfono/perfil | Listar, crear, iniciar, detener, eliminar, actualizar, clonar, capturar pantalla, GPS, restablecer, root, SMS, transferencia y contactos | Incluir ciclo de vida, captura y GPS solo tras probar soporte real. Root será una opción de laboratorio explícita. SMS/telefonía real no se prometerá sin módem/SIM/servicio compatible. |
+| Automatización | Consultar tareas/historial, cancelar/reiniciar tareas, crear tareas personalizadas programadas y acciones predefinidas por plataforma | Implementar un motor local genérico y auditable; las recetas específicas de plataformas se evaluarán individualmente, sin automatizar acciones que infrinjan reglas del servicio destino. |
+| Aplicaciones | Catálogo, instalación, desinstalación, inicio, detención, carga, operaciones por lotes y política de aplicaciones de equipo/grupo | Adaptar a APK/paquetes locales y despliegues por grupo; no integrar marketplace propietario ni redistribuir apps sin permiso. |
+| Archivos | Subida temporal, transferencia al dispositivo, consultas de estado y operación keybox | Biblioteca y transferencia locales. No replicar almacenamiento temporal cloud ni copiar material sensible de keybox sin requisito y análisis de seguridad. |
+| Library | Crear/buscar/eliminar recursos multimedia y gestionar etiquetas | Biblioteca local persistente con etiquetas, hash, vista previa, copia de seguridad y límites por disco. |
+| ADB y shell | Consultar conexión ADB, activar/desactivar ADB y ejecutar comandos shell | Puente ADB solo a instancias propias; autenticar la API local, limitar comandos y no exponer ADB a redes no confiables. |
+| Webhooks | Consultar y configurar URL de callback | Webhooks locales opcionales con cola persistente, firma, reintentos, idempotencia y validación de destino para reducir SSRF. |
+| Proxy | Listar, añadir, actualizar, eliminar y comprobar proxies | Gestión local de HTTP/HTTPS/SOCKS5, secretos protegidos y comprobaciones de red independientes de geolocalización externa. |
+| Grupos y etiquetas | CRUD de grupos y etiquetas | CRUD transaccional con resultados por elemento y auditoría. |
+| Analítica | Gestionar cuentas de analítica y consultar datos | Métricas propias de instancias/tareas; conectores externos solo si son opcionales, legítimos y no requieren pagos obligatorios. |
+| Navegador | Perfiles de navegador, captura y automatización | Fuera del alcance principal Android; no mezclar con perfiles de instancias Android. |
+| Facturación y planes | Saldo, transacciones, planes, renovación, compra de tiempo y paralelismo | Fuera de alcance como cobro. Sustituir por uso local de CPU/RAM/disco y límites configurables, sin pagos ni tarifas por minuto. |
+| Personalización OEM | Marca, logotipo, cabecera y barra de herramientas | Valorar como personalización de la interfaz propia, sin usar la marca/activos de GeeLark. |
+
+### 22.2 Contratos de API local que se deben especificar
+
+Antes de programar el API, documentar como mínimo los siguientes grupos de operaciones:
+
+1. **Instancias:** crear, listar, consultar, actualizar, clonar con identidad nueva por defecto, iniciar, detener, reiniciar, eliminar y consultar estado.
+2. **Captura/control:** captura de pantalla, entrada de toque/deslizamiento/teclado, orientación y resolución si el motor lo admite.
+3. **Configuración del dispositivo:** versión Android, resolución/DPI, red, ubicación de prueba y campos de identidad sintética admitidos; los campos no soportados deben declararse.
+4. **Aplicaciones:** enumerar paquetes, instalar desde archivo local, consultar progreso, iniciar, detener, actualizar y desinstalar.
+5. **Archivos y biblioteca:** subir/importar archivos, consultar progreso, listar/buscar/etiquetar/eliminar activos y transferir archivos hacia/desde la instancia.
+6. **ADB:** consultar conexión, abrir/cerrar acceso local y ejecutar comandos permitidos con timeout; no exponer shell arbitrario a usuarios no autorizados.
+7. **Tareas RPA:** crear, validar, publicar, programar, ejecutar, cancelar, reintentar, consultar estado/historial y descargar informes.
+8. **Grupos/etiquetas:** crear, editar, listar, filtrar, mover instancias y operaciones masivas con informe por elemento.
+9. **Eventos:** registrar webhooks, firmar mensajes, reintentar entregas y deduplicar por ID de evento.
+10. **Observabilidad:** logs, auditoría, uso de recursos, diagnóstico y exportación de informes.
+
+Para cada endpoint se debe especificar método/ruta, autenticación, permisos, esquema de entrada/salida, códigos de error, timeout, paginación, idempotencia, límites de concurrencia y pruebas. No copiar los contratos privados de GeeLark como dependencia; la matriz se basa en las funciones documentadas y los contratos locales serán propios.
+
+### 22.3 Riesgos de seguridad y diferencias estructurales
+
+- El README del CLI muestra operaciones privilegiadas o sensibles (root, shell, contactos, SMS, keybox y credenciales de plataformas). Geelark-IA debe ocultar o deshabilitar por defecto acciones que no sean necesarias y exigir permisos explícitos para las que se implementen.
+- Los límites de tasa, códigos de error, saldos y restricciones de plan publicados para la API cloud de GeeLark describen su servicio y no se trasladan como requisitos técnicos de Geelark-IA.
+- La presencia de un comando en el CLI no demuestra que pueda ejecutarse en una instancia virtual local ni que la función sea técnicamente equivalente. Cada capacidad necesita prueba del motor elegido.
+- La automatización local debe ofrecer controles de parada, límites de ejecución y auditoría, y respetar los términos y controles de seguridad de las aplicaciones de terceros.
+
+### 22.4 Criterios de aceptación del API/CLI local
+
+1. Cada operación documentada cuenta con una prueba de éxito y, al menos, una prueba de error.
+2. Las operaciones de escritura aceptan un identificador idempotente cuando proceda y no duplican instancias/tareas al reintentar.
+3. Las operaciones masivas devuelven resultados separados por elemento.
+4. Los permisos impiden que un usuario no autorizado ejecute shell/ADB, lea secretos o elimine instancias.
+5. Los logs omiten contraseñas, tokens, cookies, datos personales y cuerpos sensibles.
+6. La API local funciona sin Internet para las operaciones de administración local, salvo funciones claramente marcadas como externas.
+7. Ningún endpoint requiere token, saldo, plan o API comercial de GeeLark.
