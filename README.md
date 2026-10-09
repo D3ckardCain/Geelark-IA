@@ -63,3 +63,16 @@ No guardar contraseñas, tokens, claves privadas ni otros secretos en el reposit
 - [#10 — Recopilar especificaciones del equipo anfitrión](https://github.com/D3ckardCain/Geelark-IA/issues/10)
 - [#11 — Validar combinación tecnológica y arquitectura local-first](https://github.com/D3ckardCain/Geelark-IA/issues/11)
 
+
+
+## Arquitectura de clúster heterogéneo
+
+El diseño contempla una PC principal para administrar y varios nodos físicos de capacidades diferentes, con agentes autenticados y planificación de instancias Android por recursos y compatibilidad. La infraestructura no está seleccionada ni probada todavía.
+
+- [Arquitectura del clúster](docs/ARQUITECTURA_CLUSTER_HETEROGENEO.md)
+- [Contrato del agente y planificador](docs/CONTRATO_AGENTE_NODO_PLANIFICADOR.md)
+- [Comparativa Proxmox VE vs Linux directo](docs/COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md)
+- [ADR-003 — Arquitectura distribuida](docs/decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md)
+- [Issue #14 — Integrar clúster y planificador](https://github.com/D3ckardCain/Geelark-IA/issues/14)
+
+La documentación describe decisiones y criterios, no implementación terminada. No se declaran probados el rendimiento, la recuperación, la migración en vivo ni la cantidad de instancias.
