@@ -277,3 +277,8 @@ El trabajo debe continuar proactivamente entre tareas y fases, sin pedir confirm
 Se abrió el PR borrador [#16 — modelos tipados y máquina de estados](https://github.com/D3ckardCain/Geelark-IA/pull/16). La rama contiene un paquete Python aislado con modelos Pydantic, reglas de transición de estados y pruebas unitarias. La copia de trabajo local correspondiente pasó 32 casos; esto no equivale a validar un checkout limpio del PR. La integración permanece pendiente hasta ejecutar la instalación y pruebas exactas del branch y revisar los cambios.
 
 No se ha implementado el agente, el scheduler, la persistencia autoritativa, la autenticación entre nodos ni fencing.
+
+
+### Revisión de contrato actualizada (2026-10-09)
+
+El PR borrador #16 ahora incluye validación de coherencia entre `status` y `observed_state`, además de la máquina de estados. La copia de trabajo local pasó 33 casos de prueba. Sigue sin equivaler a validación del checkout exacto del PR; la integración queda pendiente de esa verificación.
