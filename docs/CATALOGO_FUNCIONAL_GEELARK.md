@@ -386,3 +386,80 @@ Fuente: https://help.geelark.com/Synchronizer-82c1c9a8f62d489ca81b1f753d2a7bfa
 ## 18. Registro de cambios
 
 - 2026-10-09: contraste directo de las guías oficiales de Automaton, GeeHub/API y Synchronizer; se añadieron implicaciones de diseño y límites de evidencia sin declarar paridad.
+
+
+## 19. Verificación directa de perfiles, proxies, aplicaciones y grupos
+
+**Consulta:** 2026-10-09. Esta sección registra únicamente lo que las guías oficiales consultadas muestran de forma explícita.
+
+### 19.1 Creación de perfiles
+
+La guía Profile confirma tres modalidades: creación individual, rápida y por lotes; la guía señala que las dos últimas están reservadas a Pro en GeeLark. Para la creación individual describe grupo, sistema operativo, proxy, comprobación del proxy, método de facturación del modelo Android y selección de versión del sistema operativo. Los proxies guardados muestran país y número de perfiles asociados; se admite asignación aleatoria con preferencia por proxies no utilizados y no se admite asignar un proxy expirado.
+
+Fuente: https://help.geelark.com/Profile-e60c92ba743748a697c07551f59812b8
+
+**Especificación local pendiente:**
+- Separar el concepto de perfil/configuración de la instancia Android ejecutable.
+- Formularios individual y por lotes deben compartir validadores y mostrar errores por campo/fila.
+- En modo local, sustituir el método de facturación cloud por asignación de recursos locales; no replicar tarifas por minuto.
+- Definir estados de instancia (creada, iniciando, activa, deteniéndose, detenida, fallida, eliminando) con transiciones válidas y recuperación.
+- Documentar campos de versión/modelo que el motor realmente soporte; no exponer opciones que no puedan aplicarse.
+- Un proxy es opcional según el diseño local si la instancia funciona sin él; su estado debe diferenciarse de la disponibilidad de la instancia.
+
+### 19.2 Proxies
+
+La guía oficial confirma los campos tipo, host, puerto, usuario y contraseña; los tipos HTTP, HTTPS y SOCKS5; importación por lotes de una entrada por línea con formato tipo://host:puerto:usuario:contraseña; y comprobaciones de conexión/IP/ubicación usando los canales IP2Location e IP-API.
+
+Fuente: https://help.geelark.com/Proxies-7fc88fa5ead344ff8b975cddf51592a9
+
+**Especificación local pendiente:**
+- El importador debe validar líneas individualmente, no registrar contraseñas en errores ni logs y ofrecer previsualización antes de guardar.
+- La prueba de conexión debe indicar timeout, resolución DNS, conexión, autenticación y consulta de IP como etapas separadas cuando la biblioteca lo permita.
+- La geolocalización IP es estimada y depende del proveedor; no garantiza ubicación física ni anonimato.
+- No se dependerá de IP2Location/IP-API para funciones críticas; la consulta externa será opcional, visible y desactivable. La prueba básica de conectividad debe funcionar sin servicio de geolocalización.
+- No se incluirá un proveedor proxy de pago. El usuario podrá introducir un proxy propio; operar sin proxy también debe ser posible cuando la aplicación lo permita.
+
+### 19.3 Aplicaciones
+
+La guía Applications confirma instalación/actualización individual o por lotes. La instalación individual puede realizarse desde Google Play o mediante APK aportado. La guía describe asignación de una aplicación a un grupo para que se instale al iniciar los cloud phones del grupo; también describe cargas APK/XAPK y actualizaciones por grupo. Para aplicaciones instaladas desde archivos cargados, la guía indica eliminar la versión anterior antes de subir e instalar la nueva.
+
+Fuente: https://help.geelark.com/Applications-95cfce3d74e443b8a5f57f5123669e60
+
+**Especificación local pendiente:**
+- Separar archivo APK/XAPK, paquete Android, versión instalada y política de despliegue por grupo.
+- Validar paquete, firma, ABI, versión mínima, espacio y compatibilidad antes de ejecutar la instalación.
+- La asignación por grupo será una política persistente: se aplicará en el siguiente arranque si así se configura y se informará del estado por instancia.
+- No integrar ni redistribuir Google Play, APK/XAPK ni aplicaciones de terceros sin autorización y sin revisar sus condiciones. El flujo base debe aceptar archivos aportados legítimamente por el usuario.
+- Una actualización por lotes tendrá resultados individuales y recuperación ante fallos parciales.
+
+### 19.4 Grupos y administración de perfiles
+
+La guía Profile management confirma filtros por grupo/categoría, edición cuando el perfil está cerrado, transferencia de perfiles a otro usuario (irreversible en el flujo descrito), y creación, renombrado, eliminación y fusión de grupos. También permite mover perfiles a otro grupo y conceder acceso a miembros.
+
+Fuente: https://help.geelark.com/Group-management-c91b6291bb954a69a5d231781a03d0e1
+
+**Especificación local pendiente:**
+- La edición de configuración de una instancia se bloqueará mientras esté ejecutándose si el motor no soporta cambios seguros en caliente.
+- La fusión de grupos definirá cómo resolver nombres duplicados, reglas de acceso y políticas de aplicación.
+- Las operaciones masivas deberán mostrar una vista previa, un resumen de alcance y resultados por elemento.
+- En Geelark-IA, transferir propiedad será una operación local reversible o exportación/importación explícita; no se replicará una transferencia irreversible por defecto.
+- Borrar un grupo no debe borrar silenciosamente las instancias que contiene; la regla deberá explicarse en el manual y probarse.
+
+## 20. Criterios de aceptación derivados de las guías
+
+Estos criterios se proponen para el producto local y no implican que ya estén implementados:
+
+1. Crear un perfil individual con grupo, versión Android y configuración de red válida; mostrar un error accionable si la imagen no existe.
+2. Crear perfiles por lotes desde archivo con validación por fila y un identificador estable por perfil.
+3. Probar un proxy con timeout; distinguir proxy no accesible, credenciales inválidas, consulta de IP fallida y geolocalización no disponible.
+4. Importar proxies por lotes con vista previa y sin exposición de credenciales en logs.
+5. Asignar una APK válida a un perfil y comprobar instalación; probar paquete incompatible y falta de espacio.
+6. Asignar una aplicación a un grupo y comprobar su aplicación al siguiente inicio, registrando los fallos por instancia.
+7. Filtrar perfiles por grupo/estado y mover varios perfiles con confirmación previa.
+8. Intentar editar una instancia en ejecución y comprobar que el sistema bloquea o usa un mecanismo seguro documentado.
+9. Crear, renombrar, fusionar y eliminar un grupo sin perder perfiles por accidente.
+10. Verificar que la UI diferencia funciones de GeeLark que dependen de suscripciones o servicios cloud de las alternativas locales gratuitas.
+
+## 21. Historial adicional
+
+- 2026-10-09: revisión directa de las guías Profile, Proxies, Applications y Profile management; se registraron campos, restricciones y criterios de aceptación pendientes.
