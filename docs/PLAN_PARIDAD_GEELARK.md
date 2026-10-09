@@ -200,3 +200,10 @@ Se creó el documento [CATALOGO_FUNCIONAL_GEELARK.md](CATALOGO_FUNCIONAL_GEELARK
 **Diferencia estructural confirmada:** la función GeeLark “Add Custom Phone” documenta la extracción de parámetros desde un Android físico conectado por USB/ADB. Como el alcance de Geelark-IA no depende de teléfonos físicos, esa función no puede considerarse idéntica. Se estudiará una identidad sintética por instancia, con límites claros, sin afirmar que equivale a una huella física real.
 
 El catálogo sigue siendo parcial y documental. La matriz de paridad conserva estados preliminares; no se declara ninguna función equivalente ni se selecciona todavía un motor Android.
+
+
+## Decisión de alcance añadida — importación desde Android físico
+
+Además de configurar identidades sintéticas para las instancias virtuales, se investigará la importación selectiva de parámetros desde un dispositivo Android físico conectado por USB/ADB. El flujo deberá mostrar campos accesibles y compatibles, permitir selección explícita, excluir datos privados por defecto, no modificar el dispositivo de origen y verificar tras reinicio qué valores se aplicaron realmente. No se prometerá clonación íntegra de identidad ni se eludirán mecanismos de seguridad/attestation.
+
+La matriz incluye los requisitos P-027 a P-031. Esta capacidad se considera pendiente de prueba práctica, no implementada. La selección del motor Android seguirá supeditada a las pruebas y a la compatibilidad de cada campo.
