@@ -233,3 +233,18 @@ Se confirma que Geelark-IA debe administrar varios PC físicos heterogéneos med
 Hallazgo documental: Proxmox VE puede usarse sin comprar una licencia de software y su código es AGPLv3, pero el acceso a repositorios Enterprise y el soporte son comerciales; el repositorio no-subscription es una opción sin clave cuyo nivel de validación tiene advertencias oficiales. Proxmox tiene gestión de clúster multi-master y quorum, así que la PC principal de Geelark-IA es un rol operativo del producto y no un supuesto nodo maestro exclusivo de Proxmox. Fuentes y límites en [COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md](COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md).
 
 **Estado real:** documentos y criterios creados; no existe aún agente, planificador ni clúster implementado y no se han ejecutado pruebas de rendimiento.
+
+
+## Actualización — planificador de recursos y prueba de concepto (2026-10-09)
+
+- [x] Crear la especificación documental del planificador de recursos.
+- [x] Crear el protocolo de prueba de concepto para comparar Linux directo y Proxmox VE.
+- [ ] Definir persistencia autoritativa, consistencia y fencing para asignaciones distribuidas.
+- [ ] Validar esquemas del agente y protocolo mediante pruebas.
+- [ ] Ejecutar pruebas con al menos dos nodos heterogéneos.
+- [ ] Medir capacidad, rendimiento, desconexión, reconciliación y restauración.
+- [ ] Decidir infraestructura a partir de evidencia y revisar licencias.
+
+Documentos: [ESPECIFICACION_PLANIFICADOR_RECURSOS.md](ESPECIFICACION_PLANIFICADOR_RECURSOS.md) y [PLAN_PRUEBA_CONCEPTO_CLUSTER.md](PLAN_PRUEBA_CONCEPTO_CLUSTER.md).
+
+**Estado real:** se añadieron especificaciones y un plan de pruebas, no código ejecutable. No se ha medido rendimiento ni se ha aprobado Proxmox/Linux directo.
