@@ -265,3 +265,8 @@ Se añadió [ADR-004 — Persistencia y consistencia del clúster](decisiones/AD
 Documento: [CONTRATO_MENSAJES_AGENTE_CLUSTER.md](CONTRATO_MENSAJES_AGENTE_CLUSTER.md).
 
 **Límite:** contrato documental sin código ni pruebas ejecutadas.
+
+
+### Regla operativa de continuidad (2026-10-09)
+
+El trabajo debe continuar proactivamente entre tareas y fases, sin pedir confirmación en pasos rutinarios. Solo solicitar intervención del usuario cuando sea imprescindible por acceso, credenciales, decisión de producto no inferible, aprobación personal o ejecución de una prueba física. Cada avance, decisión, problema, solución y prueba se registra en GitHub en español; distinguir siempre diseño, implementación y verificación real.
