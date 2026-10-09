@@ -567,3 +567,71 @@ Esta función comercial no puede ser dependencia obligatoria de Geelark-IA. La a
 - Se añade a perfiles la configuración opcional de URL de cambio de IP y refresco automático, únicamente cuando el usuario disponga de un proxy compatible.
 - El acceso de mantenimiento remoto de GeeLark se marca como función cloud propietaria no equivalente; el diagnóstico local será explícito y controlado por el propietario.
 - Las funciones AIGC con cargo por uso se marcan como incompatibles con una dependencia obligatoria de coste cero.
+
+
+## 25. Verificación directa: Library, miembros, analítica, ADB y cámara
+
+### 25.1 Library y activos multimedia
+
+La guía Library indica que GeeLark limita la función a la suscripción Pro, permite almacenar fotos y vídeos, cargar manualmente, importar desde Google Drive u otros servicios compatibles y usar los activos en automatización. La guía indica un máximo de 100 GB y eliminación a los 30 días; esos límites describen el servicio cloud de GeeLark y no se copiarán a la biblioteca local.
+
+Fuente: https://help.geelark.com/Library-1c20be7d9e41800a8535ea943b930bd4?pvs=21
+
+**Adaptación local:** activos persistentes por defecto, etiquetas, búsqueda, metadatos, hash, detección de duplicados, vista previa, backup/exportación y límite configurable por espacio de disco. Las integraciones con Google Drive u otros repositorios serán opcionales y no críticas; la biblioteca debe funcionar con archivos locales y sin Internet.
+
+### 25.2 Miembros y permisos
+
+La guía Members describe grupos de usuarios con derechos funcionales compartidos; alta de miembros con nombre, correo, contraseña y rol (administrador, gestor o miembro), autorización por grupos y límite opcional de perfiles. También describe modificación y eliminación de información y restablecimiento de contraseña.
+
+Fuente: https://help.geelark.com/Members-59810b22074f4dc08f58cc2e4262a9c8?pvs=21
+
+**Adaptación local:** si se implementa colaboración multiusuario, se exigirán contraseñas almacenadas con un algoritmo de hash resistente, permisos mínimos, aislamiento por grupo, revocación de sesiones, auditoría y protección contra escalada de privilegios. El sistema de un solo usuario local no debe obligar a crear cuentas cloud. La función de miembros se priorizará después del núcleo y de la definición del modo local/multiusuario.
+
+### 25.3 Analytics
+
+La guía Analytics describe el registro de cuentas de Instagram, TikTok, YouTube y Reddit para consultar métricas como seguidores, me gusta y comentarios; indica actualización diaria a partir de las 02:00 y que se introduce el identificador exacto de la plataforma.
+
+Fuente: https://help.geelark.com/Analytics-2df0be7d9e41807da29ee97619ecf365?pvs=21
+
+**Adaptación local:** diferenciar métricas de ejecución interna (tareas, tiempos, errores, uso de CPU/RAM/disco) de métricas externas de redes sociales. Las métricas de plataformas externas solo se implementarán mediante interfaces legítimas y disponibles; no se asumirá acceso gratuito ni se eludirán límites de autenticación, API o términos de uso. Si una integración no puede hacerse sin pagos o credenciales, se marcará como opcional/no equivalente.
+
+### 25.4 ADB
+
+La guía ADB de GeeLark indica soporte para Android 11, 12, 13, 14, 15 y 16 en la versión consultada; permite habilitar ADB por perfil o en varios perfiles, iniciar el perfil y obtener datos de conexión para ejecutar comandos ADB.
+
+Fuente: https://help.geelark.com/ADB-1600be7d9e418006b80cf649bcdc80ad
+
+**Adaptación local:** en las instancias virtuales propias, preferir ADB local por socket/puerto restringido a loopback o red interna aislada. No publicar ADB en Internet. La API local debe exponer operaciones de alto nivel por defecto y permitir shell solo a usuarios autorizados, con timeout, auditoría y redacción de secretos. Las diferencias de ADB en Android 9/10 o versiones futuras se documentarán por motor y versión.
+
+### 25.5 Cámara y entrada multimedia
+
+La guía de cámara describe tres vías: usar una imagen subida desde el ordenador para escanear QR desde la galería, usar la cámara de un teléfono físico mediante mirroring y usar la cámara web del ordenador o vídeo pregrabado.
+
+Fuente: https://help.geelark.com/How-to-use-the-camera-on-the-cloud-phone-3500be7d9e41802e8dbddb948a1b78c7?pvs=21
+
+**Adaptación local:** evaluar por separado:
+1. Importar una imagen local a la galería de la instancia (no necesita cámara real).
+2. Proveer cámara web del anfitrión, solo si el motor y el sistema anfitrión lo soportan.
+3. Proveer una fuente multimedia de prueba/pregrabada, claramente identificada como simulada.
+4. Integrar cámara física vía mirroring solo como función opcional, con consentimiento y permisos.
+No afirmar que una imagen o cámara virtual es equivalente a una cámara/sensor físico real; algunas apps pueden detectar diferencias del entorno virtual.
+
+### 25.6 Logs
+
+La guía pública Logs consultada solo muestra el encabezado del módulo, sin detalles de campos ni filtros en el contenido accesible. Por tanto, la especificación completa de GeeLark Logs permanece **sin evidencia suficiente** y no debe inferirse a partir del nombre.
+
+La adaptación local prevista se mantiene como propuesta de diseño: eventos estructurados, filtros por instancia/tarea/fecha/estado, exportación, correlación y redacción de datos sensibles. Falta evidencia para afirmar equivalencia de filtros, retención o vistas concretas.
+
+## 26. Criterios de aceptación añadidos
+
+1. Library: cargar archivo local, etiquetar, buscar, recuperar después de reiniciar y exportar sin servicio cloud.
+2. Library: alcanzar un límite de almacenamiento configurado debe generar aviso y evitar corrupción; no eliminar archivos sin política explícita.
+3. Miembros: probar matriz de permisos para administrador, gestor y miembro; denegar acceso a grupo no autorizado y registrar el intento sin exponer secretos.
+4. Analytics: distinguir claramente métricas locales de métricas externas y manejar datos no disponibles sin inventar valores.
+5. ADB: permitir conexión a una instancia local autorizada, denegar una no autorizada y comprobar que el puerto no es accesible desde redes externas por defecto.
+6. Cámara: probar imagen desde galería, webcam si está soportada y una fuente pregrabada; mostrar el modo usado y sus limitaciones.
+7. Logs: no marcar equivalencia con GeeLark hasta obtener evidencia adicional sobre las pantallas y campos de la función original.
+
+## 27. Historial
+
+- 2026-10-09: se verificaron las guías públicas de Library, Members, Analytics, ADB y cámara; se registraron límites de evidencia, adaptaciones locales y criterios de aceptación.
