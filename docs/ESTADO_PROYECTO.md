@@ -32,6 +32,7 @@ Replicar las funciones de GeeLark aplicables a Android en una plataforma local. 
 - [Guía de inventario del equipo anfitrión](GUIA_INVENTARIO_EQUIPO.md)
 - [Arquitectura tecnológica propuesta](ARQUITECTURA_TECNOLOGICA_PROPUESTA.md)
 - [ADR-001 — Stack principal](decisiones/ADR-001-STACK-PRINCIPAL.md)
+- [ADR-002 — Estrategia de selección del motor Android](decisiones/ADR-002-ESTRATEGIA-MOTOR-ANDROID.md)
 - [Inventario de licencias y coste](INVENTARIO_LICENCIAS_COSTE.md)
 - [Contrato del adaptador Android](CONTRATO_ADAPTADOR_ANDROID.md)
 - [Especificación del motor RPA](ESPECIFICACION_MOTOR_RPA.md)
@@ -210,3 +211,6 @@ Estas son decisiones de diseño para prototipo; no certifican todavía la compat
 ## Contratos funcionales para la implementación
 
 Se añadieron [CONTRATO_ADAPTADOR_ANDROID.md](CONTRATO_ADAPTADOR_ANDROID.md) y [ESPECIFICACION_MOTOR_RPA.md](ESPECIFICACION_MOTOR_RPA.md). El primero define capacidades, estados, errores, idempotencia y pruebas de conformidad por motor. El segundo define bloques RPA tipados, límites, cancelación, recuperación y sincronización explícita. Ambos son especificaciones, no implementaciones.
+
+
+La estrategia del motor Android quedó registrada en ADR-002: redroid es candidato de experimento para multiinstancia; Android Emulator es baseline de compatibilidad y Waydroid alternativa de laboratorio. La decisión final depende de pruebas de conformidad, seguridad y licencias.
