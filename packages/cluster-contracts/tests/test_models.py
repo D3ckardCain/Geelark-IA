@@ -174,3 +174,30 @@ def test_rejected_result_without_error_is_invalid():
     }
     with pytest.raises(ValidationError):
         OperationResult.model_validate(payload)
+
+def test_naive_datetime_is_rejected():
+    payload = valid_heartbeat()
+    payload["sent_at"] = "2026-10-09T18:00:00"
+    with pytest.raises(ValidationError):
+        Heartbeat.model_validate(payload)
+
+
+def test_failed_result_requires_typed_error():
+    payload = {
+        "protocol_version": "0.2",
+        "request_id": str(REQUEST_ID),
+        "sent_at": NOW.isoformat(),
+        "operation_id": str(OPERATION_ID),
+        "node_id": str(NODE_ID),
+        "instance_id": str(INSTANCE_ID),
+        "assignment_epoch": 1,
+        "status": "failed",
+        "observed_state": "failed",
+        "error": {
+            "code": ErrorCode.INTERNAL_ERROR.value,
+            "message": "Fallo controlado de prueba",
+            "retryable": False,
+            "reasons": [],
+        },
+    }
+    assert OperationResult.model_validate(payload).status == OperationStatus.FAILED
