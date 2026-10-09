@@ -38,6 +38,7 @@ Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la refer
 - `docs/GUIA_INVENTARIO_EQUIPO.md`: guía opcional para validación final en hardware real.
 - `docs/ARQUITECTURA_TECNOLOGICA_PROPUESTA.md`: combinación tecnológica local-first propuesta.
 - `docs/decisiones/ADR-001-STACK-PRINCIPAL.md`: decisión inicial de stack y anfitrión de referencia.
+- `docs/decisiones/ADR-002-ESTRATEGIA-MOTOR-ANDROID.md`: criterios para elegir motor Android sin asumir paridad.
 - `docs/INVENTARIO_LICENCIAS_COSTE.md`: licencias, costes y restricciones de redistribución.
 - `docs/CONTRATO_ADAPTADOR_ANDROID.md`: contrato agnóstico para motores Android.
 - `docs/ESPECIFICACION_MOTOR_RPA.md`: diseño de automatización por bloques tipados.
