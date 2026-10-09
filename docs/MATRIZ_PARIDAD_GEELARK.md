@@ -95,3 +95,18 @@ Fuente de apoyo: [gestión de perfiles y grupos](https://help.geelark.com/Group-
 | Sustitución/configuración masiva | Notas de versión documentan operaciones masivas con límites de versión/plan | Cola local con resultados por elemento y límite basado en recursos reales | Investigación inicial |
 
 **Nota de paridad importante:** la función de extracción de huella de un teléfono real queda registrada como **no equivalente bajo el alcance actual**, no como tarea de implementación pendiente que se pueda resolver solo con software. Si el alcance cambia en el futuro, habrá que revisar esta decisión expresamente.
+
+
+## 2.3 Importación opcional desde Android físico (decisión del usuario, 2026-10-09)
+
+Se aprueban dos vías de configuración por instancia: **identidad sintética** e **importación selectiva desde Android físico por USB/ADB**. No son excluyentes. La importación queda como capacidad por investigar y probar; no se presupone que todos los campos puedan leerse o aplicarse.
+
+| ID | Capacidad | Requisito de aceptación | Estado |
+|---|---|---|---|
+| P-027 | Detectar Android físico conectado | Detectar dispositivos autorizados/no autorizados, versión Android y errores ADB sin modificar el origen | No especificado |
+| P-028 | Inspeccionar campos importables | Listar campos accesibles, origen del dato, compatibilidad, si es editable y limitaciones | No especificado |
+| P-029 | Importar selección a perfil local | Vista previa y selección explícita; no copiar cuentas, tokens ni datos personales por defecto | No especificado |
+| P-030 | Aplicar configuración al Android virtual | Aplicar solo campos compatibles, reiniciar cuando proceda y reportar diferencias por campo | No especificado |
+| P-031 | Trazabilidad y seguridad de la importación | Registrar fecha y resultado sin secretos; permitir cancelar y borrar el perfil de importación | No especificado |
+
+**Límite de paridad:** no afirmar que se clona íntegramente una identidad física. Los identificadores protegidos, claves de hardware, attestation, SIM/módem y señales derivadas del host pueden no ser accesibles o reproducibles. No se eludirán mecanismos de seguridad ni antiabuso.
