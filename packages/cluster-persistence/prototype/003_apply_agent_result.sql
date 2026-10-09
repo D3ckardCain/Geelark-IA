@@ -5,6 +5,7 @@ CREATE OR REPLACE FUNCTION cluster_control.apply_agent_result(
     p_authenticated_node_id uuid,
     p_instance_id uuid,
     p_operation_id uuid,
+    p_event_id uuid,
     p_assignment_epoch bigint,
     p_new_state text,
     p_error_code text DEFAULT NULL,
@@ -113,7 +114,7 @@ BEGIN
          previous_state, new_state, actor_type, actor_id,
          reason_code, request_id, operation_id, created_at, details)
     VALUES
-        (gen_random_uuid(), p_instance_id, p_assignment_epoch, p_authenticated_node_id,
+        (p_event_id, p_instance_id, p_assignment_epoch, p_authenticated_node_id,
          v_instance.observed_state, p_new_state, 'node_agent',
          p_authenticated_node_id::text, 'agent_result',
          v_operation.request_id, p_operation_id, v_now, p_result_summary);
@@ -123,4 +124,4 @@ END;
 $$;
 
 -- Cerrado por defecto. El servicio de dominio debe conceder EXECUTE a un rol dedicado.
-REVOKE ALL ON FUNCTION cluster_control.apply_agent_result(uuid, uuid, uuid, bigint, text, text, jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION cluster_control.apply_agent_result(uuid, uuid, uuid, uuid, bigint, text, text, jsonb) FROM PUBLIC;
