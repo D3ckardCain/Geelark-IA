@@ -224,3 +224,12 @@ def test_protocol_version_must_have_major_minor_shape():
     payload["protocol_version"] = "v0"
     with pytest.raises(ValidationError):
         Heartbeat.model_validate(payload)
+
+def test_generated_schema_forbids_unknown_fields():
+    schema = Heartbeat.model_json_schema()
+    assert schema["additionalProperties"] is False
+
+
+def test_generated_schema_documents_protocol_version_pattern():
+    schema = Heartbeat.model_json_schema()
+    assert schema["properties"]["protocol_version"]["pattern"] == r"^\\d+\\.\\d+$"
