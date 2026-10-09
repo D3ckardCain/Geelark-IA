@@ -98,3 +98,8 @@ Define el contrato esperado y pruebas de conformidad; no es todavía una API des
 ## Regla de continuidad del trabajo
 
 Avanzar de forma autónoma por la siguiente tarea técnicamente justificada y registrar en GitHub el resultado, decisiones, incidencias, soluciones y pruebas. No interrumpir el avance para pedir confirmación de pasos rutinarios ni decisiones reversibles que puedan resolverse con evidencia. Consultar al usuario únicamente cuando falte una credencial/acceso, una decisión de producto no inferible, una aprobación que solo él pueda otorgar o una prueba física que requiera su intervención. Explicar claramente cualquier bloqueo real y dar instrucciones paso a paso cuando su participación sea necesaria.
+
+
+### Implementación técnica en revisión
+
+- [PR #16 — contratos tipados y máquina de estados](https://github.com/D3ckardCain/Geelark-IA/pull/16) (borrador; no integrado).
