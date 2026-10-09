@@ -3,7 +3,14 @@ name: Cluster persistence prototype
 on:
   pull_request:
     paths:
-      - "packages/cluster-persistence/prototype/**"
+      - "packages/cluster-persistence/prototype/001_schema.sql"
+      - "packages/cluster-persistence/prototype/002_assign_instance.sql"
+      - "packages/cluster-persistence/prototype/003_apply_agent_result.sql"
+      - "packages/cluster-persistence/prototype/test_constraints.sql"
+      - "packages/cluster-persistence/prototype/test_assignment_function.sql"
+      - "packages/cluster-persistence/prototype/test_agent_result.sql"
+      - "packages/cluster-persistence/prototype/test_concurrency.sh"
+      - "packages/cluster-persistence/prototype/test_concurrent_assignments.sh"
       - ".github/workflows/cluster-persistence-prototype.yml"
   workflow_dispatch:
 
