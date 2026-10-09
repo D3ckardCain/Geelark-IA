@@ -8,7 +8,7 @@
 
 - Alcanzar la mayor paridad funcional verificable posible con GeeLark, inventariando cada función, opción, flujo y limitación.
 - Solo Android. iOS queda excluido.
-- Ejecución local: teléfonos Android físicos conectados al equipo y/o entornos Android locales si una prueba demuestra que son viables. No se dependerá de teléfonos en la nube.
+- Ejecución local: los dispositivos Android objetivo serán instancias virtualizadas/emuladas en el hardware anfitrión físico. No se presupone el uso de teléfonos físicos. La viabilidad, fidelidad y límites de cada virtualizador deben demostrarse con pruebas; no se dependerá de teléfonos en la nube.
 - Objetivo de costo operativo: **0 USD**. No usar tarjeta obligatoria, trial temporal, cobro automático ni API de pago para funciones críticas.
 - Usar herramientas open source o gratuitas de forma sostenible, comprobando licencias, límites y requisitos de hardware.
 - Mantener capacidad de operación local sin Internet cuando sea técnicamente posible; separar claramente las funciones offline de las que necesitan Internet (por ejemplo, apps/redes sociales, descarga de APK, actualizaciones o servicios externos).
@@ -37,9 +37,9 @@ Esta lista es un inventario de áreas inicial, no una afirmación de que cada de
 - Identificar diferencias entre teléfonos físicos y teléfonos cloud. No asumir que un perfil virtual equivale a un dispositivo físico.
 
 ### M01 — Inventario de hardware y prueba de viabilidad
-- Confirmar PC anfitrión, sistema operativo, CPU, RAM, almacenamiento, GPU, puertos USB, red y teléfonos Android disponibles.
-- Medir cuántos teléfonos se pueden conectar/controlar de forma estable.
-- Probar ADB, permisos de depuración, reconexión, transferencia de archivos, captura de pantalla, entrada de texto y eventos táctiles.
+- Confirmar hardware anfitrión, sistema operativo, CPU, RAM, almacenamiento, GPU, virtualización por hardware y red. Los teléfonos objetivo serán virtuales; no se presupone disponibilidad de teléfonos físicos.
+- Medir cuántas instancias Android virtuales se pueden ejecutar y controlar de forma estable.
+- Probar creación/arranque de una instancia Android virtual, ADB si está disponible, reconexión, transferencia de archivos, captura de pantalla, entrada de texto, eventos táctiles, aceleración gráfica y compatibilidad de aplicaciones.
 - Evaluar, por separado, si la virtualización/emulación local aporta valor; no prometer instancias Android ilimitadas ni perfiles con identidad de dispositivo genuina.
 - Salida: informe de capacidad y límites reales antes de escoger arquitectura.
 
@@ -51,14 +51,14 @@ Esta lista es un inventario de áreas inicial, no una afirmación de que cada de
 - Decidir stack solo después de M01; no queda aprobada ninguna tecnología por adelantado.
 
 ### M03 — Gestión de dispositivos/perfiles
-- Descubrir dispositivos conectados, identificarlos, nombrarlos, etiquetarlos, agruparlos y ver estado.
-- Crear/editar/eliminar registros de perfiles locales, asociar dispositivo físico, notas, configuración y estado.
+- Descubrir y administrar instancias virtuales, identificarlas, nombrarlas, etiquetarlas, agruparlas y consultar su estado.
+- Crear/editar/eliminar perfiles de instancias virtuales, asociar configuración, imagen Android, recursos asignados, notas y estado.
 - Acciones de conexión/desconexión lógica, reinicio cuando sea compatible, comprobación de salud y recuperación.
 - Importación/exportación y clonación de configuración lógica cuando no implique copiar identificadores de hardware.
 - Explicar explícitamente que un perfil de software no crea un teléfono físico ni puede garantizar una huella de dispositivo modificable.
 
 ### M04 — Control remoto local y visualización
-- Ver pantalla del Android conectado, iniciar/parar sesión de control, toque, deslizamiento, teclado y portapapeles si es compatible.
+- Ver la pantalla de una instancia Android virtual, iniciar/detener el control y enviar toques, deslizamientos, teclado y portapapeles si el motor elegido lo permite.
 - Captura de pantalla, resolución/orientación cuando el dispositivo lo permita, latencia y recuperación de conexión.
 - Control multi-dispositivo, con límites medidos.
 - Funcionamiento exclusivamente en LAN/USB por defecto; acceso remoto fuera de LAN requerirá diseño de seguridad explícito y no dependerá de túneles de pago.
@@ -147,9 +147,9 @@ Esta lista es un inventario de áreas inicial, no una afirmación de que cada de
 ## 4. Orden de ejecución y puertas de aprobación
 
 1. **Fase A — Inventario exhaustivo de GeeLark** (M00): estudiar documentación pública y flujos disponibles; producir matriz de paridad y mapa de pantallas.
-2. **Fase B — Auditoría del hardware** (M01): recoger especificaciones reales y probar un Android físico.
+2. **Fase B — Auditoría del hardware** (M01): recoger especificaciones reales y probar una instancia Android virtual.
 3. **Fase C — Decisión técnica y arquitectura mínima** (M02): escoger stack tras evidencia, confirmar costo y límites.
-4. **Fase D — Núcleo operativo** (M03 y M04): inventario, conexión, pantalla y control de un dispositivo físico.
+4. **Fase D — Núcleo operativo** (M03 y M04): inventario, conexión, pantalla y control de una instancia Android virtual.
 5. **Fase E — Operaciones Android** (M05 y M06): apps, archivos y red.
 6. **Fase F — Automatización** (M07, M08 y M09): primero flujo individual, luego sincronización y lotes.
 7. **Fase G — Integración y trazabilidad** (M10 y M11): API local, CLI, logs y analítica.
@@ -173,7 +173,7 @@ Esta lista es un inventario de áreas inicial, no una afirmación de que cada de
 
 ## 6. Riesgos y restricciones conocidos
 
-- Un teléfono físico real y un perfil de teléfono cloud no son equivalentes en aislamiento, escalabilidad ni virtualización.
+- Una instancia Android virtual local y un cloud phone de GeeLark no son equivalentes automáticamente en aislamiento, huella, sensores, arquitectura de CPU, rendimiento ni escalabilidad.
 - El número de dispositivos simultáneos depende de hardware, puertos, alimentación, sistema operativo y rendimiento; se medirá.
 - Algunas funciones de GeeLark se ejecutan en infraestructura cloud propia o dependen de servicios de IA comerciales; no se copiarán esos servicios y puede haber diferencias inevitables.
 - Cambiar identificadores sensibles de hardware o fabricar una huella idéntica no se considera garantizado ni un requisito técnico aprobado.
@@ -182,9 +182,12 @@ Esta lista es un inventario de áreas inicial, no una afirmación de que cada de
 
 ## 7. Primer paso inmediato
 
-Completar M00 con la documentación pública disponible y, en paralelo, solicitar al usuario las especificaciones del equipo y de los teléfonos Android físicos. No escribir todavía el núcleo de la aplicación ni elegir definitivamente el stack hasta cerrar el inventario inicial y la prueba de viabilidad.
+Completar M00 con la documentación pública disponible y, en paralelo, recopilar especificaciones del equipo anfitrión y definir el perfil de carga objetivo para instancias virtuales Android. No escribir todavía el núcleo de la aplicación ni elegir definitivamente el stack hasta cerrar el inventario inicial y la prueba de viabilidad.
 
 ## 8. Registro de investigación
+
+- 2026-10-09: se aclara el alcance: el hardware físico será el equipo anfitrión; los dispositivos Android objetivo serán virtualizados/emulados localmente, no teléfonos físicos. La auditoría de hardware debe medir la viabilidad de instancias virtuales.
+- 2026-10-09: investigación funcional ampliada registrada en [INVESTIGACION_FUNCIONAL_GEELARK.md](INVESTIGACION_FUNCIONAL_GEELARK.md) y matriz inicial en [MATRIZ_PARIDAD_GEELARK.md](MATRIZ_PARIDAD_GEELARK.md).
 
 - 2026-10-09: primera revisión de la web pública y del Centro de ayuda de GeeLark. Áreas visibles: Profile, Proxies, Library, AIGC, Analytics, Applications, Automaton, Synchronizer, GeeHub, Resources, Referral, Billing, Members y Logs; documentación adicional de grupos, ADB y conexión de dispositivos locales. Automatización pública: plantillas, Synchronizer, RPA visual y API.
 - Fuentes: https://help.geelark.com/ ; https://www.geelark.com/features/automation/ ; https://www.geelark.com/features/rpa/ ; https://www.geelark.com/features/api/ ; https://www.geelark.com/pricing/
