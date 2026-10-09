@@ -27,6 +27,7 @@ Replicar las funciones de GeeLark aplicables a Android en una plataforma local. 
 - [Investigación funcional de GeeLark](INVESTIGACION_FUNCIONAL_GEELARK.md)
 - [Matriz de paridad funcional](MATRIZ_PARIDAD_GEELARK.md)
 - [Plan de trabajo](PLAN_TRABAJO.md)
+- [Comparativa de motores Android locales](COMPARATIVA_MOTORES_ANDROID.md)
 - [Requisitos](REQUISITOS.md)
 
 ## Investigación documental inicial
@@ -103,3 +104,16 @@ El usuario confirma que desea compatibilidad objetivo con **cualquier teléfono 
 - [Catálogo funcional y decisión de compatibilidad](CATALOGO_FUNCIONAL_GEELARK.md#161-compatibilidad-objetivo-android-de-cualquier-marca-y-versión-progresiva)
 - [Issue #7 — Importación selectiva por USB/ADB](https://github.com/D3ckardCain/Geelark-IA/issues/7)
 
+
+
+## Actualización — comparativa documental de motores Android (2026-10-09)
+
+Se creó [COMPARATIVA_MOTORES_ANDROID.md](COMPARATIVA_MOTORES_ANDROID.md) con revisión preliminar de redroid, Android Emulator, Waydroid y Android-x86/derivados, incluyendo fuentes oficiales, licencias, requisitos, riesgos de seguridad y protocolo de prueba reproducible. **No se ha seleccionado motor**: no hay pruebas en el equipo anfitrión real y el rendimiento no puede certificarse sin sus especificaciones.
+
+- [x] Registrar comparativa documental preliminar.
+- [x] Crear [issue #8 — Comparar y validar motores Android locales](https://github.com/D3ckardCain/Geelark-IA/issues/8).
+- [ ] Revisar licencias y componentes de terceros de cada versión candidata.
+- [ ] Obtener especificaciones del anfitrión y ejecutar la prueba mínima.
+- [ ] Comparar resultados de ADB, captura/entrada, APK, persistencia, aislamiento y recursos.
+
+Hallazgo provisional: redroid se prioriza para la primera prueba si el anfitrión es Linux compatible, por su enfoque de multiinstancia; esta prioridad no equivale a una selección definitiva. Android Emulator queda condicionado a revisión de las condiciones del SDK y las imágenes. Waydroid y Android-x86/derivados requieren validar modelo de instancias, mantenimiento y aislamiento.
