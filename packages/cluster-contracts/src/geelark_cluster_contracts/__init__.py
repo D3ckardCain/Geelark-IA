@@ -1,3 +1,4 @@
+from .state_machine import InstanceState, can_transition, require_transition
 """Contratos tipados del clúster Geelark-IA."""
 
 from .models import (
@@ -28,6 +29,7 @@ __all__ = [
     "ErrorDetail",
     "EngineRequirement",
     "Heartbeat",
+    "InstanceState",
     "MemoryTelemetry",
     "NodeHealth",
     "OperationResult",
@@ -36,4 +38,6 @@ __all__ = [
     "ResourceReservation",
     "TelemetryResources",
     "VolumeTelemetry",
+    "can_transition",
+    "require_transition",
 ]
