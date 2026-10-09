@@ -214,3 +214,22 @@ Se añadieron [CONTRATO_ADAPTADOR_ANDROID.md](CONTRATO_ADAPTADOR_ANDROID.md) y [
 
 
 La estrategia del motor Android quedó registrada en ADR-002: redroid es candidato de experimento para multiinstancia; Android Emulator es baseline de compatibilidad y Waydroid alternativa de laboratorio. La decisión final depende de pruebas de conformidad, seguridad y licencias.
+
+
+## Actualización — clúster heterogéneo como requisito central (2026-10-09)
+
+Se confirma que Geelark-IA debe administrar varios PC físicos heterogéneos mediante una PC principal de operación y agentes por nodo. El planificador distribuirá instancias Android y trabajos según recursos y compatibilidad; el diseño no puede asumir un solo anfitrión.
+
+- [x] Documentar la arquitectura de clúster: [ARQUITECTURA_CLUSTER_HETEROGENEO.md](ARQUITECTURA_CLUSTER_HETEROGENEO.md).
+- [x] Registrar la decisión distribuida: [ADR-003](decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md).
+- [x] Especificar el contrato del agente/planificador: [CONTRATO_AGENTE_NODO_PLANIFICADOR.md](CONTRATO_AGENTE_NODO_PLANIFICADOR.md).
+- [x] Documentar comparación inicial: [COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md](COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md).
+- [x] Crear [issue #14](https://github.com/D3ckardCain/Geelark-IA/issues/14) para seguimiento.
+- [ ] Validar contrato mediante pruebas de esquema y seguridad.
+- [ ] Ejecutar prueba de concepto con al menos dos nodos heterogéneos.
+- [ ] Medir rendimiento Android, aislamiento, pérdida de red, recuperación y backups.
+- [ ] Aprobar Proxmox VE o Linux directo con evidencia, no por preferencia teórica.
+
+Hallazgo documental: Proxmox VE puede usarse sin comprar una licencia de software y su código es AGPLv3, pero el acceso a repositorios Enterprise y el soporte son comerciales; el repositorio no-subscription es una opción sin clave cuyo nivel de validación tiene advertencias oficiales. Proxmox tiene gestión de clúster multi-master y quorum, así que la PC principal de Geelark-IA es un rol operativo del producto y no un supuesto nodo maestro exclusivo de Proxmox. Fuentes y límites en [COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md](COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md).
+
+**Estado real:** documentos y criterios creados; no existe aún agente, planificador ni clúster implementado y no se han ejecutado pruebas de rendimiento.
