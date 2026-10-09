@@ -37,6 +37,8 @@ Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la refer
 - `docs/MODELO_AMENAZAS_SEGURIDAD.md`: controles de seguridad requeridos, aún no implementados.
 - `docs/GUIA_INVENTARIO_EQUIPO.md`: guía opcional para validación final en hardware real.
 - `docs/ARQUITECTURA_TECNOLOGICA_PROPUESTA.md`: combinación tecnológica local-first propuesta.
+- `docs/decisiones/ADR-001-STACK-PRINCIPAL.md`: decisión inicial de stack y anfitrión de referencia.
+- `docs/INVENTARIO_LICENCIAS_COSTE.md`: licencias, costes y restricciones de redistribución.
 - GitHub Issues: tareas, dudas, incidencias, decisiones y soluciones.
 
 ## Decisiones aún no tomadas
