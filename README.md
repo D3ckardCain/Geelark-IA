@@ -1,54 +1,41 @@
 # Geelark-IA
 
-Proyecto de referencia funcional inspirado en GeeLark para administrar entornos Android virtualizados de uso personal. La implementación debe avanzar por módulos terminados y verificables, con documentación y trazabilidad en GitHub.
+Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la referencia funcional para las capacidades que decidamos implementar. Este repositorio documenta requisitos y decisiones confirmados durante este proyecto; no se importará código, arquitectura, datos ni soluciones de proyectos o conversaciones anteriores.
 
-> **Estado:** planificación y definición de requisitos. Las capacidades descritas aquí son objetivos, no funciones ya implementadas ni verificadas.
+> **Estado actual:** inicio y definición del proyecto. No se considera implementada ni validada ninguna función hasta construirla y probarla.
 
-## Principios obligatorios
+## Reglas de trabajo
 
-- **Costo operativo objetivo: 0 USD.** No usar tarjeta bancaria obligatoria, pruebas temporales, servicios con cobro automático, APIs pagadas ni dependencias críticas de pago. Verificar límites y condiciones antes de elegir cada servicio.
-- Priorizar software libre, open source, local y autoalojable; evitar vendor lock-in y permitir migrar componentes.
-- Implementar funcionamiento offline o con conectividad limitada cuando sea viable, indicando claramente qué requiere conexión.
-- Trabajar paso a paso: terminar, probar, documentar y validar un módulo antes de avanzar al siguiente.
-- Comparar continuamente flujos, opciones, configuraciones y resultados con GeeLark como referencia funcional. No afirmar equivalencia sin pruebas.
-- Mantener en GitHub requisitos, decisiones, tareas, incidencias, soluciones, pruebas, cambios y manuales.
-- Cada módulo debe tener manual de usuario y documentación técnica.
+- **Objetivo de costo operativo: 0 USD.** No depender de tarjetas obligatorias, pruebas temporales, cobros automáticos, APIs de pago ni servicios críticos que exijan pagos. Verificar límites y condiciones antes de elegir cada dependencia.
+- Priorizar software libre, open source, local o autoalojado; reducir dependencias y facilitar migraciones.
+- Implementar operación offline o con conectividad limitada cuando sea viable y explicar qué requiere Internet.
+- Trabajar en pasos pequeños y explicados. No avanzar al siguiente módulo hasta que el actual esté probado, documentado y aceptado.
+- Comparar cada capacidad acordada con GeeLark y registrar resultados y diferencias. No afirmar paridad sin evidencia.
+- Usar GitHub para registrar requisitos, preguntas, decisiones, tareas, incidencias, soluciones, pruebas, cambios y documentación.
+- Cada módulo debe tener un manual de usuario completo y documentación técnica.
+- No dar por confirmado ningún dato de hardware, tecnología o arquitectura hasta verificarlo con el usuario o mediante pruebas.
 
-## Alcance objetivo
+## Forma de trabajo
 
-- Administrar inicialmente hasta 50 instancias Android, con capacidad de ampliar la escala tras validar recursos y rendimiento.
-- Admitir distintas versiones de Android.
-- Evaluar una infraestructura distribuida con nodos PC y administración central.
-- Considerar Proxmox como opción preferente de virtualización, sujeto a pruebas de viabilidad, compatibilidad Android, aceleración gráfica y consumo de recursos.
-- Permitir administración remota desde PC y móvil, con seguridad y autenticación.
-- Diseñar tolerancia a la caída del nodo de administración cuando sea viable: los nodos no deben depender de una conexión permanente al controlador para seguir ejecutando trabajos ya iniciados.
+1. Aclarar el objetivo y los requisitos con preguntas concretas.
+2. Registrar acuerdos y criterios de aceptación en GitHub.
+3. Elegir una tarea pequeña y explicar cómo realizarla.
+4. Implementar y probar.
+5. Documentar el resultado, los problemas y sus soluciones.
+6. Comparar la función con GeeLark cuando corresponda.
+7. Solo entonces avanzar.
 
-## Infraestructura conocida
+## Documentación
 
-- Equipos disponibles o previstos: PCs con Intel Core i5 de 10.ª/11.ª generación o superior.
-- RAM mencionada: 32 GB por equipo en los equipos actuales; el mínimo de planificación indicado es 16 GB.
-- Almacenamiento de ejemplo: SSD M.2 NVMe de 500 GB.
-- Cantidad de equipos flexible; el diseño debe escalar por nodos.
-- Sistema operativo/hipervisor por evaluar: Linux directo frente a Proxmox.
-
-Estos datos son referencias iniciales, no una garantía de que 50 instancias funcionen simultáneamente. Se requiere una prueba de carga real.
-
-## Operación offline
-
-Evaluar PWA, Service Workers, caché local, IndexedDB, cola de operaciones, sincronización posterior, idempotencia, identificadores únicos y resolución de conflictos. Las tareas locales podrán funcionar sin conexión según el módulo; la administración remota, descargas y servicios externos requerirán conexión.
-
-## Organización
-
-- `docs/ESTADO_PROYECTO.md`: estado, decisiones y preguntas abiertas.
-- `docs/REQUISITOS.md`: requisitos y criterios de aceptación.
-- `docs/PLAN_TRABAJO.md`: fases y entregables.
+- `docs/ESTADO_PROYECTO.md`: etapa actual, acuerdos y preguntas abiertas.
+- `docs/REQUISITOS.md`: requisitos confirmados y criterios de aceptación.
+- `docs/PLAN_TRABAJO.md`: fases provisionales.
 - GitHub Issues: tareas, dudas, incidencias y soluciones.
-- Cada módulo futuro: especificación, pruebas, validación frente a GeeLark, manual de usuario y guía técnica.
 
-## Fuera de alcance por ahora
+## Decisiones aún no tomadas
 
-No se ha confirmado la arquitectura final, el mecanismo técnico de virtualización Android, el stack de desarrollo ni la viabilidad de ejecutar 50 instancias en los equipos descritos. No se debe implementar infraestructura irreversible antes de probar alternativas.
+El alcance detallado, el inventario de hardware, el sistema operativo/hipervisor, el método para ejecutar Android, la arquitectura, las tecnologías y la capacidad real se decidirán y validarán paso a paso. Las metas preliminares no se consideran promesas de rendimiento.
 
-## Seguridad y uso responsable
+## Seguridad
 
-Proteger credenciales y sesiones, aplicar mínimo privilegio y evitar registrar secretos en issues, commits o documentación. Automatizaciones y aplicaciones deberán respetar las condiciones de servicio de las plataformas utilizadas.
+No guardar contraseñas, tokens, claves privadas ni otros secretos en el repositorio, commits o incidencias. Las automatizaciones deberán respetar las condiciones aplicables de los servicios y plataformas utilizados.
