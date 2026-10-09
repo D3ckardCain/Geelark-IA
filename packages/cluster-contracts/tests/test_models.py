@@ -233,3 +233,19 @@ def test_generated_schema_forbids_unknown_fields():
 def test_generated_schema_documents_protocol_version_pattern():
     schema = Heartbeat.model_json_schema()
     assert schema["properties"]["protocol_version"]["pattern"] == r"^\d+\.\d+$"
+
+def test_operation_result_rejects_inconsistent_status_and_observed_state():
+    payload = {
+        "protocol_version": "0.2",
+        "request_id": str(REQUEST_ID),
+        "sent_at": NOW.isoformat(),
+        "operation_id": str(OPERATION_ID),
+        "node_id": str(NODE_ID),
+        "instance_id": str(INSTANCE_ID),
+        "assignment_epoch": 1,
+        "status": "running",
+        "observed_state": "stopped",
+        "error": None,
+    }
+    with pytest.raises(ValidationError):
+        OperationResult.model_validate(payload)
