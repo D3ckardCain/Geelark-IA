@@ -55,3 +55,26 @@
 5. Añadir criterios de aceptación y prueba reproducible.
 6. Registrar diferencias entre GeeLark y Geelark-IA.
 7. Cambiar estado solo cuando haya evidencia del hito.
+
+
+## 2.1 Hallazgos detallados añadidos el 2026-10-09
+
+El catálogo funcional ampliado está en [CATALOGO_FUNCIONAL_GEELARK.md](CATALOGO_FUNCIONAL_GEELARK.md). Esta ampliación no cambia automáticamente el estado de paridad: sigue siendo investigación documental.
+
+| Subárea detectada | Funciones adicionales documentadas | Filas relacionadas | Acción de auditoría |
+|---|---|---|---|
+| Creación de perfiles | Creación individual, rápida y por lotes; grupo; versión Android; proxy guardado/personalizado; prueba de proxy; modelo y método de cobro del servicio | P-001, P-003, P-004 | Enumerar todos los campos, valores permitidos, errores y restricciones |
+| Clonación de perfiles | Las notas v3.9.0 anuncian clonado | P-024 | Definir semántica de copia, identidad, credenciales y datos persistentes |
+| Red por perfil | v3.9.0 menciona red celular/Wi-Fi personalizada en Android 12/13/15 | P-002, P-019, P-023 | Investigar campos reales y qué puede simular legal/técnicamente un motor local |
+| Proxy | HTTP, HTTPS, SOCKS5; host, puerto, usuario, contraseña; prueba de conexión y ubicación estimada | P-004 | Diseñar gestión segura de secretos y pruebas sin garantía de anonimato |
+| RPA | Editor visual, flujos personalizados, plantillas, programación; inspector UI/árbol de elementos; revisión posterior de parámetros de tareas | P-007, P-008, P-014 | Desglosar todos los bloques y sus contratos en el manual RPA |
+| Synchronizer | Acciones entre teléfonos; Android 9–15 en la guía consultada; entrada masiva de textos diferentes; carga masiva de archivos | P-009, P-025 | Definir matriz de eventos soportados, diferencias por instancia y errores parciales |
+| Library | Etiquetas, edición de etiquetas, carga con etiquetas, vista tarjeta/lista, selección de activos por etiqueta en flujos | P-006, P-008 | Especificar catálogo local y API interna de activos |
+| Aplicaciones | Operaciones masivas por grupo: abrir, cerrar, reiniciar, desinstalar; actualización e instalación dirigida a grupos | P-005, P-025 | Definir estados por instancia y recuperación de fallos parciales |
+| API/CLI/ADB | Ciclo de vida de perfiles, apps, archivos, ADB, tareas; token Bearer y endpoints multimedia en versiones históricas | P-010, P-011, P-012 | Inventariar contratos documentados; implementación propia y local |
+| Logs | Ver parámetros configurados tras publicar tareas; nombres de activos en reportes de ejecución | P-014 | Incluir trazabilidad por tarea, instancia, bloque y recurso, sin secretos |
+| IA/AIGC | Integraciones de modelos comerciales y seguimiento de uso | P-016 | Separar cada función; evaluar alternativas locales y registrar cualquier diferencia |
+
+### Criterio para estado
+
+No marcar estas subáreas como “Especificado” hasta que el catálogo incluya campos/acciones, entradas/salidas, errores, restricciones, fuente y prueba de aceptación concreta. Las páginas de marketing y las notas de versión sirven como evidencia de existencia, no como especificación completa.
