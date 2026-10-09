@@ -2,7 +2,7 @@
 
 **Estado:** borrador de planificación basado en investigación pública inicial; requiere validación del usuario y pruebas prácticas.  
 **Fecha:** 2026-10-09  
-**Objetivo:** construir desde cero una plataforma de gestión y automatización de entornos Android con hardware físico/local, software gratuito y sin servicios de pago obligatorios, tomando GeeLark como referencia funcional. No se copiará código, marca, contenido privado ni activos propietarios de GeeLark; se hará una implementación independiente basada en requisitos observables.
+**Objetivo:** construir desde cero una plataforma de gestión y automatización de entornos Android virtualizados/emulados localmente en hardware anfitrión físico, con software gratuito y sin servicios de pago obligatorios, tomando GeeLark como referencia funcional. No se copiará código, marca, contenido privado ni activos propietarios de GeeLark; se hará una implementación independiente basada en requisitos observables.
 
 ## 1. Objetivo y límites no negociables
 
@@ -85,7 +85,7 @@ Esta lista es un inventario de áreas inicial, no una afirmación de que cada de
 - No prometer que las interfaces de terceros son estables; cambios de UI y CAPTCHA/2FA pueden requerir intervención humana.
 
 ### M08 — Sincronizador multi-dispositivo
-- Reproducir acciones compatibles de un dispositivo principal a otros dispositivos físicos seleccionados.
+- Reproducir acciones compatibles de una instancia Android virtual principal a otras instancias virtuales seleccionadas.
 - Mapeo de acciones, sincronización de tiempos, pausa/reanudación, dispositivos excluidos y estado por dispositivo.
 - Manejo de diferencias de resolución, versión, idioma y pantallas; no asumir sincronía perfecta.
 - Pruebas de seguridad para evitar ejecutar una acción en el dispositivo equivocado.
