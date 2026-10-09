@@ -191,3 +191,12 @@ Completar M00 con la documentación pública disponible y, en paralelo, recopila
 
 - 2026-10-09: primera revisión de la web pública y del Centro de ayuda de GeeLark. Áreas visibles: Profile, Proxies, Library, AIGC, Analytics, Applications, Automaton, Synchronizer, GeeHub, Resources, Referral, Billing, Members y Logs; documentación adicional de grupos, ADB y conexión de dispositivos locales. Automatización pública: plantillas, Synchronizer, RPA visual y API.
 - Fuentes: https://help.geelark.com/ ; https://www.geelark.com/features/automation/ ; https://www.geelark.com/features/rpa/ ; https://www.geelark.com/features/api/ ; https://www.geelark.com/pricing/
+
+
+## Actualización de auditoría funcional — 2026-10-09
+
+Se creó el documento [CATALOGO_FUNCIONAL_GEELARK.md](CATALOGO_FUNCIONAL_GEELARK.md) para convertir el inventario general en subfunciones verificables. Las fuentes públicas recientes hasta GeeLark v4.5.2 muestran que hay que considerar, entre otros detalles, el inspector de interfaz/árbol UI para RPA, consulta posterior de parámetros de tareas, etiquetado de Library, carga masiva de archivos desde Synchronizer, operaciones masivas de aplicaciones, clonación de perfiles y configuración de red en determinadas versiones Android.
+
+**Diferencia estructural confirmada:** la función GeeLark “Add Custom Phone” documenta la extracción de parámetros desde un Android físico conectado por USB/ADB. Como el alcance de Geelark-IA no depende de teléfonos físicos, esa función no puede considerarse idéntica. Se estudiará una identidad sintética por instancia, con límites claros, sin afirmar que equivale a una huella física real.
+
+El catálogo sigue siendo parcial y documental. La matriz de paridad conserva estados preliminares; no se declara ninguna función equivalente ni se selecciona todavía un motor Android.
