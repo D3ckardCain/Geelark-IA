@@ -100,3 +100,11 @@ Antes de ejecutar la prueba del motor, obtener los datos del equipo siguiendo [G
 ## Nueva línea de trabajo — arquitectura tecnológica
 
 La [propuesta de arquitectura](ARQUITECTURA_TECNOLOGICA_PROPUESTA.md) se creó para seleccionar software sin esperar especificaciones de hardware. La [issue #11](https://github.com/D3ckardCain/Geelark-IA/issues/11) controla su validación. Se puede diseñar la UI, API, datos, adaptadores y pruebas de manera agnóstica; las pruebas de rendimiento/compatibilidad del motor se ejecutarán después en hardware de referencia.
+
+
+## Documentos de decisión y licencias
+
+- [ADR-001 — Stack principal](decisiones/ADR-001-STACK-PRINCIPAL.md)
+- [Inventario de licencias y coste](INVENTARIO_LICENCIAS_COSTE.md)
+
+Antes de empaquetar o redistribuir se generará un SBOM, un inventario de licencias transitivas y una verificación de licencias de imágenes Android y APK.
