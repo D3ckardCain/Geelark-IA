@@ -42,3 +42,20 @@ La equivalencia se comprobará función por función. No se afirmará paridad to
 La investigación pública inicial confirma que GeeLark integra perfiles Android cloud, proxies, Library, AIGC, Analytics, Applications, Automaton, Synchronizer, API/ADB, recursos, grupos, miembros y logs. Véanse las fuentes y las incertidumbres en los documentos vinculados arriba.
 
 **No hay módulos de producto declarados terminados.** La siguiente prioridad es completar el inventario y determinar qué tecnología permite ejecutar Android virtual localmente con la mayor compatibilidad posible, antes de fijar el stack.
+
+
+## Auditoría funcional ampliada (actualización 2026-10-09)
+
+Se añade como entregable obligatorio el [catálogo funcional detallado](CATALOGO_FUNCIONAL_GEELARK.md), que complementa la investigación y matriz existentes. Las notas oficiales recientes muestran que el inventario debe cubrir cambios por versión, incluyendo clonado y configuración de red de perfiles, inspector de UI/árbol de elementos, exportación/importación de RPA, carga masiva de archivos en Synchronizer, etiquetas y vistas de Library, informes de tareas y operaciones masivas de aplicaciones.
+
+La issue activa para este trabajo es [#6 — Completar el catálogo de perfiles, RPA, Synchronizer, Library y API](https://github.com/D3ckardCain/Geelark-IA/issues/6).
+
+**Orden inmediato de trabajo:**
+1. Completar el desglose de campos y flujos de perfiles y proxies.
+2. Extraer del manual RPA cada bloque, parámetros, selectores, variables, condiciones, errores y formato de exportación.
+3. Enumerar operaciones API/CLI/ADB documentadas y especificar contratos locales equivalentes.
+4. Completar Library, aplicaciones, grupos, miembros, logs, analytics, cámara y sensores.
+5. Actualizar matriz con criterios de aceptación y diferencias explícitas.
+6. Solo después, continuar selección de motor mediante prueba reproducible en el hardware anfitrión.
+
+No se inicia implementación de producto ni se selecciona stack definitivo durante esta auditoría.
