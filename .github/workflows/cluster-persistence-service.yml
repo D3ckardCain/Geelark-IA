@@ -5,6 +5,7 @@ on:
     paths:
       - "db/**"
       - "packages/cluster-persistence/**"
+      - "packages/cluster-agent-guard/**"
   push:
     branches: [main]
     paths:
