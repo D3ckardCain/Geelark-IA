@@ -19,6 +19,7 @@ permissions:
 
 jobs:
   integration:
+    if: hashFiles('packages/cluster-persistence/pyproject.toml') != ''
     name: Python 3.11 — PostgreSQL assignment service
     runs-on: ubuntu-latest
     services:
