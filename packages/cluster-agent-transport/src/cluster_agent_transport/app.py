@@ -21,7 +21,7 @@ class HeartbeatPayload(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     schema_version: int = Field(ge=1, le=1)
     agent_version: str = Field(min_length=1, max_length=64)
-    health_state: str = Field(pattern="^(healthy|degraded|unknown)$")
+    health_state: str = Field(pattern="^(healthy|degraded|unhealthy|unknown)$")
     cpu_load_percent: FiniteFloat = Field(ge=0, le=100)
     memory_total_bytes: int = Field(ge=0, le=2**63 - 1)
     memory_available_bytes: int = Field(ge=0, le=2**63 - 1)
