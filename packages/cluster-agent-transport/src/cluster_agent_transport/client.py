@@ -11,6 +11,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_opener
 
+from .network import is_private_lan_address
+
 
 class AgentTransportError(Exception):
     """Error de transporte sin exponer secretos ni detalles TLS al llamador."""
@@ -48,7 +50,7 @@ class AgentHTTPSClient:
             address = ipaddress.ip_address(parsed.hostname)
         except ValueError as exc:
             raise ValueError("El host del controlador debe ser una IP literal privada/loopback.") from exc
-        if address.is_unspecified or not (address.is_private or address.is_loopback):
+        if address.is_unspecified or not is_private_lan_address(address):
             raise ValueError("El controlador debe estar en una IP privada/loopback.")
         if not isinstance(timeout_seconds, (int, float)) or not 0.1 <= timeout_seconds <= 60:
             raise ValueError("timeout_seconds debe estar entre 0.1 y 60.")
