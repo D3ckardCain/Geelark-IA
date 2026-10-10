@@ -119,6 +119,17 @@ Reglas:
 - El ejemplo de versión/API/recursos es ilustrativo y no representa valores mínimos aprobados.
 - Un lease vencido no autoriza por sí solo a otro nodo a iniciar la instancia. Primero se necesita fencing y reconciliación verificables.
 
+### Entrega pull de asignaciones (en implementación)
+
+El agente inicia conexiones HTTPS salientes; el controlador no abre conexiones hacia los nodos. El agente activo solicita una asignación mediante `POST /agent/v1/tasks/claim` con una clave idempotente y un nonce nuevo. La respuesta contiene una única tarea tipada o `{"task": null}` si no hay tareas disponibles.
+
+- La bandeja `agent_tasks` es durable e independiente de `outbox_events`; ambos registros se crean dentro de la transacción de asignación.
+- Cada entrega contiene `task_id`, `operation_id`, `instance_id`, `node_id`, `assignment_epoch`, `lease_expires_at` y el payload versionado.
+- La reclamación tiene una lease de entrega de 30 segundos. Si se pierde la respuesta, la misma clave recupera el snapshot idempotente; una nueva reclamación puede volver a entregar la tarea cuando expire la lease, sin crear una operación nueva.
+- Solo un nodo con estado administrativo y credencial `active/active` puede reclamar tareas. Un nodo `pending` solo puede enviar heartbeat, capacidades y consultar su estado.
+- Aceptación, progreso y resultado validan el nodo autenticado, el epoch actual y la lease de asignación. Los estados terminales son inmutables; `unknown` requiere reconciliación y no se transforma automáticamente en éxito/fallo.
+- La entrega de la tarea no ejecuta Android, ADB ni shell. La ejecución real solo se añadirá tras integrar un adaptador Android explícito y probarlo.
+
 ## 7. Confirmación y resultado
 
 ```json
