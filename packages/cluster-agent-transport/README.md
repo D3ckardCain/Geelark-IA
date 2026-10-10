@@ -21,7 +21,7 @@ Paquete experimental independiente del dominio y sin listener automático.
 - `InMemoryRateLimiter` limita a 60 solicitudes/minuto/nodo por proceso y solo es apropiado para pruebas o un único worker.
 - `PostgresRateLimiter` usa un UPDATE atómico en la fila del nodo y aplica el límite global entre workers/procesos. Requiere la migración `db/migrations/0003_agent_rate_limit.sql`; el contador se satura para evitar desbordamiento.
 - El cliente `AgentHTTPSClient` usa la CA explícita, verifica cadena y hostname/IP, exige TLS 1.2+, no sigue redirects, rechaza path traversal y limita timeout, cuerpos y respuestas.
-- `AgentTransportRuntime` conecta el cliente con un journal compatible: persiste progreso/resultados antes de enviarlos y ofrece `sync_pending_receipts(limit=100)` para recorrer un lote acotado. El journal debe exponer `list_pending_receipts(limit=...)` y `mark_receipt_synced(operation_id)`; el ACK terminal solo se registra tras una respuesta HTTP 2xx. Los estados `accepted` no se envían como resultados. No ejecuta tareas ni inicia polling por sí solo.
+- `AgentTransportRuntime` conecta el cliente con un journal compatible: persiste progreso/resultados antes de enviarlos y ofrece `sync_pending_receipts(limit=100)` para recorrer un lote acotado. El journal debe exponer `list_pending_receipts(limit=...)` y `mark_receipt_delivered(operation_id, assignment_epoch)` (o la API anterior `mark_receipt_synced(operation_id)` para compatibilidad); el ACK terminal solo se registra tras una respuesta HTTP 2xx. Los estados `accepted` no se envían como resultados. No ejecuta tareas ni inicia polling por sí solo.
 - Las respuestas no incluyen tokens, SQL ni excepciones internas.
 - Los handlers de dominio no configurados responden 503; el paquete no ejecuta shell/ADB ni comandos Android.
 
@@ -54,3 +54,10 @@ Los tests de configuración TLS usan archivos ficticios para probar restriccione
 python -m pip install -e "packages/cluster-agent-transport[test]"
 python -m pytest packages/cluster-agent-transport/tests -q
 ```
+
+
+## Supervisor saliente de telemetría (en revisión)
+
+La rama `feat/agent-supervisor-heartbeat` añade `geelark-agent --config <archivo.toml>`, con heartbeat periódico, publicación de capacidades, consulta de estado y sincronización de recibos SQLite en un ciclo separado. No abre listeners y no reclama ni ejecuta tareas. El token se lee de un archivo privado separado de la configuración; no debe incluirse en TOML ni logs.
+
+Manual: [MANUAL_SUPERVISOR_AGENTE.md](../../docs/MANUAL_SUPERVISOR_AGENTE.md). El monitor de conectividad del sistema, la integración de servicio de producción y la reconciliación `unknown` siguen pendientes. Mantener el PR en draft hasta confirmar CI y revisar seguridad. No desplegar en PCs físicas sin autorización.
