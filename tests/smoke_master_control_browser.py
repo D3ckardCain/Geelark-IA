@@ -34,6 +34,8 @@ TEST_SCRIPT = r"""
   nodeFilter.dispatchEvent(new Event('change', {bubbles: true}));
   result.pendingCount = count('#nodes-table tr');
   result.pendingWorker = document.getElementById('nodes-table').textContent.includes('WORKER-03');
+  nodeFilter.value = 'all';
+  nodeFilter.dispatchEvent(new Event('change', {bubbles: true}));
   const worker2 = nodes.find(n => n.id === 'w2');
   const originalWorkerName = worker2.name;
   worker2.name = '<img src=x onerror="window.__xss=true">';
