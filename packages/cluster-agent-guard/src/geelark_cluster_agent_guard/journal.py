@@ -356,16 +356,15 @@ class AgentJournal:
         except (TypeError, ValueError) as exc:
             raise InvalidAgentCommand("El payload debe ser JSON válido y no contener NaN/Infinity") from exc
 
-    @classmethod
-    def _command_hash(cls, command: AgentCommand) -> str:
+    def _command_hash(self, command: AgentCommand) -> str:
         if not isinstance(command, AgentCommand):
             raise InvalidAgentCommand("command debe ser AgentCommand")
         if not all(isinstance(value, UUID) for value in (command.operation_id, command.instance_id, command.node_id)):
             raise InvalidAgentCommand("IDs deben ser UUID")
+        if command.node_id != self.local_node_id:
+            raise InvalidAgentCommand("El comando no está dirigido a este nodo")
         if not isinstance(command.assignment_epoch, int) or isinstance(command.assignment_epoch, bool) or command.assignment_epoch < 1:
             raise InvalidAgentCommand("assignment_epoch debe ser entero positivo")
-        if command.node_id != cls._local_node_for_hash(command.node_id):
-            raise InvalidAgentCommand("node_id no válido")
         if not isinstance(command.payload, dict):
             raise InvalidAgentCommand("payload debe ser un objeto JSON")
         canonical = {
@@ -374,12 +373,10 @@ class AgentJournal:
             "assignment_epoch": command.assignment_epoch,
             "payload": command.payload,
         }
-        return hashlib.sha256(cls._canonical_json(canonical).encode("utf-8")).hexdigest()
-
-    @staticmethod
-    def _local_node_for_hash(node_id: UUID) -> UUID:
-        # Keeps UUID validation in one place; local-node equality is checked by the instance method.
-        return node_id
+        canonical_json = self._canonical_json(canonical)
+        if len(canonical_json.encode("utf-8")) > 1_000_000:
+            raise InvalidAgentCommand("El payload del comando supera 1 MB")
+        return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
 
     def _receipt(self, row: sqlite3.Row, *, duplicate: bool) -> OperationReceipt:
         if UUID(row["node_id"]) != self.local_node_id:
