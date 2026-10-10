@@ -39,8 +39,8 @@ Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fil
 
 ## Validación pendiente
 
-- CI #38015185459 pasó con 30 pruebas en el primer corte de transporte; el intento posterior #38015624356 falló en dos pruebas del runtime porque se ejecutó antes de eliminar una duplicación de método. El código actual elimina la duplicación y mantiene `accepted` fuera de los resultados, pero falta un CI posterior que confirme el arreglo.
-- El workflow de persistencia #38015624377 pasó incluyendo pruebas del journal y auth; el workflow de esquema #38015624340 también pasó.
+- CI de transporte #38015892590 pasó con **31 pruebas**, `pip check` correcto y una prueba cruzada omitida explícitamente porque la rama base aún no incluye la API de recibos del PR #38.
+- Los workflows de persistencia #38015892688 y esquema #38015892600 pasaron. La integración real SQLite→HTTPS se mantiene como dependencia pendiente; no se declara validada hasta apilar la API del journal.
 - La suite prueba handshake TLS real con CA local y rechaza una CA desconocida. Sigue pendiente integrar el cliente HTTPS en el bucle principal del agente y completar la reconciliación.
 - Definir timeouts/concurrencia del servidor y cuotas apropiadas para el tamaño real de la LAN. El limitador global PostgreSQL ya está implementado y probado.
 - Completar manual de generación, rotación, respaldo y distribución de CA local.
