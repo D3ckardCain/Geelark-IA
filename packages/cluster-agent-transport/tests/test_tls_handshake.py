@@ -82,8 +82,10 @@ def test_real_tls_handshake_trusts_local_ca_and_rejects_untrusted_ca(tmp_path):
         assert not thread.is_alive(), "El servidor TLS temporal no terminó"
 
 
-def test_client_rejects_http_and_public_controller_urls():
+def test_client_rejects_http_and_non_private_controller_urls():
     with pytest.raises(ValueError):
         AgentHTTPSClient(base_url="http://127.0.0.1:8443", ca_cert="/missing/ca.crt")
-    with pytest.raises(ValueError):
-        AgentHTTPSClient(base_url="https://8.8.8.8:8443", ca_cert="/missing/ca.crt")
+    for address in ("8.8.8.8", "192.0.2.5", "169.254.1.1", "100.64.0.1", "2001:db8::1"):
+        url_host = f"[{address}]" if ":" in address else address
+        with pytest.raises(ValueError):
+            AgentHTTPSClient(base_url=f"https://{url_host}:8443", ca_cert="/missing/ca.crt")
