@@ -19,6 +19,7 @@ TEST_SCRIPT = r"""
 (() => {
   const result = {};
   const count = selector => document.querySelectorAll(selector).length;
+  result.initialOverviewCurrent = document.querySelector('[data-page="overview"]').getAttribute('aria-current') === 'page';
   document.querySelector('[data-page="nodes"]').click();
   result.nodesCount = count('#nodes-table tr');
   result.masterExcluded = !document.getElementById('nodes-table').textContent.includes('PC-MASTER');
@@ -109,13 +110,12 @@ def main():
             parser.close()
             if parser.overview_rows != 3:
                 raise AssertionError(f"{label}: se esperaban 3 Workers en Resumen; aparecieron {parser.overview_rows}")
-            if not parser.current_page:
-                raise AssertionError(f"{label}: la vista Resumen no se marcó activa en el DOM inicial")
             if "Modo demostración: datos ficticios" not in " ".join(parser._text):
                 raise AssertionError(f"{label}: falta el aviso visible de datos ficticios")
             if parser.results is None:
                 raise AssertionError(f"{label}: no se publicaron los resultados de interacción")
             expected = {
+                "initialOverviewCurrent": True,
                 "nodesCount": 3,
                 "masterExcluded": True,
                 "searchCount": 1,
