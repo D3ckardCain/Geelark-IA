@@ -27,6 +27,14 @@ class FakeJournal:
     def __init__(self, events=None):
         self.events = events if events is not None else []
         self.calls = []
+        self.pending = []
+        self.synced = []
+
+    def list_pending_receipts(self, *, limit=100):
+        return self.pending[:limit]
+
+    def mark_receipt_synced(self, operation_id):
+        self.synced.append(operation_id)
 
     def record_result(self, **kwargs):
         self.events.append("journal")
@@ -111,3 +119,32 @@ def test_non_success_http_response_is_reported_without_response_body():
         )
     assert "must-not-leak" not in str(exc.value)
     assert "403" in str(exc.value)
+
+
+
+def test_sync_pending_receipts_marks_terminal_ack_and_stops_when_offline():
+    node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
+    journal = FakeJournal()
+    journal.pending = [
+        SimpleNamespace(
+            node_id=node_id, instance_id=instance_id, operation_id=operation_id,
+            assignment_epoch=4, status="succeeded", result={"ok": True},
+        ),
+        SimpleNamespace(
+            node_id=node_id, instance_id=uuid4(), operation_id=uuid4(),
+            assignment_epoch=4, status="failed", result={"error_code": "X"},
+        ),
+    ]
+    client = FakeClient()
+    runtime = make_runtime(client, journal, node_id)
+    confirmed, attempted = runtime.sync_pending_receipts(limit=10)
+    assert (confirmed, attempted) == (2, 2)
+    assert journal.synced == [operation_id, journal.pending[1].operation_id]
+
+    offline_journal = FakeJournal()
+    offline_journal.pending = journal.pending
+    offline_client = FakeClient(error=AgentTransportError("offline"))
+    offline_runtime = make_runtime(offline_client, offline_journal, node_id)
+    confirmed, attempted = offline_runtime.sync_pending_receipts(limit=10)
+    assert (confirmed, attempted) == (0, 1)
+    assert offline_journal.synced == []
