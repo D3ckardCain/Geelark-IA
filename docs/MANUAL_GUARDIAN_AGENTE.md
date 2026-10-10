@@ -10,7 +10,7 @@
 - `operation_receipts`: hash canónico, estado y resultado saneado por `operation_id`.
 - `schema_migrations`: versión del esquema local.
 
-SQLite usa WAL y sincronización FULL. El archivo debe residir en disco local persistente; no compartir el archivo activo por NFS ni usar `:memory:` para el agente real.
+SQLite usa WAL y sincronización FULL. En POSIX el código crea/restringe el archivo a modo 0600 y rechaza rutas simbólicas; en Windows la instalación debe aplicar ACL para que solo la cuenta del agente y administradores autorizados accedan al archivo. Debe residir en disco local persistente; no compartir el archivo activo por NFS ni usar `:memory:` para el agente real.
 
 ## 2. Aceptación de comando
 
