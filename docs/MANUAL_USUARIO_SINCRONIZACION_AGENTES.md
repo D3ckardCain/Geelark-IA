@@ -74,7 +74,7 @@ No se afirma que el clúster completo funcione offline. Sin red, el estado local
 
 ## 8. Validación automatizada disponible
 
-La suite de CI incluye una prueba de integración que crea certificados temporales, levanta un servidor HTTPS local y conecta el journal SQLite con los handlers PostgreSQL desechables. Simula un ACK perdido tras confirmar el resultado y verifica el reintento idempotente. En el commit `6ac3f07e69b2c80bd3d5e68347e1f5c3dd64b4e1`, GitHub Actions run 126 pasó con 57 pruebas y `pip check` correcto. Esto valida el stack de software en CI, no el despliegue en equipos físicos.
+La suite de CI incluye una prueba de integración que crea certificados temporales, levanta un servidor HTTPS local y conecta el journal SQLite con los handlers PostgreSQL desechables. Simula un ACK perdido tras confirmar el resultado y verifica el reintento idempotente. El commit ejecutable `e6d93147d1e04460770241d83e28938eb948bbbe` pasó GitHub Actions run 128 con 57 pruebas, `pip check` correcto y una advertencia deprecatoria de Starlette/httpx. Esto valida el stack de software en CI, no el despliegue en equipos físicos. La conexión del coordinador al supervisor real sigue pendiente en Issue #58.
 
 ## 9. Validación antes de habilitarlo en un agente real
 
