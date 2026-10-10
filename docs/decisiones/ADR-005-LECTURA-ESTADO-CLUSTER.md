@@ -49,7 +49,8 @@ La interfaz no hace solicitudes directas a Workers. El controlador determina aut
 
 - Revisar el stack apilado de autenticación/transporte (PR #44/#48) y persistencia/recibos (PR #54/#57), además del supervisor (PR #67) y la idempotencia (PR #68).
 - Confirmar la fuente de verdad y el modelo de identidad/permisos del operador del panel.
-- Resolver [issue #71](https://github.com/D3ckardCain/Geelark-IA/issues/71): separar salud reportada por Worker y salud derivada por Master antes de exponer el snapshot.
+- Mantener la corrección de salud reportada/derivada de [issue #71](https://github.com/D3ckardCain/Geelark-IA/issues/71) revisada e integrada en el stack antes de exponer el snapshot.
+- Resolver [issue #72](https://github.com/D3ckardCain/Geelark-IA/issues/72): el backend aún no persiste un inventario de estados por módulo ni devuelve `modules[]` conforme al contrato v1; no inferir instalación/operatividad solo a partir de capacidades.
 - Verificar que la autorización se vuelve a comprobar en el servidor y que los nodos `pending` solo pueden informar heartbeat/capacidades no sensibles/estado propio.
 - Mantener handlers de tareas/reconciliación en 503 mientras sigan pendientes sus criterios de seguridad.
 - Completar pruebas negativas y revisión manual de seguridad antes de integrar datos reales.
@@ -73,4 +74,4 @@ Esto **no cierra automáticamente la issue #71**: PR #48 sigue abierta en borrad
 
 ## Consecuencias
 
-Esta decisión retrasa la telemetría real hasta que el stack de seguridad esté listo, pero evita dos fuentes de verdad, endpoints duplicados y una falsa impresión de salud. La maqueta y el contrato pueden evolucionar sin abrir ejecución remota.
+Esta decisión retrasa la telemetría real hasta que el stack de seguridad esté listo y exista un inventario de módulos autoritativo. El endpoint actual todavía no produce el snapshot v1 completo. Evita dos fuentes de verdad, endpoints duplicados y una falsa impresión de salud. La maqueta y el contrato pueden evolucionar sin abrir ejecución remota.

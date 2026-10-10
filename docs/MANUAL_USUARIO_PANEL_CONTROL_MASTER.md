@@ -97,4 +97,4 @@ GeeLark ofrece un dashboard para cloud phones Android, gestión por grupos, cola
 
 ## 14. Integración con datos reales: pendiente
 
-La futura conexión de solo lectura está definida en [ADR-005](decisiones/ADR-005-LECTURA-ESTADO-CLUSTER.md). No se deben configurar URLs, credenciales ni agentes reales desde esta maqueta. La integración espera la revisión del transporte/autorización, la fuente de verdad del controlador y la identidad del operador. Hasta entonces, el panel sigue siendo una demostración offline con datos ficticios.
+La futura conexión de solo lectura está definida en [ADR-005](decisiones/ADR-005-LECTURA-ESTADO-CLUSTER.md). No se deben configurar URLs, credenciales ni agentes reales desde esta maqueta. La integración espera la revisión del transporte/autorización, la fuente de verdad del controlador y la identidad del operador. Además, el backend todavía no persiste el inventario de estados por módulo que exige el contrato v1; este trabajo está registrado en [issue #72](https://github.com/D3ckardCain/Geelark-IA/issues/72). Hasta entonces, el panel sigue siendo una demostración offline con datos ficticios.
