@@ -134,7 +134,7 @@ def _safe_modules(value: Any, *, now: datetime, freshness_state: str) -> list[di
             continue
         seen.add(module_id)
         raw_state = raw.get("state")
-        state = raw_state if raw_state in MODULE_STATES else "unknown"
+        state = raw_state if isinstance(raw_state, str) and raw_state in MODULE_STATES else "unknown"
         version = raw.get("version")
         if not isinstance(version, str) or not version.strip() or len(version) > 64:
             version = None
@@ -184,7 +184,7 @@ def build_status_snapshot(row: Sequence[Any], *, now: datetime | None = None) ->
     node_uuid = UUID(str(node_id))
     last_seen_at = _as_utc(last_seen)
     freshness, freshness_state = _freshness(last_seen_at, current)
-    reported = reported_health if reported_health in HEALTH_REPORTS else "unknown"
+    reported = reported_health if isinstance(reported_health, str) and reported_health in HEALTH_REPORTS else "unknown"
     safe_name = display_name if isinstance(display_name, str) and DISPLAY_NAME_RE.fullmatch(display_name) else f"WORKER-{str(node_uuid).split('-')[0].upper()}"
     if not isinstance(agent_version, str) or len(agent_version) > 64:
         agent_version = None
