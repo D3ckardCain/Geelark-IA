@@ -19,6 +19,7 @@ from psycopg import Connection
 from psycopg.types.json import Jsonb
 
 from .domain import (
+    AssignmentError,
     IdempotencyConflict,
     IdempotencyRecordIncomplete,
     InstanceAlreadyAssigned,
@@ -151,207 +152,237 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
             stored_hash, stored_operation_id, stored_response = idempotency_row
             if stored_hash != payload_sha256:
                 raise IdempotencyConflict("La clave idempotente ya se usó con otro payload")
-            if stored_operation_id is not None:
-                if stored_response is None:
-                    raise IdempotencyRecordIncomplete("La clave existe sin respuesta persistida")
+            if stored_response is not None:
                 return dict(stored_response)
-            # An incomplete pre-existing record must fail closed.
-            if not inserted_this_transaction:
+            # A record without a final response is safe to continue only when
+            # it was created by this transaction.
+            if stored_operation_id is not None or not inserted_this_transaction:
                 raise IdempotencyRecordIncomplete("La clave idempotente quedó incompleta; requiere reconciliación")
 
-            cur.execute(
-                """
-                SELECT observed_state, owner_node_id, assignment_epoch
-                  FROM geelark_control.instances
-                 WHERE instance_id = %s
-                 FOR UPDATE
-                """,
-                (request.instance_id,),
-            )
-            instance_row = cur.fetchone()
-            if instance_row is None:
-                raise InstanceNotFound("La instancia no está registrada")
-            observed_state, owner_node_id, previous_epoch = instance_row
-            if owner_node_id is not None:
-                raise InstanceAlreadyAssigned("La instancia ya tiene un propietario vigente")
-            if observed_state in {"unknown", "reconciling"}:
-                raise InstanceStateBlocked("El estado incierto bloquea una nueva asignación")
-            if observed_state not in {"pending", "stopped"}:
-                raise InstanceStateBlocked("El estado actual no admite una nueva asignación segura")
-
-            cur.execute(
-                """
-                SELECT admin_state, health_state
-                  FROM geelark_control.nodes
-                 WHERE node_id = %s
-                 FOR UPDATE
-                """,
-                (request.node_id,),
-            )
-            node_row = cur.fetchone()
-            if node_row is None or node_row[0] != "active" or node_row[1] != "healthy":
-                raise NodeNotEligible("El nodo no está activo y saludable")
-
-            cur.execute(
-                """
-                SELECT cpu_units, memory_capacity_bytes, storage_capacity_bytes,
-                       memory_safety_margin_bytes, storage_safety_margin_bytes, confidence
-                  FROM geelark_control.node_resource_capacity
-                 WHERE node_id = %s
-                 FOR UPDATE
-                """,
-                (request.node_id,),
-            )
-            capacity = cur.fetchone()
-            if capacity is None:
-                raise NodeCapacityNotConfigured("El nodo no tiene capacidad reservable configurada")
-            cpu_capacity, memory_capacity, storage_capacity, memory_margin, storage_margin, capacity_confidence = capacity
-            if capacity_confidence == "unknown":
-                raise NodeCapacityNotConfigured("La confianza de capacidad del nodo es unknown")
-
-            cur.execute(
-                """
-                SELECT COALESCE(SUM(cpu_units), 0),
-                       COALESCE(SUM(memory_bytes), 0),
-                       COALESCE(SUM(storage_bytes), 0)
-                  FROM geelark_control.resource_reservations
-                 WHERE node_id = %s AND status IN ('held', 'uncertain')
-                """,
-                (request.node_id,),
-            )
-            used_cpu, used_memory, used_storage = cur.fetchone()
-            if Decimal(str(used_cpu)) + cpu_units > Decimal(str(cpu_capacity)):
-                raise InsufficientCapacity("Capacidad de CPU insuficiente")
-            if used_memory + request.memory_bytes > memory_capacity - memory_margin:
-                raise InsufficientCapacity("Capacidad de RAM insuficiente")
-            if used_storage + request.storage_bytes > storage_capacity - storage_margin:
-                raise InsufficientCapacity("Capacidad de almacenamiento insuficiente")
-
-            new_epoch = previous_epoch + 1
-            cur.execute(
-                """
-                UPDATE geelark_control.instances
-                   SET desired_state = %s,
-                       observed_state = 'reserved',
-                       owner_node_id = %s,
-                       assignment_epoch = %s,
-                       lease_expires_at = %s,
-                       engine_name = %s,
-                       engine_version = %s,
-                       image_digest = %s,
-                       android_api_level = %s,
-                       android_abi = %s,
-                       updated_at = now()
-                 WHERE instance_id = %s
-                """,
-                (
-                    request.desired_state,
-                    request.node_id,
-                    new_epoch,
-                    request.lease_expires_at,
-                    request.engine_name,
-                    request.engine_version,
-                    request.image_digest,
-                    request.android_api_level,
-                    request.android_abi,
-                    request.instance_id,
-                ),
-            )
-            cur.execute(
-                """
-                INSERT INTO geelark_control.operations
-                    (operation_id, request_id, instance_id, node_id, assignment_epoch,
-                     operation_type, status)
-                VALUES (%s, %s, %s, %s, %s, 'assign', 'accepted')
-                """,
-                (operation_id, request.request_id, request.instance_id, request.node_id, new_epoch),
-            )
-            cur.execute(
-                """
-                INSERT INTO geelark_control.resource_reservations
-                    (reservation_id, instance_id, node_id, assignment_epoch,
-                     cpu_units, memory_bytes, storage_bytes, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, 'held')
-                """,
-                (
-                    reservation_id,
-                    request.instance_id,
-                    request.node_id,
-                    new_epoch,
-                    cpu_units,
-                    request.memory_bytes,
-                    request.storage_bytes,
-                ),
-            )
-            cur.execute(
-                """
-                INSERT INTO geelark_control.assignment_events
-                    (instance_id, assignment_epoch, previous_node_id, new_node_id,
-                     previous_state, new_state, actor_type, actor_id, request_id,
-                     operation_id, reason)
-                VALUES (%s, %s, NULL, %s, %s, 'reserved', 'controller',
-                        'assignment-service', %s, %s, 'assignment accepted')
-                """,
-                (
-                    request.instance_id,
-                    new_epoch,
-                    request.node_id,
-                    observed_state,
-                    request.request_id,
-                    operation_id,
-                ),
-            )
-            outbox_payload = {
-                "operation_id": str(operation_id),
-                "request_id": str(request.request_id),
-                "instance_id": str(request.instance_id),
-                "node_id": str(request.node_id),
-                "assignment_epoch": new_epoch,
-                "desired_state": request.desired_state,
-                "lease_expires_at": request.lease_expires_at.astimezone(timezone.utc).isoformat(),
-                "engine": {"name": request.engine_name, "version": request.engine_version},
-                "android": {
-                    "api_level": request.android_api_level,
-                    "abi": request.android_abi,
-                    "image_digest": request.image_digest,
-                },
-                "resource_reservation": {
-                    "cpu_units": float(cpu_units),
-                    "memory_bytes": request.memory_bytes,
-                    "storage_bytes": request.storage_bytes,
-                },
-            }
-            cur.execute(
-                """
-                INSERT INTO geelark_control.outbox_events
-                    (event_id, deduplication_key, instance_id, assignment_epoch,
-                     operation_id, event_type, payload)
-                VALUES (%s, %s, %s, %s, %s, 'assignment.requested', %s)
-                """,
-                (
-                    outbox_event_id,
-                    f"assignment:{request.instance_id}:{new_epoch}",
-                    request.instance_id,
-                    new_epoch,
-                    operation_id,
-                    Jsonb(outbox_payload),
-                ),
-            )
-            response = {
-                "operation_id": str(operation_id),
-                "instance_id": str(request.instance_id),
-                "node_id": str(request.node_id),
-                "assignment_epoch": new_epoch,
-                "status": "accepted",
-                "observed_state": "reserved",
-            }
-            cur.execute(
-                """
-                UPDATE geelark_control.idempotency_records
-                   SET operation_id = %s, response_snapshot = %s
-                 WHERE scope = %s AND idempotency_key = %s
-                """,
-                (operation_id, Jsonb(response), request.scope, request.idempotency_key),
-            )
+            try:
+                cur.execute(
+                    """
+                    SELECT observed_state, owner_node_id, assignment_epoch
+                      FROM geelark_control.instances
+                     WHERE instance_id = %s
+                     FOR UPDATE
+                    """,
+                    (request.instance_id,),
+                )
+                instance_row = cur.fetchone()
+                if instance_row is None:
+                    raise InstanceNotFound("La instancia no está registrada")
+                observed_state, owner_node_id, previous_epoch = instance_row
+                if owner_node_id is not None:
+                    raise InstanceAlreadyAssigned("La instancia ya tiene un propietario vigente")
+                if observed_state in {"unknown", "reconciling"}:
+                    raise InstanceStateBlocked("El estado incierto bloquea una nueva asignación")
+                if observed_state not in {"pending", "stopped"}:
+                    raise InstanceStateBlocked("El estado actual no admite una nueva asignación segura")
+    
+                cur.execute(
+                    """
+                    SELECT admin_state, health_state
+                      FROM geelark_control.nodes
+                     WHERE node_id = %s
+                     FOR UPDATE
+                    """,
+                    (request.node_id,),
+                )
+                node_row = cur.fetchone()
+                if node_row is None or node_row[0] != "active" or node_row[1] != "healthy":
+                    raise NodeNotEligible("El nodo no está activo y saludable")
+    
+                cur.execute(
+                    """
+                    SELECT cpu_units, memory_capacity_bytes, storage_capacity_bytes,
+                           memory_safety_margin_bytes, storage_safety_margin_bytes, confidence
+                      FROM geelark_control.node_resource_capacity
+                     WHERE node_id = %s
+                     FOR UPDATE
+                    """,
+                    (request.node_id,),
+                )
+                capacity = cur.fetchone()
+                if capacity is None:
+                    raise NodeCapacityNotConfigured("El nodo no tiene capacidad reservable configurada")
+                cpu_capacity, memory_capacity, storage_capacity, memory_margin, storage_margin, capacity_confidence = capacity
+                if capacity_confidence == "unknown":
+                    raise NodeCapacityNotConfigured("La confianza de capacidad del nodo es unknown")
+    
+                cur.execute(
+                    """
+                    SELECT COALESCE(SUM(cpu_units), 0),
+                           COALESCE(SUM(memory_bytes), 0),
+                           COALESCE(SUM(storage_bytes), 0)
+                      FROM geelark_control.resource_reservations
+                     WHERE node_id = %s AND status IN ('held', 'uncertain')
+                    """,
+                    (request.node_id,),
+                )
+                used_cpu, used_memory, used_storage = cur.fetchone()
+                if Decimal(str(used_cpu)) + cpu_units > Decimal(str(cpu_capacity)):
+                    raise InsufficientCapacity("Capacidad de CPU insuficiente")
+                if used_memory + request.memory_bytes > memory_capacity - memory_margin:
+                    raise InsufficientCapacity("Capacidad de RAM insuficiente")
+                if used_storage + request.storage_bytes > storage_capacity - storage_margin:
+                    raise InsufficientCapacity("Capacidad de almacenamiento insuficiente")
+    
+                new_epoch = previous_epoch + 1
+                cur.execute(
+                    """
+                    UPDATE geelark_control.instances
+                       SET desired_state = %s,
+                           observed_state = 'reserved',
+                           owner_node_id = %s,
+                           assignment_epoch = %s,
+                           lease_expires_at = %s,
+                           engine_name = %s,
+                           engine_version = %s,
+                           image_digest = %s,
+                           android_api_level = %s,
+                           android_abi = %s,
+                           updated_at = now()
+                     WHERE instance_id = %s
+                    """,
+                    (
+                        request.desired_state,
+                        request.node_id,
+                        new_epoch,
+                        request.lease_expires_at,
+                        request.engine_name,
+                        request.engine_version,
+                        request.image_digest,
+                        request.android_api_level,
+                        request.android_abi,
+                        request.instance_id,
+                    ),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO geelark_control.operations
+                        (operation_id, request_id, instance_id, node_id, assignment_epoch,
+                         operation_type, status)
+                    VALUES (%s, %s, %s, %s, %s, 'assign', 'accepted')
+                    """,
+                    (operation_id, request.request_id, request.instance_id, request.node_id, new_epoch),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO geelark_control.resource_reservations
+                        (reservation_id, instance_id, node_id, assignment_epoch,
+                         cpu_units, memory_bytes, storage_bytes, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 'held')
+                    """,
+                    (
+                        reservation_id,
+                        request.instance_id,
+                        request.node_id,
+                        new_epoch,
+                        cpu_units,
+                        request.memory_bytes,
+                        request.storage_bytes,
+                    ),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO geelark_control.assignment_events
+                        (instance_id, assignment_epoch, previous_node_id, new_node_id,
+                         previous_state, new_state, actor_type, actor_id, request_id,
+                         operation_id, reason)
+                    VALUES (%s, %s, NULL, %s, %s, 'reserved', 'controller',
+                            'assignment-service', %s, %s, 'assignment accepted')
+                    """,
+                    (
+                        request.instance_id,
+                        new_epoch,
+                        request.node_id,
+                        observed_state,
+                        request.request_id,
+                        operation_id,
+                    ),
+                )
+                outbox_payload = {
+                    "operation_id": str(operation_id),
+                    "request_id": str(request.request_id),
+                    "instance_id": str(request.instance_id),
+                    "node_id": str(request.node_id),
+                    "assignment_epoch": new_epoch,
+                    "desired_state": request.desired_state,
+                    "lease_expires_at": request.lease_expires_at.astimezone(timezone.utc).isoformat(),
+                    "engine": {"name": request.engine_name, "version": request.engine_version},
+                    "android": {
+                        "api_level": request.android_api_level,
+                        "abi": request.android_abi,
+                        "image_digest": request.image_digest,
+                    },
+                    "resource_reservation": {
+                        "cpu_units": float(cpu_units),
+                        "memory_bytes": request.memory_bytes,
+                        "storage_bytes": request.storage_bytes,
+                    },
+                }
+                cur.execute(
+                    """
+                    INSERT INTO geelark_control.outbox_events
+                        (event_id, deduplication_key, instance_id, assignment_epoch,
+                         operation_id, event_type, payload)
+                    VALUES (%s, %s, %s, %s, %s, 'assignment.requested', %s)
+                    """,
+                    (
+                        outbox_event_id,
+                        f"assignment:{request.instance_id}:{new_epoch}",
+                        request.instance_id,
+                        new_epoch,
+                        operation_id,
+                        Jsonb(outbox_payload),
+                    ),
+                )
+                response = {
+                    "operation_id": str(operation_id),
+                    "instance_id": str(request.instance_id),
+                    "node_id": str(request.node_id),
+                    "assignment_epoch": new_epoch,
+                    "status": "accepted",
+                    "observed_state": "reserved",
+                }
+                cur.execute(
+                    """
+                    UPDATE geelark_control.idempotency_records
+                       SET operation_id = %s, response_snapshot = %s
+                     WHERE scope = %s AND idempotency_key = %s
+                    """,
+                    (operation_id, Jsonb(response), request.scope, request.idempotency_key),
+                )
+            except AssignmentError as exc:
+                if isinstance(exc, InstanceAlreadyAssigned):
+                    error_code = "INSTANCE_ALREADY_ASSIGNED"
+                elif isinstance(exc, InstanceStateBlocked):
+                    error_code = "LEASE_STATE_UNCERTAIN"
+                elif isinstance(exc, InstanceNotFound):
+                    error_code = "INSTANCE_NOT_FOUND"
+                elif isinstance(exc, NodeNotEligible):
+                    error_code = "NODE_NOT_ELIGIBLE"
+                elif isinstance(exc, (InsufficientCapacity, NodeCapacityNotConfigured)):
+                    error_code = "CAPACITY_CHANGED"
+                else:
+                    error_code = "ASSIGNMENT_REJECTED"
+                rejection = {
+                    "status": "rejected",
+                    "error": {
+                        "code": error_code,
+                        "message": str(exc),
+                        "retryable": False,
+                    },
+                }
+                cur.execute(
+                    """
+                    UPDATE geelark_control.idempotency_records
+                       SET response_snapshot = %s
+                     WHERE scope = %s AND idempotency_key = %s
+                    """,
+                    (Jsonb(rejection), request.scope, request.idempotency_key),
+                )
+                return rejection
 
     return response
