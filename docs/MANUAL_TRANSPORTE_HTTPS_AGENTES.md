@@ -156,8 +156,9 @@ El paquete incluye `AgentTransportRuntime`, un puente entre `AgentHTTPSClient` y
 1. Inicializar el journal SQLite local y pasar esa instancia a `AgentTransportRuntime`.
 2. Antes de reportar progreso o resultado, el adaptador llama a `journal.record_result`. El resultado queda durable antes de intentar la red.
 3. Si el controlador responde 2xx, la entrega terminó. Si hay timeout, desconexión o error HTTP, el adaptador devuelve un error genérico y el recibo permanece en SQLite.
-4. Cuando vuelva la conexión, recuperar el recibo por `operation_id` y llamar a `runtime.sync_receipt(receipt)`. La clave idempotente de ese resultado se deriva del contenido, por lo que reintentar el mismo resultado conserva la clave y una nueva solicitud usa nonce/request ID nuevos.
-5. No reenviar resultados de otra instancia, nodo o epoch: el journal local valida propietario y epoch antes de guardar el resultado.
+4. Cuando vuelva la conexión, llamar a `runtime.sync_pending_receipts(limit=100)`. El adaptador pide al journal un lote acotado y ordenado de recibos aún no confirmados; se detiene ante el primer error de red para no agotar recursos sin conexión.
+5. Para resultados terminales, el journal marca el recibo sincronizado solo después de recibir una respuesta HTTP 2xx. El ACK se guarda en SQLite y sobrevive a un reinicio. Si el controlador recibió el resultado pero se perdió la respuesta, el agente lo reenvía con la misma clave idempotente y un nonce/request ID nuevos.
+6. No reenviar resultados de otra instancia, nodo o epoch: el journal local valida propietario y epoch antes de guardar el resultado.
 
 Ejemplo de construcción del adaptador (valores sensibles deben proceder del almacén protegido del sistema operativo, no del código):
 
@@ -183,8 +184,8 @@ runtime = AgentTransportRuntime(
 ```
 
 **Límites offline actuales:**
-- El guardián SQLite conserva fencing y recibos sin red.
-- El adaptador conserva progreso/resultados antes de transmitirlos y permite reintento manual por recibo.
+- El guardián SQLite conserva fencing, recibos pendientes y ACK terminales sin red.
+- El adaptador puede sincronizar lotes acotados con `sync_pending_receipts()`, pero el bucle principal del agente todavía debe invocarlo al iniciar y cuando detecte reconexión.
 - Heartbeat, capacidades y consulta de estado requieren conectividad; no se encolan localmente.
-- El runtime no escanea ni envía automáticamente todos los recibos pendientes; el bucle de agente debe programar `sync_receipt` al recuperar conexión.
+- La entrega de tareas y la reconciliación del lado controlador permanecen deshabilitadas hasta integrar/revisar servicio transaccional y outbox.
 - No se ejecuta Android, ADB ni shell remoto; no desplegar en nodos reales hasta completar el bucle de agente, la entrega de tareas y la revisión de outbox.
