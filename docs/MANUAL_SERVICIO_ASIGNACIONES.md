@@ -14,11 +14,11 @@ El paquete `packages/cluster-persistence` implementa el servicio de dominio que 
 2. Canonicaliza el payload semántico y calcula SHA-256.
 3. Inserta o recupera la clave idempotente.
 4. Devuelve la respuesta original si la clave/hash ya fue completada; si el hash difiere, lanza `IdempotencyConflict`.
-5. Bloquea la instancia con `FOR UPDATE`; rechaza estados inciertos o un propietario existente.
+5. Bloquea la instancia con `FOR UPDATE`; solo permite los estados iniciales `pending/stopped`, rechaza estados activos sin propietario, estados inciertos y cualquier propietario existente.
 6. Bloquea la fila del nodo y la fila de `node_resource_capacity`.
-7. Suma reservas `held/uncertain` y verifica CPU, RAM y disco con márgenes de seguridad.
+7. Suma reservas `held/uncertain` y verifica CPU, RAM y disco con márgenes de seguridad; bloquea asignaciones si la confianza de capacidad es `unknown`.
 8. Incrementa el epoch y crea propietario, reserva, operación, auditoría y outbox dentro de la misma transacción.
-9. Persiste la respuesta idempotente y hace commit.
+9. Persiste la respuesta idempotente y hace commit. El outbox incluye motor, API/ABI/digest Android y la reserva de CPU/RAM/disco.
 
 El bloqueo de `node_resource_capacity` serializa las reservas de un nodo. Todas las rutas futuras que creen reservas deben seguir el mismo protocolo de bloqueo; no basta con consultar capacidad sin bloqueo.
 
