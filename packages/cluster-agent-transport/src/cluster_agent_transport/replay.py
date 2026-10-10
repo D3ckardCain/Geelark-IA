@@ -43,3 +43,11 @@ def consume_request_nonce(
         if exc.diag.constraint_name == "agent_request_nonces_pkey":
             raise ReplayRejected("Nonce ya utilizado.") from exc
         raise
+
+
+def make_database_nonce_consumer(connect):
+    """Crea un callback que gestiona y cierra una conexión por solicitud."""
+    def consume(**kwargs):
+        with connect() as conn:
+            return consume_request_nonce(conn, **kwargs)
+    return consume
