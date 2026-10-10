@@ -93,7 +93,10 @@ class AgentSupervisor:
         """Solicita heartbeat inmediato y despierta la cola de recibos."""
         if self._stop.is_set():
             return
-        self.receipt_lifecycle.notify_reconnected()
+        try:
+            self.receipt_lifecycle.notify_reconnected()
+        except Exception:
+            self._report_error("RECEIPT_SYNC_WAKE_FAILED")
         self._wake.set()
 
     def stop(self, *, timeout: float = 5.0) -> bool:
@@ -131,12 +134,16 @@ class AgentSupervisor:
             self._wake.clear()
             try:
                 self.runtime.send_heartbeat(self.heartbeat_payload())
-                if self._offline:
-                    self._offline = False
-                    self.receipt_lifecycle.notify_reconnected()
             except Exception:
                 self._offline = True
                 self._report_error("HEARTBEAT_FAILED")
+            else:
+                if self._offline:
+                    try:
+                        self.receipt_lifecycle.notify_reconnected()
+                        self._offline = False
+                    except Exception:
+                        self._report_error("RECEIPT_SYNC_WAKE_FAILED")
 
             try:
                 self.runtime.publish_capabilities(self.capabilities_payload())
