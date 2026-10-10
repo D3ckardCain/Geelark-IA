@@ -49,6 +49,7 @@ La interfaz no hace solicitudes directas a Workers. El controlador determina aut
 
 - Revisar el stack apilado de autenticación/transporte (PR #44/#48) y persistencia/recibos (PR #54/#57), además del supervisor (PR #67) y la idempotencia (PR #68).
 - Confirmar la fuente de verdad y el modelo de identidad/permisos del operador del panel.
+- Resolver [issue #71](https://github.com/D3ckardCain/Geelark-IA/issues/71): separar salud reportada por Worker y salud derivada por Master antes de exponer el snapshot.
 - Verificar que la autorización se vuelve a comprobar en el servidor y que los nodos `pending` solo pueden informar heartbeat/capacidades no sensibles/estado propio.
 - Mantener handlers de tareas/reconciliación en 503 mientras sigan pendientes sus criterios de seguridad.
 - Completar pruebas negativas y revisión manual de seguridad antes de integrar datos reales.

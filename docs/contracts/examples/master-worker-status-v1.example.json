@@ -33,7 +33,8 @@
         "source": "unknown",
         "error_code": null
       }
-    ]
+    ],
+    "reported_health_state": "healthy"
   },
   "freshness": {
     "state": "fresh",

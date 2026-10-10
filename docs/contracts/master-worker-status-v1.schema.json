@@ -43,7 +43,8 @@
         "last_heartbeat_at",
         "agent_version",
         "capabilities",
-        "modules"
+        "modules",
+        "reported_health_state"
       ],
       "properties": {
         "node_id": {
@@ -167,6 +168,20 @@
               }
             }
           }
+        },
+        "reported_health_state": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "healthy",
+            "degraded",
+            "unhealthy",
+            "unknown",
+            null
+          ],
+          "description": "Declaración del Worker, no autoritativa; el Master calcula health_state de forma independiente."
         }
       }
     },

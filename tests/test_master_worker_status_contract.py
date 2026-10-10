@@ -117,6 +117,7 @@ class MasterWorkerStatusContractTests(unittest.TestCase):
         node = self.example["node"]
         self.assertIn("authorization_state", node)
         self.assertIn("health_state", node)
+        self.assertIn("reported_health_state", node)
         self.assertIn("freshness", self.example)
         self.assertNotEqual(node["authorization_state"], node["health_state"])
 
@@ -159,11 +160,17 @@ class MasterWorkerStatusContractTests(unittest.TestCase):
         candidate["freshness"]["state"] = "fresh"
         self.assertTrue(validate_subset(candidate, self.schema))
 
-    def test_stale_snapshot_with_unknown_health_is_valid(self):
+    def test_worker_reported_healthy_does_not_override_stale_master_health(self):
         candidate = deepcopy(self.example)
+        candidate["node"]["reported_health_state"] = "healthy"
         candidate["freshness"]["state"] = "stale"
         candidate["node"]["health_state"] = "unknown"
         self.assertEqual(validate_subset(candidate, self.schema), [])
+
+    def test_rejects_invalid_worker_reported_health(self):
+        candidate = deepcopy(self.example)
+        candidate["node"]["reported_health_state"] = "success"
+        self.assertTrue(any("allowed enum" in error for error in validate_subset(candidate, self.schema)))
 
     def test_pending_unknown_states_remain_explicit(self):
         candidate = deepcopy(self.example)
