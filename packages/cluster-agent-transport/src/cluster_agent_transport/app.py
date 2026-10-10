@@ -6,6 +6,7 @@ que un despliegue accidental detrás de HTTP acepte credenciales bearer.
 from __future__ import annotations
 
 from datetime import datetime
+import re
 from typing import Any, Callable
 from uuid import UUID
 
@@ -189,9 +190,7 @@ def create_agent_app(
             raise HTTPException(status_code=500, detail={"code": "OPERATION_FAILED"}) from None
 
     def invoke_write(operation: Operation, principal: AgentPrincipal, payload: Any, idempotency_key: str | None) -> Any:
-        if not idempotency_key or not 16 <= len(idempotency_key) <= 200:
-            raise HTTPException(status_code=400, detail={"code": "INVALID_IDEMPOTENCY_KEY"})
-        if any(not (ch.isalnum() or ch in "._:-") for ch in idempotency_key):
+        if not idempotency_key or not re.fullmatch(r"[A-Za-z0-9._:-]{16,200}", idempotency_key):
             raise HTTPException(status_code=400, detail={"code": "INVALID_IDEMPOTENCY_KEY"})
         if idempotency_runner is None:
             raise HTTPException(status_code=503, detail={"code": "IDEMPOTENCY_NOT_CONFIGURED"})
