@@ -57,7 +57,7 @@ El supervisor no crea estas dependencias ni elige dónde se guardan las credenci
 
 ## Pendientes antes de uso real
 
-- [ ] CI del commit exacto aprobado.
+- [x] CI del commit ejecutable 7b452538faf7da595f5cb30efe7f3ee5cf933ed1 aprobado: run 136, 70 pruebas aprobadas y pip check correcto. El supervisor sigue sin entry point instalable.
 - [ ] Conectar el supervisor a un punto de entrada de proceso instalable.
 - [ ] Elegir e implementar el almacén de credenciales adecuado al sistema operativo final.
 - [ ] Añadir detector de conectividad apropiado al sistema operativo final, si se requiere además del heartbeat.
