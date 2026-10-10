@@ -67,9 +67,9 @@ def _canonical_payload(request: AssignmentRequest, cpu_units: Decimal) -> dict[s
 
 
 def _validate_request(request: AssignmentRequest) -> Decimal:
-    if not request.scope.strip() or len(request.scope) > 128:
+    if not isinstance(request.scope, str) or not request.scope.strip() or len(request.scope) > 128:
         raise InvalidAssignmentRequest("scope debe tener entre 1 y 128 caracteres")
-    if not 16 <= len(request.idempotency_key) <= 200:
+    if not isinstance(request.idempotency_key, str) or not 16 <= len(request.idempotency_key) <= 200:
         raise InvalidAssignmentRequest("idempotency_key debe tener entre 16 y 200 caracteres")
     for name in ("request_id", "instance_id", "node_id"):
         if not isinstance(getattr(request, name), UUID):
@@ -80,12 +80,10 @@ def _validate_request(request: AssignmentRequest) -> Decimal:
         raise InvalidAssignmentRequest("cpu_units no es un número válido") from exc
     if not cpu_units.is_finite() or cpu_units <= 0:
         raise InvalidAssignmentRequest("cpu_units debe ser finito y mayor que cero")
-    if isinstance(request.memory_bytes, bool) or request.memory_bytes <= 0:
+    if not isinstance(request.memory_bytes, int) or isinstance(request.memory_bytes, bool) or request.memory_bytes <= 0:
         raise InvalidAssignmentRequest("memory_bytes debe ser un entero positivo")
-    if isinstance(request.storage_bytes, bool) or request.storage_bytes <= 0:
+    if not isinstance(request.storage_bytes, int) or isinstance(request.storage_bytes, bool) or request.storage_bytes <= 0:
         raise InvalidAssignmentRequest("storage_bytes debe ser un entero positivo")
-    if not isinstance(request.memory_bytes, int) or not isinstance(request.storage_bytes, int):
-        raise InvalidAssignmentRequest("memory_bytes y storage_bytes deben ser enteros")
     if request.lease_expires_at.tzinfo is None or request.lease_expires_at.utcoffset() is None:
         raise InvalidAssignmentRequest("lease_expires_at debe incluir zona horaria")
     if request.lease_expires_at <= datetime.now(timezone.utc):
