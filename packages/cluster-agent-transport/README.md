@@ -12,13 +12,14 @@ Paquete experimental independiente del dominio y sin listener automático.
 ## Controles
 
 - La aplicación ASGI rechaza HTTP plano con 426. El listener TLS exige certificado y clave; no se inicia automáticamente.
-- El listener exige IP literal privada/loopback; rechaza DNS, IP pública y `0.0.0.0`.
+- Listener y cliente solo aceptan RFC1918 IPv4, IPv6 ULA o loopback; rechazan DNS, IP pública, rangos de documentación, link-local y CGNAT.
 - El agente envía `Authorization: Bearer`, `X-Agent-Nonce` (UUID), `X-Agent-Timestamp` (ISO-8601 con zona) y `X-Request-ID` (UUID).
 - Nonces persistentes en PostgreSQL, ventana temporal de ±5 minutos y rechazo de replay.
 - Las escrituras requieren `Idempotency-Key` de 16-200 caracteres. El runner PostgreSQL conserva el hash del payload y el snapshot de respuesta en la misma transacción que la operación de dominio; una clave con payload distinto devuelve conflicto.
 - El handler de escritura recibe `conn` y debe usar esa misma conexión para que la mutación de dominio y la respuesta idempotente sean atómicas.
 - Límite de cuerpo por defecto: 1 MiB.
 - Rate limit por proceso: 60 solicitudes/minuto/nodo. En despliegues multiworker no es un límite global.
+- El cliente `AgentHTTPSClient` usa la CA explícita, verifica cadena y hostname/IP, exige TLS 1.2+, no sigue redirects, rechaza path traversal y limita timeout, cuerpos y respuestas.
 - Las respuestas no incluyen tokens, SQL ni excepciones internas.
 - Los handlers de dominio no configurados responden 503; el paquete no ejecuta shell/ADB ni comandos Android.
 
