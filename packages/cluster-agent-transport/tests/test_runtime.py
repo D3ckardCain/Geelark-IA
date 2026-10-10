@@ -187,3 +187,23 @@ def test_runtime_syncs_real_sqlite_journal_and_persists_terminal_ack(tmp_path):
     reopened = guard.AgentJournal(tmp_path / "journal.sqlite3", node_id)
     reopened.initialize()
     assert reopened.list_pending_receipts(limit=10) == []
+
+
+
+def test_running_progress_ack_is_persisted_and_does_not_block_later_receipts():
+    node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
+    journal = FakeJournal()
+    journal.pending = [
+        SimpleNamespace(
+            node_id=node_id, instance_id=instance_id, operation_id=operation_id,
+            assignment_epoch=1, status="running", result={"progress": 25},
+        ),
+        SimpleNamespace(
+            node_id=node_id, instance_id=uuid4(), operation_id=uuid4(),
+            assignment_epoch=1, status="succeeded", result={"ok": True},
+        ),
+    ]
+    runtime = make_runtime(FakeClient(), journal, node_id)
+    confirmed, attempted = runtime.sync_pending_receipts(limit=2)
+    assert (confirmed, attempted) == (2, 2)
+    assert journal.synced == [operation_id, journal.pending[1].operation_id]
