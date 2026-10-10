@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -89,7 +90,24 @@ class AgentJournal:
         self.local_node_id = local_node_id
 
     def initialize(self) -> None:
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if self.db_path.is_symlink():
+            raise AgentGuardError("El archivo del journal no puede ser un enlace simbólico")
+        if self.db_path.exists() and not self.db_path.is_file():
+            raise AgentGuardError("La ruta del journal debe ser un archivo regular")
+        if not self.db_path.exists():
+            try:
+                descriptor = os.open(
+                    self.db_path,
+                    os.O_CREAT | os.O_EXCL | os.O_RDWR,
+                    0o600,
+                )
+                os.close(descriptor)
+            except FileExistsError:
+                if self.db_path.is_symlink() or not self.db_path.is_file():
+                    raise AgentGuardError("La ruta del journal cambió durante su creación")
+        if os.name != "nt":
+            os.chmod(self.db_path, 0o600)
         conn = self._connect()
         try:
             conn.execute("PRAGMA journal_mode = WAL")
