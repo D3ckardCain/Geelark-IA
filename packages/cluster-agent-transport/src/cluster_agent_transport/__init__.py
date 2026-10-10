@@ -11,7 +11,7 @@ from .idempotency import (
     make_database_idempotency_runner,
     payload_digest,
 )
-from .limits import InMemoryRateLimiter
+from .limits import InMemoryRateLimiter, PostgresRateLimiter
 from .policy import AgentPrincipal, Operation, PermissionDenied, authorize_operation
 from .replay import ReplayRejected, consume_request_nonce, make_database_nonce_consumer
 from .server import TransportConfigurationError, make_uvicorn_config, validate_https_listener
@@ -19,7 +19,7 @@ from .server import TransportConfigurationError, make_uvicorn_config, validate_h
 __all__ = [
     "AgentHTTPSClient", "AgentPrincipal", "AgentResponse", "AgentTransportError",
     "IdempotencyConflict", "IdempotencyInProgress",
-    "InMemoryRateLimiter", "InvalidAgentCredential", "Operation", "PermissionDenied",
+    "InMemoryRateLimiter", "InvalidAgentCredential", "Operation", "PermissionDenied", "PostgresRateLimiter",
     "ReplayRejected", "TransportConfigurationError", "authorize_operation",
     "consume_request_nonce", "create_agent_app", "execute_idempotent",
     "make_database_authenticator", "make_database_idempotency_runner", "make_database_nonce_consumer",
