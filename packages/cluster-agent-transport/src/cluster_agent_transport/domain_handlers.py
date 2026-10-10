@@ -143,7 +143,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         row = conn.execute(
             """
             SELECT t.task_id, t.operation_id, t.instance_id, t.assignment_epoch,
-                   t.payload, t.delivery_attempts
+                   t.payload, t.delivery_attempts, i.lease_expires_at
               FROM geelark_control.agent_tasks AS t
               JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
               JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
@@ -157,13 +157,13 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                AND i.lease_expires_at > now()
              ORDER BY t.created_at, t.task_id
              LIMIT 1
-             FOR UPDATE OF t SKIP LOCKED
+             FOR UPDATE OF t, i, o SKIP LOCKED
             """,
             (principal.node_id,),
         ).fetchone()
         if row is None:
             return {"task": None}
-        task_id, operation_id, instance_id, epoch, task_payload, attempts = row
+        task_id, operation_id, instance_id, epoch, task_payload, attempts, lease_expires_at = row
         conn.execute(
             """
             UPDATE geelark_control.agent_tasks
@@ -183,6 +183,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             "instance_id": str(instance_id),
             "node_id": principal.node_id,
             "assignment_epoch": epoch,
+            "lease_expires_at": lease_expires_at.astimezone(timezone.utc).isoformat(),
             "delivery_attempt": attempts + 1,
         })
         return {"task": body}
