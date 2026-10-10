@@ -155,10 +155,11 @@ def test_sync_pending_receipts_marks_terminal_ack_and_stops_when_offline():
 
 def test_runtime_syncs_real_sqlite_journal_and_persists_terminal_ack(tmp_path):
     guard = pytest.importorskip("geelark_cluster_agent_guard")
-    if not callable(getattr(guard.AgentJournal, "list_pending_receipts", None)) or not callable(
-        getattr(guard.AgentJournal, "mark_receipt_synced", None)
+    if not callable(getattr(guard.AgentJournal, "list_pending_receipts", None)) or not (
+        callable(getattr(guard.AgentJournal, "mark_receipt_delivered", None))
+        or callable(getattr(guard.AgentJournal, "mark_receipt_synced", None))
     ):
-        pytest.skip("la rama base aún no incluye la API de recibos del PR #38")
+        pytest.skip("la rama base aún no incluye la API de recibos pendientes/ACK")
     node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
     journal = guard.AgentJournal(tmp_path / "journal.sqlite3", node_id)
     journal.initialize()
@@ -209,3 +210,26 @@ def test_running_progress_ack_is_persisted_and_does_not_block_later_receipts():
     confirmed, attempted = runtime.sync_pending_receipts(limit=2)
     assert (confirmed, attempted) == (2, 2)
     assert journal.synced == [operation_id, journal.pending[1].operation_id]
+
+def test_runtime_uses_fenced_journal_ack_api_when_available():
+    class FencedJournal(FakeJournal):
+        def __init__(self):
+            super().__init__()
+            self.delivered = []
+
+        def mark_receipt_delivered(self, operation_id, assignment_epoch):
+            self.delivered.append((operation_id, assignment_epoch))
+
+    node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
+    journal = FencedJournal()
+    journal.pending = [
+        SimpleNamespace(
+            node_id=node_id, instance_id=instance_id, operation_id=operation_id,
+            assignment_epoch=7, status="succeeded", result={"ok": True},
+        )
+    ]
+    runtime = make_runtime(FakeClient(), journal, node_id)
+
+    assert runtime.sync_pending_receipts(limit=1) == (1, 1)
+    assert journal.delivered == [(operation_id, 7)]
+    assert journal.synced == []
