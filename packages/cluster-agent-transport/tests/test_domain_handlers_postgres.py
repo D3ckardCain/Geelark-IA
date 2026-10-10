@@ -127,6 +127,11 @@ def test_active_node_claims_durable_task_with_separate_delivery_and_instance_lea
                 conn=conn, principal=principal, payload={"schema_version": 1}
             )
         task = response["task"]
+        with connect() as conn:
+            second_claim = handlers[Operation.TASK_FETCH](
+                conn=conn, principal=principal, payload={"schema_version": 1}
+            )
+        assert second_claim == {"task": None}
         assert task["task_id"] == str(task_id)
         assert task["operation_id"] == str(operation_id)
         assert task["assignment_epoch"] == 3
