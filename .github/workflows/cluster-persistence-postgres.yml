@@ -37,16 +37,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Apply migration to disposable database
+      - name: Apply all schema migrations to disposable database
         shell: bash
         run: |
           container_id="$(docker ps --filter 'ancestor=postgres:16-alpine' --format '{{.ID}}' | head -n 1)"
           test -n "$container_id"
-          docker exec -i "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 < db/migrations/0001_cluster_control.sql
+          for migration in db/migrations/*.sql; do
+            test -f "$migration" || continue
+            docker exec -i "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 < "$migration"
+          done
 
-      - name: Verify schema smoke tests and constraints
+      - name: Run all schema smoke tests and constraints
         shell: bash
         run: |
           container_id="$(docker ps --filter 'ancestor=postgres:16-alpine' --format '{{.ID}}' | head -n 1)"
           test -n "$container_id"
-          docker exec -i "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 < db/tests/0001_cluster_control_smoke.sql
+          for test_file in db/tests/*.sql; do
+            test -f "$test_file" || continue
+            docker exec -i "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 < "$test_file"
+          done
