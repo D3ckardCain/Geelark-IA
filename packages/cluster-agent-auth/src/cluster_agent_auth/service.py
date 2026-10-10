@@ -18,6 +18,12 @@ import psycopg
 _TOKEN_RE = re.compile(r"^[0-9a-f]{64}$")
 _DEFAULT_ENROLLMENT_TTL = timedelta(minutes=10)
 _DEFAULT_CREDENTIAL_TTL = timedelta(days=90)
+_MAX_CREDENTIAL_TTL = timedelta(days=365)
+
+
+def _validate_credential_ttl(ttl: timedelta) -> None:
+    if not isinstance(ttl, timedelta) or ttl <= timedelta(0) or ttl > _MAX_CREDENTIAL_TTL:
+        raise ValueError("La vigencia de la credencial debe ser mayor que cero y <= 365 días.")
 
 
 class EnrollmentError(Exception):
@@ -100,8 +106,7 @@ def consume_enrollment(
         raise EnrollmentError("Token de enrolamiento inválido.")
     if not display_name.strip() or len(display_name) > 128:
         raise ValueError("display_name debe tener entre 1 y 128 caracteres.")
-    if credential_ttl <= timedelta(0):
-        raise ValueError("La vigencia de la credencial debe ser mayor que cero.")
+    _validate_credential_ttl(credential_ttl)
     token_hash = _secret_hash(enrollment_token)
     now = datetime.now(timezone.utc)
     credential = _new_secret()
