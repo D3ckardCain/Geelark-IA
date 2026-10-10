@@ -6,8 +6,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timezone
+import hashlib
+import json
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import psycopg
 from fastapi import HTTPException
@@ -295,6 +297,164 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         )
         return {"ok": True, "task_id": str(task_id), "state": state, "duplicate": False}
 
+    def reconcile(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
+        """Compara inventario y epochs sin convertir estados inciertos automáticamente."""
+        _assert_principal_current(conn, principal)
+        if (principal.admin_state, principal.credential_status) != ("active", "active"):
+            raise HTTPException(status_code=403, detail={"code": "PERMISSION_DENIED"})
+        inventory = payload.get("inventory")
+        if payload.get("schema_version") != 1 or not isinstance(inventory, list) or len(inventory) > 100:
+            raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_PAYLOAD"})
+
+        try:
+            canonical_inventory = json.dumps(
+                inventory, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+            )
+            inventory_hash = hashlib.sha256(canonical_inventory.encode("utf-8")).hexdigest()
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_PAYLOAD"}) from None
+
+        decisions: list[dict[str, Any]] = []
+        seen_task_ids: set[UUID] = set()
+        now = datetime.now(timezone.utc)
+
+        for item in inventory:
+            try:
+                task_id = UUID(item["task_id"])
+                operation_id = UUID(item["operation_id"])
+                instance_id = UUID(item["instance_id"])
+                epoch = item["assignment_epoch"]
+                local_state = item["local_state"]
+                local_summary = item.get("result_summary", {})
+                if (
+                    isinstance(epoch, bool) or not isinstance(epoch, int) or epoch < 1
+                    or local_state not in {"accepted", "running", "succeeded", "failed", "unknown"}
+                    or not isinstance(local_summary, dict)
+                ):
+                    raise ValueError
+            except (KeyError, TypeError, ValueError):
+                raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_ITEM"}) from None
+
+            if task_id in seen_task_ids:
+                raise HTTPException(status_code=422, detail={"code": "DUPLICATE_RECONCILIATION_TASK"})
+            seen_task_ids.add(task_id)
+
+            row = conn.execute(
+                """
+                SELECT t.task_id, t.operation_id, t.instance_id, t.node_id,
+                       t.assignment_epoch, t.status, t.result_summary,
+                       i.owner_node_id, i.assignment_epoch, i.lease_expires_at,
+                       o.status, o.result_summary, t.delivery_lease_until
+                  FROM geelark_control.agent_tasks AS t
+                  JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
+                  JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
+                 WHERE t.task_id = %s
+                 FOR UPDATE OF t, i, o
+                """,
+                (task_id,),
+            ).fetchone()
+
+            decision = "MANUAL_REVIEW_REQUIRED"
+            if row is None:
+                decision = "UNKNOWN_TASK"
+            elif (
+                str(row[1]) != str(operation_id)
+                or str(row[2]) != str(instance_id)
+            ):
+                decision = "IDENTITY_MISMATCH"
+            elif str(row[3]) != principal.node_id:
+                decision = "TASK_NOT_OWNED_BY_NODE"
+            elif (
+                row[7] is None or str(row[7]) != principal.node_id
+                or row[8] != row[4] or epoch != row[4]
+            ):
+                decision = "STALE_ASSIGNMENT_EPOCH"
+            elif row[9] is None or row[9] <= now:
+                decision = "INSTANCE_LEASE_EXPIRED_HOLD"
+            elif (
+                row[5] in {"delivered", "accepted", "running"}
+                and (row[12] is None or row[12] <= now)
+            ):
+                decision = "DELIVERY_LEASE_EXPIRED_HOLD"
+            elif row[5] == "unknown" or local_state == "unknown":
+                decision = "MANUAL_REVIEW_REQUIRED"
+            elif row[5] in {"succeeded", "rejected", "failed", "cancelled"}:
+                if row[5] == local_state and dict(row[6] or {}) == local_summary:
+                    decision = "ALREADY_CONFIRMED"
+                else:
+                    decision = "TERMINAL_CONFLICT_MANUAL_REVIEW"
+            elif row[5] in {"accepted", "running"}:
+                if local_state in {"succeeded", "failed"}:
+                    decision = "RESEND_TERMINAL_RESULT"
+                elif local_state in {"accepted", "running"}:
+                    decision = "CONTINUE_SAME_EPOCH"
+            else:
+                decision = "TASK_NOT_ACCEPTED_HOLD"
+
+            decisions.append({
+                "task_id": str(task_id),
+                "operation_id": str(operation_id),
+                "instance_id": str(instance_id),
+                "assignment_epoch": epoch,
+                "local_state": local_state,
+                "server_state": row[5] if row is not None else None,
+                "decision": decision,
+                "automatic_mutation": False,
+            })
+
+        # También reporta tareas activas del nodo que no aparecen en su inventario.
+        missing_rows = conn.execute(
+            """
+            SELECT t.task_id, t.operation_id, t.instance_id, t.assignment_epoch, t.status
+              FROM geelark_control.agent_tasks AS t
+              JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
+              JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
+             WHERE t.node_id = %s
+               AND t.status IN ('accepted', 'running', 'unknown')
+               AND i.owner_node_id = t.node_id
+               AND i.assignment_epoch = t.assignment_epoch
+             ORDER BY t.created_at, t.task_id
+             FOR UPDATE OF t, i, o
+            """,
+            (principal.node_id,),
+        ).fetchall()
+        for row in missing_rows:
+            if row[0] in seen_task_ids:
+                continue
+            decisions.append({
+                "task_id": str(row[0]),
+                "operation_id": str(row[1]),
+                "instance_id": str(row[2]),
+                "assignment_epoch": row[3],
+                "local_state": None,
+                "server_state": row[4],
+                "decision": (
+                    "MANUAL_REVIEW_REQUIRED"
+                    if row[4] == "unknown"
+                    else "SERVER_TASK_MISSING_FROM_LOCAL_INVENTORY"
+                ),
+                "automatic_mutation": False,
+            })
+
+        report_id = uuid4()
+        conn.execute(
+            """
+            INSERT INTO geelark_control.agent_reconciliation_reports
+                (report_id, node_id, inventory_sha256, inventory_count, decisions)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (report_id, UUID(principal.node_id), inventory_hash, len(inventory), Jsonb(decisions)),
+        )
+        return {
+            "ok": True,
+            "report_id": str(report_id),
+            "inventory_sha256": inventory_hash,
+            "inventory_count": len(inventory),
+            "decision_count": len(decisions),
+            "decisions": decisions,
+            "mutations_applied": False,
+        }
+
     return {
         Operation.HEARTBEAT: heartbeat,
         Operation.CAPABILITIES: capabilities,
@@ -303,4 +463,5 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         Operation.TASK_ACCEPT: accept_task,
         Operation.TASK_PROGRESS: progress_task,
         Operation.TASK_RESULT: result_task,
+        Operation.RECONCILE: reconcile,
     }
