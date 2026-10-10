@@ -413,7 +413,8 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         # También reporta tareas activas del nodo que no aparecen en su inventario.
         missing_rows = conn.execute(
             """
-            SELECT t.task_id, t.operation_id, t.instance_id, t.assignment_epoch, t.status
+            SELECT t.task_id, t.operation_id, t.instance_id, t.assignment_epoch,
+                   t.status, o.status, o.result_summary, t.result_summary
               FROM geelark_control.agent_tasks AS t
               JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
               JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
@@ -439,7 +440,11 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 "decision": (
                     "MANUAL_REVIEW_REQUIRED"
                     if row[4] == "unknown"
-                    else "SERVER_TASK_MISSING_FROM_LOCAL_INVENTORY"
+                    else (
+                        "SERVER_TASK_OPERATION_STATE_MISMATCH"
+                        if row[5] != row[4] or dict(row[6] or {}) != dict(row[7] or {})
+                        else "SERVER_TASK_MISSING_FROM_LOCAL_INVENTORY"
+                    )
                 ),
                 "automatic_mutation": False,
             })
