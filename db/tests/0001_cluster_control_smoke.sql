@@ -7,6 +7,13 @@ VALUES
  ('22222222-2222-4222-8222-222222222222', 'node-a', 'active'),
  ('33333333-3333-4333-8333-333333333333', 'node-b', 'active');
 
+INSERT INTO geelark_control.node_resource_capacity
+    (node_id, cpu_units, memory_capacity_bytes, storage_capacity_bytes,
+     memory_safety_margin_bytes, storage_safety_margin_bytes, measured_at, confidence)
+VALUES
+ ('22222222-2222-4222-8222-222222222222', 2.0, 8192, 16384, 1024, 1024, now(), 'configured'),
+ ('33333333-3333-4333-8333-333333333333', 1.0, 4096, 8192, 512, 512, now(), 'configured');
+
 INSERT INTO geelark_control.instances
     (instance_id, desired_state, observed_state, owner_node_id, assignment_epoch)
 VALUES
