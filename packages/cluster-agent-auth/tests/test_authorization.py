@@ -89,3 +89,14 @@ def test_unknown_operation_is_rejected():
     with pytest.raises(AgentAuthorizationError) as error:
         authorize_agent_operation(context(), "execute_shell", now=NOW)
     assert error.value.code == "OPERATION_NOT_ALLOWED"
+
+
+def test_malformed_context_fails_closed_with_typed_error():
+    malformed = AgentAuthorizationContext(
+        node_admin_state=[],
+        credential_status="active",
+        credential_expires_at=NOW + timedelta(minutes=5),
+    )
+    with pytest.raises(AgentAuthorizationError) as error:
+        authorize_agent_operation(malformed, AgentOperation.HEARTBEAT, now=NOW)
+    assert error.value.code == "AUTHORIZATION_CONTEXT_INVALID"
