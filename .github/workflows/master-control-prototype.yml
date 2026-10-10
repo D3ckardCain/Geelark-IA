@@ -42,7 +42,7 @@ jobs:
           import re
 
           source = Path("prototypes/master-control/index.html").read_text(encoding="utf-8")
-          match = re.search(r"<script>([\\s\\S]*?)</script>", source, re.IGNORECASE)
+          match = re.search(r"<script>(.*?)</script>", source, re.IGNORECASE | re.DOTALL)
           if match is None:
               raise SystemExit("No se encontró el script embebido")
           Path("/tmp/master-control-prototype.js").write_text(match.group(1), encoding="utf-8")
