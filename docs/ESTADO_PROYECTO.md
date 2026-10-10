@@ -319,3 +319,13 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 - `AgentSupervisor` coordina heartbeat/capacidades y el sincronizador durable en hilos separados; la recuperación despierta la cola de recibos y los errores se reportan con códigos genéricos. `CredentialProvider` abstrae el secreto; `SystemdCredentialProvider` lee credenciales entregadas por systemd y `build_agent_components` ensambla los objetos sin arrancarlos.
 - Manual técnico: [MANUAL_TECNICO_SUPERVISOR_AGENTE.md](MANUAL_TECNICO_SUPERVISOR_AGENTE.md). Manual de usuario: [MANUAL_SUPERVISOR_AGENTE.md](MANUAL_SUPERVISOR_AGENTE.md).
 - Límite: biblioteca inyectable, no un servicio/CLI instalable. La elección del SO y almacén de credenciales depende de la decisión de arquitectura documentada en [PR #60](https://github.com/D3ckardCain/Geelark-IA/pull/60) y sigue pendiente. No se ha probado en hardware físico.
+
+
+### Reconciliación conservadora del agente (2026-10-10)
+
+- PR borrador [#61 — reconciliar inventario sin mutaciones automáticas](https://github.com/D3ckardCain/Geelark-IA/pull/61), apilado sobre #59.
+- El commit ejecutable `5186c5700b5eb346485d4dd7f0880437dca54021` pasó Actions run 163 (transporte: 107 pruebas, una advertencia deprecatoria), run 143 (migraciones/invariantes PostgreSQL) y run 177 (servicio/concurrencia PostgreSQL); los tres terminaron correctamente.
+- Migration 0005 añade informes de reconciliación auditables. El endpoint compara identidad, propietario, assignment_epoch, leases y resultados; no cambia automáticamente tareas, operaciones ni propietario/epoch de instancias.
+- `AgentTransportRuntime.reconcile_inventory` usa un UUID por intento; el supervisor lo conserva para reintentos y lo renueva para una reconciliación nueva. Un worker separado evita bloquear heartbeat/capacidades.
+- Manuales: [MANUAL_RECONCILIACION_AGENTES.md](MANUAL_RECONCILIACION_AGENTES.md) y [MANUAL_TECNICO_RECONCILIACION_AGENTES.md](MANUAL_TECNICO_RECONCILIACION_AGENTES.md).
+- Límite: no se ha probado en hardware físico; decisiones manuales de conflictos/unknown y el entry point instalable siguen pendientes.
