@@ -156,8 +156,8 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                AND i.assignment_epoch = t.assignment_epoch
                AND i.lease_expires_at > now()
              ORDER BY t.created_at, t.task_id
-             FOR UPDATE OF t SKIP LOCKED
              LIMIT 1
+             FOR UPDATE OF t SKIP LOCKED
             """,
             (principal.node_id,),
         ).fetchone()
