@@ -287,3 +287,15 @@ El PR borrador #16 ahora incluye validación de coherencia entre `status` y `obs
 ### Persistencia de asignaciones documentada (2026-10-09)
 
 Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md). Define transacciones, restricciones para un único propietario, idempotencia durable, outbox y pruebas de caída/concurrencia. No hay DDL, migraciones ni código de persistencia implementados; PostgreSQL local sigue siendo una propuesta pendiente de validar.
+
+
+### Bandeja durable de tareas por nodo (2026-10-10)
+
+- PR borrador [#53 — bandeja durable y consulta saliente de tareas](https://github.com/D3ckardCain/Geelark-IA/pull/53), apilado sobre el transporte privado.
+- Se añadió la migración `0004_agent_task_inbox.sql` para separar la cola de asignaciones del outbox de eventos.
+- La asignación inserta la tarea en la misma transacción que operación, reserva y outbox.
+- El endpoint `POST /agent/v1/tasks/claim` aplica autenticación, nonce anti-replay, idempotencia y permisos por operación. Solo nodos activos pueden reclamar; nodos pendientes solo envían heartbeat/capacidades y consultan estado.
+- El claim bloquea tarea, instancia y operación con `FOR UPDATE ... SKIP LOCKED`, valida epoch/lease y devuelve el vencimiento de la lease.
+- Se añadieron pruebas unitarias del handler y de autorización de nodos pendientes. **No hay ejecución de CI visible para el HEAD actual**, por lo que no se afirma que las pruebas estén ejecutadas.
+- La rama reporta `mergeable=false`; no se fusiona ni se despliega. Siguiente paso: resolver la divergencia de la rama apilada, confirmar migraciones PostgreSQL 16 y añadir pruebas de integración/concurrencia para claim, expiración de lease, doble consumidor, epoch obsoleto y estados terminales.
+- La reconciliación continúa sin configurar (503). No hay ejecución de Android, ADB, shell ni despliegue en PCs físicas.
