@@ -1,14 +1,22 @@
 # Matriz de decisión del sistema operativo del clúster GeeLark-IA
 
-**Estado:** plantilla previa a la prueba; sin puntuaciones ni selección aprobada.  
+**Estado:** Debian 13 Stable directo es la primera plataforma de prueba solicitada por el usuario; no equivale a aprobación de instalación ni selección para producción. Proxmox VE se conserva para una fase comparativa posterior cuando el usuario la solicite.  
 **Regla:** no instalar ni cambiar hardware, BIOS, particiones o sistemas hasta autorización explícita.  
 **Objetivo de coste:** $0 USD de costes obligatorios de software/servicios.
 
-## 1. Candidatos que deben compararse
+## 1. Candidatos y orden de trabajo
 
-1. Ubuntu 26.04 LTS directo sobre el host Linux.
-2. Debian 13 Stable directo sobre el host Linux.
-3. Proxmox VE como hipervisor, con una VM Linux dedicada para el motor Android. LXC solo se evaluará si se puede demostrar aislamiento suficiente y configurar binder/dispositivos sin ampliar privilegios innecesarios.
+1. **Primera fase:** Debian 13 Stable instalado directamente en un solo equipo de prueba, solo después de autorización específica y verificación de recuperación.
+2. **Fase posterior:** Proxmox VE con una VM Linux dedicada, cuando el usuario indique que desea iniciar esa comparación. No se descarta Proxmox.
+3. **Referencia comparativa:** Ubuntu 26.04 LTS directo, para interpretar diferencias relevantes si la compatibilidad o soporte de Debian no resulta adecuado.
+
+La preferencia por Debian se limita al orden de pruebas; no es un resultado de benchmark ni una decisión de producción.
+
+## Candidatos técnicos
+
+- Ubuntu 26.04 LTS directo sobre el host Linux.
+- Debian 13 Stable directo sobre el host Linux.
+- Proxmox VE como hipervisor, con una VM Linux dedicada para el motor Android. LXC solo se evaluará si se puede demostrar aislamiento suficiente y configurar binder/dispositivos sin ampliar privilegios innecesarios.
 
 No se deben comparar resultados de configuraciones diferentes. El mismo motor Android, imagen, APK de prueba, límites de CPU/RAM, resolución, conjunto de acciones y número de repeticiones deben usarse en cada candidato. Si un motor no funciona en una plataforma, se registra como incompatibilidad; no se oculta ni se cambia la carga para favorecerlo.
 
