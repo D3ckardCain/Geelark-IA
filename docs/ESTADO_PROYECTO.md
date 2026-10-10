@@ -310,3 +310,12 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 - Se endureció la validación de configuración y contadores; una excepción del callback de telemetría no debe detener el worker. Se añadieron pruebas para drenaje de lotes, contadores inválidos y callback defectuoso.
 - Manual técnico: [MANUAL_CICLO_VIDA_SINCRONIZACION_AGENTE.md](MANUAL_CICLO_VIDA_SINCRONIZACION_AGENTE.md). Manual de usuario/operación: [MANUAL_USUARIO_SINCRONIZACION_AGENTES.md](MANUAL_USUARIO_SINCRONIZACION_AGENTES.md).
 - Límite: biblioteca de ciclo de vida, todavía no conectada a un proceso de agente instalable ni con interfaz/comando de usuario. CI no equivale a prueba en PCs físicas. No fusionar ni desplegar antes de revisar el flujo SQLite→HTTPS→PostgreSQL y los controles de seguridad.
+
+
+### Supervisor portable del agente (2026-10-10)
+
+- PR borrador [#59 — coordinar heartbeat y sincronización durable](https://github.com/D3ckardCain/Geelark-IA/pull/59), apilado sobre #57, #54 y #48.
+- El commit ejecutable `7b452538faf7da595f5cb30efe7f3ee5cf933ed1` pasó GitHub Actions run 136: 70 pruebas aprobadas, una advertencia deprecatoria de Starlette/httpx y `pip check` correcto.
+- `AgentSupervisor` coordina heartbeat/capacidades y el sincronizador durable en hilos separados; la recuperación despierta la cola de recibos y los errores se reportan con códigos genéricos.
+- Manual técnico: [MANUAL_TECNICO_SUPERVISOR_AGENTE.md](MANUAL_TECNICO_SUPERVISOR_AGENTE.md). Manual de usuario: [MANUAL_SUPERVISOR_AGENTE.md](MANUAL_SUPERVISOR_AGENTE.md).
+- Límite: biblioteca inyectable, no un servicio/CLI instalable. La elección del SO y almacén de credenciales depende de la decisión de arquitectura documentada en [PR #60](https://github.com/D3ckardCain/Geelark-IA/pull/60) y sigue pendiente. No se ha probado en hardware físico.
