@@ -5,12 +5,20 @@ local; si la red falla, el recibo queda disponible para sincronizarse después.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable
 from uuid import UUID, uuid4
 
 from .client import AgentHTTPSClient, AgentResponse, AgentTransportError
 from .idempotency import payload_digest
+
+
+@dataclass(frozen=True)
+class SyncSummary:
+    attempted: int
+    delivered: int
+    blocked_operation_id: UUID | None = None
 
 
 class AgentTransportRuntime:
@@ -61,9 +69,11 @@ class AgentTransportRuntime:
             operation_id=operation_id, instance_id=instance_id, assignment_epoch=assignment_epoch,
             status="running", result=result,
         )
-        return self._send_receipt(
+        response = self._send_receipt(
             operation_id=operation_id, state="running", result=result, route="progress"
         )
+        self._mark_delivered(operation_id, assignment_epoch)
+        return response
 
     def report_result(
         self, *, operation_id: UUID, instance_id: UUID, assignment_epoch: int,
@@ -75,9 +85,11 @@ class AgentTransportRuntime:
             operation_id=operation_id, instance_id=instance_id, assignment_epoch=assignment_epoch,
             status=status, result=result,
         )
-        return self._send_receipt(
+        response = self._send_receipt(
             operation_id=operation_id, state=status, result=result, route="result"
         )
+        self._mark_delivered(operation_id, assignment_epoch)
+        return response
 
     def sync_receipt(self, receipt: Any) -> AgentResponse | None:
         """Reintenta un recibo durable tras reconectar; el journal conserva el resultado."""
@@ -90,6 +102,13 @@ class AgentTransportRuntime:
         epoch = getattr(receipt, "assignment_epoch", None)
         if not isinstance(operation_id, UUID) or not isinstance(instance_id, UUID):
             raise ValueError("Recibo local inválido.")
+        if status == "accepted":
+            response = self._send_receipt(
+                operation_id=operation_id, state="accepted",
+                result=result if isinstance(result, dict) else {}, route="accept",
+            )
+            self._mark_delivered(operation_id, epoch)
+            return response
         if status == "running" and isinstance(result, dict):
             return self.report_progress(
                 operation_id=operation_id, instance_id=instance_id,
@@ -100,7 +119,40 @@ class AgentTransportRuntime:
                 operation_id=operation_id, instance_id=instance_id,
                 assignment_epoch=epoch, status=status, result=result,
             )
+        if status == "unknown":
+            response = self._send_receipt(
+                operation_id=operation_id, state="unknown",
+                result=result if isinstance(result, dict) else {}, route="progress",
+            )
+            self._mark_delivered(operation_id, epoch)
+            return response
         return None
+
+    def sync_pending_receipts(self, *, limit: int = 100) -> SyncSummary:
+        """Envía un lote durable; se detiene ante el primer error y deja lo demás pendiente."""
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 1000:
+            raise ValueError("limit debe estar entre 1 y 1000")
+        list_pending = getattr(self.journal, "list_pending_receipts", None)
+        mark_delivered = getattr(self.journal, "mark_receipt_delivered", None)
+        if not callable(list_pending) or not callable(mark_delivered):
+            raise ValueError("El journal debe implementar list_pending_receipts y mark_receipt_delivered.")
+        receipts = list_pending(limit=limit)
+        attempted = 0
+        delivered = 0
+        for receipt in receipts:
+            attempted += 1
+            try:
+                response = self.sync_receipt(receipt)
+            except AgentTransportError:
+                return SyncSummary(attempted, delivered, receipt.operation_id)
+            if response is not None:
+                delivered += 1
+        return SyncSummary(attempted, delivered, None)
+
+    def _mark_delivered(self, operation_id: UUID, assignment_epoch: int) -> None:
+        mark = getattr(self.journal, "mark_receipt_delivered", None)
+        if callable(mark):
+            mark(operation_id, assignment_epoch)
 
     def _record_local(
         self, *, operation_id: UUID, instance_id: UUID, assignment_epoch: int,
