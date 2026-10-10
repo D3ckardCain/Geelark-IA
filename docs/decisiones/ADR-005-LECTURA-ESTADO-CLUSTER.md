@@ -75,3 +75,11 @@ Esto **no cierra automáticamente la issue #71**: PR #48 sigue abierta en borrad
 ## Consecuencias
 
 Esta decisión retrasa la telemetría real hasta que el stack de seguridad esté listo y exista un inventario de módulos autoritativo. El endpoint actual todavía no produce el snapshot v1 completo. Evita dos fuentes de verdad, endpoints duplicados y una falsa impresión de salud. La maqueta y el contrato pueden evolucionar sin abrir ejecución remota.
+
+
+## Seguimiento de implementación (10-10-2026)
+
+- La PR #73 implementa el reporte/persistencia de inventario de módulos Worker, apilada sobre la PR #48.
+- La PR #74 implementa el puerto interno `StatusSnapshotProvider` y el adaptador PostgreSQL de solo lectura. En su HEAD `80e7f17865fc34f6f64832180ae4ad81d71a2042`, CI success: persistencia 26 pruebas, guard 12 y autenticación 26. [Ejecución](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38095051862).
+- Este progreso **no elimina las puertas previas**: no hay endpoint administrativo, autenticación de operador ni conexión con el panel. El proveedor requiere una conexión con permisos SELECT solamente, que aún no se ha verificado con un rol PostgreSQL real.
+- El esquema JSON v1 se comparte con la PR #70. La implementación debe permanecer en draft hasta revisar las PR apiladas, confirmar identidad/permisos humanos y completar la validación de seguridad.
