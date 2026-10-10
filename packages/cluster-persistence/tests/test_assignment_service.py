@@ -13,6 +13,7 @@ from geelark_cluster_persistence import (
     AssignmentRequest,
     IdempotencyConflict,
     InstanceAlreadyAssigned,
+    InvalidAssignmentRequest,
     InstanceStateBlocked,
     InsufficientCapacity,
     assign_instance,
@@ -244,3 +245,57 @@ def test_expired_lease_and_uncertain_reservation_do_not_release_owner():
             assign_instance(conn, make_request(node_id=NODE_B))
     with psycopg.connect(DATABASE_URL) as conn:
         assert conn.execute("SELECT count(*) FROM geelark_control.resource_reservations WHERE instance_id = %s AND status = 'uncertain'", (INSTANCE_A,)).fetchone()[0] == 1
+
+
+def test_non_finite_cpu_is_rejected_before_database_mutation():
+    seed_database()
+    request = replace(make_request(), cpu_units=float("nan"))
+    with psycopg.connect(DATABASE_URL) as conn:
+        with pytest.raises(InvalidAssignmentRequest):
+            assign_instance(conn, request)
+    with psycopg.connect(DATABASE_URL) as conn:
+        assert conn.execute("SELECT count(*) FROM geelark_control.idempotency_records").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
+
+
+def test_failure_after_reservation_rolls_back_every_write():
+    seed_database()
+    with psycopg.connect(DATABASE_URL) as conn:
+        conn.execute(
+            """
+            CREATE OR REPLACE FUNCTION geelark_control.test_reject_outbox_insert()
+            RETURNS trigger
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                RAISE EXCEPTION 'injected outbox failure';
+            END
+            $$
+            """
+        )
+        conn.execute(
+            """
+            CREATE TRIGGER test_reject_outbox_insert
+            BEFORE INSERT ON geelark_control.outbox_events
+            FOR EACH ROW EXECUTE FUNCTION geelark_control.test_reject_outbox_insert()
+            """
+        )
+        conn.commit()
+
+    try:
+        with psycopg.connect(DATABASE_URL) as conn:
+            with pytest.raises(psycopg.Error, match="injected outbox failure"):
+                assign_instance(conn, make_request(key="rollback-injected-failure-key"))
+    finally:
+        with psycopg.connect(DATABASE_URL) as conn:
+            conn.execute("DROP TRIGGER IF EXISTS test_reject_outbox_insert ON geelark_control.outbox_events")
+            conn.execute("DROP FUNCTION IF EXISTS geelark_control.test_reject_outbox_insert()")
+            conn.commit()
+
+    with psycopg.connect(DATABASE_URL) as conn:
+        assert conn.execute("SELECT owner_node_id FROM geelark_control.instances WHERE instance_id = %s", (INSTANCE_A,)).fetchone()[0] is None
+        assert conn.execute("SELECT count(*) FROM geelark_control.resource_reservations").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM geelark_control.assignment_events").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM geelark_control.outbox_events").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM geelark_control.idempotency_records").fetchone()[0] == 0
