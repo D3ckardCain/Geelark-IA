@@ -36,7 +36,7 @@ BEGIN
 
     SELECT jsonb_agg(jsonb_build_object('module_id', 'module-' || i))
       INTO invalid_value
-      FROM generate_series(1, 33) AS i;
+      FROM generate_series(1, 33) AS nums(i);
 
     BEGIN
         UPDATE geelark_control.nodes
