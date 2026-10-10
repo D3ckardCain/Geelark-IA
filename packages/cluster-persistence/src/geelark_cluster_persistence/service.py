@@ -88,21 +88,21 @@ def _validate_request(request: AssignmentRequest) -> Decimal:
         raise InvalidAssignmentRequest("memory_bytes debe ser un entero positivo")
     if not isinstance(request.storage_bytes, int) or isinstance(request.storage_bytes, bool) or request.storage_bytes <= 0:
         raise InvalidAssignmentRequest("storage_bytes debe ser un entero positivo")
-    if request.lease_expires_at.tzinfo is None or request.lease_expires_at.utcoffset() is None:
-        raise InvalidAssignmentRequest("lease_expires_at debe incluir zona horaria")
+    if not isinstance(request.lease_expires_at, datetime) or request.lease_expires_at.tzinfo is None or request.lease_expires_at.utcoffset() is None:
+        raise InvalidAssignmentRequest("lease_expires_at debe ser datetime con zona horaria")
     if request.lease_expires_at <= datetime.now(timezone.utc):
         raise InvalidAssignmentRequest("lease_expires_at debe estar en el futuro")
     if request.desired_state not in {"running", "stopped"}:
         raise InvalidAssignmentRequest("desired_state debe ser running o stopped")
-    if not request.engine_name.strip() or len(request.engine_name) > 128:
+    if not isinstance(request.engine_name, str) or not request.engine_name.strip() or len(request.engine_name) > 128:
         raise InvalidAssignmentRequest("engine_name no es válido")
-    if not request.engine_version.strip() or len(request.engine_version) > 64:
+    if not isinstance(request.engine_version, str) or not request.engine_version.strip() or len(request.engine_version) > 64:
         raise InvalidAssignmentRequest("engine_version no es válido")
     if not isinstance(request.android_api_level, int) or isinstance(request.android_api_level, bool) or not 1 <= request.android_api_level <= 100:
         raise InvalidAssignmentRequest("android_api_level debe estar entre 1 y 100")
     if not isinstance(request.android_abi, str) or not 1 <= len(request.android_abi.strip()) <= 32:
         raise InvalidAssignmentRequest("android_abi debe tener entre 1 y 32 caracteres")
-    if not _IMAGE_DIGEST_RE.fullmatch(request.image_digest):
+    if not isinstance(request.image_digest, str) or not _IMAGE_DIGEST_RE.fullmatch(request.image_digest):
         raise InvalidAssignmentRequest("image_digest debe tener formato sha256")
     return cpu_units
 
