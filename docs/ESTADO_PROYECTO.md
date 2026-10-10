@@ -287,3 +287,12 @@ El PR borrador #16 ahora incluye validación de coherencia entre `status` y `obs
 ### Persistencia de asignaciones documentada (2026-10-09)
 
 Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md). Define transacciones, restricciones para un único propietario, idempotencia durable, outbox y pruebas de caída/concurrencia. No hay DDL, migraciones ni código de persistencia implementados; PostgreSQL local sigue siendo una propuesta pendiente de validar.
+
+
+### Ciclo de vida de sincronización de recibos del agente (2026-10-10)
+
+- PR borrador [#56 — sincronización durable al ciclo de vida](https://github.com/D3ckardCain/Geelark-IA/pull/56), apilado sobre el transporte HTTPS.
+- CI del commit `b15db80a1e6656f62bb3a25d287aadfb0092d772`: GitHub Actions run 119 terminó en success; migraciones PostgreSQL desechable, pruebas de transporte/seguridad y pip check pasaron.
+- Se endureció la validación de configuración y contadores; una excepción del callback de telemetría ya no debe detener el worker. Se añadieron pruebas para drenaje de lotes, contadores inválidos y callback defectuoso.
+- Manual técnico: [MANUAL_CICLO_VIDA_SINCRONIZACION_AGENTE.md](MANUAL_CICLO_VIDA_SINCRONIZACION_AGENTE.md). Manual de usuario/operación: [MANUAL_USUARIO_SINCRONIZACION_AGENTES.md](MANUAL_USUARIO_SINCRONIZACION_AGENTES.md).
+- Límite: es una biblioteca de ciclo de vida, todavía no está conectada a un proceso de agente instalable ni tiene interfaz/comando de usuario. CI no equivale a prueba en PCs físicas. PR permanece en borrador; no fusionar ni desplegar antes de revisar las dependencias apiladas, el flujo SQLite→HTTPS→PostgreSQL y los controles de seguridad.
