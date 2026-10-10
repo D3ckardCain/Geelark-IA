@@ -77,6 +77,10 @@ class MasterControlPrototypeTests(unittest.TestCase):
         self.assertIn('removeAttribute("aria-current")', self.html)
         self.assertIn('aria-label="Navegación principal"', self.html)
 
+    def test_navigation_handler_has_valid_block_structure(self):
+        self.assertIn('forEach(el=>{el.classList.toggle("active",el.dataset.page===page);if(el.dataset.page===page)', self.html)
+        self.assertNotIn('forEach(el=>el.classList.toggle("active",el.dataset.page===page);if(el.dataset.page===page)', self.html)
+
     def test_table_headers_and_decorative_icons_are_accessible(self):
         self.assertGreaterEqual(self.html.count('scope="col"'), 20)
         self.assertIn('<div class="nodeicon" aria-hidden="true">▣</div>', self.html)
