@@ -30,11 +30,12 @@ class FakeConnection:
 def test_claim_task_returns_durable_task_and_lease_only_for_active_node():
     node_id, credential_id = uuid4(), uuid4()
     task_id, operation_id, instance_id = uuid4(), uuid4(), uuid4()
-    lease_expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+    instance_lease_expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+    delivery_lease_expires_at = datetime.now(timezone.utc) + timedelta(seconds=30)
     conn = FakeConnection([
         ("active", "active"),
-        (task_id, operation_id, instance_id, 7, {"desired_state": "running"}, 2, lease_expires_at),
-        None,
+        (task_id, operation_id, instance_id, 7, {"desired_state": "running"}, 2, instance_lease_expires_at),
+        (delivery_lease_expires_at,),
     ])
     handlers = make_postgres_agent_handlers(lambda: conn)
     principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active")
@@ -49,7 +50,8 @@ def test_claim_task_returns_durable_task_and_lease_only_for_active_node():
     assert response["task"]["node_id"] == str(node_id)
     assert response["task"]["assignment_epoch"] == 7
     assert response["task"]["delivery_attempt"] == 3
-    assert response["task"]["lease_expires_at"] == lease_expires_at.isoformat()
+    assert response["task"]["lease_expires_at"] == delivery_lease_expires_at.isoformat()
+    assert response["task"]["instance_lease_expires_at"] == instance_lease_expires_at.isoformat()
     assert "FOR UPDATE OF t, i, o SKIP LOCKED" in conn.calls[1][0]
     assert conn.calls[2][1] == (task_id,)
 
