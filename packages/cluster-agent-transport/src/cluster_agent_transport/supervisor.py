@@ -191,6 +191,9 @@ class AgentSupervisor:
                 self._report_error("HEARTBEAT_FAILED")
             else:
                 if self._offline:
+                    # El heartbeat exitoso confirma conectividad; no conservar un backoff
+                    # de reconciliación aplicado durante la desconexión anterior.
+                    self._next_reconciliation_at = 0.0
                     try:
                         self.receipt_lifecycle.notify_reconnected()
                         self._offline = False
