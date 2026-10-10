@@ -6,6 +6,7 @@ import time
 
 import pytest
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 
 from cluster_agent_transport.client import AgentHTTPSClient, AgentTransportError
 from cluster_agent_transport.server import make_uvicorn_config
@@ -49,6 +50,14 @@ def test_real_tls_handshake_trusts_local_ca_and_rejects_untrusted_ca(tmp_path):
     def healthz():
         return {"ok": True}
 
+    @app.get("/redirect")
+    def redirect():
+        return RedirectResponse("http://8.8.8.8/")
+
+    @app.get("/large")
+    def large():
+        return {"payload": "x" * 256}
+
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     listener.bind(("127.0.0.1", 0))
@@ -71,6 +80,15 @@ def test_real_tls_handshake_trusts_local_ca_and_rejects_untrusted_ca(tmp_path):
         response = trusted.request("GET", "/healthz")
         assert response.status == 200
         assert response.body == b'{"ok":true}'
+        with pytest.raises(AgentTransportError):
+            trusted.request("GET", "/redirect")
+        limited = AgentHTTPSClient(
+            base_url=f"https://127.0.0.1:{port}", ca_cert=str(ca_cert), max_response_bytes=100
+        )
+        with pytest.raises(AgentTransportError):
+            limited.request("GET", "/large")
+        with pytest.raises(ValueError):
+            trusted.request("GET", "/healthz/../healthz")
 
         untrusted = AgentHTTPSClient(base_url=f"https://127.0.0.1:{port}", ca_cert=str(other_ca_cert))
         with pytest.raises(AgentTransportError):
