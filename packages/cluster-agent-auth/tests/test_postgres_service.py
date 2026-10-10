@@ -30,6 +30,11 @@ def cleanup(node_ids, enrollment_ids):
         with conn.transaction():
             for node_id in node_ids:
                 conn.execute("DELETE FROM geelark_control.agent_request_nonces WHERE node_id = %s", (node_id,))
+                # Quitar primero credenciales de rotación que referencian a la anterior.
+                conn.execute(
+                    "DELETE FROM geelark_control.node_credentials WHERE node_id = %s AND replaces_credential_id IS NOT NULL",
+                    (node_id,),
+                )
                 conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
                 conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))
             for enrollment_id in enrollment_ids:
@@ -56,7 +61,8 @@ def test_enrollment_is_one_time_and_node_starts_pending():
                     WHERE n.node_id = %s""",
                 (node_id,),
             ).fetchone()
-            assert row[0:3] == ("pending", "pending", row[2])
+            assert row[0] == "pending"
+            assert row[1] == "pending"
             assert row[2] is not None
             assert row[3] != credential.secret
     finally:
