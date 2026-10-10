@@ -58,30 +58,47 @@ class AgentTransportRuntime:
     def read_status(self) -> AgentResponse:
         return self._request("GET", "/agent/v1/status", None)
 
+    def claim_next_task(self, *, idempotency_key: str) -> AgentResponse:
+        """Reclama una tarea; conservar la misma clave si se reintenta por timeout."""
+        return self._request(
+            "POST", "/agent/v1/tasks/claim", {"schema_version": 1},
+            idempotency_key=idempotency_key,
+        )
+
+    def accept_task(self, *, task_id: UUID, idempotency_key: str | None = None) -> AgentResponse:
+        """Confirma recepción de una tarea sin ejecutarla."""
+        key = idempotency_key or f"task-accept-{task_id}"
+        return self._request(
+            "POST", f"/agent/v1/tasks/{task_id}/accept",
+            {"schema_version": 1, "state": "accepted", "details": {}},
+            idempotency_key=key,
+        )
+
     def report_progress(
-        self, *, operation_id: UUID, instance_id: UUID, assignment_epoch: int, result: dict[str, Any]
+        self, *, operation_id: UUID, instance_id: UUID, assignment_epoch: int,
+        result: dict[str, Any], task_id: UUID | None = None
     ) -> AgentResponse:
         self._record_local(
             operation_id=operation_id, instance_id=instance_id, assignment_epoch=assignment_epoch,
             status="running", result=result,
         )
         response = self._send_receipt(
-            operation_id=operation_id, state="running", result=result, route="progress"
+            operation_id=operation_id, task_id=task_id, state="running", result=result, route="progress"
         )
         return response
 
     def report_result(
         self, *, operation_id: UUID, instance_id: UUID, assignment_epoch: int,
-        status: str, result: dict[str, Any],
+        status: str, result: dict[str, Any], task_id: UUID | None = None,
     ) -> AgentResponse:
-        if status not in {"succeeded", "failed"}:
+        if status not in {"succeeded", "rejected", "failed", "unknown"}:
             raise ValueError("El resultado final debe ser succeeded o failed.")
         self._record_local(
             operation_id=operation_id, instance_id=instance_id, assignment_epoch=assignment_epoch,
             status=status, result=result,
         )
         response = self._send_receipt(
-            operation_id=operation_id, state=status, result=result, route="result"
+            operation_id=operation_id, task_id=task_id, state=status, result=result, route="result"
         )
         return response
 
@@ -118,17 +135,18 @@ class AgentTransportRuntime:
         operation_id = getattr(receipt, "operation_id", None)
         instance_id = getattr(receipt, "instance_id", None)
         epoch = getattr(receipt, "assignment_epoch", None)
+        task_id = getattr(receipt, "task_id", operation_id)
         if not isinstance(operation_id, UUID) or not isinstance(instance_id, UUID):
             raise ValueError("Recibo local inválido.")
         if status == "running" and isinstance(result, dict):
             return self.report_progress(
                 operation_id=operation_id, instance_id=instance_id,
-                assignment_epoch=epoch, result=result,
+                assignment_epoch=epoch, result=result, task_id=task_id,
             )
-        if status in {"succeeded", "failed"} and isinstance(result, dict):
+        if status in {"succeeded", "rejected", "failed", "unknown"} and isinstance(result, dict):
             return self.report_result(
                 operation_id=operation_id, instance_id=instance_id,
-                assignment_epoch=epoch, status=status, result=result,
+                assignment_epoch=epoch, status=status, result=result, task_id=task_id,
             )
         return None
 
@@ -146,15 +164,16 @@ class AgentTransportRuntime:
         )
 
     def _send_receipt(
-        self, *, operation_id: UUID, state: str, result: dict[str, Any], route: str
+        self, *, operation_id: UUID, state: str, result: dict[str, Any], route: str,
+        task_id: UUID | None = None
     ) -> AgentResponse:
         payload = {"schema_version": 1, "state": state, "details": result}
         digest = payload_digest(payload)[:32]
         key = f"{route}-{operation_id}-{digest}"
         response = self._request(
-            "POST", f"/agent/v1/tasks/{operation_id}/{route}", payload, idempotency_key=key
+            "POST", f"/agent/v1/tasks/{task_id or operation_id}/{route}", payload, idempotency_key=key
         )
-        if state in {"succeeded", "failed"}:
+        if state in {"succeeded", "rejected", "failed"}:
             mark_synced = getattr(self.journal, "mark_receipt_synced", None)
             if callable(mark_synced):
                 mark_synced(operation_id)
