@@ -20,7 +20,7 @@ CREATE TABLE geelark_control.nodes (
     admin_state text NOT NULL DEFAULT 'pending'
         CHECK (admin_state IN ('pending', 'active', 'draining', 'maintenance', 'quarantined', 'revoked')),
     health_state text NOT NULL DEFAULT 'unknown'
-        CHECK (health_state IN ('healthy', 'degraded', 'unhealthy', 'unknown')),
+        CHECK (health_state IN ('healthy', 'degraded', 'unhealthy', 'unknown', 'offline')),
     last_seen_at timestamptz,
     last_sequence bigint NOT NULL DEFAULT 0 CHECK (last_sequence >= 0),
     capabilities jsonb NOT NULL DEFAULT '{}'::jsonb
