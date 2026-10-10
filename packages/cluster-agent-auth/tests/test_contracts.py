@@ -32,6 +32,13 @@ def test_enrollment_rejects_invalid_display_name_before_database_access():
 def test_rotation_rejects_invalid_ttl_before_database_access():
     with pytest.raises(ValueError):
         begin_credential_rotation(None, uuid4(), timedelta(0))
+    with pytest.raises(ValueError):
+        begin_credential_rotation(None, uuid4(), timedelta(days=366))
+
+
+def test_enrollment_rejects_credential_ttl_above_one_year_before_database_access():
+    with pytest.raises(ValueError):
+        consume_enrollment(None, "a" * 64, "node", credential_ttl=timedelta(days=366))
 
 
 def test_rotation_and_revocation_require_database_for_valid_ids():
