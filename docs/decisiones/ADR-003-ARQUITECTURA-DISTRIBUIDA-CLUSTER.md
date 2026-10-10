@@ -12,3 +12,11 @@
 - **Consecuencias:** se requiere diseñar contrato del agente, modelo de recursos, scheduler, política de asignación/recuperación, instalación y actualización de nodos, y pruebas de desconexión. La implementación será portable entre infraestructuras para reducir vendor lock-in.
 - **Referencia detallada:** [Arquitectura de clúster heterogéneo](../ARQUITECTURA_CLUSTER_HETEROGENEO.md).
 - **Seguimiento:** issue dedicada para integrar el clúster en la arquitectura, probar Proxmox VE frente a Linux directo y validar dos nodos.
+
+## Regla de alta y ejecución de nodos
+
+Un nodo en estado `pending_enrollment` no es elegible para tareas ni operaciones. Hasta la aprobación administrativa registrada, solo puede enviar heartbeat, capacidades/inventario no sensible y consultar su estado de inscripción. El plano de control debe aplicar esta denegación del lado servidor en cada ruta de asignación/aceptación; la interfaz y el agente no son fronteras de seguridad suficientes.
+
+La transición a ejecutor exige credencial individual válida, aprobación registrada, compatibilidad de versión y reconciliación del estado real. Los estados ausentes, revocados, desconocidos o inconsistentes se deniegan por defecto. Tras una desconexión no se habilita automáticamente un nodo pendiente.
+
+**Prueba de aceptación obligatoria:** intentar enviar una tarea desde un nodo pendiente debe producir rechazo auditable y cero efectos secundarios (sin asignación, instancia ni operación iniciada). La regla detallada está en [Contrato del agente y planificador](../CONTRATO_AGENTE_NODO_PLANIFICADOR.md#13-puerta-de-ejecucion-para-nodos-pendientes).
