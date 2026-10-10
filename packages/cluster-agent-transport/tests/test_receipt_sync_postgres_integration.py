@@ -271,6 +271,7 @@ def test_sqlite_receipt_reaches_postgres_over_real_https_and_recovers_lost_ack(t
                 (f"agent:{node_id}:%",),
             )
             conn.execute("DELETE FROM geelark_control.agent_request_nonces WHERE node_id = %s", (node_id,))
+            conn.execute("DELETE FROM geelark_control.agent_reconciliation_reports WHERE node_id = %s", (node_id,))
             conn.execute("DELETE FROM geelark_control.agent_tasks WHERE task_id = %s", (task_id,))
             conn.execute("DELETE FROM geelark_control.operations WHERE operation_id = %s", (operation_id,))
             conn.execute("DELETE FROM geelark_control.instances WHERE instance_id = %s", (instance_id,))
