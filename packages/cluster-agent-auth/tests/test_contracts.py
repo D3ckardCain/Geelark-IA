@@ -9,6 +9,7 @@ from cluster_agent_auth.service import (
     authenticate_bearer,
     begin_credential_rotation,
     consume_enrollment,
+    create_enrollment,
     revoke_credential,
     rotate_credential,
 )
@@ -39,6 +40,21 @@ def test_rotation_rejects_invalid_ttl_before_database_access():
 def test_enrollment_rejects_credential_ttl_above_one_year_before_database_access():
     with pytest.raises(ValueError):
         consume_enrollment(None, "a" * 64, "node", credential_ttl=timedelta(days=366))
+
+
+
+def test_enrollment_rejects_ttl_outside_allowed_window_before_database_access():
+    with pytest.raises(ValueError):
+        create_enrollment(None, uuid4(), "admin", timedelta(0))
+    with pytest.raises(ValueError):
+        create_enrollment(None, uuid4(), "admin", timedelta(hours=1, seconds=1))
+
+
+def test_enrollment_rejects_invalid_creator_before_database_access():
+    with pytest.raises(ValueError):
+        create_enrollment(None, uuid4(), "  ")
+    with pytest.raises(ValueError):
+        create_enrollment(None, uuid4(), "a" * 129)
 
 
 def test_rotation_and_revocation_require_database_for_valid_ids():
