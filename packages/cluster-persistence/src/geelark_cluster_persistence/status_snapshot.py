@@ -150,8 +150,8 @@ def _safe_modules(value: Any, *, now: datetime, freshness_state: str) -> list[di
         if not isinstance(error_code, str) or not ERROR_CODE_RE.fullmatch(error_code):
             error_code = None
 
-        if freshness_state in {"missing", "stale"}:
-            state, source, error_code = "unknown", "master-check", "NODE_STALE"
+        if freshness_state in {"missing", "stale", "unknown"}:
+            state, source, error_code = "unknown", "master-check", "NODE_STALE" if freshness_state != "unknown" else "NODE_TIME_SKEW"
         elif checked_at is None:
             state, source, error_code = "unknown", "master-check", "REPORT_MISSING"
         elif checked_at - now > CLOCK_SKEW_TOLERANCE:
