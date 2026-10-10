@@ -25,13 +25,13 @@ Antes de llamar a `AgentJournal.accept_command`, una futura capa de transporte d
 
 ## 3. Resultados
 
-`record_result` solo acepta un resultado cuando el propietario y epoch coinciden con el fence local actual. Un resultado atrasado se rechaza. Los resultados terminales `succeeded/failed` son inmutables: repetir el mismo resultado es idempotente; cambiarlo produce conflicto.
+`record_result` solo acepta un resultado cuando el propietario y epoch coinciden con el fence local actual. Un resultado atrasado se rechaza. Los resultados terminales `succeeded/rejected/failed` son inmutables: repetir el mismo resultado es idempotente; cambiarlo produce conflicto. La versión 2 del journal migra el CHECK de SQLite y conserva los recibos y ACK de la versión 1.
 
 El journal no ejecuta el trabajo. El adaptador Android debe consultar/crear el recibo antes de cualquier efecto externo y reconciliar operaciones cuyo resultado sea incierto.
 
 ## 4. Comportamiento offline
 
-El guardián funciona sin PostgreSQL ni conectividad una vez que el comando autenticado llega al nodo. Los recibos sobreviven al cierre/reapertura del proceso. La sincronización con la Master y el transporte de resultados pertenecen a módulos posteriores.
+El guardián funciona sin PostgreSQL ni conectividad una vez que el comando autenticado llega al nodo. Los recibos sobreviven al cierre/reapertura del proceso. La sincronización con la Master se realiza a través del adaptador de transporte: `list_pending_receipts(limit=...)` enumera un lote ordenado y acotado, y `mark_receipt_synced()` guarda el ACK terminal después de una respuesta 2xx. Los recibos `rejected` también se conservan hasta el ACK. El bucle principal del agente aún debe invocar el sincronizador al iniciar y recuperar conexión.
 
 ## 5. Límite crítico de seguridad
 
