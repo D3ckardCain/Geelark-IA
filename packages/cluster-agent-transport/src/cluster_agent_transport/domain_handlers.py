@@ -284,10 +284,145 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         )
         return {"ok": True, "task_id": str(task_id), "state": state, "duplicate": False}
 
+    def claim_task(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: Any = None) -> dict[str, Any]:
+        """Entrega una tarea de la bandeja solo al nodo activo propietario."""
+        row = conn.execute(
+            """
+            SELECT t.task_id, t.operation_id, t.instance_id, t.assignment_epoch,
+                   t.payload, t.status, t.delivery_lease_until,
+                   i.owner_node_id, i.assignment_epoch, i.lease_expires_at
+              FROM geelark_control.agent_tasks AS t
+              JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
+              JOIN geelark_control.nodes AS n ON n.node_id = t.node_id
+             WHERE t.node_id = %s
+               AND n.admin_state = 'active'
+               AND t.status IN ('queued', 'delivered')
+               AND (t.delivery_lease_until IS NULL OR t.delivery_lease_until <= now())
+               AND i.owner_node_id = t.node_id
+               AND i.assignment_epoch = t.assignment_epoch
+               AND i.lease_expires_at > now()
+             ORDER BY t.created_at, t.task_id
+             FOR UPDATE OF t SKIP LOCKED
+             LIMIT 1
+            """,
+            (principal.node_id,),
+        ).fetchone()
+        if row is None:
+            return {"task": None}
+        task_id, operation_id, instance_id, epoch, task_payload, status, lease_until, owner, current_epoch, instance_lease = row
+        lease = conn.execute(
+            """
+            UPDATE geelark_control.agent_tasks
+               SET status = 'delivered',
+                   delivery_attempts = delivery_attempts + 1,
+                   delivery_lease_until = now() + interval '60 seconds',
+                   delivered_at = COALESCE(delivered_at, now()),
+                   updated_at = now()
+             WHERE task_id = %s
+            RETURNING delivery_lease_until
+            """,
+            (task_id,),
+        ).fetchone()[0]
+        return {
+            "task": {
+                "task_id": str(task_id),
+                "operation_id": str(operation_id),
+                "instance_id": str(instance_id),
+                "node_id": str(principal.node_id),
+                "assignment_epoch": epoch,
+                "lease_expires_at": lease.isoformat(),
+                "instance_lease_expires_at": instance_lease.isoformat(),
+                "payload": task_payload,
+            }
+        }
+
+    def _task_update(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: Any, state: str) -> dict[str, Any]:
+        task_id = UUID(str(payload["task_id"]))
+        details = payload.get("details", {})
+        if not isinstance(details, dict):
+            raise HTTPException(status_code=422, detail={"code": "INVALID_TASK_DETAILS"})
+        row = conn.execute(
+            """
+            SELECT t.operation_id, t.instance_id, t.assignment_epoch, t.status,
+                   t.delivery_lease_until, i.owner_node_id, i.assignment_epoch AS current_epoch
+              FROM geelark_control.agent_tasks AS t
+              JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
+              JOIN geelark_control.nodes AS n ON n.node_id = t.node_id
+             WHERE t.task_id = %s AND t.node_id = %s AND n.admin_state = 'active'
+             FOR UPDATE OF t
+            """,
+            (task_id, principal.node_id),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail={"code": "TASK_NOT_FOUND"})
+        operation_id, instance_id, epoch, current_status, lease_until, owner, current_epoch = row
+        if owner is None or str(owner) != str(principal.node_id) or epoch != current_epoch:
+            raise HTTPException(status_code=409, detail={"code": "STALE_ASSIGNMENT_EPOCH"})
+        if lease_until is None or lease_until <= datetime.now(timezone.utc):
+            raise HTTPException(status_code=409, detail={"code": "TASK_LEASE_EXPIRED"})
+        if current_status in {"succeeded", "failed", "rejected", "cancelled"}:
+            if current_status == state:
+                return {"ok": True, "status": current_status, "idempotent": True}
+            raise HTTPException(status_code=409, detail={"code": "TASK_TERMINAL"})
+        if state == "accepted":
+            new_task_status = "accepted"
+            operation_status = "accepted"
+        elif state == "running":
+            new_task_status = "running"
+            operation_status = "running"
+        elif state in {"succeeded", "failed", "rejected", "unknown"}:
+            new_task_status = state
+            operation_status = "succeeded" if state == "succeeded" else ("rejected" if state == "rejected" else ("failed" if state == "failed" else "unknown"))
+        else:
+            raise HTTPException(status_code=422, detail={"code": "INVALID_TASK_STATE"})
+        terminal = new_task_status in {"succeeded", "failed", "rejected", "unknown"}
+        summary = details if terminal else {}
+        conn.execute(
+            """
+            UPDATE geelark_control.agent_tasks
+               SET status = %s, result_summary = %s,
+                   completed_at = CASE WHEN %s THEN now() ELSE completed_at END,
+                   updated_at = now(), last_error_code = %s
+             WHERE task_id = %s
+            """,
+            (new_task_status, Jsonb(summary), terminal, details.get("error_code"), task_id),
+        )
+        conn.execute(
+            """
+            UPDATE geelark_control.operations
+               SET status = %s, result_summary = %s,
+                   error_code = %s,
+                   completed_at = CASE WHEN %s THEN now() ELSE completed_at END,
+                   updated_at = now()
+             WHERE operation_id = %s AND node_id = %s AND assignment_epoch = %s
+            """,
+            (operation_status, Jsonb(summary), details.get("error_code"), terminal, operation_id, principal.node_id, epoch),
+        )
+        return {"ok": True, "status": new_task_status, "operation_id": str(operation_id)}
+
+    def task_accept(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: Any) -> dict[str, Any]:
+        return _task_update(conn=conn, principal=principal, payload=payload, state="accepted")
+
+    def task_progress(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: Any) -> dict[str, Any]:
+        state = payload.get("state")
+        if state not in {"running"}:
+            raise HTTPException(status_code=422, detail={"code": "INVALID_PROGRESS_STATE"})
+        return _task_update(conn=conn, principal=principal, payload=payload, state=state)
+
+    def task_result(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: Any) -> dict[str, Any]:
+        state = payload.get("state")
+        if state not in {"succeeded", "failed", "rejected", "unknown"}:
+            raise HTTPException(status_code=422, detail={"code": "INVALID_RESULT_STATE"})
+        return _task_update(conn=conn, principal=principal, payload=payload, state=state)
+
     return {
         Operation.HEARTBEAT: heartbeat,
         Operation.CAPABILITIES: capabilities,
         Operation.STATUS_READ: status,
+        Operation.TASK_FETCH: claim_task,
+        Operation.TASK_ACCEPT: task_accept,
+        Operation.TASK_PROGRESS: task_progress,
+        Operation.TASK_RESULT: task_result,
         Operation.TASK_FETCH: claim_task,
         Operation.TASK_ACCEPT: accept_task,
         Operation.TASK_PROGRESS: progress_task,
