@@ -72,7 +72,11 @@ No se afirma que el clúster completo funcione offline. Sin red, el estado local
 - No habilitar ejecución de tareas, Android, ADB, shell ni listeners mediante este módulo.
 - No desplegar en las PCs físicas hasta revisar el conjunto de PRs apilados, validar seguridad e integración y aprobar expresamente una prueba física.
 
-## 8. Validación antes de habilitarlo en un agente real
+## 8. Validación automatizada disponible
+
+La suite de CI incluye una prueba de integración que crea certificados temporales, levanta un servidor HTTPS local y conecta el journal SQLite con los handlers PostgreSQL desechables. Simula un ACK perdido tras confirmar el resultado y verifica el reintento idempotente. En el commit `6ac3f07e69b2c80bd3d5e68347e1f5c3dd64b4e1`, GitHub Actions run 126 pasó con 57 pruebas y `pip check` correcto. Esto valida el stack de software en CI, no el despliegue en equipos físicos.
+
+## 9. Validación antes de habilitarlo en un agente real
 
 - [ ] CI del commit exacto aprobado.
 - [ ] Integración SQLite→HTTPS→PostgreSQL validada en infraestructura desechable.
@@ -83,6 +87,6 @@ No se afirma que el clúster completo funcione offline. Sin red, el estado local
 - [ ] Aprobación de seguridad y plan de rollback documentados.
 - [ ] Autorización explícita antes de probar en hardware físico.
 
-## 9. Costo
+## 10. Costo
 
 El módulo no requiere una API de pago. Las pruebas de CI utilizan dependencias open source y PostgreSQL desechable. El objetivo de coste obligatorio de software y servicios sigue siendo **$0 USD**; el consumo eléctrico y el hardware local no están incluidos en esa cifra.
