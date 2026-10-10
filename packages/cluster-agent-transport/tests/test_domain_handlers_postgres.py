@@ -1,6 +1,8 @@
 import hashlib
 import os
 import secrets
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -147,6 +149,88 @@ def test_active_node_claims_durable_task_with_separate_delivery_and_instance_lea
         assert stored[0] == "delivered"
         assert stored[1] == 1
         assert stored[2] is not None
+    finally:
+        with connect() as conn:
+            conn.execute("DELETE FROM geelark_control.agent_tasks WHERE task_id = %s", (task_id,))
+            conn.execute("DELETE FROM geelark_control.operations WHERE operation_id = %s", (operation_id,))
+            conn.execute("DELETE FROM geelark_control.instances WHERE instance_id = %s", (instance_id,))
+            conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
+            conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))
+
+
+def test_two_concurrent_claims_do_not_deliver_the_same_task_twice():
+    node_id, credential_id = uuid4(), uuid4()
+    instance_id, operation_id, task_id, request_id = uuid4(), uuid4(), uuid4(), uuid4()
+    token_hash = hashlib.sha256(secrets.token_hex(32).encode()).hexdigest()
+    now = datetime.now(timezone.utc)
+    connect = lambda: psycopg.connect(DATABASE_URL)
+    handlers = make_postgres_agent_handlers(connect)
+    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active")
+
+    try:
+        with connect() as conn:
+            conn.execute(
+                "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state) VALUES (%s, %s, 'active')",
+                (node_id, "test-task-race-" + str(node_id)),
+            )
+            conn.execute(
+                """
+                INSERT INTO geelark_control.node_credentials
+                    (credential_id, node_id, token_sha256, status, created_at, expires_at, activated_at)
+                VALUES (%s, %s, %s, 'active', %s, %s, %s)
+                """,
+                (credential_id, node_id, token_hash, now, now + timedelta(hours=1), now),
+            )
+            conn.execute(
+                """
+                INSERT INTO geelark_control.instances
+                    (instance_id, desired_state, observed_state, owner_node_id, assignment_epoch, lease_expires_at)
+                VALUES (%s, 'running', 'reserved', %s, 4, %s)
+                """,
+                (instance_id, node_id, now + timedelta(minutes=5)),
+            )
+            conn.execute(
+                """
+                INSERT INTO geelark_control.operations
+                    (operation_id, request_id, instance_id, node_id, assignment_epoch, operation_type, status)
+                VALUES (%s, %s, %s, %s, 4, 'assign', 'accepted')
+                """,
+                (operation_id, request_id, instance_id, node_id),
+            )
+            conn.execute(
+                """
+                INSERT INTO geelark_control.agent_tasks
+                    (task_id, operation_id, node_id, instance_id, assignment_epoch, payload)
+                VALUES (%s, %s, %s, %s, 4, %s)
+                """,
+                (task_id, operation_id, node_id, instance_id, Jsonb({"desired_state": "running"})),
+            )
+
+        barrier = Barrier(2)
+
+        def claim():
+            barrier.wait(timeout=5)
+            with connect() as conn:
+                return handlers[Operation.TASK_FETCH](
+                    conn=conn, principal=principal, payload={"schema_version": 1}
+                )
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(claim) for _ in range(2)]
+            responses = [future.result(timeout=10) for future in futures]
+
+        delivered = [item["task"] for item in responses if item["task"] is not None]
+        empty = [item for item in responses if item["task"] is None]
+        assert len(delivered) == 1
+        assert len(empty) == 1
+        assert delivered[0]["task_id"] == str(task_id)
+
+        with connect() as conn:
+            stored = conn.execute(
+                "SELECT status, delivery_attempts FROM geelark_control.agent_tasks WHERE task_id = %s",
+                (task_id,),
+            ).fetchone()
+        assert stored == ("delivered", 1)
     finally:
         with connect() as conn:
             conn.execute("DELETE FROM geelark_control.agent_tasks WHERE task_id = %s", (task_id,))
