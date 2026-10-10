@@ -139,8 +139,9 @@ def test_stale_heartbeat_blocks_assignment_even_if_health_column_still_says_heal
         conn.commit()
 
     with psycopg.connect(DATABASE_URL) as conn:
-        with pytest.raises(NodeNotEligible):
-            assign_instance(conn, make_request())
+        response = assign_instance(conn, make_request())
+    assert response["status"] == "rejected"
+    assert response["error"]["code"] == "NODE_NOT_ELIGIBLE"
 
     with psycopg.connect(DATABASE_URL) as conn:
         assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
