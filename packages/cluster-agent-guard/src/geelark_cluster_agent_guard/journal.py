@@ -28,6 +28,10 @@ class StaleAssignmentEpoch(AgentGuardError):
     """El comando usa un epoch anterior al journal local."""
 
 
+class ExpiredAssignmentLease(AgentGuardError):
+    """La lease de la asignación ya expiró."""
+
+
 class AssignmentOwnerConflict(AgentGuardError):
     """El mismo epoch aparece asociado a otro nodo."""
 
@@ -54,6 +58,7 @@ class AgentCommand:
     instance_id: UUID
     node_id: UUID
     assignment_epoch: int
+    lease_expires_at: datetime
     payload: dict[str, Any]
 
 
@@ -373,12 +378,17 @@ class AgentJournal:
             raise InvalidAgentCommand("El comando no está dirigido a este nodo")
         if not isinstance(command.assignment_epoch, int) or isinstance(command.assignment_epoch, bool) or command.assignment_epoch < 1:
             raise InvalidAgentCommand("assignment_epoch debe ser entero positivo")
+        if not isinstance(command.lease_expires_at, datetime) or command.lease_expires_at.tzinfo is None or command.lease_expires_at.utcoffset() is None:
+            raise InvalidAgentCommand("lease_expires_at debe ser datetime con zona horaria")
+        if command.lease_expires_at <= datetime.now(timezone.utc):
+            raise ExpiredAssignmentLease("La lease de la asignación ya expiró")
         if not isinstance(command.payload, dict):
             raise InvalidAgentCommand("payload debe ser un objeto JSON")
         canonical = {
             "instance_id": str(command.instance_id),
             "node_id": str(command.node_id),
             "assignment_epoch": command.assignment_epoch,
+            "lease_expires_at": command.lease_expires_at.astimezone(timezone.utc).isoformat(),
             "payload": command.payload,
         }
         canonical_json = self._canonical_json(canonical)
