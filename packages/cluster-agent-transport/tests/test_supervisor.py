@@ -205,3 +205,31 @@ def test_capabilities_failure_does_not_stop_heartbeat_loop():
     assert wait_for(lambda: len(runtime.heartbeat_calls) >= 2)
     assert errors.count("CAPABILITIES_FAILED") == 1
     assert supervisor.stop(timeout=1)
+
+
+
+def test_stop_from_error_callback_requests_shutdown_without_self_join():
+    runtime = FakeRuntime(heartbeat=[OSError("offline")])
+    lifecycle = FakeLifecycle()
+    stop_results = []
+    callback_called = threading.Event()
+    supervisor = None
+
+    def on_error(_code):
+        stop_results.append(supervisor.stop(timeout=1))
+        callback_called.set()
+
+    supervisor = AgentSupervisor(
+        runtime=runtime,
+        receipt_lifecycle=lifecycle,
+        heartbeat_payload=lambda: {},
+        capabilities_payload=lambda: {},
+        heartbeat_interval_seconds=0.1,
+        on_error=on_error,
+    )
+    supervisor.start()
+    assert callback_called.wait(1)
+    assert stop_results == [False]  # El hilo actual aún no puede afirmar que terminó.
+    supervisor._thread.join(timeout=1)
+    assert not supervisor._thread.is_alive()
+    assert lifecycle.stops
