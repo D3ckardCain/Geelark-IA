@@ -344,7 +344,8 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 SELECT t.task_id, t.operation_id, t.instance_id, t.node_id,
                        t.assignment_epoch, t.status, t.result_summary,
                        i.owner_node_id, i.assignment_epoch, i.lease_expires_at,
-                       o.status, o.result_summary, t.delivery_lease_until
+                       o.status, o.result_summary, t.delivery_lease_until,
+                       o.node_id, o.instance_id, o.assignment_epoch
                   FROM geelark_control.agent_tasks AS t
                   JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
                   JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
@@ -364,6 +365,12 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 decision = "IDENTITY_MISMATCH"
             elif str(row[3]) != principal.node_id:
                 decision = "TASK_NOT_OWNED_BY_NODE"
+            elif (
+                str(row[13]) != str(row[3])
+                or str(row[14]) != str(row[2])
+                or row[15] != row[4]
+            ):
+                decision = "SERVER_TASK_OPERATION_IDENTITY_MISMATCH"
             elif (
                 row[7] is None or str(row[7]) != principal.node_id
                 or row[8] != row[4] or epoch != row[4]
@@ -414,7 +421,8 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         missing_rows = conn.execute(
             """
             SELECT t.task_id, t.operation_id, t.instance_id, t.assignment_epoch,
-                   t.status, o.status, o.result_summary, t.result_summary
+                   t.status, o.status, o.result_summary, t.result_summary,
+                   o.node_id, o.instance_id, o.assignment_epoch
               FROM geelark_control.agent_tasks AS t
               JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
               JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
@@ -443,7 +451,13 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                     else (
                         "SERVER_TASK_OPERATION_STATE_MISMATCH"
                         if row[5] != row[4] or dict(row[6] or {}) != dict(row[7] or {})
-                        else "SERVER_TASK_MISSING_FROM_LOCAL_INVENTORY"
+                        else (
+                            "SERVER_TASK_OPERATION_IDENTITY_MISMATCH"
+                            if str(row[8]) != str(principal.node_id)
+                            or str(row[9]) != str(row[2])
+                            or row[10] != row[3]
+                            else "SERVER_TASK_MISSING_FROM_LOCAL_INVENTORY"
+                        )
                     )
                 ),
                 "automatic_mutation": False,
