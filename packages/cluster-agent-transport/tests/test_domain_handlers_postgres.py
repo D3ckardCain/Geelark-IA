@@ -130,7 +130,7 @@ def test_active_node_claims_durable_task_with_separate_delivery_and_instance_lea
         assert task["task_id"] == str(task_id)
         assert task["operation_id"] == str(operation_id)
         assert task["assignment_epoch"] == 3
-        assert task["payload"] == {"desired_state": "running"}
+        assert task["desired_state"] == "running"
         assert datetime.fromisoformat(task["lease_expires_at"]) > now
         assert datetime.fromisoformat(task["instance_lease_expires_at"]) > datetime.fromisoformat(task["lease_expires_at"])
 
