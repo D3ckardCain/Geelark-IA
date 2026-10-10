@@ -369,13 +369,6 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 or row[8] != row[4] or epoch != row[4]
             ):
                 decision = "STALE_ASSIGNMENT_EPOCH"
-            elif row[9] is None or row[9] <= now:
-                decision = "INSTANCE_LEASE_EXPIRED_HOLD"
-            elif (
-                row[5] in {"delivered", "accepted", "running"}
-                and (row[12] is None or row[12] <= now)
-            ):
-                decision = "DELIVERY_LEASE_EXPIRED_HOLD"
             elif row[5] == "unknown" or local_state == "unknown":
                 decision = "MANUAL_REVIEW_REQUIRED"
             elif row[5] in {"succeeded", "rejected", "failed", "cancelled"}:
@@ -383,6 +376,13 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                     decision = "ALREADY_CONFIRMED"
                 else:
                     decision = "TERMINAL_CONFLICT_MANUAL_REVIEW"
+            elif row[9] is None or row[9] <= now:
+                decision = "INSTANCE_LEASE_EXPIRED_HOLD"
+            elif (
+                row[5] in {"delivered", "accepted", "running"}
+                and (row[12] is None or row[12] <= now)
+            ):
+                decision = "DELIVERY_LEASE_EXPIRED_HOLD"
             elif row[5] in {"accepted", "running"}:
                 if local_state in {"succeeded", "failed"}:
                     decision = "RESEND_TERMINAL_RESULT"
