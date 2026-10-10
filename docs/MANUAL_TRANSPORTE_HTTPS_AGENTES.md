@@ -204,4 +204,4 @@ La migración `db/migrations/0004_worker_module_inventory.sql` crea la columna J
 
 ### Contrato del payload
 
-El esquema JSON formal y el ejemplo están en [worker-module-inventory-v1.schema.json](../contracts/worker-module-inventory-v1.schema.json) y [worker-module-inventory-v1.example.json](../contracts/examples/worker-module-inventory-v1.example.json). La lista cerrada del esquema se prueba contra el registro del código para evitar divergencias. El timestamp `checked_at` y `source` son generados por el Master; el Worker no puede falsificarlos. La lectura de estado propio no equivale todavía a un snapshot administrativo para PC-MASTER.
+El esquema JSON formal y el ejemplo están en [worker-module-inventory-v1.schema.json](contracts/worker-module-inventory-v1.schema.json) y [worker-module-inventory-v1.example.json](contracts/examples/worker-module-inventory-v1.example.json). La lista cerrada del esquema se prueba contra el registro del código para evitar divergencias. El timestamp `checked_at` y `source` son generados por el Master; el Worker no puede falsificarlos. La lectura de estado propio no equivale todavía a un snapshot administrativo para PC-MASTER.
