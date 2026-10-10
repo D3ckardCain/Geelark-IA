@@ -272,3 +272,34 @@ def test_reconcile_terminal_result_conflict_requires_manual_review():
         assert summary == {"exit_code": 0}
     finally:
         cleanup(connect, node, instance, operation, credential)
+
+
+
+def test_reconcile_server_ahead_of_local_journal_does_not_roll_back():
+    connect, node, credential, instance, operation, task = seed_task("running")
+    try:
+        result = run_reconcile(
+            connect, node, credential,
+            [item(task, operation, instance, state="accepted")],
+        )
+        assert result["decisions"][0]["decision"] == "SERVER_AHEAD_HOLD"
+        assert result["mutations_applied"] is False
+    finally:
+        cleanup(connect, node, instance, operation, credential)
+
+
+def test_reconcile_local_terminal_result_requests_normal_result_endpoint():
+    connect, node, credential, instance, operation, task = seed_task("accepted")
+    try:
+        result = run_reconcile(
+            connect, node, credential,
+            [item(task, operation, instance, state="succeeded", summary={"exit_code": 0})],
+        )
+        assert result["decisions"][0]["decision"] == "RESEND_TERMINAL_RESULT"
+        with connect() as conn:
+            status = conn.execute(
+                "SELECT status FROM geelark_control.agent_tasks WHERE task_id = %s", (task,)
+            ).fetchone()[0]
+        assert status == "accepted"
+    finally:
+        cleanup(connect, node, instance, operation, credential)
