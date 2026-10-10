@@ -37,8 +37,8 @@ Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fil
 
 ## Validación pendiente
 
-- CI debe pasar en el commit más reciente.
-- Añadir pruebas de handshake TLS con una CA local real y confirmar validación de CA desde el agente; los tests actuales comprueban rechazo HTTP y validación de configuración, no un handshake TLS real.
+- CI #38014882682 terminó en success con 26 pruebas y `pip check` correcto; también pasaron los workflows de esquema PostgreSQL y servicio de persistencia en el mismo branch.
+- La suite prueba handshake TLS real con CA local y rechaza una CA desconocida. Sigue pendiente integrar el cliente HTTPS en el runtime real del agente junto con el journal local y la reconciliación.
 - Definir timeouts/concurrencia del servidor y cuotas apropiadas para el tamaño real de la LAN. El limitador global PostgreSQL ya está implementado y probado.
 - Completar manual de generación, rotación, respaldo y distribución de CA local.
 - No conectar handlers de producción ni desplegar hasta cerrar los criterios anteriores.
