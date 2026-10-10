@@ -18,7 +18,8 @@ Paquete experimental independiente del dominio y sin listener automático.
 - Las escrituras requieren `Idempotency-Key` de 16-200 caracteres. El runner PostgreSQL conserva el hash del payload y el snapshot de respuesta en la misma transacción que la operación de dominio; una clave con payload distinto devuelve conflicto.
 - El handler de escritura recibe `conn` y debe usar esa misma conexión para que la mutación de dominio y la respuesta idempotente sean atómicas.
 - Límite de cuerpo por defecto: 1 MiB.
-- Rate limit por proceso: 60 solicitudes/minuto/nodo. En despliegues multiworker no es un límite global.
+- `InMemoryRateLimiter` limita a 60 solicitudes/minuto/nodo por proceso y solo es apropiado para pruebas o un único worker.
+- `PostgresRateLimiter` usa un UPDATE atómico en la fila del nodo y aplica el límite global entre workers/procesos. Requiere la migración `db/migrations/0003_agent_rate_limit.sql`; el contador se satura para evitar desbordamiento.
 - El cliente `AgentHTTPSClient` usa la CA explícita, verifica cadena y hostname/IP, exige TLS 1.2+, no sigue redirects, rechaza path traversal y limita timeout, cuerpos y respuestas.
 - Las respuestas no incluyen tokens, SQL ni excepciones internas.
 - Los handlers de dominio no configurados responden 503; el paquete no ejecuta shell/ADB ni comandos Android.
@@ -29,6 +30,7 @@ Para el primer tramo de telemetría, usar:
 - `authenticate=make_database_authenticator(connect)`
 - `consume_nonce=make_database_nonce_consumer(connect)`
 - `idempotency_runner=make_database_idempotency_runner(connect)`
+- `rate_limiter=PostgresRateLimiter(connect)` para despliegues reales/multiworker.
 - `handlers=make_postgres_agent_handlers(connect)`
 
 Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fila antes de mutar; guardan heartbeat/capacidades y consultan únicamente el nodo autenticado. Los handlers de tareas/reconciliación siguen sin configurarse y devuelven 503; no deben conectarse a operaciones reales hasta integrar el servicio de dominio/outbox y revisarlo.
@@ -37,7 +39,7 @@ Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fil
 
 - CI debe pasar en el commit más reciente.
 - Añadir pruebas de handshake TLS con una CA local real y confirmar validación de CA desde el agente; los tests actuales comprueban rechazo HTTP y validación de configuración, no un handshake TLS real.
-- Revisar timeouts/concurrencia del servidor y decidir despliegue single-worker o limitador global.
+- Definir timeouts/concurrencia del servidor y cuotas apropiadas para el tamaño real de la LAN. El limitador global PostgreSQL ya está implementado y probado.
 - Completar manual de generación, rotación, respaldo y distribución de CA local.
 - No conectar handlers de producción ni desplegar hasta cerrar los criterios anteriores.
 
