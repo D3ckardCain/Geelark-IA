@@ -95,6 +95,7 @@ def test_result_remains_durable_when_network_is_offline():
     assert events == ["journal", "network"]
     assert journal.calls[0]["status"] == "failed"
     assert journal.calls[0]["result"] == {"error_code": "WORKER_FAILED"}
+    assert journal.synced == []
 
 
 def test_pending_receipt_is_not_sent_as_a_task_result():
@@ -113,7 +114,8 @@ def test_pending_receipt_is_not_sent_as_a_task_result():
 def test_non_success_http_response_is_reported_without_response_body():
     node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
     client = FakeClient(response=AgentResponse(403, b'{"secret":"must-not-leak"}', "application/json"))
-    runtime = make_runtime(client, FakeJournal(), node_id)
+    journal = FakeJournal()
+    runtime = make_runtime(client, journal, node_id)
     with pytest.raises(AgentTransportError) as exc:
         runtime.report_result(
             operation_id=operation_id, instance_id=instance_id, assignment_epoch=1,
@@ -121,6 +123,7 @@ def test_non_success_http_response_is_reported_without_response_body():
         )
     assert "must-not-leak" not in str(exc.value)
     assert "403" in str(exc.value)
+    assert journal.synced == []
 
 
 
