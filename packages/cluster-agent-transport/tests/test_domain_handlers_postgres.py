@@ -58,7 +58,22 @@ def test_pending_telemetry_persists_and_status_is_scoped_to_own_node():
         assert caps["capability_count"] == 2
         assert state["node_id"] == str(node_id)
         assert state["admin_state"] == "pending"
+        assert hb["reported_health_state"] == "healthy"
+        assert hb["health_state"] == "healthy"
+        assert state["reported_health_state"] == "healthy"
+        assert state["health_state"] == "healthy"
         assert state["capabilities"] == {"version": 1, "items": ["heartbeat", "status"]}
+
+        # A stale report must not remain authoritative just because the Worker
+        # last reported "healthy"; the Master derives health from server time.
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.nodes SET last_seen_at = now() - interval '5 minutes' WHERE node_id = %s",
+                (node_id,),
+            )
+        stale_state = handlers[Operation.STATUS_READ](principal=principal)
+        assert stale_state["reported_health_state"] == "healthy"
+        assert stale_state["health_state"] == "offline"
 
         with connect() as conn:
             conn.execute("UPDATE geelark_control.nodes SET revoked_at = now() WHERE node_id = %s", (node_id,))
