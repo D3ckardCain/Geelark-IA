@@ -114,7 +114,7 @@ class MasterControlPrototypeTests(unittest.TestCase):
             return value
 
         def rule_value(selector, property_name):
-            rule = re.search(re.escape(selector) + r"\\{([^}]*)\\}", self.html)
+            rule = re.search(re.escape(selector) + r"\{([^}]*)\}", self.html)
             self.assertIsNotNone(rule, f"Missing CSS rule {selector}")
             declaration = re.search(rf"(?:^|;){re.escape(property_name)}:([^;]+)", rule.group(1))
             self.assertIsNotNone(declaration, f"Missing {property_name} in {selector}")
