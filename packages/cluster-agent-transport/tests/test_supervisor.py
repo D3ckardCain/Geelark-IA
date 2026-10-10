@@ -1,0 +1,162 @@
+import threading
+import time
+
+import pytest
+
+from cluster_agent_transport.supervisor import AgentSupervisor
+
+
+class FakeLifecycle:
+    def __init__(self):
+        self.starts = 0
+        self.reconnections = 0
+        self.stops = []
+        self.started = threading.Event()
+
+    def start(self):
+        self.starts += 1
+        self.started.set()
+
+    def notify_reconnected(self):
+        self.reconnections += 1
+
+    def stop(self, *, timeout=5):
+        self.stops.append(timeout)
+        return True
+
+
+class FakeRuntime:
+    def __init__(self, heartbeat=None, capabilities=None):
+        self.heartbeat = list(heartbeat or [])
+        self.capabilities = list(capabilities or [])
+        self.heartbeat_calls = []
+        self.capability_calls = []
+        self.lock = threading.Lock()
+        self.called = threading.Event()
+
+    def send_heartbeat(self, payload):
+        with self.lock:
+            self.heartbeat_calls.append(payload)
+            item = self.heartbeat.pop(0) if self.heartbeat else None
+        self.called.set()
+        if isinstance(item, Exception):
+            raise item
+        return object()
+
+    def publish_capabilities(self, payload):
+        with self.lock:
+            self.capability_calls.append(payload)
+            item = self.capabilities.pop(0) if self.capabilities else None
+        self.called.set()
+        if isinstance(item, Exception):
+            raise item
+        return object()
+
+
+def wait_for(predicate, timeout=1):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(0.005)
+    return predicate()
+
+
+def test_start_runs_heartbeat_and_capabilities_and_stops_both_cycles():
+    runtime = FakeRuntime()
+    lifecycle = FakeLifecycle()
+    supervisor = AgentSupervisor(
+        runtime=runtime,
+        receipt_lifecycle=lifecycle,
+        heartbeat_payload=lambda: {"health_state": "healthy"},
+        capabilities_payload=lambda: {"capabilities_version": 1, "capabilities": ["heartbeat"]},
+        heartbeat_interval_seconds=0.2,
+    )
+
+    supervisor.start()
+    assert runtime.called.wait(1)
+    assert wait_for(lambda: len(runtime.capability_calls) >= 1)
+    assert runtime.heartbeat_calls[0] == {"health_state": "healthy"}
+    assert runtime.capability_calls[0]["capabilities_version"] == 1
+    assert lifecycle.starts == 1
+    assert supervisor.stop(timeout=1)
+    assert lifecycle.stops
+    assert not supervisor.running
+
+
+def test_heartbeat_recovery_notifies_receipt_lifecycle():
+    runtime = FakeRuntime(heartbeat=[OSError("offline"), None])
+    lifecycle = FakeLifecycle()
+    errors = []
+    supervisor = AgentSupervisor(
+        runtime=runtime,
+        receipt_lifecycle=lifecycle,
+        heartbeat_payload=lambda: {"health_state": "healthy"},
+        capabilities_payload=lambda: {"capabilities_version": 1, "capabilities": []},
+        heartbeat_interval_seconds=0.5,
+        on_error=errors.append,
+    )
+
+    supervisor.start()
+    assert wait_for(lambda: errors == ["HEARTBEAT_FAILED"])
+    supervisor.notify_reconnected()
+    assert wait_for(lambda: len(runtime.heartbeat_calls) >= 2)
+    assert wait_for(lambda: lifecycle.reconnections >= 2)
+    assert supervisor.stop(timeout=1)
+
+
+def test_callback_exception_does_not_terminate_supervisor():
+    runtime = FakeRuntime(heartbeat=[OSError("offline"), None])
+    lifecycle = FakeLifecycle()
+    supervisor = AgentSupervisor(
+        runtime=runtime,
+        receipt_lifecycle=lifecycle,
+        heartbeat_payload=lambda: {},
+        capabilities_payload=lambda: {},
+        heartbeat_interval_seconds=0.1,
+        on_error=lambda _code: (_ for _ in ()).throw(RuntimeError("telemetry")),
+    )
+    supervisor.start()
+    assert wait_for(lambda: len(runtime.heartbeat_calls) >= 1)
+    supervisor.notify_reconnected()
+    assert wait_for(lambda: len(runtime.heartbeat_calls) >= 2)
+    assert supervisor.stop(timeout=1)
+
+
+@pytest.mark.parametrize("interval", [0, 0.05, 3601, float("nan"), float("inf"), True])
+def test_invalid_heartbeat_interval_is_rejected(interval):
+    with pytest.raises(ValueError):
+        AgentSupervisor(
+            runtime=FakeRuntime(),
+            receipt_lifecycle=FakeLifecycle(),
+            heartbeat_payload=lambda: {},
+            capabilities_payload=lambda: {},
+            heartbeat_interval_seconds=interval,
+        )
+
+
+def test_start_is_idempotent_and_stop_before_start_is_final():
+    runtime = FakeRuntime()
+    lifecycle = FakeLifecycle()
+    supervisor = AgentSupervisor(
+        runtime=runtime,
+        receipt_lifecycle=lifecycle,
+        heartbeat_payload=lambda: {},
+        capabilities_payload=lambda: {},
+        heartbeat_interval_seconds=0.2,
+    )
+    supervisor.start()
+    supervisor.start()
+    assert wait_for(lambda: len(runtime.heartbeat_calls) >= 1)
+    assert lifecycle.starts == 1
+    assert supervisor.stop(timeout=1)
+
+    stopped = AgentSupervisor(
+        runtime=FakeRuntime(),
+        receipt_lifecycle=FakeLifecycle(),
+        heartbeat_payload=lambda: {},
+        capabilities_payload=lambda: {},
+    )
+    assert stopped.stop(timeout=1)
+    with pytest.raises(RuntimeError):
+        stopped.start()
