@@ -12,11 +12,7 @@ import pytest
 from geelark_cluster_persistence import (
     AssignmentRequest,
     IdempotencyConflict,
-    InstanceAlreadyAssigned,
     InvalidAssignmentRequest,
-    InstanceStateBlocked,
-    InsufficientCapacity,
-    NodeCapacityNotConfigured,
     assign_instance,
 )
 
@@ -170,16 +166,16 @@ def test_concurrent_requests_cannot_assign_one_instance_twice():
 
     def worker(request):
         barrier.wait(timeout=10)
-        try:
-            with psycopg.connect(DATABASE_URL) as conn:
-                return ("accepted", assign_instance(conn, request))
-        except InstanceAlreadyAssigned:
-            return ("already-assigned", None)
+        with psycopg.connect(DATABASE_URL) as conn:
+            response = assign_instance(conn, request)
+            return (response["status"], response)
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         results = list(pool.map(worker, requests))
 
-    assert sorted(result[0] for result in results) == ["accepted", "already-assigned"]
+    assert sorted(result[0] for result in results) == ["accepted", "rejected"]
+    rejected = next(result[1] for result in results if result[0] == "rejected")
+    assert rejected["error"]["code"] == "INSTANCE_ALREADY_ASSIGNED"
     with psycopg.connect(DATABASE_URL) as conn:
         assert conn.execute("SELECT count(*) FROM geelark_control.resource_reservations WHERE instance_id = %s AND status IN ('held', 'uncertain')", (INSTANCE_A,)).fetchone()[0] == 1
         assert conn.execute("SELECT count(*) FROM geelark_control.operations WHERE instance_id = %s", (INSTANCE_A,)).fetchone()[0] == 1
@@ -195,16 +191,16 @@ def test_concurrent_assignments_cannot_overbook_node_capacity():
 
     def worker(request):
         barrier.wait(timeout=10)
-        try:
-            with psycopg.connect(DATABASE_URL) as conn:
-                return ("accepted", assign_instance(conn, request))
-        except InsufficientCapacity:
-            return ("capacity-rejected", None)
+        with psycopg.connect(DATABASE_URL) as conn:
+            response = assign_instance(conn, request)
+            return (response["status"], response)
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         results = list(pool.map(worker, requests))
 
-    assert sorted(result[0] for result in results) == ["accepted", "capacity-rejected"]
+    assert sorted(result[0] for result in results) == ["accepted", "rejected"]
+    rejected = next(result[1] for result in results if result[0] == "rejected")
+    assert rejected["error"]["code"] == "CAPACITY_CHANGED"
     with psycopg.connect(DATABASE_URL) as conn:
         used = conn.execute(
             "SELECT COALESCE(SUM(cpu_units), 0) FROM geelark_control.resource_reservations WHERE node_id = %s AND status IN ('held', 'uncertain')",
@@ -219,8 +215,9 @@ def test_unknown_instance_state_blocks_reassignment_even_without_owner():
         INSTANCE_B: ("stopped", None, 0, None),
     })
     with psycopg.connect(DATABASE_URL) as conn:
-        with pytest.raises(InstanceStateBlocked):
-            assign_instance(conn, make_request())
+        response = assign_instance(conn, make_request())
+    assert response["status"] == "rejected"
+    assert response["error"]["code"] == "LEASE_STATE_UNCERTAIN"
     with psycopg.connect(DATABASE_URL) as conn:
         assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
 
@@ -244,8 +241,9 @@ def test_expired_lease_and_uncertain_reservation_do_not_release_owner():
         conn.commit()
 
     with psycopg.connect(DATABASE_URL) as conn:
-        with pytest.raises(InstanceAlreadyAssigned):
-            assign_instance(conn, make_request(node_id=NODE_B))
+        response = assign_instance(conn, make_request(node_id=NODE_B))
+    assert response["status"] == "rejected"
+    assert response["error"]["code"] == "INSTANCE_ALREADY_ASSIGNED"
     with psycopg.connect(DATABASE_URL) as conn:
         assert conn.execute("SELECT count(*) FROM geelark_control.resource_reservations WHERE instance_id = %s AND status = 'uncertain'", (INSTANCE_A,)).fetchone()[0] == 1
 
@@ -311,8 +309,9 @@ def test_active_observed_state_without_owner_fails_closed():
         INSTANCE_B: ("stopped", None, 0, None),
     })
     with psycopg.connect(DATABASE_URL) as conn:
-        with pytest.raises(InstanceStateBlocked):
-            assign_instance(conn, make_request())
+        response = assign_instance(conn, make_request())
+    assert response["status"] == "rejected"
+    assert response["error"]["code"] == "LEASE_STATE_UNCERTAIN"
     with psycopg.connect(DATABASE_URL) as conn:
         assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
 
@@ -326,7 +325,30 @@ def test_unknown_capacity_confidence_blocks_assignment():
         )
         conn.commit()
     with psycopg.connect(DATABASE_URL) as conn:
-        with pytest.raises(NodeCapacityNotConfigured):
-            assign_instance(conn, make_request())
+        response = assign_instance(conn, make_request())
+    assert response["status"] == "rejected"
+    assert response["error"]["code"] == "CAPACITY_CHANGED"
     with psycopg.connect(DATABASE_URL) as conn:
         assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
+
+
+def test_rejected_response_is_cached_for_same_idempotency_key():
+    seed_database(cpu_capacity=Decimal("0.500"))
+    request = make_request(key="cached-rejection-idempotency")
+    with psycopg.connect(DATABASE_URL) as conn:
+        first = assign_instance(conn, request)
+    assert first["status"] == "rejected"
+
+    with psycopg.connect(DATABASE_URL) as conn:
+        conn.execute(
+            "UPDATE geelark_control.node_resource_capacity SET cpu_units = 2.0 WHERE node_id = %s",
+            (NODE_A,),
+        )
+        conn.commit()
+
+    with psycopg.connect(DATABASE_URL) as conn:
+        second = assign_instance(conn, request)
+    assert second == first
+    with psycopg.connect(DATABASE_URL) as conn:
+        assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM geelark_control.idempotency_records WHERE response_snapshot->>'status' = 'rejected'").fetchone()[0] == 1
