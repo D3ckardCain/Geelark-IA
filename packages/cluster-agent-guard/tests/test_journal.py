@@ -299,6 +299,7 @@ def test_rejected_is_terminal_and_can_be_acknowledged(tmp_path):
         result={"error_code": "CAPABILITY_MISSING"},
     )
     assert rejected.status == "rejected"
+    assert [item.operation_id for item in journal.list_pending_receipts(limit=10)] == [cmd.operation_id]
     journal.mark_receipt_synced(cmd.operation_id)
     assert journal.list_pending_receipts(limit=10) == []
     with pytest.raises(OperationResultConflict):
