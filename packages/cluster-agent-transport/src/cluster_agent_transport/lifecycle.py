@@ -57,6 +57,8 @@ class AgentReceiptSyncLifecycle:
     def start(self) -> None:
         """Arranca una sola vez y solicita sincronización inmediata."""
         with self._lock:
+            if self._stop.is_set():
+                raise RuntimeError("El ciclo de vida ya fue detenido y no puede reiniciarse")
             if self._thread is not None:
                 if self._thread.is_alive():
                     return
