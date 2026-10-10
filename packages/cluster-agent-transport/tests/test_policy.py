@@ -8,7 +8,7 @@ def principal(admin_state="pending", credential_status="pending"):
 def test_pending_can_only_send_telemetry_and_read_status():
     for operation in (Operation.HEARTBEAT, Operation.CAPABILITIES, Operation.STATUS_READ):
         authorize_operation(principal(), operation)
-    for operation in (Operation.TASK_ACCEPT, Operation.TASK_PROGRESS, Operation.TASK_RESULT, Operation.RECONCILE):
+    for operation in (Operation.TASK_FETCH, Operation.TASK_ACCEPT, Operation.TASK_PROGRESS, Operation.TASK_RESULT, Operation.RECONCILE):
         try:
             authorize_operation(principal(), operation)
         except PermissionDenied:
