@@ -195,7 +195,7 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
             cur.execute(
                 """
                 SELECT cpu_units, memory_capacity_bytes, storage_capacity_bytes,
-                       memory_safety_margin_bytes, storage_safety_margin_bytes
+                       memory_safety_margin_bytes, storage_safety_margin_bytes, confidence
                   FROM geelark_control.node_resource_capacity
                  WHERE node_id = %s
                  FOR UPDATE
@@ -205,7 +205,9 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
             capacity = cur.fetchone()
             if capacity is None:
                 raise NodeCapacityNotConfigured("El nodo no tiene capacidad reservable configurada")
-            cpu_capacity, memory_capacity, storage_capacity, memory_margin, storage_margin = capacity
+            cpu_capacity, memory_capacity, storage_capacity, memory_margin, storage_margin, capacity_confidence = capacity
+            if capacity_confidence == "unknown":
+                raise NodeCapacityNotConfigured("La confianza de capacidad del nodo es unknown")
 
             cur.execute(
                 """
