@@ -58,7 +58,7 @@ jobs:
             docker exec -i "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 < "$migration"
           done
 
-      - name: Install local journal and transport packages
+      - name: Install local journal and transport packages (incluye contrato de recibos offline)
         run: |
           python -m pip install -e "packages/cluster-agent-guard[test]"
           python -m pip install -e "packages/cluster-agent-transport[test]"
