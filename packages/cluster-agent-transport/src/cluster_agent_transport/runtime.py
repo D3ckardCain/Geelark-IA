@@ -85,16 +85,30 @@ class AgentTransportRuntime:
         )
         return response
 
-    def reconcile_inventory(self, inventory: list[dict[str, Any]]) -> AgentResponse:
-        """Envía inventario para comparación conservadora; no modifica el journal local."""
+    def reconcile_inventory(
+        self,
+        inventory: list[dict[str, Any]],
+        *,
+        reconciliation_id: UUID | None = None,
+    ) -> AgentResponse:
+        """Envía inventario con una clave por intento, reutilizable durante sus reintentos.
+
+        El llamador debe conservar reconciliation_id si perdió el ACK y quiere repetir
+        el mismo intento. Una reconciliación posterior del mismo inventario usa un UUID
+        distinto para no devolver decisiones antiguas almacenadas por idempotencia.
+        """
         if not isinstance(inventory, list) or len(inventory) > 100:
             raise ValueError("inventory debe ser una lista de hasta 100 elementos")
+        if reconciliation_id is None:
+            reconciliation_id = uuid4()
+        if not isinstance(reconciliation_id, UUID):
+            raise ValueError("reconciliation_id debe ser UUID.")
         payload = {"schema_version": 1, "inventory": inventory}
         try:
-            digest = payload_digest(payload)[:32]
+            payload_digest(payload)
         except (TypeError, ValueError):
             raise ValueError("inventory debe contener solo datos JSON válidos") from None
-        key = f"reconcile-{self.local_node_id}-{digest}"
+        key = f"reconcile-{self.local_node_id}-{reconciliation_id}"
         return self._request(
             "POST", "/agent/v1/reconcile", payload, idempotency_key=key
         )
