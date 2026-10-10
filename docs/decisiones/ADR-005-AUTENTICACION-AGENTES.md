@@ -1,6 +1,6 @@
 # ADR-005: autenticación local y enrolamiento de agentes
 
-- **Estado:** propuesta para revisión; no implementada.
+- **Estado:** aceptada por el usuario el 2026-10-09; implementación en curso y aún no habilitada en red.
 - **Fecha:** 2026-10-10.
 - **Relacionada:** ADR-003, ADR-004, `CONTRATO_API_CLUSTER.md`, `CONTRATO_MENSAJES_AGENTE_CLUSTER.md`, `MODELO_AMENAZAS_SEGURIDAD.md`.
 
@@ -8,7 +8,7 @@
 
 Los agentes deben comunicarse con la Master sin servicios cloud, con credenciales individuales, revocables y rotables. La API no debe exponerse a Internet. El nodo no puede confiar en órdenes si no valida la identidad del controlador, y la Master no debe aceptar resultados de un nodo usando la identidad de otro.
 
-## Decisión propuesta para el MVP
+## Decisión aceptada para el MVP
 
 1. **HTTPS obligatorio**, TLS 1.2 como mínimo y preferencia por TLS 1.3. No ofrecer endpoint HTTP en la interfaz de red.
 2. La Master usa un certificado de servidor firmado por una CA local del clúster. Los agentes confían explícitamente en el certificado de la CA/fingerprint distribuido durante la instalación; no aceptan cualquier certificado autofirmado.
