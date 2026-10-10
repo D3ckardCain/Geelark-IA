@@ -30,6 +30,24 @@ CREATE TABLE geelark_control.nodes (
     revoked_at timestamptz
 );
 
+
+
+CREATE TABLE geelark_control.node_resource_capacity (
+    node_id uuid PRIMARY KEY REFERENCES geelark_control.nodes(node_id) ON DELETE RESTRICT,
+    cpu_units numeric(10,3) NOT NULL CHECK (cpu_units > 0),
+    memory_capacity_bytes bigint NOT NULL CHECK (memory_capacity_bytes > 0),
+    storage_capacity_bytes bigint NOT NULL CHECK (storage_capacity_bytes > 0),
+    memory_safety_margin_bytes bigint NOT NULL DEFAULT 0 CHECK (memory_safety_margin_bytes >= 0),
+    storage_safety_margin_bytes bigint NOT NULL DEFAULT 0 CHECK (storage_safety_margin_bytes >= 0),
+    measured_at timestamptz NOT NULL,
+    confidence text NOT NULL CHECK (confidence IN ('observed', 'configured', 'unknown')),
+    CHECK (memory_safety_margin_bytes < memory_capacity_bytes),
+    CHECK (storage_safety_margin_bytes < storage_capacity_bytes)
+);
+
+COMMENT ON TABLE geelark_control.node_resource_capacity IS
+    'Capacidad reservable conservadora por nodo. Las reservas concurrentes deben bloquear esta fila al comprobar sumas.';
+
 CREATE TABLE geelark_control.instances (
     instance_id uuid PRIMARY KEY,
     desired_state text NOT NULL DEFAULT 'stopped'
