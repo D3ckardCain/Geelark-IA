@@ -41,19 +41,19 @@ jobs:
       TEST_DATABASE_URL: postgresql://postgres:test-only-password@127.0.0.1:5432/geelark_test
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # PR #48 is stacked on auth-service while the journal API lives in PR #38.
       # Pin the journal commit so the cross-branch integration test is reproducible.
       - name: Checkout journal API from PR #38
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: D3ckardCain/Geelark-IA
           ref: 4b537f453a27591a0a92e9bea9840c6d686466c9
           path: guard-source
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
