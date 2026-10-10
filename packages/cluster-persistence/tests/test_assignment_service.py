@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import os
@@ -149,12 +150,7 @@ def test_same_idempotency_key_with_different_payload_is_conflict():
     with psycopg.connect(DATABASE_URL) as conn:
         assign_instance(conn, request)
 
-    changed = AssignmentRequest(
-        **{
-            **request.__dict__,
-            "memory_bytes": request.memory_bytes + 1,
-        }
-    )
+    changed = replace(request, memory_bytes=request.memory_bytes + 1)
     with psycopg.connect(DATABASE_URL) as conn:
         with pytest.raises(IdempotencyConflict):
             assign_instance(conn, changed)
