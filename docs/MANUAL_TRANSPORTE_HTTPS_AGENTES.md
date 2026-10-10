@@ -106,7 +106,7 @@ Comprobar la cadena y el SAN con OpenSSL. No imprimir bearer tokens, claves priv
 ## 9. Bloqueos antes de operación real
 
 - Integrar los handlers con la persistencia transaccional y la tabla de outbox.
-- Probar el handshake TLS real desde un agente que confíe en la CA local.
+- CI ejecuta un handshake TLS real contra un servidor temporal con CA local: el cliente que confía en la CA conecta y el cliente sin esa CA es rechazado. Aún falta integrar la validación TLS/CA en el runtime cliente del agente, que no está implementado.
 - Validar timeouts, concurrencia y el límite de solicitudes en el modelo de despliegue elegido.
 - Revisar autorización por ruta, idempotencia, revocación y recuperación.
 - Revisar el manual con el usuario antes de instalar o habilitar el listener.
