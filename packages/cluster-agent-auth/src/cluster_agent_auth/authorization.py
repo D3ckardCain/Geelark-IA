@@ -57,6 +57,8 @@ def authorize_agent_operation(
     """
     if not isinstance(context, AgentAuthorizationContext):
         raise AgentAuthorizationError("AUTHORIZATION_CONTEXT_INVALID")
+    if not isinstance(context.node_admin_state, str) or not isinstance(context.credential_status, str):
+        raise AgentAuthorizationError("AUTHORIZATION_CONTEXT_INVALID")
 
     try:
         operation_value = AgentOperation(operation)
