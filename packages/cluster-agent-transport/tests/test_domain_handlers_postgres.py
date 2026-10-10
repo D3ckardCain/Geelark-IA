@@ -238,3 +238,97 @@ def test_two_concurrent_claims_do_not_deliver_the_same_task_twice():
             conn.execute("DELETE FROM geelark_control.instances WHERE instance_id = %s", (instance_id,))
             conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
             conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))
+
+
+def test_terminal_result_replay_is_idempotent_but_conflicts_and_stale_epochs_fail():
+    node_id, credential_id = uuid4(), uuid4()
+    instance_id, operation_id, task_id, request_id = uuid4(), uuid4(), uuid4(), uuid4()
+    token_hash = hashlib.sha256(secrets.token_hex(32).encode()).hexdigest()
+    now = datetime.now(timezone.utc)
+    connect = lambda: psycopg.connect(DATABASE_URL)
+    handlers = make_postgres_agent_handlers(connect)
+    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active")
+    result = {"task_id": str(task_id), "state": "succeeded", "details": {"verified": True}}
+
+    try:
+        with connect() as conn:
+            conn.execute(
+                "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state) VALUES (%s, %s, 'active')",
+                (node_id, "test-terminal-replay-" + str(node_id)),
+            )
+            conn.execute(
+                """
+                INSERT INTO geelark_control.node_credentials
+                    (credential_id, node_id, token_sha256, status, created_at, expires_at, activated_at)
+                VALUES (%s, %s, %s, 'active', %s, %s, %s)
+                """,
+                (credential_id, node_id, token_hash, now, now + timedelta(hours=1), now),
+            )
+            conn.execute(
+                """
+                INSERT INTO geelark_control.instances
+                    (instance_id, desired_state, observed_state, owner_node_id, assignment_epoch, lease_expires_at)
+                VALUES (%s, 'running', 'reserved', %s, 3, %s)
+                """,
+                (instance_id, node_id, now + timedelta(minutes=5)),
+            )
+            conn.execute(
+                """
+                INSERT INTO geelark_control.operations
+                    (operation_id, request_id, instance_id, node_id, assignment_epoch, operation_type, status)
+                VALUES (%s, %s, %s, %s, 3, 'assign', 'running')
+                """,
+                (operation_id, request_id, instance_id, node_id),
+            )
+            conn.execute(
+                """
+                INSERT INTO geelark_control.agent_tasks
+                    (task_id, operation_id, node_id, instance_id, assignment_epoch, payload,
+                     status, delivery_lease_until)
+                VALUES (%s, %s, %s, %s, 3, %s, 'running', %s)
+                """,
+                (task_id, operation_id, node_id, instance_id,
+                 Jsonb({"desired_state": "running"}), now + timedelta(minutes=1)),
+            )
+
+        with connect() as conn:
+            first = handlers[Operation.TASK_RESULT](conn=conn, principal=principal, payload=result)
+        assert first == {
+            "ok": True, "task_id": str(task_id), "state": "succeeded", "duplicate": False
+        }
+
+        with connect() as conn:
+            replay = handlers[Operation.TASK_RESULT](conn=conn, principal=principal, payload=result)
+        assert replay == {
+            "ok": True, "task_id": str(task_id), "state": "succeeded", "duplicate": True
+        }
+
+        with connect() as conn:
+            with pytest.raises(HTTPException) as conflict:
+                handlers[Operation.TASK_RESULT](
+                    conn=conn,
+                    principal=principal,
+                    payload={**result, "state": "failed"},
+                )
+        assert conflict.value.status_code == 409
+        assert conflict.value.detail["code"] == "TASK_TERMINAL_CONFLICT"
+
+        # A terminal replay must not cross an ownership/fencing epoch change.
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.instances SET assignment_epoch = 4 WHERE instance_id = %s",
+                (instance_id,),
+            )
+        with connect() as conn:
+            with pytest.raises(HTTPException) as stale:
+                handlers[Operation.TASK_RESULT](conn=conn, principal=principal, payload=result)
+        assert stale.value.status_code == 409
+        assert stale.value.detail["code"] == "STALE_ASSIGNMENT"
+    finally:
+        with connect() as conn:
+            conn.execute("DELETE FROM geelark_control.agent_tasks WHERE task_id = %s", (task_id,))
+            conn.execute("DELETE FROM geelark_control.operations WHERE operation_id = %s", (operation_id,))
+            conn.execute("DELETE FROM geelark_control.instances WHERE instance_id = %s", (instance_id,))
+            conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
+            conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))
+
