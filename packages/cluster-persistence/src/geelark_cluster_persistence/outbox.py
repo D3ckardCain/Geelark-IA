@@ -54,8 +54,8 @@ def claim_outbox_batch(
                      WHERE (status = 'pending' AND available_at <= now())
                         OR (status = 'inflight' AND claim_until <= now())
                      ORDER BY available_at, created_at
-                     FOR UPDATE SKIP LOCKED
                      LIMIT %s
+                     FOR UPDATE SKIP LOCKED
                 )
                 UPDATE geelark_control.outbox_events AS event
                    SET status = 'inflight',
