@@ -1,7 +1,7 @@
 """API de agente con permisos por ruta, nonces y límites defensivos.
 
-La fábrica no abre puertos. El despliegue debe configurar explícitamente
-TLS con certificado/clave y distribuir la CA local de confianza al agente.
+La fábrica no abre puertos. HTTPS se impone también a nivel ASGI para impedir
+que un despliegue accidental detrás de HTTP acepte credenciales bearer.
 """
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from datetime import datetime
 from typing import Any, Callable
 from uuid import UUID
 
-from fastapi import FastAPI, Header, HTTPException, Request
-from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, ValidationError
+from fastapi import FastAPI, Header, HTTPException
+from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, field_validator
 
 from .limits import InMemoryRateLimiter
 from .policy import AgentPrincipal, Operation, PermissionDenied, authorize_operation
@@ -33,14 +33,14 @@ class CapabilitiesPayload(BaseModel):
     capabilities_version: int = Field(ge=1, le=2**31 - 1)
     capabilities: list[str] = Field(max_length=128)
 
+    @field_validator("capabilities")
     @classmethod
-    def model_validate(cls, obj: Any, *args: Any, **kwargs: Any) -> "CapabilitiesPayload":
-        parsed = super().model_validate(obj, *args, **kwargs)
-        if any(not isinstance(item, str) or not item.strip() or len(item) > 128 for item in parsed.capabilities):
+    def validate_capabilities(cls, value: list[str]) -> list[str]:
+        if any(not item.strip() or len(item) > 128 for item in value):
             raise ValueError("Cada capacidad debe tener entre 1 y 128 caracteres.")
-        if len(set(parsed.capabilities)) != len(parsed.capabilities):
+        if len(set(value)) != len(value):
             raise ValueError("No se permiten capacidades duplicadas.")
-        return parsed
+        return value
 
 
 class TaskMessage(BaseModel):
@@ -50,10 +50,27 @@ class TaskMessage(BaseModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
+class RequireHTTPSMiddleware:
+    """Falla cerrada si el servidor ASGI recibe una solicitud HTTP sin TLS."""
+
+    def __init__(self, app: Any) -> None:
+        self.app = app
+
+    async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
+        if scope.get("type") == "http" and scope.get("scheme") != "https":
+            from starlette.responses import JSONResponse
+            response = JSONResponse({"error": {"code": "HTTPS_REQUIRED"}}, status_code=426)
+            await response(scope, receive, send)
+            return
+        await self.app(scope, receive, send)
+
+
 class BodyLimitMiddleware:
     """Limita el cuerpo incluso si la petición no declara Content-Length."""
 
     def __init__(self, app: Any, max_bytes: int = 1_048_576) -> None:
+        if max_bytes < 1:
+            raise ValueError("max_bytes debe ser positivo.")
         self.app = app
         self.max_bytes = max_bytes
 
@@ -66,10 +83,10 @@ class BodyLimitMiddleware:
         if length is not None:
             try:
                 if int(length) > self.max_bytes:
-                    await self._too_large(scope, receive, send)
+                    await self._respond(scope, receive, send, 413, "BODY_TOO_LARGE")
                     return
             except ValueError:
-                await self._bad_request(scope, receive, send)
+                await self._respond(scope, receive, send, 400, "INVALID_CONTENT_LENGTH")
                 return
 
         chunks: list[bytes] = []
@@ -82,7 +99,7 @@ class BodyLimitMiddleware:
             chunk = message.get("body", b"")
             total += len(chunk)
             if total > self.max_bytes:
-                await self._too_large(scope, receive, send)
+                await self._respond(scope, receive, send, 413, "BODY_TOO_LARGE")
                 return
             chunks.append(chunk)
             more = message.get("more_body", False)
@@ -100,14 +117,9 @@ class BodyLimitMiddleware:
         await self.app(scope, replay_receive, send)
 
     @staticmethod
-    async def _too_large(scope: dict[str, Any], receive: Any, send: Any) -> None:
+    async def _respond(scope: dict[str, Any], receive: Any, send: Any, status: int, code: str) -> None:
         from starlette.responses import JSONResponse
-        await JSONResponse({"error": {"code": "BODY_TOO_LARGE", "message": "El cuerpo excede 1 MiB."}}, status_code=413)(scope, receive, send)
-
-    @staticmethod
-    async def _bad_request(scope: dict[str, Any], receive: Any, send: Any) -> None:
-        from starlette.responses import JSONResponse
-        await JSONResponse({"error": {"code": "INVALID_CONTENT_LENGTH", "message": "Content-Length inválido."}}, status_code=400)(scope, receive, send)
+        await JSONResponse({"error": {"code": code}}, status_code=status)(scope, receive, send)
 
 
 def create_agent_app(
@@ -118,16 +130,11 @@ def create_agent_app(
     rate_limiter: InMemoryRateLimiter | None = None,
     max_body_bytes: int = 1_048_576,
 ) -> FastAPI:
-    """Crea la API sin listener; callbacks de dominio son obligatorios para actuar."""
+    """Crea la API sin listener; las acciones de dominio requieren callbacks."""
     limiter = rate_limiter or InMemoryRateLimiter()
-    app = FastAPI(
-        title="GeeLark-IA Agent API",
-        version="0.1.0",
-        docs_url=None,
-        redoc_url=None,
-        openapi_url=None,
-    )
+    app = FastAPI(title="GeeLark-IA Agent API", version="0.1.0", docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(BodyLimitMiddleware, max_bytes=max_body_bytes)
+    app.add_middleware(RequireHTTPSMiddleware)
 
     def authorize(
         operation: Operation,
@@ -138,11 +145,9 @@ def create_agent_app(
     ) -> AgentPrincipal:
         if not authorization or not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail={"code": "AUTHENTICATION_REQUIRED"})
-        secret = authorization[7:]
         try:
-            principal = authenticate(secret)
+            principal = authenticate(authorization[7:])
         except Exception as exc:
-            # No incluir mensajes de autenticación/SQL en la respuesta.
             from .db_auth import InvalidAgentCredential
             if isinstance(exc, InvalidAgentCredential):
                 raise HTTPException(status_code=401, detail={"code": "AUTHENTICATION_FAILED"}) from None
@@ -160,11 +165,8 @@ def create_agent_app(
             request_id = UUID(x_request_id or "")
             timestamp = datetime.fromisoformat((x_agent_timestamp or "").replace("Z", "+00:00"))
             consume_nonce(
-                node_id=UUID(principal.node_id),
-                credential_id=UUID(principal.credential_id),
-                nonce=nonce,
-                request_id=request_id,
-                timestamp=timestamp,
+                node_id=UUID(principal.node_id), credential_id=UUID(principal.credential_id),
+                nonce=nonce, request_id=request_id, timestamp=timestamp,
             )
         except ReplayRejected:
             raise HTTPException(status_code=409, detail={"code": "REPLAY_REJECTED"}) from None
@@ -183,7 +185,6 @@ def create_agent_app(
         except HTTPException:
             raise
         except Exception:
-            # El adaptador debe registrar request_id de forma saneada; no exponer excepción.
             raise HTTPException(status_code=500, detail={"code": "OPERATION_FAILED"}) from None
 
     @app.post("/agent/v1/heartbeat")
