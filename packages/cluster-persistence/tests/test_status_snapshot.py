@@ -146,3 +146,18 @@ def test_provider_rejects_non_uuid_node_identifiers():
     provider = PostgresStatusSnapshotProvider(lambda: FakeConnection(None))
     with pytest.raises(TypeError):
         provider.get_node_snapshot("not-a-uuid")
+
+
+def test_module_without_trusted_source_cannot_be_operational():
+    reports = [{
+        "module_id": "agent-supervisor",
+        "state": "operational",
+        "version": "0.1.0",
+        "checked_at": NOW.isoformat(),
+        "source": "unknown",
+        "error_code": None,
+    }]
+    snapshot = build_status_snapshot(make_row(modules=reports), now=NOW)
+    assert snapshot["node"]["modules"][0]["state"] == "unknown"
+    assert snapshot["node"]["modules"][0]["source"] == "master-check"
+    assert snapshot["node"]["modules"][0]["error_code"] == "INVALID_MODULE_REPORT"
