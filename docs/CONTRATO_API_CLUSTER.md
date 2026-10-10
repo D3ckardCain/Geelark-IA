@@ -80,6 +80,7 @@ El protocolo de agente puede compartir el host y el dominio de API, pero debe te
 - `POST /agent/v1/session`: validar identidad y establecer sesión corta.
 - `POST /agent/v1/heartbeat`: informar salud, versión y estado resumido.
 - `PUT /agent/v1/capabilities`: publicar inventario de capacidades versionado.
+- `POST /agent/v1/tasks/claim`: reclamar de forma idempotente la siguiente asignación de la bandeja durable (solo nodo activo; devuelve una tarea o `task: null`).
 - `POST /agent/v1/tasks/{task_id}/accept`: aceptar una asignación vigente.
 - `POST /agent/v1/tasks/{task_id}/progress`: informar progreso y etapa.
 - `POST /agent/v1/tasks/{task_id}/result`: publicar resultado tipado y redactado.
