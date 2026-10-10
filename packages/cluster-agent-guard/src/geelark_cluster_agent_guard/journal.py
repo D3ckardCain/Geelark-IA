@@ -160,6 +160,9 @@ class AgentJournal:
                 conn.commit()
                 return self._receipt(existing, duplicate=True)
 
+            if command.lease_expires_at <= datetime.now(timezone.utc):
+                raise ExpiredAssignmentLease("La lease de la asignación ya expiró")
+
             fence = conn.execute(
                 "SELECT node_id, assignment_epoch FROM instance_fences WHERE instance_id = ?",
                 (str(command.instance_id),),
@@ -380,8 +383,6 @@ class AgentJournal:
             raise InvalidAgentCommand("assignment_epoch debe ser entero positivo")
         if not isinstance(command.lease_expires_at, datetime) or command.lease_expires_at.tzinfo is None or command.lease_expires_at.utcoffset() is None:
             raise InvalidAgentCommand("lease_expires_at debe ser datetime con zona horaria")
-        if command.lease_expires_at <= datetime.now(timezone.utc):
-            raise ExpiredAssignmentLease("La lease de la asignación ya expiró")
         if not isinstance(command.payload, dict):
             raise InvalidAgentCommand("payload debe ser un objeto JSON")
         canonical = {
