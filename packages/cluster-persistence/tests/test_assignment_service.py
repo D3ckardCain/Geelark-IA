@@ -259,6 +259,7 @@ def test_non_finite_cpu_is_rejected_before_database_mutation():
 
 
 def test_failure_after_reservation_rolls_back_every_write():
+    """Un fallo tras crear reservas no debe dejar filas parciales."""
     seed_database()
     with psycopg.connect(DATABASE_URL) as conn:
         conn.execute(
