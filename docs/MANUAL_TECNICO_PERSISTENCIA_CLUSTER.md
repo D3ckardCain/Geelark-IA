@@ -27,7 +27,7 @@ Una migración correcta solo demuestra que el esquema se crea y que algunas rest
 | Tabla | Responsabilidad |
 |---|---|
 | `nodes` | Identidad lógica, estado administrativo, salud y capacidades declaradas. No almacena secretos de autenticación. |
-| `node_resource_capacity` | Capacidad reservable conservadora de cada nodo, márgenes de seguridad y confianza de la medición. |\n| `instances` | Fila autoritativa por instancia; propietario actual, epoch, estado observado/deseado y lease. |
+| `node_resource_capacity` | Capacidad reservable conservadora de cada nodo, márgenes de seguridad y confianza de la medición. |\n| `instances` | Fila autoritativa por instancia; propietario actual, epoch, estado observado/deseado, lease, motor e imagen Android (API/ABI/digest). |
 | `resource_reservations` | CPU, RAM y disco reservados. `held` y `uncertain` bloquean una segunda reserva de esa instancia. |
 | `operations` | Historial de operaciones solicitadas y su resultado saneado. |
 | `idempotency_records` | Clave única por ámbito, hash SHA-256 del payload canónico y respuesta/operación original. |
@@ -41,7 +41,7 @@ La futura capa de dominio debe ejecutar una única transacción para:
 1. Insertar/reservar la clave idempotente; si ya existe, comparar el hash del payload canónico.
 2. Si el hash coincide, devolver la respuesta previamente persistida. Si difiere, responder conflicto.
 3. Bloquear la fila de instancia con `SELECT ... FOR UPDATE`.
-4. Rechazar propietario vigente, estado `unknown/reconciling` o una reserva activa/incierta.
+4. Rechazar propietario vigente y cualquier estado distinto de `pending/stopped`; `unknown/reconciling` bloquean explícitamente la reasignación.
 5. Bloquear y volver a validar la capacidad del nodo candidato.
 6. Incrementar `assignment_epoch` de forma monotónica y asignar el propietario.
 7. Crear reserva, operación, evento de auditoría y evento outbox.
