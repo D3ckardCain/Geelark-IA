@@ -76,11 +76,46 @@ Verificar que el SAN coincide exactamente con la IP de conexión. Transferir al 
 ## 5. Distribuir confianza y restringir red
 
 1. Instalar el certificado público `geelark-agent-ca.crt` en cada agente mediante un canal autenticado.
-2. El agente debe validar cadena, vigencia y SAN del servidor; no desactivar verificación TLS ni aceptar certificados autofirmados arbitrarios.
+2. Usar el cliente `AgentHTTPSClient` del paquete `cluster_agent_transport`: valida cadena y SAN, exige TLS 1.2+, rechaza HTTP, redirects y hosts fuera de la LAN privada. No desactivar la verificación TLS ni aceptar certificados autofirmados arbitrarios.
 3. Permitir en el firewall solo el puerto privado elegido desde las IP de los agentes autorizados.
 4. No configurar NAT/port forwarding, túneles públicos ni DNS público para este listener.
 5. Comprobar que el proceso no escucha en interfaces adicionales.
 6. Registrar la huella SHA-256 del certificado CA y verificarla por un canal independiente.
+
+Ejemplo de uso del cliente HTTPS (reemplazar IP, ruta de CA y placeholders por valores autorizados; nunca poner tokens reales en el repositorio):
+
+```python
+from cluster_agent_transport import AgentHTTPSClient
+
+client = AgentHTTPSClient(
+    base_url="https://192.168.1.10:8443",
+    ca_cert="/etc/geelark/pki/geelark-agent-ca.crt",
+    timeout_seconds=5,
+)
+response = client.request(
+    "POST",
+    "/agent/v1/heartbeat",
+    payload={
+        "schema_version": 1,
+        "agent_version": "0.1.0",
+        "health_state": "healthy",
+        "cpu_load_percent": 10,
+        "memory_total_bytes": 1024,
+        "memory_available_bytes": 512,
+        "storage_available_bytes": 2048,
+    },
+    headers={
+        "Authorization": "Bearer <token-de-ejemplo>",
+        "X-Agent-Nonce": "<uuid-unico>",
+        "X-Agent-Timestamp": "<fecha-ISO-8601-con-zona>",
+        "X-Request-ID": "<uuid-de-solicitud>",
+        "Idempotency-Key": "<clave-unica-de-al-menos-16-caracteres>",
+    },
+)
+print(response.status)
+```
+
+El ejemplo ilustra la interfaz del cliente; no se ejecuta automáticamente ni constituye un agente completo. El runtime del agente todavía debe integrar esta llamada con el journal local y el flujo de reconciliación.
 
 ## 6. Enrolamiento y estado pending
 
@@ -106,7 +141,7 @@ Comprobar la cadena y el SAN con OpenSSL. No imprimir bearer tokens, claves priv
 ## 9. Bloqueos antes de operación real
 
 - Integrar los handlers con la persistencia transaccional y la tabla de outbox.
-- CI ejecuta un handshake TLS real contra un servidor temporal con CA local: el cliente que confía en la CA conecta y el cliente sin esa CA es rechazado. Aún falta integrar la validación TLS/CA en el runtime cliente del agente, que no está implementado.
+- CI ejecuta un handshake TLS real contra un servidor temporal con CA local: el cliente que confía en la CA conecta y el cliente sin esa CA es rechazado. El helper cliente ya valida TLS/CA; sigue pendiente integrarlo en el runtime del agente junto al journal local y la reconciliación.
 - Validar timeouts, concurrencia y el límite de solicitudes en el modelo de despliegue elegido.
 - Revisar autorización por ruta, idempotencia, revocación y recuperación.
 - Revisar el manual con el usuario antes de instalar o habilitar el listener.
