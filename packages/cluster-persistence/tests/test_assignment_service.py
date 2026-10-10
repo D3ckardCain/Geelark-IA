@@ -13,6 +13,7 @@ from geelark_cluster_persistence import (
     AssignmentRequest,
     IdempotencyConflict,
     InvalidAssignmentRequest,
+    NodeNotEligible,
     assign_instance,
 )
 
@@ -55,10 +56,10 @@ def seed_database(*, cpu_capacity=Decimal("2.000"), instance_states=None):
         conn.execute(
             """
             INSERT INTO geelark_control.nodes
-                (node_id, display_name, admin_state, health_state)
+                (node_id, display_name, admin_state, health_state, reported_health_state, last_seen_at)
             VALUES
-                (%s, 'node-a', 'active', 'healthy'),
-                (%s, 'node-b', 'active', 'healthy')
+                (%s, 'node-a', 'active', 'healthy', 'healthy', now()),
+                (%s, 'node-b', 'active', 'healthy', 'healthy', now())
             """,
             (NODE_A, NODE_B),
         )
@@ -126,6 +127,24 @@ def test_assignment_commits_owner_reservation_operation_audit_and_outbox():
         assert conn.execute("SELECT count(*) FROM geelark_control.operations WHERE instance_id = %s", (INSTANCE_A,)).fetchone()[0] == 1
         assert conn.execute("SELECT count(*) FROM geelark_control.assignment_events WHERE instance_id = %s", (INSTANCE_A,)).fetchone()[0] == 1
         assert conn.execute("SELECT count(*) FROM geelark_control.outbox_events WHERE instance_id = %s AND status = 'pending'", (INSTANCE_A,)).fetchone()[0] == 1
+
+
+def test_stale_heartbeat_blocks_assignment_even_if_health_column_still_says_healthy():
+    seed_database()
+    with psycopg.connect(DATABASE_URL) as conn:
+        conn.execute(
+            "UPDATE geelark_control.nodes SET last_seen_at = now() - interval '5 minutes' WHERE node_id = %s",
+            (NODE_A,),
+        )
+        conn.commit()
+
+    with psycopg.connect(DATABASE_URL) as conn:
+        with pytest.raises(NodeNotEligible):
+            assign_instance(conn, make_request())
+
+    with psycopg.connect(DATABASE_URL) as conn:
+        assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM geelark_control.outbox_events").fetchone()[0] == 0
 
 
 def test_same_idempotency_key_and_payload_returns_original_response():
