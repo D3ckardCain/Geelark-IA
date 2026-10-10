@@ -77,9 +77,9 @@ class OperationReceipt:
 class AgentJournal:
     """Journal durable de un solo nodo; usar archivo en disco local, no NFS."""
 
-    _SCHEMA_VERSION = 1
-    _STATUSES = {"accepted", "running", "succeeded", "failed", "unknown"}
-    _TERMINAL_STATUSES = {"succeeded", "failed"}
+    _SCHEMA_VERSION = 2
+    _STATUSES = {"accepted", "running", "succeeded", "rejected", "failed", "unknown"}
+    _TERMINAL_STATUSES = {"succeeded", "rejected", "failed"}
 
     def __init__(self, db_path: str | Path, local_node_id: UUID):
         if str(db_path) == ":memory:":
@@ -138,7 +138,7 @@ class AgentJournal:
                     node_id TEXT NOT NULL,
                     assignment_epoch INTEGER NOT NULL CHECK (assignment_epoch >= 1),
                     payload_sha256 TEXT NOT NULL CHECK (length(payload_sha256) = 64),
-                    status TEXT NOT NULL CHECK (status IN ('accepted', 'running', 'succeeded', 'failed', 'unknown')),
+                    status TEXT NOT NULL CHECK (status IN ('accepted', 'running', 'succeeded', 'rejected', 'failed', 'unknown')),
                     result_json TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
@@ -157,11 +157,76 @@ class AgentJournal:
             version = conn.execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations").fetchone()[0]
             if version > self._SCHEMA_VERSION:
                 raise AgentGuardError("La versión del journal es más nueva que este agente")
-            if version < self._SCHEMA_VERSION:
+            if version == 0:
+                # Un journal nuevo se crea directamente con el esquema más reciente.
                 conn.execute(
-                    "INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)",
-                    (self._SCHEMA_VERSION, self._now()),
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES (1, ?)",
+                    (self._now(),),
                 )
+                conn.execute(
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES (2, ?)",
+                    (self._now(),),
+                )
+            elif version == 1:
+                # SQLite no permite ampliar un CHECK existente con ALTER COLUMN.
+                # Se recrean las dos tablas en una transacción y se conservan los ACK.
+                conn.execute("PRAGMA foreign_keys = OFF")
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    conn.execute(
+                        """
+                        CREATE TABLE operation_receipts_v2 (
+                            operation_id TEXT PRIMARY KEY,
+                            instance_id TEXT NOT NULL,
+                            node_id TEXT NOT NULL,
+                            assignment_epoch INTEGER NOT NULL CHECK (assignment_epoch >= 1),
+                            payload_sha256 TEXT NOT NULL CHECK (length(payload_sha256) = 64),
+                            status TEXT NOT NULL CHECK (status IN ('accepted', 'running', 'succeeded', 'rejected', 'failed', 'unknown')),
+                            result_json TEXT,
+                            created_at TEXT NOT NULL,
+                            updated_at TEXT NOT NULL
+                        )
+                        """
+                    )
+                    conn.execute(
+                        """
+                        INSERT INTO operation_receipts_v2
+                            (operation_id, instance_id, node_id, assignment_epoch,
+                             payload_sha256, status, result_json, created_at, updated_at)
+                        SELECT operation_id, instance_id, node_id, assignment_epoch,
+                               payload_sha256, status, result_json, created_at, updated_at
+                          FROM operation_receipts
+                        """
+                    )
+                    conn.execute(
+                        """
+                        CREATE TABLE synced_receipts_v2 (
+                            operation_id TEXT PRIMARY KEY,
+                            synced_at TEXT NOT NULL,
+                            FOREIGN KEY(operation_id) REFERENCES operation_receipts_v2(operation_id)
+                        )
+                        """
+                    )
+                    conn.execute(
+                        """
+                        INSERT INTO synced_receipts_v2(operation_id, synced_at)
+                        SELECT operation_id, synced_at FROM synced_receipts
+                        """
+                    )
+                    conn.execute("DROP TABLE synced_receipts")
+                    conn.execute("DROP TABLE operation_receipts")
+                    conn.execute("ALTER TABLE operation_receipts_v2 RENAME TO operation_receipts")
+                    conn.execute("ALTER TABLE synced_receipts_v2 RENAME TO synced_receipts")
+                    conn.execute(
+                        "INSERT INTO schema_migrations(version, applied_at) VALUES (2, ?)",
+                        (self._now(),),
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                finally:
+                    conn.execute("PRAGMA foreign_keys = ON")
         finally:
             conn.close()
 
