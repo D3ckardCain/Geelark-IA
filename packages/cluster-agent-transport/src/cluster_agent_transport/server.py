@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import ipaddress
 from pathlib import Path
+
+from .network import is_private_lan_address
 from typing import Any
 
 
@@ -21,7 +23,7 @@ def validate_https_listener(*, host: str, port: int, certfile: str, keyfile: str
     except ValueError as exc:
         raise TransportConfigurationError("El host debe ser una IP literal privada o loopback.") from exc
 
-    if address.is_unspecified or not (address.is_private or address.is_loopback):
+    if address.is_unspecified or not is_private_lan_address(address):
         raise TransportConfigurationError("El listener solo puede enlazarse a una IP privada/loopback.")
     if isinstance(port, bool) or not 1 <= port <= 65535:
         raise TransportConfigurationError("El puerto debe estar entre 1 y 65535.")
