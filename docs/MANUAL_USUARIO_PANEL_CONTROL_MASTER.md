@@ -92,3 +92,8 @@ Para el significado exacto de los estados y campos de telemetría, consulta el [
 ## 13. Comparación funcional con GeeLark
 
 GeeLark ofrece un dashboard para cloud phones Android, gestión por grupos, colaboración/permisos y automatización mediante herramientas/API, según su [página oficial de Cloud Phone](https://www.geelark.com/product/cloud-phone/) y su [documentación pública de API](https://www.geelark.com/features/api/). Este prototipo solo muestra datos ficticios de Workers físicos locales; no ofrece cloud phones, gestión de cuentas/proxies, automatización ni auditoría operativa. No debe afirmarse paridad funcional. El manual técnico contiene la matriz de brechas y los criterios para validar cada capacidad antes de implementarla.
+
+
+## 14. Integración con datos reales: pendiente
+
+La futura conexión de solo lectura está definida en [ADR-005](decisiones/ADR-005-LECTURA-ESTADO-CLUSTER.md). No se deben configurar URLs, credenciales ni agentes reales desde esta maqueta. La integración espera la revisión del transporte/autorización, la fuente de verdad del controlador y la identidad del operador. Hasta entonces, el panel sigue siendo una demostración offline con datos ficticios.
