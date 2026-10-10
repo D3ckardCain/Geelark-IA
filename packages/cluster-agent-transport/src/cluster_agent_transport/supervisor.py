@@ -193,6 +193,7 @@ class AgentSupervisor:
                 self._offline = True
                 self._report_error("HEARTBEAT_FAILED")
             else:
+                was_offline = self._offline
                 if self._offline:
                     # El heartbeat exitoso confirma conectividad; no conservar un backoff
                     # de reconciliación aplicado durante la desconexión anterior.
@@ -205,9 +206,14 @@ class AgentSupervisor:
                     except Exception:
                         self._report_error("RECEIPT_SYNC_WAKE_FAILED")
                 if self.reconcile_inventory is not None:
+                    was_ready = self._reconciliation_ready.is_set()
                     self._reconciliation_ready.set()
-                    if self._reconciliation_requested.is_set():
-                        # El worker de reconciliación está separado; no bloquea heartbeat/capacidades.
+                    if (
+                        self._reconciliation_requested.is_set()
+                        and (not was_ready or was_offline)
+                    ):
+                        # Despertar solo al estar listo o al reconectar; no romper el backoff
+                        # cada vez que llega un heartbeat saludable.
                         self._reconciliation_wake.set()
 
             try:
