@@ -61,6 +61,7 @@ class AgentCommand:
     assignment_epoch: int
     lease_expires_at: datetime
     payload: dict[str, Any]
+    task_id: UUID | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,12 +73,13 @@ class OperationReceipt:
     status: str
     result: dict[str, Any] | None
     duplicate: bool = False
+    task_id: UUID | None = None
 
 
 class AgentJournal:
     """Journal durable de un solo nodo; usar archivo en disco local, no NFS."""
 
-    _SCHEMA_VERSION = 2
+    _SCHEMA_VERSION = 3
     _STATUSES = {"accepted", "running", "succeeded", "rejected", "failed", "unknown"}
     _TERMINAL_STATUSES = {"succeeded", "rejected", "failed"}
 
@@ -134,6 +136,7 @@ class AgentJournal:
                 """
                 CREATE TABLE IF NOT EXISTS operation_receipts (
                     operation_id TEXT PRIMARY KEY,
+                    task_id TEXT,
                     instance_id TEXT NOT NULL,
                     node_id TEXT NOT NULL,
                     assignment_epoch INTEGER NOT NULL CHECK (assignment_epoch >= 1),
@@ -165,6 +168,10 @@ class AgentJournal:
                 )
                 conn.execute(
                     "INSERT INTO schema_migrations(version, applied_at) VALUES (2, ?)",
+                    (self._now(),),
+                )
+                conn.execute(
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES (3, ?)",
                     (self._now(),),
                 )
             elif version == 1:
@@ -222,11 +229,18 @@ class AgentJournal:
                         (self._now(),),
                     )
                     conn.commit()
+                    version = 2
                 except Exception:
                     conn.rollback()
                     raise
                 finally:
                     conn.execute("PRAGMA foreign_keys = ON")
+            if version == 2:
+                conn.execute("ALTER TABLE operation_receipts ADD COLUMN task_id TEXT")
+                conn.execute(
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES (3, ?)",
+                    (self._now(),),
+                )
         finally:
             conn.close()
 
