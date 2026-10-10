@@ -233,11 +233,19 @@ class AgentJournal:
         result: dict[str, Any],
     ) -> OperationReceipt:
         """Guarda resultado solo si el epoch y propietario siguen vigentes."""
+        if not all(isinstance(value, UUID) for value in (operation_id, instance_id, node_id)):
+            raise InvalidAgentCommand("IDs de resultado deben ser UUID")
+        if not isinstance(assignment_epoch, int) or isinstance(assignment_epoch, bool) or assignment_epoch < 1:
+            raise InvalidAgentCommand("assignment_epoch de resultado debe ser entero positivo")
+        if node_id != self.local_node_id:
+            raise InvalidAgentCommand("El resultado no está dirigido a este nodo")
         if not isinstance(result, dict):
             raise InvalidAgentCommand("result debe ser un objeto JSON")
-        if status not in {"running", "succeeded", "failed", "unknown"}:
+        if not isinstance(status, str) or status not in {"running", "succeeded", "failed", "unknown"}:
             raise InvalidAgentCommand("status de resultado no válido")
         result_json = self._canonical_json(result)
+        if len(result_json.encode("utf-8")) > 1_000_000:
+            raise InvalidAgentCommand("El resultado supera 1 MB")
         now = self._now()
         conn = self._connect()
         try:
