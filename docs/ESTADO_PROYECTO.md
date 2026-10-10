@@ -329,3 +329,10 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 - `AgentTransportRuntime.reconcile_inventory` usa un UUID por intento; el supervisor lo conserva para reintentos y lo renueva para una reconciliación nueva. Un worker separado evita bloquear heartbeat/capacidades.
 - Manuales: [MANUAL_RECONCILIACION_AGENTES.md](MANUAL_RECONCILIACION_AGENTES.md) y [MANUAL_TECNICO_RECONCILIACION_AGENTES.md](MANUAL_TECNICO_RECONCILIACION_AGENTES.md).
 - Límite: no se ha probado en hardware físico; decisiones manuales de conflictos/unknown y el entry point instalable siguen pendientes.
+
+
+### Control de coste de CI (2026-10-10)
+
+- El repositorio es privado y GitHub Actions consume cuota mensual en runners alojados. No tenemos visibilidad desde este flujo sobre los minutos restantes.
+- Issue [#63](https://github.com/D3ckardCain/Geelark-IA/issues/63) registra la optimización pendiente: cancelar ejecuciones obsoletas por PR, limitar rutas y evitar disparar varios workflows por cada commit.
+- Hasta revisar la cuota y optimizar concurrencia, evitar pushes repetidos que disparen CI. El código ejecutable de PR #61 ya pasó los tres workflows en el commit `eb5e71e8b4848f6761b4da15507d070bcc9dfded`; la actualización posterior de este estado es solo documentación.
