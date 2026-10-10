@@ -11,17 +11,23 @@ PENDING = AgentPrincipal("11111111-1111-4111-8111-111111111111", "22222222-2222-
 ACTIVE = AgentPrincipal("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "active", "active")
 
 
-def make_client(principal):
+def make_client(principal, *, base_url="https://testserver"):
     calls = []
+
     def authenticate(secret):
         assert secret == "a" * 64
         return principal
+
     def nonce_guard(**kwargs):
         assert kwargs["node_id"].int != 0
         assert kwargs["timestamp"].tzinfo is not None
-    handlers = {op: (lambda *, principal, payload=None, op=op: calls.append(op.value) or {"ok": True}) for op in Operation}
+
+    handlers = {
+        op: (lambda *, principal, payload=None, op=op: calls.append(op.value) or {"ok": True})
+        for op in Operation
+    }
     app = create_agent_app(authenticate=authenticate, consume_nonce=nonce_guard, handlers=handlers)
-    return TestClient(app), calls
+    return TestClient(app, base_url=base_url), calls
 
 
 def headers():
@@ -70,6 +76,12 @@ def test_oversized_body_rejected():
     client, _ = make_client(ACTIVE)
     response = client.post(
         "/agent/v1/heartbeat", headers=headers(),
-        content=b"x" * (1_048_577), headers_override=None,
+        content=b"x" * (1_048_577),
     )
     assert response.status_code == 413
+
+
+def test_plain_http_is_rejected_before_authentication():
+    client, _ = make_client(PENDING, base_url="http://testserver")
+    response = client.get("/agent/v1/status", headers={"Authorization": "Bearer " + "a" * 64})
+    assert response.status_code == 426
