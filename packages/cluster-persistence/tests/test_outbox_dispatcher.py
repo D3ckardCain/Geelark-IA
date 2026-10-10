@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 import psycopg
 import pytest
+from psycopg.types.json import Jsonb
 
 from geelark_cluster_persistence import (
     claim_outbox_batch,
@@ -78,7 +79,7 @@ def seed_event():
                  operation_id, event_type, payload)
             VALUES (%s, %s, %s, 1, %s, 'assignment.requested', %s)
             """,
-            (event_id, f"assignment:{INSTANCE_ID}:1", INSTANCE_ID, OPERATION_ID, psycopg.types.json.Jsonb({"operation_id": str(OPERATION_ID)})),
+            (event_id, f"assignment:{INSTANCE_ID}:1", INSTANCE_ID, OPERATION_ID, Jsonb({"operation_id": str(OPERATION_ID)})),
         )
         conn.commit()
     return event_id
