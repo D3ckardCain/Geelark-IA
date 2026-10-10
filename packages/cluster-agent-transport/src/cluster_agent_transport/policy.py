@@ -9,12 +9,6 @@ from dataclasses import dataclass
 from enum import Enum
 
 
-class NodeState(str, Enum):
-    PENDING = "pending"
-    ACTIVE = "active"
-    REVOKED = "revoked"
-
-
 class Operation(str, Enum):
     HEARTBEAT = "heartbeat"
     CAPABILITIES = "capabilities"
@@ -54,20 +48,14 @@ _ACTIVE_ALLOWED = frozenset({
 
 
 def authorize_operation(principal: AgentPrincipal, operation: Operation) -> None:
-    """Falla cerrada; no confía en el cuerpo, query string ni cabeceras proxy."""
-    if principal.credential_status != "active" and not (
-        principal.admin_state == "pending" and principal.credential_status == "pending"
-    ):
-        raise PermissionDenied("Credencial o estado administrativo no autorizado.")
-
-    if principal.admin_state == "pending":
+    """Falla cerrada; exige combinaciones coherentes de estado/credencial."""
+    pair = (principal.admin_state, principal.credential_status)
+    if pair == ("pending", "pending"):
         if operation not in _PENDING_ALLOWED:
             raise PermissionDenied("Nodo pendiente: operación permitida solo para telemetría/consulta.")
         return
-
-    if principal.admin_state == "active" and principal.credential_status == "active":
+    if pair == ("active", "active"):
         if operation not in _ACTIVE_ALLOWED:
             raise PermissionDenied("Operación no autorizada.")
         return
-
-    raise PermissionDenied("Nodo no autorizado.")
+    raise PermissionDenied("Credencial o estado administrativo no autorizado.")
