@@ -59,3 +59,18 @@ Un fallo de capacidades no debe impedir el siguiente heartbeat. Un fallo del avi
 ## Pruebas
 
 La suite test_supervisor.py cubre arranque, heartbeat/capacidades, recuperación, fallo del callback, error de notificación de reconexión, fallo de capacidades, validación de intervalo y apagado. El resultado de CI debe asociarse siempre al SHA exacto; una prueba en CI no demuestra que el módulo esté instalado en PCs físicas.
+
+
+## Proveedor de credenciales systemd (opcional)
+
+El paquete exporta CredentialProvider (protocolo) y SystemdCredentialProvider (adaptador Linux/systemd). El adaptador lee un archivo entregado por systemd en CREDENTIALS_DIRECTORY; no guarda secretos, no usa red y no implementa cifrado propio. Rechaza directorios/archivos con permisos de grupo/otros, symlinks, archivos no regulares, tokens no ASCII o demasiado grandes.
+
+Cuando se apruebe Linux/systemd, la integración prevista es:
+1. Crear un token desde el flujo de enrolamiento autorizado; no copiarlo a un ticket ni a un repositorio.
+2. Usar systemd-creds para crear un archivo cifrado, con el nombre de credencial esperado, y guardar el artefacto en una ruta protegida del host.
+3. Configurar el servicio con LoadCredentialEncrypted=geelark-agent-token:/ruta/protegida/geelark-agent-token.cred.
+4. En el proceso, crear SystemdCredentialProvider() y llamar load_bearer_token(); el runtime usa el valor en memoria.
+5. Rotar/revocar el token por el controlador y reiniciar el servicio para cargar la nueva credencial.
+6. No imprimir el token ni conservar copias de texto plano. Verificar el soporte de systemd-creds, el mecanismo de clave de host/TPM y recuperación antes de usarlo.
+
+Esta secuencia es documentación de diseño, no un procedimiento ya ejecutado. No hay un unit file ni un instalador y no se ha elegido definitivamente el sistema operativo. No activar este adaptador hasta aprobar la decisión de arquitectura.
