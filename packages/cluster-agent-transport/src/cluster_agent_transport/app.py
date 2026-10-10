@@ -127,6 +127,7 @@ def create_agent_app(
     authenticate: Callable[[str], AgentPrincipal],
     consume_nonce: Callable[..., None],
     handlers: dict[Operation, Callable[..., Any]],
+    idempotency_runner: Callable[..., Any] | None = None,
     rate_limiter: InMemoryRateLimiter | None = None,
     max_body_bytes: int = 1_048_576,
 ) -> FastAPI:
@@ -187,6 +188,31 @@ def create_agent_app(
         except Exception:
             raise HTTPException(status_code=500, detail={"code": "OPERATION_FAILED"}) from None
 
+    def invoke_write(operation: Operation, principal: AgentPrincipal, payload: Any, idempotency_key: str | None) -> Any:
+        if not idempotency_key or not 16 <= len(idempotency_key) <= 200:
+            raise HTTPException(status_code=400, detail={"code": "INVALID_IDEMPOTENCY_KEY"})
+        if any(not (ch.isalnum() or ch in "._:-") for ch in idempotency_key):
+            raise HTTPException(status_code=400, detail={"code": "INVALID_IDEMPOTENCY_KEY"})
+        if idempotency_runner is None:
+            raise HTTPException(status_code=503, detail={"code": "IDEMPOTENCY_NOT_CONFIGURED"})
+        handler = handlers.get(operation)
+        if handler is None:
+            raise HTTPException(status_code=503, detail={"code": "OPERATION_NOT_CONFIGURED"})
+        from .idempotency import IdempotencyConflict, IdempotencyInProgress
+        try:
+            return idempotency_runner(
+                principal=principal, operation=operation.value, key=idempotency_key, payload=payload,
+                execute=lambda conn: handler(conn=conn, principal=principal, payload=payload),
+            )
+        except IdempotencyConflict:
+            raise HTTPException(status_code=409, detail={"code": "IDEMPOTENCY_CONFLICT"}) from None
+        except IdempotencyInProgress:
+            raise HTTPException(status_code=409, detail={"code": "IDEMPOTENCY_IN_PROGRESS"}) from None
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(status_code=500, detail={"code": "OPERATION_FAILED"}) from None
+
     @app.post("/agent/v1/heartbeat")
     def heartbeat(
         payload: HeartbeatPayload,
@@ -194,11 +220,12 @@ def create_agent_app(
         x_agent_nonce: str | None = Header(default=None),
         x_agent_timestamp: str | None = Header(default=None),
         x_request_id: str | None = Header(default=None),
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     ) -> Any:
         principal = authorize(Operation.HEARTBEAT, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
         if payload.memory_available_bytes > payload.memory_total_bytes:
             raise HTTPException(status_code=422, detail={"code": "INVALID_MEMORY_METRICS"})
-        return invoke(Operation.HEARTBEAT, principal, payload.model_dump())
+        return invoke_write(Operation.HEARTBEAT, principal, payload.model_dump(), idempotency_key)
 
     @app.put("/agent/v1/capabilities")
     def capabilities(
@@ -207,9 +234,10 @@ def create_agent_app(
         x_agent_nonce: str | None = Header(default=None),
         x_agent_timestamp: str | None = Header(default=None),
         x_request_id: str | None = Header(default=None),
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     ) -> Any:
         principal = authorize(Operation.CAPABILITIES, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
-        return invoke(Operation.CAPABILITIES, principal, payload.model_dump())
+        return invoke_write(Operation.CAPABILITIES, principal, payload.model_dump(), idempotency_key)
 
     @app.get("/agent/v1/status")
     def status(
@@ -229,9 +257,10 @@ def create_agent_app(
             x_agent_nonce: str | None = Header(default=None),
             x_agent_timestamp: str | None = Header(default=None),
             x_request_id: str | None = Header(default=None),
+            idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
         ) -> Any:
             principal = authorize(operation, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
-            return invoke(operation, principal, {"task_id": str(task_id), **payload.model_dump()})
+            return invoke_write(operation, principal, {"task_id": str(task_id), **payload.model_dump()}, idempotency_key)
         endpoint.__name__ = f"task_{operation.value}"
         return endpoint
 
@@ -246,8 +275,9 @@ def create_agent_app(
         x_agent_nonce: str | None = Header(default=None),
         x_agent_timestamp: str | None = Header(default=None),
         x_request_id: str | None = Header(default=None),
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     ) -> Any:
         principal = authorize(Operation.RECONCILE, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
-        return invoke(Operation.RECONCILE, principal, payload.model_dump())
+        return invoke_write(Operation.RECONCILE, principal, payload.model_dump(), idempotency_key)
 
     return app
