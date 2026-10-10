@@ -13,6 +13,7 @@ from uuid import uuid4
 
 import psycopg
 import pytest
+from psycopg.types.json import Jsonb
 
 from geelark_cluster_agent_guard import AgentCommand, AgentJournal
 from cluster_agent_transport import (
@@ -170,7 +171,7 @@ def test_sqlite_receipt_reaches_postgres_over_real_https_and_recovers_lost_ack(t
                 """,
                 (
                     task_id, operation_id, node_id, instance_id,
-                    psycopg.types.json.Jsonb({"desired_state": "running"}),
+                    Jsonb({"desired_state": "running"}),
                     now + timedelta(minutes=2), now, now,
                 ),
             )
