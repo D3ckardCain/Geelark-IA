@@ -236,6 +236,7 @@ def test_sqlite_receipt_reaches_postgres_over_real_https_and_recovers_lost_ack(t
 
         # Tras recuperar el ACK, el mismo canal HTTPS puede reconciliar el inventario
         # sin modificar estados terminales ni convertir incertidumbre automáticamente.
+        reconciliation_id = uuid4()
         reconciliation = runtime.reconcile_inventory([{
             "task_id": str(task_id),
             "operation_id": str(operation_id),
@@ -243,7 +244,7 @@ def test_sqlite_receipt_reaches_postgres_over_real_https_and_recovers_lost_ack(t
             "assignment_epoch": 3,
             "local_state": "succeeded",
             "result_summary": {"exit_code": 0},
-        }])
+        }], reconciliation_id=reconciliation_id)
         assert reconciliation.status == 200
         reconciliation_body = json.loads(reconciliation.body)
         assert reconciliation_body["mutations_applied"] is False
@@ -255,7 +256,7 @@ def test_sqlite_receipt_reaches_postgres_over_real_https_and_recovers_lost_ack(t
             "assignment_epoch": 3,
             "local_state": "succeeded",
             "result_summary": {"exit_code": 0},
-        }])
+        }], reconciliation_id=reconciliation_id)
         retry_body = json.loads(reconciliation_retry.body)
         assert retry_body["report_id"] == reconciliation_body["report_id"]
 
