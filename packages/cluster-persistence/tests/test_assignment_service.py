@@ -102,6 +102,8 @@ def make_request(*, instance_id=INSTANCE_A, node_id=NODE_A, key=None, cpu=1, mem
         lease_expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
         engine_name="test-engine",
         engine_version="0.1",
+        android_api_level=35,
+        android_abi="x86_64",
         image_digest="sha256:" + "a" * 64,
     )
 
@@ -300,3 +302,15 @@ def test_failure_after_reservation_rolls_back_every_write():
         assert conn.execute("SELECT count(*) FROM geelark_control.assignment_events").fetchone()[0] == 0
         assert conn.execute("SELECT count(*) FROM geelark_control.outbox_events").fetchone()[0] == 0
         assert conn.execute("SELECT count(*) FROM geelark_control.idempotency_records").fetchone()[0] == 0
+
+
+def test_active_observed_state_without_owner_fails_closed():
+    seed_database(instance_states={
+        INSTANCE_A: ("running", None, 0, None),
+        INSTANCE_B: ("stopped", None, 0, None),
+    })
+    with psycopg.connect(DATABASE_URL) as conn:
+        with pytest.raises(InstanceStateBlocked):
+            assign_instance(conn, make_request())
+    with psycopg.connect(DATABASE_URL) as conn:
+        assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
