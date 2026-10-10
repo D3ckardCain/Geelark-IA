@@ -67,7 +67,7 @@ BEGIN
     END;
 END $$;
 
-DO $
+DO $$
 DECLARE
     current_epoch bigint;
     observed text;
