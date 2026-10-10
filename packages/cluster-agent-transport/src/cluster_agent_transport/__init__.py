@@ -11,7 +11,7 @@ from .idempotency import (
 )
 from .limits import InMemoryRateLimiter
 from .policy import AgentPrincipal, Operation, PermissionDenied, authorize_operation
-from .replay import ReplayRejected, consume_request_nonce
+from .replay import ReplayRejected, consume_request_nonce, make_database_nonce_consumer
 from .server import TransportConfigurationError, make_uvicorn_config, validate_https_listener
 
 __all__ = [
@@ -19,6 +19,6 @@ __all__ = [
     "InMemoryRateLimiter", "InvalidAgentCredential", "Operation", "PermissionDenied",
     "ReplayRejected", "TransportConfigurationError", "authorize_operation",
     "consume_request_nonce", "create_agent_app", "execute_idempotent",
-    "make_database_authenticator", "make_database_idempotency_runner",
+    "make_database_authenticator", "make_database_idempotency_runner", "make_database_nonce_consumer",
     "make_uvicorn_config", "payload_digest", "validate_https_listener",
 ]
