@@ -154,7 +154,7 @@ class AgentTransportRuntime:
         response = self._request(
             "POST", f"/agent/v1/tasks/{operation_id}/{route}", payload, idempotency_key=key
         )
-        if state in {"succeeded", "failed"}:
+        if state in {"running", "succeeded", "failed"}:
             mark_synced = getattr(self.journal, "mark_receipt_synced", None)
             if callable(mark_synced):
                 mark_synced(operation_id)
