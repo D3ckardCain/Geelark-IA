@@ -125,9 +125,11 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
                     (scope, idempotency_key, payload_sha256)
                 VALUES (%s, %s, %s)
                 ON CONFLICT (scope, idempotency_key) DO NOTHING
+                RETURNING 1
                 """,
                 (request.scope, request.idempotency_key, payload_sha256),
             )
+            inserted_this_transaction = cur.fetchone() is not None
             cur.execute(
                 """
                 SELECT payload_sha256, operation_id, response_snapshot
@@ -147,28 +149,8 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
                 if stored_response is None:
                     raise IdempotencyRecordIncomplete("La clave existe sin respuesta persistida")
                 return dict(stored_response)
-            # A null operation_id is valid only for the row inserted by this transaction.
-            # A pre-existing incomplete row must not be silently claimed.
-            cur.execute(
-                """
-                SELECT created_at
-                  FROM geelark_control.idempotency_records
-                 WHERE scope = %s AND idempotency_key = %s
-                """,
-                (request.scope, request.idempotency_key),
-            )
-            # If the row was inserted earlier and committed incomplete, fail closed.
-            # PostgreSQL's transaction-local xmin distinguishes the inserted row.
-            cur.execute(
-                """
-                SELECT xmin = txid_current()::text::xid
-                  FROM geelark_control.idempotency_records
-                 WHERE scope = %s AND idempotency_key = %s
-                """,
-                (request.scope, request.idempotency_key),
-            )
-            inserted_in_this_transaction = cur.fetchone()[0]
-            if not inserted_in_this_transaction:
+            # An incomplete pre-existing record must fail closed.
+            if not inserted_this_transaction:
                 raise IdempotencyRecordIncomplete("La clave idempotente quedó incompleta; requiere reconciliación")
 
             cur.execute(
