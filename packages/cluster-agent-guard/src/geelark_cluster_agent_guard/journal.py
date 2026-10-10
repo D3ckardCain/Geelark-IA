@@ -330,6 +330,9 @@ class AgentJournal:
                 """,
                 (status, result_json, now, str(operation_id)),
             )
+            # Cada nueva versión de progreso/resultado debe volver a la cola,
+            # incluso si una versión anterior ya recibió ACK.
+            conn.execute("DELETE FROM synced_receipts WHERE operation_id = ?", (str(operation_id),))
             conn.commit()
             return OperationReceipt(
                 operation_id=operation_id,
@@ -389,7 +392,7 @@ class AgentJournal:
             conn.close()
 
     def mark_receipt_synced(self, operation_id: UUID) -> None:
-        """Marca recibo terminal como sincronizado tras ACK 2xx del controlador."""
+        """Marca progreso/resultado como sincronizado tras ACK 2xx del controlador."""
         conn = self._connect()
         try:
             conn.execute("BEGIN IMMEDIATE")
@@ -399,8 +402,8 @@ class AgentJournal:
             ).fetchone()
             if row is None or row["node_id"] != str(self.local_node_id):
                 raise UnknownOperation("El recibo no existe en este nodo")
-            if row["status"] not in self._TERMINAL_STATUSES:
-                raise InvalidAgentCommand("Solo un resultado terminal puede marcarse sincronizado")
+            if row["status"] not in self._TERMINAL_STATUSES | {"running"}:
+                raise InvalidAgentCommand("Solo progreso o resultado puede marcarse sincronizado")
             conn.execute(
                 """
                 INSERT INTO synced_receipts(operation_id, synced_at)
