@@ -47,6 +47,8 @@ def test_factory_wires_tls_runtime_receipt_lifecycle_and_supervisor_without_star
         request_timeout_seconds=2,
         receipt_batch_size=7,
         heartbeat_interval_seconds=0.5,
+        reconcile_inventory=lambda: [],
+        on_reconciliation=lambda _response: None,
     )
 
     assert provider.calls == 1
@@ -59,6 +61,8 @@ def test_factory_wires_tls_runtime_receipt_lifecycle_and_supervisor_without_star
     assert components.receipt_lifecycle.batch_size == 7
     assert components.supervisor.runtime is components.runtime
     assert components.supervisor.receipt_lifecycle is components.receipt_lifecycle
+    assert components.supervisor.reconcile_inventory is not None
+    assert components.supervisor.on_reconciliation is not None
     assert not components.supervisor.running
     assert not components.receipt_lifecycle.running
 
