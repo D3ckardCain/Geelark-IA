@@ -42,10 +42,10 @@ El handler no cambia task.status, operation.status, instance.owner_node_id, assi
 
 ## Cliente y supervisor
 
-AgentTransportRuntime.reconcile_inventory(inventory) envía el payload con HTTPS y clave idempotente estable. AgentSupervisor acepta un proveedor de inventario opcional; lo invoca en el primer heartbeat exitoso y al recuperar conectividad, entrega el AgentResponse a on_reconciliation y aplica una espera de reintento de hasta el intervalo configurado si falla. El callback debe interpretar las decisiones, no ejecutar shell/ADB ni convertir estados automáticamente.
+AgentTransportRuntime.reconcile_inventory(inventory) envía el payload con HTTPS y clave idempotente estable. AgentSupervisor acepta un proveedor de inventario opcional y ejecuta la reconciliación en un worker separado, sin bloquear heartbeat/capacidades. Lo invoca tras el primer heartbeat exitoso y al recuperar conectividad, entrega el AgentResponse a on_reconciliation y aplica una espera de reintento si falla. Conserva el UUID por intento y lo renueva para una solicitud posterior. El callback debe interpretar las decisiones, no ejecutar shell/ADB ni convertir estados automáticamente.
 
 La fábrica build_agent_components permite inyectar el proveedor y el callback. El proceso instalable todavía debe construir el inventario desde el journal real y configurar el callback de manera segura.
 
 ## Límites de validación
 
-La prueba de integración existente cubre TLS real en loopback, journal SQLite, resultados PostgreSQL y pérdida de ACK. La reconciliación se incorpora a esa misma prueba para verificar ALREADY_CONFIRMED. CI PostgreSQL cubre decisiones conservadoras y auditoría. Esto no prueba todavía reinicio del servicio real, inventario de un motor Android, recuperación manual ni despliegue físico.
+La prueba de integración existente cubre TLS real en loopback, journal SQLite, resultados PostgreSQL y pérdida de ACK. La reconciliación se incorpora a esa misma prueba para verificar ALREADY_CONFIRMED y que el reintento con el mismo reconciliation_id no crea un segundo informe. CI PostgreSQL cubre decisiones conservadoras y auditoría. Esto no prueba todavía reinicio del servicio real, inventario de un motor Android, recuperación manual ni despliegue físico.
