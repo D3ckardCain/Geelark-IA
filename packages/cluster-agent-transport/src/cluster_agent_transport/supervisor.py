@@ -143,16 +143,18 @@ class AgentNodeSupervisor:
         """Apagado cooperativo; False significa que algún hilo agotó el timeout."""
         if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout < 0:
             raise ValueError("timeout debe ser un número finito no negativo")
+        deadline = time.monotonic() + float(timeout)
         self._stop.set()
         self._wake.set()
         thread = self._thread
         supervisor_stopped = True
         if thread is not None:
-            thread.join(timeout=float(timeout))
+            thread.join(timeout=max(0.0, deadline - time.monotonic()))
             supervisor_stopped = not thread.is_alive()
         # Solicitar siempre el apagado del sincronizador aunque la telemetría agote
-        # su timeout; no dejar un segundo hilo vivo por salir temprano.
-        sync_stopped = bool(self.receipt_sync.stop(timeout=float(timeout)))
+        # su timeout; ambos hilos comparten un único presupuesto de espera.
+        remaining = max(0.0, deadline - time.monotonic())
+        sync_stopped = bool(self.receipt_sync.stop(timeout=remaining))
         return supervisor_stopped and sync_stopped
 
     def _report(self, code: str) -> None:
