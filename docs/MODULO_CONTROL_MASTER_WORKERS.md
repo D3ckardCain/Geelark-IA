@@ -42,7 +42,7 @@ La PC-MASTER alojará el plano de control de GeeLark-IA. Desde una sola interfaz
 - `operational`, `degraded`, `not-installed`, `unknown`.
 - Debe incluir versión, timestamp de observación, versión de contrato, fuente y motivo de error seguro.
 - Nunca asumir que un módulo funciona solo porque aparece en el inventario.
-- Nunca tratar datos antiguos como salud actual.
+- Nunca tratar datos antiguos como salud actual; el contrato v1 rechaza `healthy` cuando la frescura es `stale`, `missing` o `unknown`.
 
 ### Puertas de validación independientes
 - CI automatizada.

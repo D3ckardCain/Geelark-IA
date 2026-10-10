@@ -86,7 +86,7 @@ Este manual describe el prototipo visual. Antes de considerarlo módulo operativ
 
 ## 12. Contrato técnico de estado v1
 
-Para el significado exacto de los estados y campos de telemetría, consulta el [contrato Master/Worker v1](contracts/CONTRATO_ESTADO_MASTER_WORKER_V1.md), su [esquema JSON](contracts/master-worker-status-v1.schema.json) y el [ejemplo ficticio](contracts/examples/master-worker-status-v1.example.json). El contrato está diseñado, pero aún no alimenta la interfaz ni una API operativa.
+Para el significado exacto de los estados y campos de telemetría, consulta el [contrato Master/Worker v1](contracts/CONTRATO_ESTADO_MASTER_WORKER_V1.md), su [esquema JSON](contracts/master-worker-status-v1.schema.json) y el [ejemplo ficticio](contracts/examples/master-worker-status-v1.example.json). El esquema también impide declarar `healthy` cuando la frescura es `stale/missing/unknown` o no hay heartbeat. El contrato está diseñado, pero aún no alimenta la interfaz ni una API operativa.
 
 
 ## 13. Comparación funcional con GeeLark
