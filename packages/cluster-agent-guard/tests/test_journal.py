@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from dataclasses import replace
 import os
+import sqlite3
 import stat
 from uuid import UUID, uuid4
 
@@ -281,3 +282,84 @@ def test_synced_receipt_ack_survives_journal_reopen(tmp_path):
     reopened = AgentJournal(path, LOCAL_NODE)
     reopened.initialize()
     assert reopened.list_pending_receipts(limit=100) == []
+
+
+
+def test_rejected_is_terminal_and_can_be_acknowledged(tmp_path):
+    journal = AgentJournal(tmp_path / "journal.sqlite3", LOCAL_NODE)
+    journal.initialize()
+    cmd = command()
+    journal.accept_command(cmd)
+    rejected = journal.record_result(
+        operation_id=cmd.operation_id,
+        instance_id=cmd.instance_id,
+        node_id=cmd.node_id,
+        assignment_epoch=cmd.assignment_epoch,
+        status="rejected",
+        result={"error_code": "CAPABILITY_MISSING"},
+    )
+    assert rejected.status == "rejected"
+    journal.mark_receipt_synced(cmd.operation_id)
+    assert journal.list_pending_receipts(limit=10) == []
+    with pytest.raises(OperationResultConflict):
+        journal.record_result(
+            operation_id=cmd.operation_id,
+            instance_id=cmd.instance_id,
+            node_id=cmd.node_id,
+            assignment_epoch=cmd.assignment_epoch,
+            status="succeeded",
+            result={"ok": True},
+        )
+
+
+def test_v1_journal_migrates_to_v2_and_preserves_synced_ack(tmp_path):
+    path = tmp_path / "legacy-v1.sqlite3"
+    operation_id = "66666666-6666-4666-8666-666666666661"
+    instance_id = str(INSTANCE)
+    node_id = str(LOCAL_NODE)
+    conn = sqlite3.connect(path)
+    conn.executescript(
+        """
+        CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
+        INSERT INTO schema_migrations(version, applied_at) VALUES (1, '2026-01-01T00:00:00+00:00');
+        CREATE TABLE instance_fences (
+            instance_id TEXT PRIMARY KEY, node_id TEXT NOT NULL,
+            assignment_epoch INTEGER NOT NULL CHECK (assignment_epoch >= 1), updated_at TEXT NOT NULL
+        );
+        CREATE TABLE operation_receipts (
+            operation_id TEXT PRIMARY KEY, instance_id TEXT NOT NULL, node_id TEXT NOT NULL,
+            assignment_epoch INTEGER NOT NULL CHECK (assignment_epoch >= 1),
+            payload_sha256 TEXT NOT NULL CHECK (length(payload_sha256) = 64),
+            status TEXT NOT NULL CHECK (status IN ('accepted', 'running', 'succeeded', 'failed', 'unknown')),
+            result_json TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+        );
+        CREATE TABLE synced_receipts (
+            operation_id TEXT PRIMARY KEY, synced_at TEXT NOT NULL,
+            FOREIGN KEY(operation_id) REFERENCES operation_receipts(operation_id)
+        );
+        """
+    )
+    conn.execute(
+        "INSERT INTO operation_receipts VALUES (?, ?, ?, 1, ?, 'succeeded', ?, ?, ?)",
+        (
+            operation_id, instance_id, node_id, "a" * 64, '{"ok":true}',
+            "2026-01-01T00:00:00+00:00", "2026-01-01T00:00:01+00:00",
+        ),
+    )
+    conn.execute("INSERT INTO synced_receipts VALUES (?, ?)", (operation_id, "2026-01-01T00:00:02+00:00"))
+    conn.commit()
+    conn.close()
+
+    journal = AgentJournal(path, LOCAL_NODE)
+    journal.initialize()
+    conn = sqlite3.connect(path)
+    version = conn.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0]
+    receipt_sql = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='operation_receipts'"
+    ).fetchone()[0]
+    synced_count = conn.execute("SELECT COUNT(*) FROM synced_receipts").fetchone()[0]
+    conn.close()
+    assert version == 2
+    assert "'rejected'" in receipt_sql
+    assert synced_count == 1
+    assert journal.get_receipt(UUID(operation_id)).status == "succeeded"
