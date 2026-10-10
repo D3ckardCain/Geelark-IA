@@ -6,8 +6,9 @@ que un despliegue accidental detrás de HTTP acepte credenciales bearer.
 from __future__ import annotations
 
 from datetime import datetime
+import json
 import re
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 from uuid import UUID
 
 from fastapi import FastAPI, Header, HTTPException
@@ -54,6 +55,41 @@ class TaskMessage(BaseModel):
 class TaskClaimPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
     schema_version: int = Field(ge=1, le=1)
+
+
+class ReconcileItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    task_id: UUID
+    operation_id: UUID
+    instance_id: UUID
+    assignment_epoch: int = Field(ge=1, le=2**63 - 1)
+    local_state: Literal["accepted", "running", "succeeded", "failed", "unknown"]
+    result_summary: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("result_summary")
+    @classmethod
+    def validate_result_summary(cls, value: dict[str, Any]) -> dict[str, Any]:
+        try:
+            encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+        except (TypeError, ValueError):
+            raise ValueError("result_summary debe ser JSON válido.") from None
+        if len(encoded) > 65_536:
+            raise ValueError("result_summary no puede superar 64 KiB.")
+        return value
+
+
+class ReconcilePayload(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    schema_version: int = Field(ge=1, le=1)
+    inventory: list[ReconcileItem] = Field(max_length=100)
+
+    @field_validator("inventory")
+    @classmethod
+    def validate_unique_tasks(cls, value: list[ReconcileItem]) -> list[ReconcileItem]:
+        task_ids = [item.task_id for item in value]
+        if len(task_ids) != len(set(task_ids)):
+            raise ValueError("inventory no puede contener task_id duplicados.")
+        return value
 
 
 class RequireHTTPSMiddleware:
@@ -291,7 +327,7 @@ def create_agent_app(
 
     @app.post("/agent/v1/reconcile")
     def reconcile(
-        payload: TaskMessage,
+        payload: ReconcilePayload,
         authorization: str | None = Header(default=None),
         x_agent_nonce: str | None = Header(default=None),
         x_agent_timestamp: str | None = Header(default=None),
@@ -299,6 +335,6 @@ def create_agent_app(
         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     ) -> Any:
         principal = authorize(Operation.RECONCILE, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
-        return invoke_write(Operation.RECONCILE, principal, payload.model_dump(), idempotency_key)
+        return invoke_write(Operation.RECONCILE, principal, payload.model_dump(mode="json"), idempotency_key)
 
     return app
