@@ -51,6 +51,11 @@ class TaskMessage(BaseModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
+class TaskClaimPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: int = Field(ge=1, le=1)
+
+
 class RequireHTTPSMiddleware:
     """Falla cerrada si el servidor ASGI recibe una solicitud HTTP sin TLS."""
 
@@ -252,6 +257,18 @@ def create_agent_app(
     ) -> Any:
         principal = authorize(Operation.STATUS_READ, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
         return invoke(Operation.STATUS_READ, principal)
+
+    @app.post("/agent/v1/tasks/claim")
+    def claim_task(
+        payload: TaskClaimPayload,
+        authorization: str | None = Header(default=None),
+        x_agent_nonce: str | None = Header(default=None),
+        x_agent_timestamp: str | None = Header(default=None),
+        x_request_id: str | None = Header(default=None),
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    ) -> Any:
+        principal = authorize(Operation.TASK_FETCH, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
+        return invoke_write(Operation.TASK_FETCH, principal, payload.model_dump(), idempotency_key)
 
     def task_route(operation: Operation) -> Callable[..., Any]:
         def endpoint(
