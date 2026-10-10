@@ -248,6 +248,23 @@ def test_sqlite_receipt_reaches_postgres_over_real_https_and_recovers_lost_ack(t
         reconciliation_body = json.loads(reconciliation.body)
         assert reconciliation_body["mutations_applied"] is False
         assert reconciliation_body["decisions"][0]["decision"] == "ALREADY_CONFIRMED"
+        reconciliation_retry = runtime.reconcile_inventory([{
+            "task_id": str(task_id),
+            "operation_id": str(operation_id),
+            "instance_id": str(instance_id),
+            "assignment_epoch": 3,
+            "local_state": "succeeded",
+            "result_summary": {"exit_code": 0},
+        }])
+        retry_body = json.loads(reconciliation_retry.body)
+        assert retry_body["report_id"] == reconciliation_body["report_id"]
+
+        with connect() as conn:
+            report_count = conn.execute(
+                "SELECT count(*) FROM geelark_control.agent_reconciliation_reports WHERE node_id = %s",
+                (node_id,),
+            ).fetchone()[0]
+        assert report_count == 1
 
         with connect() as conn:
             task = conn.execute(
