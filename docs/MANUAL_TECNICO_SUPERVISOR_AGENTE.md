@@ -74,3 +74,17 @@ Cuando se apruebe Linux/systemd, la integración prevista es:
 6. No imprimir el token ni conservar copias de texto plano. Verificar el soporte de systemd-creds, el mecanismo de clave de host/TPM y recuperación antes de usarlo.
 
 Esta secuencia es documentación de diseño, no un procedimiento ya ejecutado. No hay un unit file ni un instalador y no se ha elegido definitivamente el sistema operativo. No activar este adaptador hasta aprobar la decisión de arquitectura.
+
+
+## Fábrica de componentes
+
+El paquete exporta build_agent_components(), que devuelve un AgentComponents con client, runtime, receipt_lifecycle y supervisor. La fábrica:
+1. valida la configuración del cliente HTTPS y la CA antes de leer el token;
+2. llama a credential_provider.load_bearer_token();
+3. crea AgentTransportRuntime con el journal y UUID del nodo;
+4. crea AgentReceiptSyncLifecycle y AgentSupervisor con las funciones de payload suministradas;
+5. devuelve los objetos sin iniciar ningún hilo.
+
+El llamador es responsable de mantener el journal en una ruta persistente, definir payloads correctos, llamar supervisor.start() y comprobar supervisor.stop(timeout=...) al apagar. La fábrica no crea un servicio ni un CLI y no selecciona el almacén de credenciales.
+
+El commit ejecutable `b622c0eead3d2eee896b7442fca6dca479c7b78d` pasó run 143 con 90 pruebas, migraciones PostgreSQL y `pip check` correctos. La prueba de integración del recibo sigue cubriendo TLS real en loopback y pérdida de ACK; las pruebas nuevas cubren proveedor systemd y ensamblado de componentes.
