@@ -67,9 +67,10 @@ BEGIN
     END;
 END $$;
 
-DO $$
-DECLARE current_epoch bigint;
-DECLARE observed text;
+DO $
+DECLARE
+    current_epoch bigint;
+    observed text;
 BEGIN
     SELECT assignment_epoch, observed_state INTO current_epoch, observed
       FROM geelark_control.instances
