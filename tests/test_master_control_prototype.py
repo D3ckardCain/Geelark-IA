@@ -13,6 +13,17 @@ import unittest
 HTML_PATH = Path(__file__).resolve().parents[1] / "prototypes" / "master-control" / "index.html"
 
 
+def relative_luminance(color):
+    channels = [int(color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+    linear = [channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4 for channel in channels]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def contrast_ratio(foreground, background):
+    lighter, darker = sorted((relative_luminance(foreground), relative_luminance(background)), reverse=True)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
 class DocumentParser(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
@@ -90,6 +101,23 @@ class MasterControlPrototypeTests(unittest.TestCase):
         self.assertEqual(self.html.count('<caption class="sr-only">'), 4)
         self.assertIn(".sr-only{position:absolute", self.html)
         self.assertIn("Resultados de CI de muestra, no consultados en vivo", self.html)
+
+    def test_key_text_color_pairs_meet_wcag_aa_contrast(self):
+        pairs = [
+            ("#edf3ff", "#0b1020"),  # Texto principal sobre fondo
+            ("#9caec8", "#121a2c"),  # Texto secundario sobre panel
+            ("#9caec8", "#0b1020"),  # Texto secundario sobre fondo
+            ("#8db7ff", "#121a2c"),  # Azul sobre panel
+            ("#70ddb0", "#153329"),  # Estado verde
+            ("#f5cd79", "#332b1b"),  # Estado amarillo
+            ("#ff9299", "#351f2a"),  # Estado rojo
+            ("#f8dfaa", "#2a2418"),  # Aviso de demostración
+            ("#ddcda7", "#2a2418"),  # Texto secundario del aviso
+            ("#edf3ff", "#1a2941"),  # Texto de botones
+        ]
+        for foreground, background in pairs:
+            with self.subTest(foreground=foreground, background=background):
+                self.assertGreaterEqual(contrast_ratio(foreground, background), 4.5)
 
     def test_keyboard_focus_indicator_exists(self):
         self.assertIn(':focus-visible', self.html)
