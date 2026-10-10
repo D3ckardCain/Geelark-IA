@@ -62,7 +62,7 @@ class ReconcileItem(BaseModel):
     task_id: UUID
     operation_id: UUID
     instance_id: UUID
-    assignment_epoch: int = Field(ge=1, le=2**63 - 1)
+    assignment_epoch: int = Field(ge=1, le=2**63 - 1, strict=True)
     local_state: Literal["accepted", "running", "succeeded", "failed", "unknown"]
     result_summary: dict[str, Any] = Field(default_factory=dict)
 
@@ -80,7 +80,7 @@ class ReconcileItem(BaseModel):
 
 class ReconcilePayload(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-    schema_version: int = Field(ge=1, le=1)
+    schema_version: int = Field(ge=1, le=1, strict=True)
     inventory: list[ReconcileItem] = Field(max_length=100)
 
     @field_validator("inventory")
