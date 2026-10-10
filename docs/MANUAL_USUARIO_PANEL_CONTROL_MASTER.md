@@ -16,7 +16,7 @@ La franja superior indica que todos los datos son ficticios. No existe conexión
 
 ## 3. Navegación y accesibilidad
 
-La navegación marca la vista activa con `aria-current="page"`, los encabezados de las tablas identifican su columna y los iconos decorativos se ocultan a lectores de pantalla. Los controles muestran un indicador de foco para navegación con teclado.
+La navegación marca la vista activa con `aria-current="page"`, las tablas tienen títulos accesibles y encabezados que identifican sus columnas, y los iconos decorativos se ocultan a lectores de pantalla. Los controles muestran un indicador de foco para navegación con teclado.
 
 ## 3.1 Navegación
 

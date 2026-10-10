@@ -86,6 +86,11 @@ class MasterControlPrototypeTests(unittest.TestCase):
         self.assertIn('<div class="nodeicon" aria-hidden="true">▣</div>', self.html)
         self.assertIn('<span aria-hidden="true">▦</span>', self.html)
 
+    def test_tables_have_screen_reader_captions(self):
+        self.assertEqual(self.html.count('<caption class="sr-only">'), 4)
+        self.assertIn(".sr-only{position:absolute", self.html)
+        self.assertIn("Resultados de CI de muestra, no consultados en vivo", self.html)
+
     def test_keyboard_focus_indicator_exists(self):
         self.assertIn(':focus-visible', self.html)
         self.assertIn('outline-offset:2px', self.html)
