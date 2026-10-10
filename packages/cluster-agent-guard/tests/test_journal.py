@@ -1,4 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
+from dataclasses import replace
 from uuid import UUID, uuid4
 
 import pytest
@@ -7,6 +9,7 @@ from geelark_cluster_agent_guard import (
     AgentCommand,
     AgentJournal,
     AssignmentOwnerConflict,
+    ExpiredAssignmentLease,
     InvalidAgentCommand,
     OperationIdConflict,
     OperationResultConflict,
@@ -25,6 +28,7 @@ def command(*, epoch=1, node_id=LOCAL_NODE, operation_id=None, payload=None):
         instance_id=INSTANCE,
         node_id=node_id,
         assignment_epoch=epoch,
+        lease_expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
         payload=payload if payload is not None else {"action": "start", "engine": "test-engine"},
     )
 
@@ -164,3 +168,16 @@ def test_concurrent_epoch_updates_leave_highest_epoch_as_fence(tmp_path):
 
     assert all(result in {"accepted", "stale"} for result in results)
     assert journal.get_fence(INSTANCE) == (LOCAL_NODE, 2)
+
+
+def test_expired_lease_is_rejected_before_persisting_command(tmp_path):
+    journal = AgentJournal(tmp_path / "journal.sqlite3", LOCAL_NODE)
+    journal.initialize()
+    expired = replace(
+        command(),
+        lease_expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+    with pytest.raises(ExpiredAssignmentLease):
+        journal.accept_command(expired)
+    assert journal.get_fence(INSTANCE) is None
+    assert journal.get_receipt(expired.operation_id) is None
