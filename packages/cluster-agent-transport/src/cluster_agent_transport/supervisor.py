@@ -76,6 +76,7 @@ class AgentSupervisor:
         self._stop = threading.Event()
         self._wake = threading.Event()
         self._reconciliation_wake = threading.Event()
+        self._reconciliation_ready = threading.Event()
         self._reconciliation_requested = threading.Event()
         if reconcile_inventory is not None:
             self._reconciliation_requested.set()
@@ -192,9 +193,11 @@ class AgentSupervisor:
                         self._offline = False
                     except Exception:
                         self._report_error("RECEIPT_SYNC_WAKE_FAILED")
-                if self.reconcile_inventory is not None and self._reconciliation_requested.is_set():
-                    # El worker de reconciliación está separado; no bloquea heartbeat/capacidades.
-                    self._reconciliation_wake.set()
+                if self.reconcile_inventory is not None:
+                    self._reconciliation_ready.set()
+                    if self._reconciliation_requested.is_set():
+                        # El worker de reconciliación está separado; no bloquea heartbeat/capacidades.
+                        self._reconciliation_wake.set()
 
             try:
                 self.runtime.publish_capabilities(self.capabilities_payload())
@@ -207,6 +210,13 @@ class AgentSupervisor:
 
     def _run_reconciliation(self) -> None:
         while not self._stop.is_set():
+            if not self._reconciliation_ready.is_set():
+                self._reconciliation_wake.wait()
+                if self._stop.is_set():
+                    break
+                self._reconciliation_wake.clear()
+                if not self._reconciliation_ready.is_set():
+                    continue
             if self._reconciliation_requested.is_set():
                 delay = max(0.0, self._next_reconciliation_at - time.monotonic())
                 self._reconciliation_wake.wait(delay)
