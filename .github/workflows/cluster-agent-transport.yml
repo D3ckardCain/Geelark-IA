@@ -43,6 +43,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # PR #48 is stacked on auth-service while the journal API lives in PR #38.
+      # Pin the journal commit so the cross-branch integration test is reproducible.
+      - name: Checkout journal API from PR #38
+        uses: actions/checkout@v4
+        with:
+          repository: D3ckardCain/Geelark-IA
+          ref: 52acf0792ed0421fd23ea720e718e55c9b2255f8
+          path: guard-source
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -60,7 +69,7 @@ jobs:
 
       - name: Install local journal and transport packages
         run: |
-          python -m pip install -e "packages/cluster-agent-guard[test]"
+          python -m pip install -e "guard-source/packages/cluster-agent-guard[test]"
           python -m pip install -e "packages/cluster-agent-transport[test]"
 
       - name: Run transport security tests
