@@ -83,7 +83,9 @@ class AgentSupervisor:
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
         self._offline = False
-        self._needs_reconciliation = reconcile_inventory is not None
+        self._reconciliation_requested = threading.Event()
+        if reconcile_inventory is not None:
+            self._reconciliation_requested.set()
         self._next_reconciliation_at = 0.0
 
     @property
@@ -115,7 +117,8 @@ class AgentSupervisor:
         """Solicita heartbeat inmediato y despierta la cola de recibos."""
         if self._stop.is_set():
             return
-        self._needs_reconciliation = self.reconcile_inventory is not None
+        if self.reconcile_inventory is not None:
+            self._reconciliation_requested.set()
         self._next_reconciliation_at = 0.0
         try:
             self.receipt_lifecycle.notify_reconnected()
@@ -175,15 +178,18 @@ class AgentSupervisor:
                         self._report_error("RECEIPT_SYNC_WAKE_FAILED")
                 if (
                     self.reconcile_inventory is not None
-                    and self._needs_reconciliation
+                    and self._reconciliation_requested.is_set()
                     and time.monotonic() >= self._next_reconciliation_at
                 ):
+                    # Limpiar antes de la llamada: una nueva notificación durante la
+                    # reconciliación queda pendiente y no se pierde.
+                    self._reconciliation_requested.clear()
                     try:
                         response = self.runtime.reconcile_inventory(self.reconcile_inventory())
                         if self.on_reconciliation is not None:
                             self.on_reconciliation(response)
-                        self._needs_reconciliation = False
                     except Exception:
+                        self._reconciliation_requested.set()
                         self._report_error("RECONCILIATION_FAILED")
                         self._next_reconciliation_at = (
                             time.monotonic() + self.reconciliation_retry_interval_seconds
