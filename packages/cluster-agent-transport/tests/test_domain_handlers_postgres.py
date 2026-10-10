@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import psycopg
 import pytest
+from psycopg.types.json import Jsonb
 from fastapi import HTTPException
 
 from cluster_agent_transport.domain_handlers import make_postgres_agent_handlers
@@ -118,7 +119,7 @@ def test_active_node_claims_durable_task_with_separate_delivery_and_instance_lea
                     (task_id, operation_id, node_id, instance_id, assignment_epoch, payload)
                 VALUES (%s, %s, %s, %s, 3, %s)
                 """,
-                (task_id, operation_id, node_id, instance_id, psycopg.types.json.Jsonb({"desired_state": "running"})),
+                (task_id, operation_id, node_id, instance_id, Jsonb({"desired_state": "running"})),
             )
 
         with connect() as conn:
