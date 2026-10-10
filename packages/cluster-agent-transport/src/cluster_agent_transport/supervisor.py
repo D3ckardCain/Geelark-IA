@@ -131,7 +131,6 @@ class AgentNodeSupervisor:
             self.receipt_sync.start()
             self._thread = threading.Thread(target=self._run, name="geelark-agent-supervisor", daemon=True)
             self._thread.start()
-            self._wake.set()
 
     def notify_reconnected(self) -> None:
         """Notificación externa del monitor de red; no sondea conectividad por sí mismo."""
@@ -222,8 +221,11 @@ class AgentNodeSupervisor:
                 break
             deadlines = (next_heartbeat, next_capabilities, next_status)
             wait_seconds = max(0.05, min(deadlines) - self._monotonic())
-            self._wake.wait(wait_seconds)
+            woke = self._wake.wait(wait_seconds)
             self._wake.clear()
+            if woke and not self._stop.is_set():
+                # Una reconexión confirmada adelanta la telemetría sin sondeo de red.
+                next_heartbeat = next_capabilities = next_status = 0.0
 
 
 def _read_token(path: str | Path) -> str:
