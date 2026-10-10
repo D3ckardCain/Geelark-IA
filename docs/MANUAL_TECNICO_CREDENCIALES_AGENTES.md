@@ -49,7 +49,7 @@ python -m pip install -e "packages/cluster-agent-auth[test]"
 python -m pytest packages/cluster-agent-auth/tests -q
 ```
 
-La CI instala el paquete y ejecuta pruebas unitarias y de integración contra PostgreSQL desechable. La suite actual cubre consumo único y concurrente del enrolamiento, enrolamiento expirado, estado pendiente, aprobación manual en fixture, autenticación, credencial expirada, revocación, rotación básica y dos solicitudes simultáneas de rotación (solo una puede dejar una rotación pendiente). La traducción del conflicto de índice único a error de dominio también está cubierta. Aún faltan revocación administrativa del nodo bajo carga y pruebas de transporte TLS/replay/rate limiting; estas últimas pertenecen a la siguiente fase y no deben darse por implementadas.
+La CI instala el paquete y ejecuta pruebas unitarias y de integración contra PostgreSQL desechable. La suite actual cubre consumo único y concurrente del enrolamiento, enrolamiento expirado, estado pendiente, aprobación manual en fixture, autenticación, credencial expirada, revocación de credencial, rechazo concurrente de autenticación para un nodo administrativamente revocado, rotación básica y dos solicitudes simultáneas de rotación (solo una puede dejar una rotación pendiente). La traducción del conflicto de índice único a error de dominio también está cubierta. Aún faltan pruebas de transporte TLS/replay/rate limiting; estas pertenecen a la siguiente fase y no deben darse por implementadas.
 
 ## 6. Límites y próximos pasos
 
