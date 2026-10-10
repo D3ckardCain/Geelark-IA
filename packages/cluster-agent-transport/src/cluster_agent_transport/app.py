@@ -155,12 +155,17 @@ def create_agent_app(
                 raise HTTPException(status_code=401, detail={"code": "AUTHENTICATION_FAILED"}) from None
             raise HTTPException(status_code=503, detail={"code": "AUTHENTICATION_UNAVAILABLE"}) from None
 
-        if not limiter.allow(principal.node_id):
-            raise HTTPException(status_code=429, detail={"code": "RATE_LIMITED"})
         try:
             authorize_operation(principal, operation)
         except PermissionDenied:
             raise HTTPException(status_code=403, detail={"code": "PERMISSION_DENIED"}) from None
+
+        try:
+            allowed = limiter.allow(principal.node_id)
+        except Exception:
+            raise HTTPException(status_code=503, detail={"code": "RATE_LIMITER_UNAVAILABLE"}) from None
+        if not allowed:
+            raise HTTPException(status_code=429, detail={"code": "RATE_LIMITED"})
 
         try:
             nonce = UUID(x_agent_nonce or "")
