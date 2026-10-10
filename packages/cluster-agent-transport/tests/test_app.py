@@ -23,10 +23,16 @@ def make_client(principal, *, base_url="https://testserver"):
         assert kwargs["timestamp"].tzinfo is not None
 
     handlers = {
-        op: (lambda *, principal, payload=None, op=op: calls.append(op.value) or {"ok": True})
+        op: (lambda *, principal, payload=None, conn=None, op=op: calls.append(op.value) or {"ok": True})
         for op in Operation
     }
-    app = create_agent_app(authenticate=authenticate, consume_nonce=nonce_guard, handlers=handlers)
+    def idempotency_runner(*, principal, operation, key, payload, execute):
+        assert len(key) >= 16
+        return execute(None)
+    app = create_agent_app(
+        authenticate=authenticate, consume_nonce=nonce_guard,
+        handlers=handlers, idempotency_runner=idempotency_runner,
+    )
     return TestClient(app, base_url=base_url), calls
 
 
@@ -36,6 +42,7 @@ def headers():
         "X-Agent-Nonce": str(uuid4()),
         "X-Agent-Timestamp": datetime.now(timezone.utc).isoformat(),
         "X-Request-ID": str(uuid4()),
+        "Idempotency-Key": "request-" + str(uuid4()),
     }
 
 
