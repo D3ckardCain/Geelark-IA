@@ -280,12 +280,18 @@ def test_reconciliation_failure_is_sanitized_and_retried_after_backoff():
     runtime = FakeRuntime(reconcile_responses=[OSError("do not log"), {"ok": True}])
     lifecycle = FakeLifecycle()
     errors = []
+    inventory_calls = []
+
+    def inventory_provider():
+        inventory_calls.append([{"snapshot_number": len(inventory_calls) + 1}])
+        return inventory_calls[-1]
+
     supervisor = AgentSupervisor(
         runtime=runtime,
         receipt_lifecycle=lifecycle,
         heartbeat_payload=lambda: {},
         capabilities_payload=lambda: {},
-        reconcile_inventory=lambda: [],
+        reconcile_inventory=inventory_provider,
         reconciliation_retry_interval_seconds=1,
         heartbeat_interval_seconds=0.1,
         on_error=errors.append,
@@ -296,6 +302,8 @@ def test_reconciliation_failure_is_sanitized_and_retried_after_backoff():
     assert len(runtime.reconcile_calls) == 1
     assert wait_for(lambda: len(runtime.reconcile_calls) == 2, timeout=1.5)
     assert runtime.reconcile_ids[0] == runtime.reconcile_ids[1]
+    assert runtime.reconcile_calls[0] == runtime.reconcile_calls[1]
+    assert len(inventory_calls) == 1
     assert errors.count("RECONCILIATION_FAILED") == 1
     assert supervisor.stop(timeout=1)
 
