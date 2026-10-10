@@ -146,11 +146,14 @@ class AgentNodeSupervisor:
         self._stop.set()
         self._wake.set()
         thread = self._thread
+        supervisor_stopped = True
         if thread is not None:
             thread.join(timeout=float(timeout))
-            if thread.is_alive():
-                return False
-        return bool(self.receipt_sync.stop(timeout=float(timeout)))
+            supervisor_stopped = not thread.is_alive()
+        # Solicitar siempre el apagado del sincronizador aunque la telemetría agote
+        # su timeout; no dejar un segundo hilo vivo por salir temprano.
+        sync_stopped = bool(self.receipt_sync.stop(timeout=float(timeout)))
+        return supervisor_stopped and sync_stopped
 
     def _report(self, code: str) -> None:
         try:
