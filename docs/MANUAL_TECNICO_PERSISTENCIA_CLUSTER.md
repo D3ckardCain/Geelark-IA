@@ -27,7 +27,7 @@ Una migración correcta solo demuestra que el esquema se crea y que algunas rest
 | Tabla | Responsabilidad |
 |---|---|
 | `nodes` | Identidad lógica, estado administrativo, salud y capacidades declaradas. No almacena secretos de autenticación. |
-| `instances` | Fila autoritativa por instancia; propietario actual, epoch, estado observado/deseado y lease. |
+| `node_resource_capacity` | Capacidad reservable conservadora de cada nodo, márgenes de seguridad y confianza de la medición. |\n| `instances` | Fila autoritativa por instancia; propietario actual, epoch, estado observado/deseado y lease. |
 | `resource_reservations` | CPU, RAM y disco reservados. `held` y `uncertain` bloquean una segunda reserva de esa instancia. |
 | `operations` | Historial de operaciones solicitadas y su resultado saneado. |
 | `idempotency_records` | Clave única por ámbito, hash SHA-256 del payload canónico y respuesta/operación original. |
@@ -88,7 +88,7 @@ Antes de una instalación real:
 
 ## 6. Limitaciones conocidas que deben resolverse antes de producción
 
-1. Las restricciones SQL no calculan por sí solas la capacidad total por nodo; la capa de dominio debe bloquear el nodo y sumar reservas en una transacción.
+1. Las restricciones SQL no calculan por sí solas la capacidad total por nodo; la capa de dominio debe bloquear `node_resource_capacity` y sumar reservas en una transacción.
 2. La tabla de auditoría es append-only por convención, no por una política de permisos ya desplegada.
 3. Los campos `updated_at` los debe actualizar la aplicación o triggers futuros.
 4. El registro de migraciones existe, pero todavía no hay ejecutor que registre automáticamente versión/checksum.
