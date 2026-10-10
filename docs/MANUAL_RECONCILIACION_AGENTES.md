@@ -20,9 +20,9 @@ La reconciliación **no cambia automáticamente** el estado de tareas ni de inst
 1. Construir una lista de hasta 100 elementos de inventario local.
 2. Cada elemento debe incluir task_id, operation_id, instance_id, assignment_epoch, local_state y result_summary.
 3. local_state solo puede ser accepted, running, succeeded, failed o unknown.
-4. Enviar la lista con AgentTransportRuntime.reconcile_inventory(). El cliente usa HTTPS, nonce, timestamp y request ID. Cada intento de reconciliación tiene un UUID propio (`reconciliation_id`): el supervisor conserva ese UUID al reintentar una solicitud cuyo ACK se perdió y genera otro UUID para una reconciliación nueva, aunque el inventario no haya cambiado.
+4. Enviar la lista con AgentTransportRuntime.reconcile_inventory(). El cliente usa HTTPS, nonce, timestamp y request ID. Cada intento de reconciliación tiene un UUID propio (`reconciliation_id`): el supervisor conserva ese UUID y una copia inmutable del inventario durante los reintentos si se pierde el ACK, y genera otro UUID/snapshot para una reconciliación nueva, aunque el inventario no haya cambiado.
 5. Revisar el resultado devuelto y actuar solo mediante endpoints autorizados (accept/progress/result) o revisión manual. No ejecutar una acción solo porque la respuesta sugiera que hay una divergencia.
-6. Si la solicitud falla, conservar el inventario y el mismo `reconciliation_id` al reintentar; el servidor devuelve el snapshot idempotente. Una reconciliación posterior debe usar un UUID nuevo para no recibir decisiones antiguas.
+6. Si la solicitud falla, conservar el mismo `reconciliation_id` y el mismo snapshot del inventario al reintentar; el servidor devuelve el snapshot idempotente. Una reconciliación posterior debe usar un UUID nuevo para no recibir decisiones antiguas.
 7. Tras recuperar conectividad, AgentSupervisor puede llamar al proveedor de inventario y entregar la respuesta a on_reconciliation. Ese callback debe ser rápido y no registrar secretos.
 
 ## Decisiones posibles
@@ -38,6 +38,7 @@ La reconciliación **no cambia automáticamente** el estado de tareas ni de inst
 | LEASE_EXPIRED_HOLD / INSTANCE_LEASE_EXPIRED_HOLD | La asignación o instancia ya no tiene lease vigente | No renovar automáticamente ni reasignar solo por timeout |
 | SERVER_TASK_MISSING_FROM_LOCAL_INVENTORY | El controlador mantiene una tarea activa que no aparece localmente | No marcarla fallida ni reasignarla; investigar el journal/disco |
 | SERVER_TASK_OPERATION_STATE_MISMATCH | La tarea y la operación no coinciden en estado/resumen | Revisión manual y corrección transaccional explícita |
+| SERVER_TASK_OPERATION_IDENTITY_MISMATCH | Nodo, instancia o epoch de la operación no coincide con la tarea | No actuar; investigar integridad referencial y auditoría |
 | TERMINAL_CONFLICT_MANUAL_REVIEW | El resultado local contradice el terminal del servidor | Preservar ambas evidencias; no sobrescribir |
 | MANUAL_REVIEW_REQUIRED | Hay incertidumbre, incluyendo unknown | Bloquear acciones externas hasta reconciliar manualmente |
 | UNKNOWN_TASK / IDENTITY_MISMATCH / TASK_NOT_OWNED_BY_NODE | La identidad no corresponde a una asignación autorizada | No actuar; revisar identidad, credenciales y auditoría |
@@ -59,7 +60,7 @@ La reconciliación necesita conexión HTTPS con el controlador. Mientras no hay 
 
 ## Pendientes
 
-- [x] CI del commit ejecutable `5186c5700b5eb346485d4dd7f0880437dca54021` aprobado: 107 pruebas, migraciones PostgreSQL y `pip check` correctos; queda una advertencia deprecatoria de Starlette/httpx.
+- [x] CI del commit ejecutable `eb5e71e8b4848f6761b4da15507d070bcc9dfded` aprobado: 110 pruebas, migraciones PostgreSQL y `pip check` correctos; queda una advertencia deprecatoria de Starlette/httpx.
 - [ ] Revisión de concurrencia e idempotencia del informe.
 - [ ] Integración con el supervisor y proveedor de inventario real del journal.
 - [ ] Manual técnico y estados revisados por seguridad.
