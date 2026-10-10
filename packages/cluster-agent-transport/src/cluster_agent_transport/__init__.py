@@ -3,6 +3,7 @@
 from .app import create_agent_app
 from .client import AgentHTTPSClient, AgentResponse, AgentTransportError
 from .db_auth import InvalidAgentCredential, make_database_authenticator
+from .credentials import CredentialProvider, CredentialProviderError, SystemdCredentialProvider
 from .domain_handlers import make_postgres_agent_handlers
 from .idempotency import (
     IdempotencyConflict,
@@ -19,12 +20,12 @@ from .supervisor import AgentSupervisor
 from .server import TransportConfigurationError, make_uvicorn_config, validate_https_listener
 
 __all__ = [
-    "AgentHTTPSClient", "AgentPrincipal", "AgentSupervisor", "AgentResponse", "AgentTransportError", "AgentTransportRuntime",
+    "AgentHTTPSClient", "AgentPrincipal", "AgentSupervisor", "CredentialProvider", "CredentialProviderError", "AgentResponse", "AgentTransportError", "AgentTransportRuntime",
     "IdempotencyConflict", "IdempotencyInProgress",
     "InMemoryRateLimiter", "InvalidAgentCredential", "Operation", "PermissionDenied", "PostgresRateLimiter",
     "ReplayRejected", "TransportConfigurationError", "authorize_operation",
     "consume_request_nonce", "create_agent_app", "execute_idempotent",
-    "make_database_authenticator", "make_database_idempotency_runner", "make_database_nonce_consumer",
+    "make_database_authenticator", "make_database_idempotency_runner", "SystemdCredentialProvider", "make_database_nonce_consumer",
     "make_postgres_agent_handlers",
     "make_uvicorn_config", "payload_digest", "validate_https_listener",
 ]
