@@ -15,11 +15,11 @@ No reclama tareas ni ejecuta Android, ADB o shell. No abre listeners. No almacen
 La aplicación que lo integre debe construir y proporcionar:
 1. Un AgentTransportRuntime con cliente HTTPS configurado con CA de confianza, validación de certificado/hostname y timeout finito.
 2. Un journal SQLite local persistente con permisos privados.
-3. Un proveedor de credenciales protegido por el sistema operativo.
+3. Un proveedor de credenciales protegido por el sistema operativo. Existe un adaptador opcional SystemdCredentialProvider para servicios Linux/systemd; todavía no hay unit file ni entry point que lo active. En Windows se necesitaría un adaptador específico.
 4. Una función que produzca el payload de heartbeat y otra que produzca capacidades actuales.
 5. Un AgentReceiptSyncLifecycle asociado al mismo runtime.
 
-El supervisor no crea estas dependencias ni elige dónde se guardan las credenciales. El punto de entrada instalable y los adaptadores de almacenamiento de credenciales por sistema operativo siguen pendientes de la Issue #58.
+El supervisor no crea estas dependencias ni elige dónde se guardan las credenciales. SystemdCredentialProvider solo lee el archivo que systemd entrega en CREDENTIALS_DIRECTORY; no descifra ni crea credenciales por sí mismo. El punto de entrada instalable, el unit file y la decisión de SO siguen pendientes en la Issue #58 y la evaluación de arquitectura.
 
 ## Ciclo de operación previsto
 
@@ -59,7 +59,7 @@ El supervisor no crea estas dependencias ni elige dónde se guardan las credenci
 
 - [x] CI del commit ejecutable 7b452538faf7da595f5cb30efe7f3ee5cf933ed1 aprobado: run 136, 70 pruebas aprobadas y pip check correcto. El supervisor sigue sin entry point instalable.
 - [ ] Conectar el supervisor a un punto de entrada de proceso instalable.
-- [ ] Elegir e implementar el almacén de credenciales adecuado al sistema operativo final.
+- [ ] Aprobar el sistema operativo base. Si se elige Linux/systemd, revisar SystemdCredentialProvider y configurar LoadCredentialEncrypted; si se elige otro SO, implementar y probar su proveedor nativo.
 - [ ] Añadir detector de conectividad apropiado al sistema operativo final, si se requiere además del heartbeat.
 - [ ] Probar arranque/parada, desconexión, recuperación y reinicio del proceso.
 - [ ] Revisar la reconciliación de estados unknown y el fencing del propietario.
