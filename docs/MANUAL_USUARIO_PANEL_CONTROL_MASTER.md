@@ -82,3 +82,8 @@ La CI abre el HTML real en Chrome/Chromium preinstalado a 1440×900 y 390×844; 
 ## 11. Estado de validación
 
 Este manual describe el prototipo visual. Antes de considerarlo módulo operativo hacen falta contrato de datos, servicio local de lectura, autenticación/autorización, pruebas automáticas, persistencia de snapshots, revisión de seguridad y validación autorizada.
+
+
+## 12. Contrato técnico de estado v1
+
+Para el significado exacto de los estados y campos de telemetría, consulta el [contrato Master/Worker v1](contracts/CONTRATO_ESTADO_MASTER_WORKER_V1.md), su [esquema JSON](contracts/master-worker-status-v1.schema.json) y el [ejemplo ficticio](contracts/examples/master-worker-status-v1.example.json). El contrato está diseñado, pero aún no alimenta la interfaz ni una API operativa.
