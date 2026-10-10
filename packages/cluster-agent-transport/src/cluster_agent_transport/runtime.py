@@ -85,6 +85,20 @@ class AgentTransportRuntime:
         )
         return response
 
+    def reconcile_inventory(self, inventory: list[dict[str, Any]]) -> AgentResponse:
+        """Envía inventario para comparación conservadora; no modifica el journal local."""
+        if not isinstance(inventory, list) or len(inventory) > 100:
+            raise ValueError("inventory debe ser una lista de hasta 100 elementos")
+        payload = {"schema_version": 1, "inventory": inventory}
+        try:
+            digest = payload_digest(payload)[:32]
+        except (TypeError, ValueError):
+            raise ValueError("inventory debe contener solo datos JSON válidos") from None
+        key = f"reconcile-{self.local_node_id}-{digest}"
+        return self._request(
+            "POST", "/agent/v1/reconcile", payload, idempotency_key=key
+        )
+
     def sync_pending_receipts(self, *, limit: int = 100) -> tuple[int, int]:
         """Envía un lote acotado de recibos pendientes tras reconectar.
 
