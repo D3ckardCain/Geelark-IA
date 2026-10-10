@@ -190,8 +190,7 @@ def begin_credential_rotation(
     ttl: timedelta = _DEFAULT_CREDENTIAL_TTL,
 ) -> IssuedSecret:
     """Emite una credencial pendiente; la antigua continúa activa hasta confirmar."""
-    if ttl <= timedelta(0):
-        raise ValueError("La vigencia de la credencial debe ser mayor que cero.")
+    _validate_credential_ttl(ttl)
     secret = _new_secret()
     credential_id = uuid4()
     expires_at = datetime.now(timezone.utc) + ttl
