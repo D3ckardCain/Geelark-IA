@@ -371,6 +371,8 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 decision = "STALE_ASSIGNMENT_EPOCH"
             elif row[5] == "unknown" or local_state == "unknown":
                 decision = "MANUAL_REVIEW_REQUIRED"
+            elif row[10] != row[5] or dict(row[11] or {}) != dict(row[6] or {}):
+                decision = "SERVER_TASK_OPERATION_STATE_MISMATCH"
             elif row[5] in {"succeeded", "rejected", "failed", "cancelled"}:
                 if row[5] == local_state and dict(row[6] or {}) == local_summary:
                     decision = "ALREADY_CONFIRMED"
@@ -386,8 +388,14 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             elif row[5] in {"accepted", "running"}:
                 if local_state in {"succeeded", "failed"}:
                     decision = "RESEND_TERMINAL_RESULT"
-                elif local_state in {"accepted", "running"}:
+                elif local_state == "running" and row[5] == "accepted":
+                    decision = "RESEND_PROGRESS"
+                elif local_state == "accepted" and row[5] == "running":
+                    decision = "SERVER_AHEAD_HOLD"
+                elif local_state == row[5] and local_summary == dict(row[6] or {}):
                     decision = "CONTINUE_SAME_EPOCH"
+                else:
+                    decision = "RESULT_SUMMARY_MISMATCH_MANUAL_REVIEW"
             else:
                 decision = "TASK_NOT_ACCEPTED_HOLD"
 
