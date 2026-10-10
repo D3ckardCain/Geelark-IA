@@ -202,3 +202,65 @@ def test_journal_rejects_symlink_path(tmp_path):
     link.symlink_to(target)
     with pytest.raises(AgentGuardError):
         AgentJournal(link, LOCAL_NODE).initialize()
+
+
+
+def test_pending_receipts_are_batched_and_acknowledged_only_after_delivery(tmp_path):
+    journal = AgentJournal(tmp_path / "journal.sqlite3", LOCAL_NODE)
+    journal.initialize()
+    cmd = command()
+    journal.accept_command(cmd)
+
+    pending = journal.list_pending_receipts(limit=10)
+    assert [receipt.operation_id for receipt in pending] == [cmd.operation_id]
+    assert pending[0].status == "accepted"
+    assert journal.mark_receipt_delivered(cmd.operation_id, cmd.assignment_epoch) is True
+    assert journal.list_pending_receipts() == []
+
+    running = journal.record_result(
+        operation_id=cmd.operation_id,
+        instance_id=cmd.instance_id,
+        node_id=cmd.node_id,
+        assignment_epoch=cmd.assignment_epoch,
+        status="running",
+        result={"progress": 25},
+    )
+    assert running.status == "running"
+    pending = journal.list_pending_receipts(statuses=("running",))
+    assert len(pending) == 1
+    assert pending[0].result == {"progress": 25}
+
+    journal.mark_receipt_delivered(cmd.operation_id, cmd.assignment_epoch)
+    terminal = journal.record_result(
+        operation_id=cmd.operation_id,
+        instance_id=cmd.instance_id,
+        node_id=cmd.node_id,
+        assignment_epoch=cmd.assignment_epoch,
+        status="succeeded",
+        result={"ok": True},
+    )
+    assert terminal.status == "succeeded"
+    # Una nueva transición invalida el ack anterior para que el resultado final se envíe.
+    assert [r.status for r in journal.list_pending_receipts()] == ["succeeded"]
+    journal.mark_receipt_delivered(cmd.operation_id, cmd.assignment_epoch)
+    assert journal.list_pending_receipts() == []
+
+
+def test_pending_receipt_query_validates_limits_and_statuses(tmp_path):
+    journal = AgentJournal(tmp_path / "journal.sqlite3", LOCAL_NODE)
+    journal.initialize()
+    with pytest.raises(ValueError):
+        journal.list_pending_receipts(limit=0)
+    with pytest.raises(ValueError):
+        journal.list_pending_receipts(limit=1001)
+    with pytest.raises(InvalidAgentCommand):
+        journal.list_pending_receipts(statuses=("not-a-status",))
+
+
+def test_marking_receipt_with_wrong_epoch_is_rejected(tmp_path):
+    journal = AgentJournal(tmp_path / "journal.sqlite3", LOCAL_NODE)
+    journal.initialize()
+    cmd = command(epoch=1)
+    journal.accept_command(cmd)
+    with pytest.raises(StaleOperationResult):
+        journal.mark_receipt_delivered(cmd.operation_id, 2)
