@@ -185,3 +185,23 @@ def test_sync_wake_failure_is_not_misreported_as_heartbeat_failure():
     assert wait_for(lambda: errors.count("RECEIPT_SYNC_WAKE_FAILED") >= 2)
     assert errors.count("HEARTBEAT_FAILED") == 1
     assert supervisor.stop(timeout=1)
+
+
+
+def test_capabilities_failure_does_not_stop_heartbeat_loop():
+    runtime = FakeRuntime(capabilities=[OSError("offline"), None])
+    lifecycle = FakeLifecycle()
+    errors = []
+    supervisor = AgentSupervisor(
+        runtime=runtime,
+        receipt_lifecycle=lifecycle,
+        heartbeat_payload=lambda: {"health_state": "healthy"},
+        capabilities_payload=lambda: {"capabilities_version": 1, "capabilities": []},
+        heartbeat_interval_seconds=0.1,
+        on_error=errors.append,
+    )
+    supervisor.start()
+    assert wait_for(lambda: "CAPABILITIES_FAILED" in errors)
+    assert wait_for(lambda: len(runtime.heartbeat_calls) >= 2)
+    assert errors.count("CAPABILITIES_FAILED") == 1
+    assert supervisor.stop(timeout=1)
