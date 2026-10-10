@@ -17,7 +17,7 @@ Definir la representación de solo lectura que PC-MASTER podrá presentar para u
 - **Autoridad:** `authorization_state` es asignado por el Master/controlador, nunca por el Worker. Un valor `unknown` no concede permisos.
 - **Autorización:** `pending` puede informar heartbeat, capacidades no sensibles y consultar su propio estado; no puede aceptar tareas ni ejecutar operaciones.
 - **Salud:** `health_state` es derivado por el Master. `unknown` no se convierte en éxito ni fallo y no habilita reintentos, reasignaciones o reconciliación automática.
-- **Frescura:** `freshness.observed_at` y `age_seconds` se calculan usando el reloj del Master al recibir/observar la evidencia. No confiar únicamente en el reloj del Worker.
+- **Frescura:** `freshness.observed_at` y `age_seconds` se calculan usando el reloj del Master al recibir/observar la evidencia. No confiar únicamente en el reloj del Worker. El esquema rechaza `healthy` si la frescura es `stale`, `missing` o `unknown`; si no hay heartbeat, tampoco permite salud `healthy` ni frescura `fresh`.
 - **Caché/offline:** `source=master-cache` indica que el snapshot se leyó de la caché local; `state=stale`/ `missing`/ `unknown` debe mostrarse como tal, nunca como saludable por defecto.
 - **Capacidades:** lista cerrada de identificadores no sensibles. No incluye shell, ADB, ejecución de tareas ni capacidades arbitrarias.
 - **Módulos:** cada estado incluye origen, versión/fecha si se conocen y un código de error acotado. No incluir trazas, cuerpos HTTP, rutas privadas, tokens ni logs sin redactar.
