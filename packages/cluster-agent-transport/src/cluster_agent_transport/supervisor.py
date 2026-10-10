@@ -1,8 +1,5 @@
-"""Supervisor ligero del agente: heartbeat/capacidades separados de recibos.
+"""Supervisor ligero del agente con workers independientes."""
 
-No crea listeners ni reclama/ejecuta tareas. La configuración de TLS, la credencial
-y el journal deben construirse externamente y entregarse al runtime por inyección.
-"""
 from __future__ import annotations
 
 import math
@@ -13,11 +10,10 @@ from typing import Any
 
 
 class AgentSupervisor:
-    """Coordina heartbeat periódico y sincronización durable sin bloquearlos entre sí.
+    """Coordina heartbeat/capacidades, recibos durables y reconciliación opcional.
 
-    El heartbeat también detecta recuperación de conectividad: cuando vuelve a tener
-    éxito tras un fallo, despierta el sincronizador de recibos. No implementa todavía
-    almacenamiento de credenciales ni un entry point dependiente de un sistema operativo.
+    Heartbeat/capacidades y reconciliación usan hilos separados; el sincronizador de
+    recibos conserva su propio hilo. Ningún worker reclama ni ejecuta tareas Android.
     """
 
     def __init__(
@@ -65,7 +61,6 @@ class AgentSupervisor:
             raise ValueError("on_reconciliation debe ser callable")
         if reconcile_inventory is not None and not callable(getattr(runtime, "reconcile_inventory", None)):
             raise ValueError("runtime debe implementar reconcile_inventory(inventory)")
-
         if on_error is not None and not callable(on_error):
             raise ValueError("on_error debe ser callable")
 
@@ -80,21 +75,27 @@ class AgentSupervisor:
         self._on_error = on_error or (lambda code: None)
         self._stop = threading.Event()
         self._wake = threading.Event()
-        self._thread: threading.Thread | None = None
-        self._lock = threading.Lock()
-        self._offline = False
+        self._reconciliation_wake = threading.Event()
         self._reconciliation_requested = threading.Event()
         if reconcile_inventory is not None:
             self._reconciliation_requested.set()
+        self._thread: threading.Thread | None = None
+        self._reconciliation_thread: threading.Thread | None = None
+        self._lock = threading.Lock()
+        self._offline = False
         self._next_reconciliation_at = 0.0
 
     @property
     def running(self) -> bool:
-        thread = self._thread
-        return thread is not None and thread.is_alive() and not self._stop.is_set()
+        if self._stop.is_set():
+            return False
+        return any(
+            thread is not None and thread.is_alive()
+            for thread in (self._thread, self._reconciliation_thread)
+        )
 
     def start(self) -> None:
-        """Arranca el sincronizador y el ciclo periódico una sola vez."""
+        """Arranca una sola vez los workers de recibos, heartbeat y reconciliación."""
         with self._lock:
             if self._stop.is_set():
                 raise RuntimeError("El supervisor ya fue detenido y no puede reiniciarse")
@@ -102,24 +103,37 @@ class AgentSupervisor:
                 if self._thread.is_alive():
                     return
                 raise RuntimeError("El supervisor ya fue detenido y no puede reiniciarse")
+
             self.receipt_lifecycle.start()
-            self._thread = threading.Thread(
-                target=self._run, name="geelark-agent-supervisor", daemon=True
-            )
             try:
+                if self.reconcile_inventory is not None:
+                    self._reconciliation_thread = threading.Thread(
+                        target=self._run_reconciliation,
+                        name="geelark-agent-reconciliation",
+                        daemon=True,
+                    )
+                    self._reconciliation_thread.start()
+                self._thread = threading.Thread(
+                    target=self._run, name="geelark-agent-supervisor", daemon=True
+                )
                 self._thread.start()
             except Exception:
+                self._stop.set()
+                self._wake.set()
+                self._reconciliation_wake.set()
+                if self._reconciliation_thread is not None:
+                    self._reconciliation_thread.join(timeout=1)
                 self.receipt_lifecycle.stop(timeout=1)
-                self._thread = None
                 raise
 
     def notify_reconnected(self) -> None:
-        """Solicita heartbeat inmediato y despierta la cola de recibos."""
+        """Despierta heartbeat/recibos y solicita una comparación de inventario."""
         if self._stop.is_set():
             return
         if self.reconcile_inventory is not None:
             self._reconciliation_requested.set()
-        self._next_reconciliation_at = 0.0
+            self._next_reconciliation_at = 0.0
+            self._reconciliation_wake.set()
         try:
             self.receipt_lifecycle.notify_reconnected()
         except Exception:
@@ -127,7 +141,7 @@ class AgentSupervisor:
         self._wake.set()
 
     def stop(self, *, timeout: float = 5.0) -> bool:
-        """Detiene ambos ciclos dentro de un presupuesto temporal compartido."""
+        """Detiene todos los workers con un presupuesto temporal compartido."""
         if (
             isinstance(timeout, bool)
             or not isinstance(timeout, (int, float))
@@ -138,31 +152,33 @@ class AgentSupervisor:
         deadline = time.monotonic() + float(timeout)
         self._stop.set()
         self._wake.set()
-        thread = self._thread
-        if thread is threading.current_thread():
-            # Un callback puede solicitar apagado desde el hilo supervisor. No se puede
-            # hacer join del hilo actual; la parada queda solicitada pero aún no concluida.
-            heartbeat_stopped = False
-        else:
-            if thread is not None:
-                thread.join(timeout=max(0.0, deadline - time.monotonic()))
-            heartbeat_stopped = thread is None or not thread.is_alive()
+        self._reconciliation_wake.set()
+
+        def join_until(thread: threading.Thread | None) -> bool:
+            if thread is None:
+                return True
+            if thread is threading.current_thread():
+                # Un callback puede solicitar apagado desde un worker; no se hace self-join.
+                return False
+            thread.join(timeout=max(0.0, deadline - time.monotonic()))
+            return not thread.is_alive()
+
+        heartbeat_stopped = join_until(self._thread)
+        reconciliation_stopped = join_until(self._reconciliation_thread)
         receipt_stopped = self.receipt_lifecycle.stop(
-            timeout=max(0.0, deadline - __import__("time").monotonic())
+            timeout=max(0.0, deadline - time.monotonic())
         )
-        return heartbeat_stopped and receipt_stopped
+        return heartbeat_stopped and reconciliation_stopped and receipt_stopped
 
     def _report_error(self, code: str) -> None:
         try:
             self._on_error(code)
         except Exception:
-            # Un callback de observabilidad defectuoso no debe detener el supervisor.
+            # Un callback de observabilidad defectuoso no debe detener un worker.
             pass
 
     def _run(self) -> None:
         while not self._stop.is_set():
-            # Limpiar antes de trabajar: una notificación durante el ciclo queda pendiente
-            # y hace que la espera siguiente termine inmediatamente.
             self._wake.clear()
             try:
                 self.runtime.send_heartbeat(self.heartbeat_payload())
@@ -176,24 +192,9 @@ class AgentSupervisor:
                         self._offline = False
                     except Exception:
                         self._report_error("RECEIPT_SYNC_WAKE_FAILED")
-                if (
-                    self.reconcile_inventory is not None
-                    and self._reconciliation_requested.is_set()
-                    and time.monotonic() >= self._next_reconciliation_at
-                ):
-                    # Limpiar antes de la llamada: una nueva notificación durante la
-                    # reconciliación queda pendiente y no se pierde.
-                    self._reconciliation_requested.clear()
-                    try:
-                        response = self.runtime.reconcile_inventory(self.reconcile_inventory())
-                        if self.on_reconciliation is not None:
-                            self.on_reconciliation(response)
-                    except Exception:
-                        self._reconciliation_requested.set()
-                        self._report_error("RECONCILIATION_FAILED")
-                        self._next_reconciliation_at = (
-                            time.monotonic() + self.reconciliation_retry_interval_seconds
-                        )
+                if self.reconcile_inventory is not None and self._reconciliation_requested.is_set():
+                    # El worker de reconciliación está separado; no bloquea heartbeat/capacidades.
+                    self._reconciliation_wake.set()
 
             try:
                 self.runtime.publish_capabilities(self.capabilities_payload())
@@ -203,3 +204,39 @@ class AgentSupervisor:
             if self._stop.is_set():
                 break
             self._wake.wait(self.heartbeat_interval_seconds)
+
+    def _run_reconciliation(self) -> None:
+        while not self._stop.is_set():
+            if self._reconciliation_requested.is_set():
+                delay = max(0.0, self._next_reconciliation_at - time.monotonic())
+                self._reconciliation_wake.wait(delay)
+            else:
+                self._reconciliation_wake.wait()
+            if self._stop.is_set():
+                break
+            self._reconciliation_wake.clear()
+            if not self._reconciliation_requested.is_set():
+                continue
+            if time.monotonic() < self._next_reconciliation_at:
+                continue
+
+            # Una notificación durante la llamada queda en el Event y dispara otro ciclo.
+            self._reconciliation_requested.clear()
+            try:
+                inventory = self.reconcile_inventory()
+                response = self.runtime.reconcile_inventory(inventory)
+                if self.on_reconciliation is not None:
+                    self.on_reconciliation(response)
+            except Exception:
+                self._reconciliation_requested.set()
+                self._report_error("RECONCILIATION_FAILED")
+                if not self._reconciliation_wake.is_set():
+                    self._next_reconciliation_at = (
+                        time.monotonic() + self.reconciliation_retry_interval_seconds
+                    )
+                else:
+                    self._next_reconciliation_at = 0.0
+            else:
+                self._next_reconciliation_at = 0.0
+                if self._reconciliation_requested.is_set():
+                    self._reconciliation_wake.set()
