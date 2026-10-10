@@ -38,3 +38,28 @@ El guardián funciona sin PostgreSQL ni conectividad una vez que el comando aute
 Un epoch local solo permite rechazar comandos viejos que llegan al mismo nodo. **No puede detener por sí solo una instancia antigua que continúa ejecutándose en otro nodo aislado de la red.** La Master no debe reasignar una instancia por la mera expiración del lease; necesita confirmar que el propietario anterior paró o aplicar un mecanismo externo de fencing probado.
 
 Este módulo no aporta autenticación, firmas, TLS, permisos de sistema operativo, revocación ni quorum. Tampoco expone ADB/shell ni abre puertos. No desplegar en las PC físicas hasta validar todo el plano de control.
+
+
+## 10. Entrega y confirmación de recibos al controlador
+
+La versión 2 del journal añade `controller_ack_at` y una consulta acotada para reintentar recibos sin conexión.
+
+- `list_pending_receipts(limit=100, statuses=None)` devuelve recibos sin ACK del controlador, filtrados al nodo local y ordenados por creación/ID. El límite permitido es 1-1000; el método no carga toda la base en memoria.
+- `mark_receipt_delivered(operation_id, assignment_epoch)` marca un recibo como entregado solo después de recibir una respuesta HTTP 2xx autenticada del controlador. Rechaza epochs incorrectos.
+- Cada nueva transición de estado vuelve a dejar el recibo pendiente; por ejemplo, si el estado `running` ya se envió y luego se obtiene `succeeded`, el resultado final debe volver a transmitirse.
+- Si la red falla o el controlador devuelve un error, no marcar el recibo como entregado. Volverá a aparecer en el siguiente lote.
+- Las operaciones terminales siguen siendo inmutables: el ACK de transporte no permite cambiar un resultado terminal.
+
+Ejemplo de patrón de sincronización:
+
+```python
+for receipt in journal.list_pending_receipts(limit=50):
+    response = transport.send_receipt(receipt)  # implementar con HTTPS autenticado
+    if 200 <= response.status < 300:
+        journal.mark_receipt_delivered(
+            receipt.operation_id,
+            receipt.assignment_epoch,
+        )
+```
+
+El ejemplo ilustra el orden de persistencia/confirmación; `transport.send_receipt` debe implementarse con el transporte HTTPS autenticado y la clave idempotente correspondiente. Nunca marcar un recibo antes de que el controlador confirme la entrega.
