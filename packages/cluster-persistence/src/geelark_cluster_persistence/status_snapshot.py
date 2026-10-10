@@ -159,7 +159,8 @@ def _safe_modules(value: Any, *, now: datetime, freshness_state: str) -> list[di
             checked_at = None
         elif now - checked_at >= MODULE_REPORT_STALE_AFTER:
             state, source, error_code = "unknown", "master-check", "REPORT_STALE"
-        elif not isinstance(raw_state, str) or raw_state not in MODULE_STATES or module_id not in SUPPORTED_MODULE_IDS:
+        elif (not isinstance(raw_state, str) or raw_state not in MODULE_STATES
+              or module_id not in SUPPORTED_MODULE_IDS or source != "agent-report"):
             state, source, error_code = "unknown", "master-check", "INVALID_MODULE_REPORT"
 
         result.append({
