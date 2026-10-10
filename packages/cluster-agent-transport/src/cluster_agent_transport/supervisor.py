@@ -7,6 +7,7 @@ import threading
 import time
 from collections.abc import Callable
 from typing import Any
+from uuid import UUID, uuid4
 
 
 class AgentSupervisor:
@@ -85,6 +86,8 @@ class AgentSupervisor:
         self._lock = threading.Lock()
         self._offline = False
         self._next_reconciliation_at = 0.0
+        self._reconciliation_id: UUID | None = None
+        self._reconciliation_id_lock = threading.Lock()
 
     @property
     def running(self) -> bool:
@@ -132,6 +135,8 @@ class AgentSupervisor:
         if self.reconcile_inventory is not None:
             self._reconciliation_requested.set()
             self._next_reconciliation_at = 0.0
+            with self._reconciliation_id_lock:
+                self._reconciliation_id = None
             self._reconciliation_wake.set()
         try:
             self.receipt_lifecycle.notify_reconnected()
@@ -230,9 +235,15 @@ class AgentSupervisor:
 
             # Una notificación durante la llamada queda en el Event y dispara otro ciclo.
             self._reconciliation_requested.clear()
+            with self._reconciliation_id_lock:
+                if self._reconciliation_id is None:
+                    self._reconciliation_id = uuid4()
+                attempt_id = self._reconciliation_id
             try:
                 inventory = self.reconcile_inventory()
-                response = self.runtime.reconcile_inventory(inventory)
+                response = self.runtime.reconcile_inventory(
+                    inventory, reconciliation_id=attempt_id
+                )
                 if self.on_reconciliation is not None:
                     self.on_reconciliation(response)
             except Exception:
@@ -245,6 +256,9 @@ class AgentSupervisor:
                 else:
                     self._next_reconciliation_at = 0.0
             else:
+                with self._reconciliation_id_lock:
+                    if self._reconciliation_id == attempt_id:
+                        self._reconciliation_id = None
                 self._next_reconciliation_at = 0.0
                 if self._reconciliation_requested.is_set():
                     self._reconciliation_wake.set()
