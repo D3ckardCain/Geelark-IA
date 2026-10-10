@@ -341,7 +341,7 @@ class AgentJournal:
             raise InvalidAgentCommand("El resultado no está dirigido a este nodo")
         if not isinstance(result, dict):
             raise InvalidAgentCommand("result debe ser un objeto JSON")
-        if not isinstance(status, str) or status not in {"running", "succeeded", "failed", "unknown"}:
+        if not isinstance(status, str) or status not in {"running", "succeeded", "rejected", "failed", "unknown"}:
             raise InvalidAgentCommand("status de resultado no válido")
         result_json = self._canonical_json(result)
         if len(result_json.encode("utf-8")) > 1_000_000:
