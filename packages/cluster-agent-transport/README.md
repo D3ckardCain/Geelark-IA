@@ -24,13 +24,13 @@ Paquete experimental independiente del dominio y sin listener automático.
 
 ## Integración
 
-Crear el adaptador de dominio PostgreSQL y pasar:
+Para el primer tramo de telemetría, usar:
 - `authenticate=make_database_authenticator(connect)`
-- `consume_nonce` que llame a `consume_request_nonce` con una conexión gestionada.
+- `consume_nonce=make_database_nonce_consumer(connect)`
 - `idempotency_runner=make_database_idempotency_runner(connect)`
-- `handlers` que usen la conexión `conn` entregada en cada escritura.
+- `handlers=make_postgres_agent_handlers(connect)`
 
-El callback de consulta de estado debe devolver solo el estado del nodo autenticado. Los callbacks de heartbeat/capacidades deben validar y persistir los datos con el mínimo privilegio.
+Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fila antes de mutar; guardan heartbeat/capacidades y consultan únicamente el nodo autenticado. Los handlers de tareas/reconciliación siguen sin configurarse y devuelven 503; no deben conectarse a operaciones reales hasta integrar el servicio de dominio/outbox y revisarlo.
 
 ## Validación pendiente
 
