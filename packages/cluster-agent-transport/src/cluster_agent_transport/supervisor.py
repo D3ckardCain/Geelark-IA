@@ -112,9 +112,14 @@ class AgentSupervisor:
         self._stop.set()
         self._wake.set()
         thread = self._thread
-        if thread is not None:
-            thread.join(timeout=max(0.0, deadline - time.monotonic()))
-        heartbeat_stopped = thread is None or not thread.is_alive()
+        if thread is threading.current_thread():
+            # Un callback puede solicitar apagado desde el hilo supervisor. No se puede
+            # hacer join del hilo actual; la parada queda solicitada pero aún no concluida.
+            heartbeat_stopped = False
+        else:
+            if thread is not None:
+                thread.join(timeout=max(0.0, deadline - time.monotonic()))
+            heartbeat_stopped = thread is None or not thread.is_alive()
         receipt_stopped = self.receipt_lifecycle.stop(
             timeout=max(0.0, deadline - __import__("time").monotonic())
         )
