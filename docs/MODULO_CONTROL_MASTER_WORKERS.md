@@ -140,3 +140,10 @@ El panel actual solo cubre el primer esqueleto visual de observabilidad. Antes d
 ## 12. Decisión de integración de solo lectura
 
 La arquitectura propuesta y sus puertas de seguridad están documentadas en [ADR-005](decisiones/ADR-005-LECTURA-ESTADO-CLUSTER.md). Este ADR no autoriza conectar datos reales ni añadir listeners; la interfaz sigue usando datos ficticios hasta confirmar la fuente de verdad y la identidad del operador.
+
+
+## 13. Avance del proveedor de snapshots (10-oct-2026)
+
+La primera implementación interna está en [PR #74](https://github.com/D3ckardCain/Geelark-IA/pull/74), apilada sobre [PR #73](https://github.com/D3ckardCain/Geelark-IA/pull/73) y PR #48. El proveedor convierte una fila de PostgreSQL en el contrato v1, deriva frescura/salud de forma conservadora y ejecuta solo SELECT. La CI del HEAD `80e7f17865fc34f6f64832180ae4ad81d71a2042` pasó con 26 pruebas de persistencia, 12 de guard y 26 de autenticación ([ejecución](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38095051862)).
+
+Este proveedor no añade ruta HTTP ni listener, no autentica operadores y no está conectado al prototipo. Antes de integrarlo se debe comprobar con una conexión real que el rol PostgreSQL sea solo lectura, definir identidad/autorización humana y revisar el stack de PRs. Las PRs siguen en borrador y no se fusionaron.
