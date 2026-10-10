@@ -5,6 +5,7 @@ on:
     paths:
       - "prototypes/master-control/**"
       - "tests/test_master_control_prototype.py"
+      - "tests/smoke_master_control_browser.py"
       - "docs/MANUAL_USUARIO_PANEL_CONTROL_MASTER.md"
       - ".github/workflows/master-control-prototype.yml"
 
@@ -26,6 +27,9 @@ jobs:
 
       - name: Run Python standard-library regression tests
         run: python3 -m unittest tests/test_master_control_prototype.py
+
+      - name: Render the actual HTML in installed Chrome/Chromium
+        run: python3 tests/smoke_master_control_browser.py
 
       - name: Check embedded JavaScript syntax
         run: |

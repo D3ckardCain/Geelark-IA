@@ -77,7 +77,7 @@ En la vista **Auditoría y CI**, pulsa **Descargar resumen**. El navegador desca
 
 ## 10. Estado de validación y límites de accesibilidad
 
-Se añadieron comprobaciones estáticas para la vista activa, los encabezados y títulos accesibles de tablas, los iconos decorativos y el indicador de foco. También se añadieron cálculos de contraste WCAG AA para diez combinaciones clave, obteniendo los colores directamente del CSS para detectar futuras regresiones; no sustituyen una auditoría visual completa. Estas pruebas no sustituyen una evaluación con lector de pantalla ni una auditoría WCAG completa.
+La CI abre el archivo HTML completo en Chrome/Chromium preinstalado y verifica el DOM renderizado inicial. También se añadieron comprobaciones estáticas para la vista activa, los encabezados y títulos accesibles de tablas, los iconos decorativos y el indicador de foco. También se añadieron cálculos de contraste WCAG AA para diez combinaciones clave, obteniendo los colores directamente del CSS para detectar futuras regresiones; no sustituyen una auditoría visual completa. Estas pruebas no sustituyen una evaluación con lector de pantalla ni una auditoría WCAG completa.
 
 ## 11. Estado de validación
 
