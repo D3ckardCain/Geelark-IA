@@ -187,5 +187,6 @@ runtime = AgentTransportRuntime(
 - El guardián SQLite conserva fencing, recibos pendientes y ACK terminales sin red.
 - El adaptador puede sincronizar lotes acotados con `sync_pending_receipts()`, pero el bucle principal del agente todavía debe invocarlo al iniciar y cuando detecte reconexión.
 - Heartbeat, capacidades y consulta de estado requieren conectividad; no se encolan localmente.
-- La entrega de tareas y la reconciliación del lado controlador permanecen deshabilitadas hasta integrar/revisar servicio transaccional y outbox.
+- El endpoint `POST /agent/v1/tasks/claim` y la bandeja PostgreSQL ya están en desarrollo en la rama apilada de la Issue #50. Solo nodos `active` pueden reclamar tareas; los nodos `pending` conservan heartbeat, capacidades y consulta de estado. La entrega no se considera validada hasta que pase CI y se revisen las pruebas transaccionales de PostgreSQL.
+- La reconciliación permanece deshabilitada hasta completar su contrato y sus pruebas.
 - No se ejecuta Android, ADB ni shell remoto; no desplegar en nodos reales hasta completar el bucle de agente, la entrega de tareas y la revisión de outbox.
