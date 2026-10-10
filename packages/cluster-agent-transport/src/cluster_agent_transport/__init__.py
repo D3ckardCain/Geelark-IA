@@ -1,6 +1,7 @@
 """Transporte HTTPS privado para agentes GeeLark-IA."""
 
 from .app import create_agent_app
+from .client import AgentHTTPSClient, AgentResponse, AgentTransportError
 from .db_auth import InvalidAgentCredential, make_database_authenticator
 from .domain_handlers import make_postgres_agent_handlers
 from .idempotency import (
@@ -16,7 +17,8 @@ from .replay import ReplayRejected, consume_request_nonce, make_database_nonce_c
 from .server import TransportConfigurationError, make_uvicorn_config, validate_https_listener
 
 __all__ = [
-    "AgentPrincipal", "IdempotencyConflict", "IdempotencyInProgress",
+    "AgentHTTPSClient", "AgentPrincipal", "AgentResponse", "AgentTransportError",
+    "IdempotencyConflict", "IdempotencyInProgress",
     "InMemoryRateLimiter", "InvalidAgentCredential", "Operation", "PermissionDenied",
     "ReplayRejected", "TransportConfigurationError", "authorize_operation",
     "consume_request_nonce", "create_agent_app", "execute_idempotent",
