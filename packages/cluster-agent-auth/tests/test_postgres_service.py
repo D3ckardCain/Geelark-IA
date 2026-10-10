@@ -215,6 +215,43 @@ def test_concurrent_rotation_allows_only_one_pending_credential():
         cleanup([node_id], [enrollment.record_id])
 
 
+
+def test_revoked_node_rejects_concurrent_authentication_attempts():
+    node_id = uuid4()
+    with connect() as conn:
+        enrollment = create_enrollment(conn, node_id, "test-admin")
+    try:
+        with connect() as conn:
+            credential = consume_enrollment(conn, enrollment.secret, "revoked-node-under-load")
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.nodes SET admin_state = 'active' WHERE node_id = %s",
+                (node_id,),
+            )
+            conn.execute(
+                "UPDATE geelark_control.node_credentials SET status = 'active', activated_at = now() WHERE credential_id = %s",
+                (credential.record_id,),
+            )
+            conn.execute(
+                "UPDATE geelark_control.nodes SET admin_state = 'revoked', revoked_at = now() WHERE node_id = %s",
+                (node_id,),
+            )
+
+        def authenticate():
+            try:
+                with connect() as conn:
+                    authenticate_bearer(conn, credential.secret)
+                return False
+            except AuthenticationError:
+                return True
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            results = list(pool.map(lambda _: authenticate(), range(16)))
+        assert all(results)
+    finally:
+        cleanup([node_id], [enrollment.record_id])
+
+
 def test_concurrent_enrollment_consumption_only_succeeds_once():
     node_id = uuid4()
     with connect() as conn:
