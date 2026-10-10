@@ -243,7 +243,7 @@ def test_expired_lease_and_uncertain_reservation_do_not_release_owner():
         conn.commit()
 
     with psycopg.connect(DATABASE_URL) as conn:
-        with pytest.raises(InstanceStateBlocked):
+        with pytest.raises(InstanceAlreadyAssigned):
             assign_instance(conn, make_request(node_id=NODE_B))
     with psycopg.connect(DATABASE_URL) as conn:
         assert conn.execute("SELECT count(*) FROM geelark_control.resource_reservations WHERE instance_id = %s AND status = 'uncertain'", (INSTANCE_A,)).fetchone()[0] == 1
