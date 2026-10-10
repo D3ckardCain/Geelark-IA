@@ -57,7 +57,7 @@ El supervisor no crea estas dependencias ni elige dónde se guardan las credenci
 
 ## Pendientes antes de uso real
 
-- [x] CI del commit ejecutable 7b452538faf7da595f5cb30efe7f3ee5cf933ed1 aprobado: run 136, 70 pruebas aprobadas y pip check correcto. El supervisor sigue sin entry point instalable.
+- [x] CI del commit ejecutable b622c0eead3d2eee896b7442fca6dca479c7b78d aprobado: run 143, 90 pruebas aprobadas, migraciones PostgreSQL y pip check correctos. La documentación posterior no cambia el código probado.
 - [ ] Conectar el supervisor a un punto de entrada de proceso instalable.
 - [ ] Aprobar el sistema operativo base. Si se elige Linux/systemd, revisar SystemdCredentialProvider y configurar LoadCredentialEncrypted; si se elige otro SO, implementar y probar su proveedor nativo.
 - [ ] Añadir detector de conectividad apropiado al sistema operativo final, si se requiere además del heartbeat.
