@@ -112,3 +112,21 @@ La información de CI que aparece en la maqueta es una muestra documentada para 
 ## 10. Contrato versionado de estado
 
 El esquema propuesto para snapshots de solo lectura está en [`docs/contracts/master-worker-status-v1.schema.json`](contracts/master-worker-status-v1.schema.json), con un ejemplo ficticio y un contrato explicativo. Distingue autorización Master, salud derivada y frescura calculada en el Master. No incluye tareas, comandos, credenciales ni logs arbitrarios. Sigue sin estar conectado a la API operativa.
+
+
+## 11. Comparación funcional con GeeLark (referencia oficial consultada el 10-oct-2026)
+
+Fuentes de referencia: [GeeLark Cloud Phone](https://www.geelark.com/product/cloud-phone/) y [GeeLark API](https://www.geelark.com/features/api/). Esta comparación es funcional y de alcance; no afirma que GeeLark-IA tenga paridad de producto.
+
+| Área | GeeLark según su documentación pública | GeeLark-IA en esta rama | Brecha / decisión |
+|---|---|---|---|
+| Panel e inventario central | Gestiona múltiples cloud phones desde un dashboard, con grupos y acceso remoto. | Maqueta local con 3 Workers ficticios; aún no consulta nodos reales. | Conectar inventario real de PC-MASTER solo después de cerrar autenticación y contrato de lectura. |
+| Salud y estado | La documentación del producto menciona estado/health checks para configuraciones por dispositivo, además de consultas de estado por API. | Contrato v1 separa autorización, salud de nodo, estado de módulos y frescura. | Acordar el mapeo de estados con evidencia real; no equiparar estado del módulo con autorización del nodo. |
+| Colaboración y auditoría | GeeLark describe roles/permisos de equipo y registros de actividad. | La vista Auditoría/CI es una muestra; no existe todavía un registro operativo conectado. | Diseñar RBAC y auditoría persistente antes de habilitar operaciones administrativas. |
+| Automatización y API | GeeLark publica APIs para gestionar cloud phones y tareas; su documentación también describe operaciones Android/ADB. | No hay ejecución de tareas, shell ni ADB remoto habilitados. | Mantener la restricción actual; cualquier operación futura debe ser tipada, allowlisted, autorizada y auditada, nunca shell arbitrario. |
+| Entorno Android | GeeLark ofrece entornos Android alojados en la nube. | Este proyecto coordina PCs físicas locales como Workers; no crea cloud phones. | Diferencia arquitectónica explícita: no prometer equivalencia con cloud Android. |
+| Coste y conectividad | La referencia pública describe un producto cloud; sus condiciones comerciales y cuotas son independientes de este proyecto. | Requisito propio: coste operativo obligatorio de 0 USD y operación local/offline cuando sea viable. | No depender de GeeLark ni de APIs cloud de pago; documentar qué capacidades locales son posibles y qué funciones requieren LAN/Internet. |
+
+### Criterio de paridad
+
+El panel actual solo cubre el primer esqueleto visual de observabilidad. Antes de declarar una capacidad equivalente, registrar en GitHub la función de GeeLark observada, evidencia/referencia, implementación de GeeLark-IA, pruebas y brecha restante. No implementar funciones por imitación si violan el coste $0, la operación local o las reglas de seguridad del proyecto.

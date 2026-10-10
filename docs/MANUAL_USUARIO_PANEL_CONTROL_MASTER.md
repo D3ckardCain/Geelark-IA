@@ -87,3 +87,8 @@ Este manual describe el prototipo visual. Antes de considerarlo módulo operativ
 ## 12. Contrato técnico de estado v1
 
 Para el significado exacto de los estados y campos de telemetría, consulta el [contrato Master/Worker v1](contracts/CONTRATO_ESTADO_MASTER_WORKER_V1.md), su [esquema JSON](contracts/master-worker-status-v1.schema.json) y el [ejemplo ficticio](contracts/examples/master-worker-status-v1.example.json). El contrato está diseñado, pero aún no alimenta la interfaz ni una API operativa.
+
+
+## 13. Comparación funcional con GeeLark
+
+GeeLark ofrece un dashboard para cloud phones Android, gestión por grupos, colaboración/permisos y automatización mediante herramientas/API, según su [página oficial de Cloud Phone](https://www.geelark.com/product/cloud-phone/) y su [documentación pública de API](https://www.geelark.com/features/api/). Este prototipo solo muestra datos ficticios de Workers físicos locales; no ofrece cloud phones, gestión de cuentas/proxies, automatización ni auditoría operativa. No debe afirmarse paridad funcional. El manual técnico contiene la matriz de brechas y los criterios para validar cada capacidad antes de implementarla.
