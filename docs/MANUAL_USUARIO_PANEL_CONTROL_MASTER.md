@@ -14,7 +14,11 @@
 
 La franja superior indica que todos los datos son ficticios. No existe conexión con las PCs Worker, la base de datos ni GitHub. No uses los estados mostrados para tomar decisiones operativas.
 
-## 3. Navegación
+## 3. Navegación y accesibilidad
+
+La navegación marca la vista activa con `aria-current="page"`, los encabezados de las tablas identifican su columna y los iconos decorativos se ocultan a lectores de pantalla. Los controles muestran un indicador de foco para navegación con teclado.
+
+## 3.1 Navegación
 
 - **Resumen:** indicadores globales, nodos de muestra, alertas y puertas de validación.
 - **Nodos Worker:** busca por nombre/rol y filtra por estado.
@@ -71,6 +75,10 @@ En la vista **Auditoría y CI**, pulsa **Descargar resumen**. El navegador desca
 | Consultar PR/issues/CI en vivo | No en esta maqueta |
 | Ejecutar acciones administrativas | No implementado |
 
-## 10. Estado de validación
+## 10. Estado de validación y límites de accesibilidad
+
+Se añadieron comprobaciones estáticas para la vista activa, los encabezados de columnas, los iconos decorativos y el indicador de foco. Estas pruebas no sustituyen una evaluación con lector de pantalla ni una auditoría WCAG completa.
+
+## 11. Estado de validación
 
 Este manual describe el prototipo visual. Antes de considerarlo módulo operativo hacen falta contrato de datos, servicio local de lectura, autenticación/autorización, pruebas automáticas, persistencia de snapshots, revisión de seguridad y validación autorizada.

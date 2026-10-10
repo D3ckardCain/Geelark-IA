@@ -71,6 +71,21 @@ class MasterControlPrototypeTests(unittest.TestCase):
         self.assertTrue(refs, "Expected getElementById references")
         self.assertEqual(sorted(set(refs) - ids), [])
 
+    def test_navigation_exposes_current_page_accessibly(self):
+        self.assertIn('aria-current="page"', self.html)
+        self.assertIn('setAttribute("aria-current","page")', self.html)
+        self.assertIn('removeAttribute("aria-current")', self.html)
+        self.assertIn('aria-label="Navegación principal"', self.html)
+
+    def test_table_headers_and_decorative_icons_are_accessible(self):
+        self.assertGreaterEqual(self.html.count('scope="col"'), 20)
+        self.assertIn('<div class="nodeicon" aria-hidden="true">▣</div>', self.html)
+        self.assertIn('<span aria-hidden="true">▦</span>', self.html)
+
+    def test_keyboard_focus_indicator_exists(self):
+        self.assertIn(':focus-visible', self.html)
+        self.assertIn('outline-offset:2px', self.html)
+
     def test_master_is_not_listed_as_worker(self):
         self.assertIn('n.id!=="master"', self.html)
 

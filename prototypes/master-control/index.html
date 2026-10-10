@@ -20,10 +20,10 @@
 <div class="layout">
 <aside class="sidebar" aria-label="Navegación principal">
  <nav class="nav">
-  <button class="active" data-page="overview"><span>▦</span> Resumen</button>
-  <button data-page="nodes"><span>▤</span> Nodos Worker</button>
-  <button data-page="modules"><span>▧</span> Módulos</button>
-  <button data-page="audit"><span>✓</span> Auditoría y CI</button>
+  <button class="active" data-page="overview" aria-current="page"><span aria-hidden="true">▦</span> Resumen</button>
+  <button data-page="nodes"><span aria-hidden="true">▤</span> Nodos Worker</button>
+  <button data-page="modules"><span aria-hidden="true">▧</span> Módulos</button>
+  <button data-page="audit"><span aria-hidden="true">✓</span> Auditoría y CI</button>
  </nav>
  <div class="side-note">Control seguro<br><span class="good">●</span> Sin acciones remotas habilitadas<br><span class="warn">●</span> Datos de ejemplo</div>
 </aside>
@@ -37,7 +37,7 @@
   <article class="metric"><div class="label">CI en muestra</div><div class="num">3/3</div><div class="hint good">Workflows de ejemplo aprobados</div></article>
  </div>
  <div class="split">
-  <section class="panel"><div class="panelhead"><h3>Estado de los nodos</h3><button class="btn" data-goto="nodes">Ver nodos →</button></div><div class="tablewrap"><table><thead><tr><th>Nodo</th><th>Estado</th><th>Último reporte</th></tr></thead><tbody id="overview-nodes"></tbody></table></div></section>
+  <section class="panel"><div class="panelhead"><h3>Estado de los nodos</h3><button class="btn" data-goto="nodes">Ver nodos →</button></div><div class="tablewrap"><table><thead><tr><th scope="col">Nodo</th><th scope="col">Estado</th><th scope="col">Último reporte</th></tr></thead><tbody id="overview-nodes"></tbody></table></div></section>
   <section class="panel"><div class="panelhead"><h3>Atención necesaria</h3><span class="tag">2 alertas demo</span></div><div class="list">
    <div class="listitem"><div class="listicon warn">!</div><div><strong>WORKER-03 sin heartbeat</strong><p>El estado se considera obsoleto; no se interpreta como saludable.</p></div></div>
    <div class="listitem"><div class="listicon">↗</div><div><strong>Módulo de telemetría degradado</strong><p>WORKER-02 · último chequeo ficticio hace 4 min.</p></div></div>
@@ -53,15 +53,15 @@
 </section>
 <section id="page-nodes" class="page hidden">
  <div class="pagehead"><div><div class="eyebrow">Inventario</div><h2>Nodos Worker</h2><div class="muted">Estado y frescura de los informes recibidos.</div></div></div>
- <section class="panel"><div class="tools"><input id="node-search" placeholder="Buscar nodo…" aria-label="Buscar nodo"><select id="node-filter" aria-label="Filtrar estado"><option value="all">Todos los estados</option><option value="healthy">Saludable</option><option value="pending">Pendiente</option><option value="offline">Desconectado</option><option value="degraded">Degradado</option></select></div><div class="tablewrap"><table><thead><tr><th>Nodo</th><th>Autorización</th><th>Salud</th><th>Último heartbeat</th><th>CPU</th><th>RAM libre</th><th>Agente</th></tr></thead><tbody id="nodes-table"></tbody></table></div><div id="nodes-empty" class="empty hidden">No hay nodos que coincidan con el filtro.</div></section>
+ <section class="panel"><div class="tools"><input id="node-search" placeholder="Buscar nodo…" aria-label="Buscar nodo"><select id="node-filter" aria-label="Filtrar estado"><option value="all">Todos los estados</option><option value="healthy">Saludable</option><option value="pending">Pendiente</option><option value="offline">Desconectado</option><option value="degraded">Degradado</option></select></div><div class="tablewrap"><table><thead><tr><th scope="col">Nodo</th><th scope="col">Autorización</th><th scope="col">Salud</th><th scope="col">Último heartbeat</th><th scope="col">CPU</th><th scope="col">RAM libre</th><th scope="col">Agente</th></tr></thead><tbody id="nodes-table"></tbody></table></div><div id="nodes-empty" class="empty hidden">No hay nodos que coincidan con el filtro.</div></section>
 </section>
 <section id="page-modules" class="page hidden">
  <div class="pagehead"><div><div class="eyebrow">Inventario de software</div><h2>Estado de módulos</h2><div class="muted">El estado operativo debe provenir de comprobaciones versionadas, no de suposiciones.</div></div></div>
- <section class="panel"><div class="tools"><input id="module-search" placeholder="Buscar módulo o nodo…" aria-label="Buscar módulo o nodo"><select id="module-filter" aria-label="Filtrar módulos"><option value="all">Todos los estados</option><option value="operational">Operativo</option><option value="degraded">Degradado</option><option value="unknown">Desconocido</option><option value="not-installed">No instalado</option></select></div><div class="tablewrap"><table><thead><tr><th>Módulo</th><th>Nodo</th><th>Estado</th><th>Versión</th><th>Última comprobación</th><th>Fuente</th></tr></thead><tbody id="modules-table"></tbody></table></div><div id="modules-empty" class="empty hidden">No hay módulos que coincidan con el filtro.</div></section>
+ <section class="panel"><div class="tools"><input id="module-search" placeholder="Buscar módulo o nodo…" aria-label="Buscar módulo o nodo"><select id="module-filter" aria-label="Filtrar módulos"><option value="all">Todos los estados</option><option value="operational">Operativo</option><option value="degraded">Degradado</option><option value="unknown">Desconocido</option><option value="not-installed">No instalado</option></select></div><div class="tablewrap"><table><thead><tr><th scope="col">Módulo</th><th scope="col">Nodo</th><th scope="col">Estado</th><th scope="col">Versión</th><th scope="col">Última comprobación</th><th scope="col">Fuente</th></tr></thead><tbody id="modules-table"></tbody></table></div><div id="modules-empty" class="empty hidden">No hay módulos que coincidan con el filtro.</div></section>
 </section>
 <section id="page-audit" class="page hidden">
  <div class="pagehead"><div><div class="eyebrow">Evidencia</div><h2>Auditoría y CI</h2><div class="muted">Cada resultado conserva su alcance y sus límites.</div></div><div class="actions"><button class="btn" id="copy-report">Descargar resumen</button></div></div>
- <section class="panel"><div class="panelhead"><h3>Últimos resultados de CI (muestra)</h3><span class="tag">No es una consulta en vivo</span></div><div class="tablewrap"><table><thead><tr><th>Comprobación</th><th>Resultado</th><th>Alcance</th><th>Referencia</th></tr></thead><tbody>
+ <section class="panel"><div class="panelhead"><h3>Últimos resultados de CI (muestra)</h3><span class="tag">No es una consulta en vivo</span></div><div class="tablewrap"><table><thead><tr><th scope="col">Comprobación</th><th scope="col">Resultado</th><th scope="col">Alcance</th><th scope="col">Referencia</th></tr></thead><tbody>
  <tr><td>Cluster persistence schema</td><td><span class="pill green">Success</span></td><td>Pruebas de esquema</td><td>Commit db09da2…</td></tr>
  <tr><td>Cluster persistence service</td><td><span class="pill green">Success</span></td><td>Pruebas automatizadas del servicio</td><td>Commit db09da2…</td></tr>
  <tr><td>Cluster agent HTTPS transport</td><td><span class="pill green">Success</span></td><td>Pruebas de transporte</td><td>Commit db09da2…</td></tr>
@@ -96,11 +96,11 @@ const modules=[
 const statusLabel={healthy:"Saludable",pending:"Pendiente",offline:"Desconectado",degraded:"Degradado",operational:"Operativo",unknown:"Desconocido", "not-installed":"No instalado"};
 const pillClass={healthy:"green",pending:"yellow",offline:"red",degraded:"yellow",operational:"green",unknown:"gray","not-installed":"gray"};
 function pill(status){return '<span class="pill '+(pillClass[status]||"gray")+'">'+(statusLabel[status]||status)+'</span>'}
-function nodeCell(n){return '<div class="node"><div class="nodeicon">▣</div><div><strong>'+n.name+'</strong><small>'+n.role+'</small></div></div>'}
+function nodeCell(n){return '<div class="node"><div class="nodeicon" aria-hidden="true">▣</div><div><strong>'+n.name+'</strong><small>'+n.role+'</small></div></div>'}
 function renderOverview(){document.getElementById("overview-nodes").innerHTML=nodes.slice(1).map(n=>'<tr><td>'+nodeCell(n)+'</td><td>'+pill(n.health)+'</td><td>'+n.last+'</td></tr>').join("")}
 function renderNodes(){const q=document.getElementById("node-search").value.toLowerCase(),f=document.getElementById("node-filter").value;const rows=nodes.filter(n=>n.id!=="master"&&(n.name+" "+n.role).toLowerCase().includes(q)&&(f==="all"||n.health===f||n.auth===f));document.getElementById("nodes-table").innerHTML=rows.map(n=>'<tr><td>'+nodeCell(n)+'</td><td>'+pill(n.auth==="active"?"healthy":"pending").replace(statusLabel.healthy,n.auth==="active"?"Autorizado":"Pendiente")+'</td><td>'+pill(n.health)+'</td><td>'+n.last+'</td><td>'+n.cpu+'</td><td>'+n.ram+'</td><td>'+n.agent+'</td></tr>').join("");document.getElementById("nodes-empty").classList.toggle("hidden",rows.length>0)}
 function renderModules(){const q=document.getElementById("module-search").value.toLowerCase(),f=document.getElementById("module-filter").value;const rows=modules.filter(m=>(m.name+" "+m.node).toLowerCase().includes(q)&&(f==="all"||m.status===f));document.getElementById("modules-table").innerHTML=rows.map(m=>'<tr><td><strong>'+m.name+'</strong></td><td>'+m.node+'</td><td>'+pill(m.status)+'</td><td>'+m.version+'</td><td>'+m.time+'</td><td>'+m.source+'</td></tr>').join("");document.getElementById("modules-empty").classList.toggle("hidden",rows.length>0)}
-function showPage(page){document.querySelectorAll(".page").forEach(el=>el.classList.add("hidden"));document.getElementById("page-"+page).classList.remove("hidden");document.querySelectorAll("[data-page]").forEach(el=>el.classList.toggle("active",el.dataset.page===page));if(page==="nodes")renderNodes();if(page==="modules")renderModules()}
+function showPage(page){document.querySelectorAll(".page").forEach(el=>el.classList.add("hidden"));document.getElementById("page-"+page).classList.remove("hidden");document.querySelectorAll("[data-page]").forEach(el=>el.classList.toggle("active",el.dataset.page===page);if(el.dataset.page===page){el.setAttribute("aria-current","page")}else{el.removeAttribute("aria-current")});if(page==="nodes")renderNodes();if(page==="modules")renderModules()}
 document.querySelectorAll("[data-page]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.goto)));
 document.getElementById("node-search").addEventListener("input",renderNodes);document.getElementById("node-filter").addEventListener("change",renderNodes);document.getElementById("module-search").addEventListener("input",renderModules);document.getElementById("module-filter").addEventListener("change",renderModules);
 document.getElementById("refresh").addEventListener("click",()=>{document.getElementById("last-refresh").textContent="Última actualización de demo: "+new Date().toLocaleTimeString("es-MX");});
