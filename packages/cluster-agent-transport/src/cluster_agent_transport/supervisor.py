@@ -197,6 +197,8 @@ class AgentSupervisor:
                     # El heartbeat exitoso confirma conectividad; no conservar un backoff
                     # de reconciliación aplicado durante la desconexión anterior.
                     self._next_reconciliation_at = 0.0
+                    if self.reconcile_inventory is not None:
+                        self._reconciliation_requested.set()
                     try:
                         self.receipt_lifecycle.notify_reconnected()
                         self._offline = False
