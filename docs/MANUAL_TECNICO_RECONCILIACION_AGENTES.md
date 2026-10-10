@@ -38,7 +38,7 @@ Migration 0005 crea agent_reconciliation_reports:
 
 La ruta usa execute_idempotent con una clave derivada del nodo y del hash canónico del inventario. Un reintento idéntico devuelve el snapshot previo; no inserta un segundo informe. Cambiar el inventario genera una clave distinta.
 
-El handler no cambia task.status, operation.status, instance.owner_node_id, assignment_epoch ni leases. El informe de auditoría es la única escritura de dominio. La lectura se hace con FOR UPDATE para comparar un conjunto consistente durante la transacción.
+El handler no cambia task.status, operation.status, instance.owner_node_id, assignment_epoch ni leases. También compara nodo, instancia y epoch de la fila operation con los de agent_tasks; la divergencia se informa como SERVER_TASK_OPERATION_IDENTITY_MISMATCH. El informe de auditoría es la única escritura de dominio. La lectura se hace con FOR UPDATE para comparar un conjunto consistente durante la transacción.
 
 ## Cliente y supervisor
 
