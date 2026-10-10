@@ -47,6 +47,12 @@ def validate_subset(value, schema, path="$"):
     if value is None:
         return errors
 
+    if "allOf" in schema:
+        for child_schema in schema["allOf"]:
+            errors.extend(validate_subset(value, child_schema, path))
+    if "if" in schema and not validate_subset(value, schema["if"], path):
+        errors.extend(validate_subset(value, schema.get("then", {}), path))
+
     if isinstance(value, dict):
         for key in schema.get("required", []):
             if key not in value:
@@ -139,6 +145,25 @@ class MasterWorkerStatusContractTests(unittest.TestCase):
         candidate = deepcopy(self.example)
         candidate["freshness"]["age_seconds"] = -1
         self.assertTrue(any("below minimum" in error for error in validate_subset(candidate, self.schema)))
+
+    def test_stale_snapshot_cannot_claim_healthy(self):
+        candidate = deepcopy(self.example)
+        candidate["freshness"]["state"] = "stale"
+        candidate["node"]["health_state"] = "healthy"
+        self.assertTrue(any("allowed enum" in error for error in validate_subset(candidate, self.schema)))
+
+    def test_missing_heartbeat_cannot_claim_healthy_or_fresh(self):
+        candidate = deepcopy(self.example)
+        candidate["node"]["last_heartbeat_at"] = None
+        candidate["node"]["health_state"] = "healthy"
+        candidate["freshness"]["state"] = "fresh"
+        self.assertTrue(validate_subset(candidate, self.schema))
+
+    def test_stale_snapshot_with_unknown_health_is_valid(self):
+        candidate = deepcopy(self.example)
+        candidate["freshness"]["state"] = "stale"
+        candidate["node"]["health_state"] = "unknown"
+        self.assertEqual(validate_subset(candidate, self.schema), [])
 
     def test_pending_unknown_states_remain_explicit(self):
         candidate = deepcopy(self.example)
