@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_opener
 
 from .network import is_private_lan_address
@@ -85,7 +85,8 @@ class AgentHTTPSClient:
             or path.startswith("//")
             or parsed_path.scheme
             or parsed_path.netloc
-            or any(part in {".", ".."} for part in parsed_path.path.split("/"))
+            or parsed_path.fragment
+            or any(part in {".", ".."} for part in unquote(parsed_path.path).split("/"))
         ):
             raise ValueError("La ruta debe ser local al controlador; no se permiten URL absolutas ni traversal.")
 
@@ -100,6 +101,8 @@ class AgentHTTPSClient:
         data = None
         if payload is not None:
             data = json.dumps(payload, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
+            if len(data) > 1_048_576:
+                raise ValueError("El cuerpo de la solicitud excede 1 MiB.")
             request_headers["Content-Type"] = "application/json"
 
         request = Request(self.base_url + path, data=data, headers=request_headers, method=method)
@@ -115,10 +118,13 @@ class AgentHTTPSClient:
             body = response.read(self.max_response_bytes + 1)
             if len(body) > self.max_response_bytes:
                 raise AgentTransportError("La respuesta excede el límite configurado.")
-            if 300 <= response.status < 400:
+            status = getattr(response, "status", None)
+            if status is None:
+                status = response.getcode()
+            if 300 <= status < 400:
                 raise AgentTransportError("El controlador intentó redirigir la petición; no se siguió el redirect.")
             return AgentResponse(
-                status=response.status,
+                status=status,
                 body=body,
                 content_type=response.headers.get("Content-Type"),
             )
