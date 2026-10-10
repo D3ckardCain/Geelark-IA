@@ -75,7 +75,9 @@ def test_terminal_result_is_journaled_before_send_and_retry_key_is_stable():
     second_key = client.requests[1][3]["Idempotency-Key"]
     assert first_key == second_key
     assert client.requests[1][3]["X-Agent-Nonce"] != client.requests[0][3]["X-Agent-Nonce"]
-    assert len(journal.calls) == 2
+    # El reintento transmite el recibo durable existente; no crea otro registro local.
+    assert len(journal.calls) == 1
+    assert events == ["journal", "network", "network"]
 
 
 def test_result_remains_durable_when_network_is_offline():
