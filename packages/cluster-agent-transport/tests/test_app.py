@@ -149,4 +149,17 @@ def test_reconcile_payload_rejects_duplicate_tasks_and_oversized_result_summary(
         json={"schema_version": 1, "inventory": [oversized]},
     )
     assert response.status_code == 422
+
+    invalid_epoch = {**item, "task_id": str(uuid4()), "assignment_epoch": True}
+    epoch_response = client.post(
+        "/agent/v1/reconcile", headers=headers(),
+        json={"schema_version": 1, "inventory": [invalid_epoch]},
+    )
+    assert epoch_response.status_code == 422
+
+    invalid_schema = client.post(
+        "/agent/v1/reconcile", headers=headers(),
+        json={"schema_version": True, "inventory": []},
+    )
+    assert invalid_schema.status_code == 422
     assert calls == []
