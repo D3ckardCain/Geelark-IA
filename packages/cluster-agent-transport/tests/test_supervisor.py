@@ -10,6 +10,7 @@ class FakeLifecycle:
     def __init__(self):
         self.starts = 0
         self.reconnections = 0
+        self.fail_reconnections = False
         self.stops = []
         self.started = threading.Event()
 
@@ -19,6 +20,8 @@ class FakeLifecycle:
 
     def notify_reconnected(self):
         self.reconnections += 1
+        if self.fail_reconnections:
+            raise RuntimeError("sincronizador detenido")
 
     def stop(self, *, timeout=5):
         self.stops.append(timeout)
@@ -160,3 +163,25 @@ def test_start_is_idempotent_and_stop_before_start_is_final():
     assert stopped.stop(timeout=1)
     with pytest.raises(RuntimeError):
         stopped.start()
+
+
+
+def test_sync_wake_failure_is_not_misreported_as_heartbeat_failure():
+    runtime = FakeRuntime(heartbeat=[OSError("offline"), None])
+    lifecycle = FakeLifecycle()
+    lifecycle.fail_reconnections = True
+    errors = []
+    supervisor = AgentSupervisor(
+        runtime=runtime,
+        receipt_lifecycle=lifecycle,
+        heartbeat_payload=lambda: {},
+        capabilities_payload=lambda: {},
+        heartbeat_interval_seconds=0.5,
+        on_error=errors.append,
+    )
+    supervisor.start()
+    assert wait_for(lambda: "HEARTBEAT_FAILED" in errors)
+    supervisor.notify_reconnected()
+    assert wait_for(lambda: errors.count("RECEIPT_SYNC_WAKE_FAILED") >= 2)
+    assert errors.count("HEARTBEAT_FAILED") == 1
+    assert supervisor.stop(timeout=1)
