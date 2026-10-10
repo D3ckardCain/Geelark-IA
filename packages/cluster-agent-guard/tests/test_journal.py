@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from dataclasses import replace
 import os
+import sqlite3
 import stat
 from uuid import UUID, uuid4
 
@@ -264,3 +265,32 @@ def test_marking_receipt_with_wrong_epoch_is_rejected(tmp_path):
     journal.accept_command(cmd)
     with pytest.raises(StaleOperationResult):
         journal.mark_receipt_delivered(cmd.operation_id, 2)
+
+
+
+def test_schema_v1_journal_upgrades_to_delivery_ack_v2(tmp_path):
+    path = tmp_path / "journal.sqlite3"
+    journal = AgentJournal(path, LOCAL_NODE)
+    journal.initialize()
+
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute("DROP INDEX idx_operation_receipts_pending_delivery")
+        conn.execute("ALTER TABLE operation_receipts DROP COLUMN controller_ack_at")
+        conn.execute("DELETE FROM schema_migrations WHERE version = 2")
+        conn.commit()
+    finally:
+        conn.close()
+
+    journal.initialize()
+    conn = sqlite3.connect(path)
+    try:
+        version = conn.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0]
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(operation_receipts)").fetchall()}
+        assert version == 2
+        assert "controller_ack_at" in columns
+        assert conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_operation_receipts_pending_delivery'"
+        ).fetchone() is not None
+    finally:
+        conn.close()
