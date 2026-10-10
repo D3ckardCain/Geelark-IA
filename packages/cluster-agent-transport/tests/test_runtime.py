@@ -207,3 +207,40 @@ def test_running_progress_ack_is_persisted_and_does_not_block_later_receipts():
     confirmed, attempted = runtime.sync_pending_receipts(limit=2)
     assert (confirmed, attempted) == (2, 2)
     assert journal.synced == [operation_id, journal.pending[1].operation_id]
+
+
+
+def test_reconcile_inventory_uses_stable_idempotency_key_and_never_marks_receipts():
+    node_id = uuid4()
+    client, journal = FakeClient(), FakeJournal()
+    runtime = make_runtime(client, journal, node_id)
+    inventory = [{
+        "task_id": str(uuid4()),
+        "operation_id": str(uuid4()),
+        "instance_id": str(uuid4()),
+        "assignment_epoch": 3,
+        "local_state": "running",
+        "result_summary": {},
+    }]
+
+    runtime.reconcile_inventory(inventory)
+    runtime.reconcile_inventory(inventory)
+
+    assert len(client.requests) == 2
+    assert client.requests[0][0:2] == ("POST", "/agent/v1/reconcile")
+    assert client.requests[0][2] == {"schema_version": 1, "inventory": inventory}
+    assert client.requests[0][3]["Idempotency-Key"] == client.requests[1][3]["Idempotency-Key"]
+    assert client.requests[0][3]["X-Agent-Nonce"] != client.requests[1][3]["X-Agent-Nonce"]
+    assert journal.synced == []
+
+
+def test_reconcile_inventory_rejects_oversized_or_non_json_inventory():
+    node_id = uuid4()
+    client, journal = FakeClient(), FakeJournal()
+    runtime = make_runtime(client, journal, node_id)
+
+    with pytest.raises(ValueError):
+        runtime.reconcile_inventory([{}] * 101)
+    with pytest.raises(ValueError):
+        runtime.reconcile_inventory([{"invalid": float("nan")}])
+    assert client.requests == []
