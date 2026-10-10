@@ -6,7 +6,7 @@
 
 ## Resumen ejecutivo
 
-**Hipótesis de trabajo, no decisión aprobada:** Debian 13 Stable directo es el candidato más simple para la primera prueba controlada del motor Android. Proxmox VE sigue en comparación y solo debería elegirse si una ventaja medible de aislamiento/gestión compensa la complejidad de GPU, kernel y mantenimiento. No se instalará nada hasta la autorización expresa del usuario.
+**Estado: sin candidato ganador.** Ubuntu 26.04 LTS directo, Debian 13 Stable directo y Proxmox VE con una VM Linux dedicada permanecen como candidatos documentales. Linux directo probablemente tenga menos capas para la primera prueba del motor Android, pero no hay evidencia suficiente para preferir Ubuntu frente a Debian ni para descartar Proxmox. No se instalará nada hasta la autorización expresa del usuario.
 
 Motivos:
 - Debian Stable es una distribución libre sin suscripción obligatoria, con una base conservadora y un ciclo de soporte documentado.
@@ -16,19 +16,21 @@ Motivos:
 
 No instalar ningún sistema operativo hasta que se apruebe expresamente el plan de prueba de concepto y se comprueben las licencias de cada componente.
 
-## Comparativa
+## Comparativa preliminar
 
-| Criterio | Debian 13 Stable directo | Proxmox VE sin suscripción |
+Esta primera tabla resume únicamente Linux directo frente a Proxmox; no sustituye la comparación de tres candidatos incluida más abajo.
+
+| Criterio | Linux directo (Ubuntu 26.04 LTS o Debian 13) | Proxmox VE sin suscripción |
 |---|---|---|
 | Coste obligatorio del SO | 0 USD | 0 USD para descargar/usar; suscripción opcional |
-| Repositorio de actualizaciones | Repositorios oficiales de Debian | Repositorio no-subscription disponible sin clave |
-| Adecuación de actualizaciones gratuitas a producción | Debian Stable con soporte de seguridad/LTS documentado | Proxmox declara que no-subscription es para pruebas/no producción y no lo recomienda para producción |
+| Repositorio de actualizaciones | Repositorios oficiales de la distribución elegida | Repositorio no-subscription disponible sin clave |
+| Adecuación de actualizaciones gratuitas a producción | Depende de la política de soporte de Ubuntu 26.04 LTS o Debian 13 y de los paquetes usados; verificar la cobertura aplicable | Proxmox declara que no-subscription es para pruebas/no producción y no lo recomienda para producción |
 | Complejidad inicial | Menos capas: Linux, motor Android y agente | Más capas: Proxmox, VM/CT, red/almacenamiento y motor Android |
 | Aislamiento | Depende de contenedores, usuarios, cgroups, namespaces y política local | Puede aportar aislamiento/gestión de VM; la configuración sigue requiriendo auditoría |
 | Gestión centralizada de nodos | La implementa GeeLark-IA | Proxmox aporta su propia administración de infraestructura, con requisitos de quorum/cluster |
 | Rendimiento Android | Debe medirse; evita una capa de hipervisor | Debe medirse; VM/CT, passthrough y aceleración añaden variables |
 | Riesgo de bloqueo tecnológico | Menor si el agente usa interfaces Linux estándar y backends abstractos | Mayor si la automatización depende de APIs específicas de Proxmox |
-| Recomendación actual | **Candidato preferido para la POC $0** | Candidato comparativo; no preferido para producción con $0 estricto |
+| Estado actual | Candidato documental; sin preferencia entre Ubuntu y Debian hasta revisar requisitos y probar | Candidato comparativo; su política de actualizaciones gratuitas plantea un riesgo para producción con $0 estricto |
 
 ## Requisitos de Android que deben verificarse
 
@@ -54,7 +56,9 @@ redroid declara que su propio código está bajo Apache 2.0 y sus módulos de ke
 - Elegir dos equipos distintos para medir heterogeneidad.
 - Crear una incidencia GitHub por cada instalación, comando, resultado y fallo; redactar secretos.
 
-### Fase 1 — Debian directo en un solo equipo desechable
+### Fase 1 — Linux directo en un solo equipo desechable
+
+Elegir Ubuntu 26.04 LTS o Debian 13 solo después de completar la puerta documental y confirmar que el usuario autoriza expresamente borrar/reinstalar el equipo designado. La matriz de decisión define cómo compararlos sin favorecer uno de antemano.
 
 1. Instalar Debian 13 Stable con particiones simples y cifrado de disco si el equipo admite recuperación de clave documentada.
 2. Aplicar actualizaciones de seguridad y deshabilitar servicios/puertos innecesarios.
