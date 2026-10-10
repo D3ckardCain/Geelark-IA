@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import math
 import threading
 import time
@@ -87,6 +88,7 @@ class AgentSupervisor:
         self._offline = False
         self._next_reconciliation_at = 0.0
         self._reconciliation_id: UUID | None = None
+        self._reconciliation_inventory_snapshot: list[dict[str, Any]] | None = None
         self._reconciliation_id_lock = threading.Lock()
 
     @property
@@ -137,6 +139,7 @@ class AgentSupervisor:
             self._next_reconciliation_at = 0.0
             with self._reconciliation_id_lock:
                 self._reconciliation_id = None
+                self._reconciliation_inventory_snapshot = None
             self._reconciliation_wake.set()
         try:
             self.receipt_lifecycle.notify_reconnected()
@@ -241,9 +244,18 @@ class AgentSupervisor:
             with self._reconciliation_id_lock:
                 if self._reconciliation_id is None:
                     self._reconciliation_id = uuid4()
+                    self._reconciliation_inventory_snapshot = None
                 attempt_id = self._reconciliation_id
+                inventory = self._reconciliation_inventory_snapshot
             try:
-                inventory = self.reconcile_inventory()
+                if inventory is None:
+                    inventory = copy.deepcopy(self.reconcile_inventory())
+                    with self._reconciliation_id_lock:
+                        if (
+                            self._reconciliation_id == attempt_id
+                            and self._reconciliation_inventory_snapshot is None
+                        ):
+                            self._reconciliation_inventory_snapshot = inventory
                 response = self.runtime.reconcile_inventory(
                     inventory, reconciliation_id=attempt_id
                 )
@@ -262,6 +274,7 @@ class AgentSupervisor:
                 with self._reconciliation_id_lock:
                     if self._reconciliation_id == attempt_id:
                         self._reconciliation_id = None
+                        self._reconciliation_inventory_snapshot = None
                 self._next_reconciliation_at = 0.0
                 if self._reconciliation_requested.is_set():
                     self._reconciliation_wake.set()
