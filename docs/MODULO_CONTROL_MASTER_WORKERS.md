@@ -130,3 +130,8 @@ Fuentes de referencia: [GeeLark Cloud Phone](https://www.geelark.com/product/clo
 ### Criterio de paridad
 
 El panel actual solo cubre el primer esqueleto visual de observabilidad. Antes de declarar una capacidad equivalente, registrar en GitHub la función de GeeLark observada, evidencia/referencia, implementación de GeeLark-IA, pruebas y brecha restante. No implementar funciones por imitación si violan el coste $0, la operación local o las reglas de seguridad del proyecto.
+
+
+## 12. Decisión de integración de solo lectura
+
+La arquitectura propuesta y sus puertas de seguridad están documentadas en [ADR-005](decisiones/ADR-005-LECTURA-ESTADO-CLUSTER.md). Este ADR no autoriza conectar datos reales ni añadir listeners; la interfaz sigue usando datos ficticios hasta confirmar la fuente de verdad y la identidad del operador.
