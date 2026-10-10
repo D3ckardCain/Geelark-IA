@@ -55,12 +55,14 @@ def test_pending_can_send_heartbeat_and_read_status_but_not_accept_task():
     }
     assert client.post("/agent/v1/heartbeat", headers=headers(), json=heartbeat).status_code == 200
     assert client.get("/agent/v1/status", headers=headers()).status_code == 200
+    capabilities = {"capabilities_version": 1, "capabilities": ["heartbeat", "status"]}
+    assert client.put("/agent/v1/capabilities", headers=headers(), json=capabilities).status_code == 200
     response = client.post(
         f"/agent/v1/tasks/{uuid4()}/accept", headers=headers(),
         json={"schema_version": 1, "state": "accepted", "details": {}},
     )
     assert response.status_code == 403
-    assert calls == ["heartbeat", "status_read"]
+    assert calls == ["heartbeat", "status_read", "capabilities"]
 
 
 def test_active_node_can_reach_task_handler():
