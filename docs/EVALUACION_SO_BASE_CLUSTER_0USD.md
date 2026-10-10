@@ -94,6 +94,7 @@ La decisión se toma con datos, no por preferencia:
 ## Fuentes oficiales consultadas
 
 - Debian — releases y ciclo de soporte: https://www.debian.org/releases/index.en.html
+- Ubuntu — ciclo de soporte LTS: https://ubuntu.com/about/release-cycle
 - Debian Stable — versión estable actual: https://wiki.debian.org/DebianStable
 - Proxmox — repositorio no-subscription y limitación para producción: https://github.com/proxmox/pve-docs/blob/master/pve-package-repos.adoc
 - Proxmox — suscripciones, repositorio Enterprise y soporte: https://www.proxmox.com/en/proxmox-ve/pricing
@@ -104,6 +105,25 @@ La decisión se toma con datos, no por preferencia:
 
 Esta es una evaluación documental basada en fuentes oficiales. No se ha instalado ningún sistema operativo, no se ha ejecutado redroid, no se ha probado aceleración GPU y no existen mediciones de rendimiento. La elección final debe esperar a la POC reversible y a la aprobación explícita del usuario.
 
+
+## Ubuntu LTS también debe compararse
+
+ADR-001 en `main` nombra Ubuntu LTS como anfitrión de referencia, sin fijar versión exacta. A fecha de esta revisión, la comparación debe incluir Ubuntu 26.04 LTS, además de Debian 13 y Proxmox VE. No es correcto resolver la contradicción solo cambiando de nombre a Debian: hay que comparar los tres candidatos con la misma carga y la misma política de actualizaciones.
+
+| Criterio | Ubuntu 26.04 LTS directo | Debian 13 Stable directo | Proxmox VE |
+|---|---|---|---|
+| Mantenimiento estándar sin suscripción | Hasta mayo de 2031 para paquetes cubiertos por el mantenimiento estándar de Ubuntu 26.04 LTS | Debian 13: soporte completo hasta agosto de 2028 y LTS hasta junio de 2030; durante LTS puede reducirse la lista de arquitecturas/paquetes cubiertos | Actualizaciones del repositorio no-subscription sin clave; el propio proyecto lo orienta a pruebas/no producción y recomienda Enterprise para producción |
+| Ecosistema de virtualización y contenedores | Amplio; versión de kernel y compatibilidad de binder/redroid se deben probar | Amplio; versión de kernel y compatibilidad de binder/redroid se deben probar | Gestión de VMs y LXC integrada; para Android debe decidirse entre VM Linux con kernel propio o LXC con configuración de nesting/dispositivos |
+| Capacidad de migrar el agente | Alta si el agente usa interfaces Linux estándar | Alta si el agente usa interfaces Linux estándar | Alta si Proxmox se limita a infraestructura y el agente no depende de sus APIs; menor si se acopla al panel/SDK de PVE |
+| Riesgo principal | No fijar la versión/paquetes y descubrir incompatibilidades de kernel o dependencias | No fijar la versión/paquetes y descubrir incompatibilidades de kernel o dependencias | Más capas; riesgo de complejidad de GPU/kernel y política de actualización gratuita no recomendada por el proyecto para producción |
+| Estado | Candidato documental pendiente | Candidato documental pendiente | Candidato documental pendiente |
+
+Fuentes oficiales para la cobertura de seguridad:
+- Ubuntu 26.04 LTS y ciclo de versiones: https://ubuntu.com/about/release-cycle
+- Debian 13 “trixie”: https://www.debian.org/releases/trixie/index.es.html
+- Proxmox, repositorios de paquetes: https://github.com/proxmox/pve-docs/blob/master/pve-package-repos.adoc
+
+Los años de soporte no son una prueba de compatibilidad del motor Android. Tampoco debe contarse Ubuntu Pro como requisito: el criterio mínimo es que el sistema pueda recibir las actualizaciones críticas necesarias dentro del mantenimiento estándar sin pagos obligatorios.
 
 ## Aplicación al hardware declarado (sin inspección ni cambios físicos)
 
