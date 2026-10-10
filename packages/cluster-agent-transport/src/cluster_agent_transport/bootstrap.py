@@ -36,6 +36,9 @@ def build_agent_components(
     request_timeout_seconds: float = 5.0,
     receipt_batch_size: int = 100,
     heartbeat_interval_seconds: float = 30.0,
+    reconcile_inventory: Callable[[], list[dict[str, Any]]] | None = None,
+    on_reconciliation: Callable[[Any], None] | None = None,
+    reconciliation_retry_interval_seconds: float = 60.0,
     clock: Callable[..., Any] | None = None,
     on_error: Callable[[str], None] | None = None,
 ) -> AgentComponents:
@@ -72,6 +75,9 @@ def build_agent_components(
         heartbeat_payload=heartbeat_payload,
         capabilities_payload=capabilities_payload,
         heartbeat_interval_seconds=heartbeat_interval_seconds,
+        reconcile_inventory=reconcile_inventory,
+        on_reconciliation=on_reconciliation,
+        reconciliation_retry_interval_seconds=reconciliation_retry_interval_seconds,
         on_error=on_error,
     )
     return AgentComponents(
