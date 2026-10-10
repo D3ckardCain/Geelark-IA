@@ -53,7 +53,9 @@ class ASGIClientAdapter:
 
 def test_sqlite_receipt_sync_is_idempotent_when_postgres_commits_but_ack_is_lost(tmp_path):
     node_id, credential_id = uuid4(), uuid4()
-    instance_id = operation_id = task_id = uuid4()
+    instance_id = uuid4()
+    operation_id = uuid4()
+    task_id = operation_id  # El runtime identifica la ruta por operation_id; el modelo actual usa el mismo UUID.
     request_id = uuid4()
     now = datetime.now(timezone.utc)
     connect = lambda: psycopg.connect(DATABASE_URL)
