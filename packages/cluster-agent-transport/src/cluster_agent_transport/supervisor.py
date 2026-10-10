@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import math
 import threading
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -104,12 +105,12 @@ class AgentSupervisor:
             or timeout < 0
         ):
             raise ValueError("timeout debe ser un número finito no negativo")
-        deadline = __import__("time").monotonic() + float(timeout)
+        deadline = time.monotonic() + float(timeout)
         self._stop.set()
         self._wake.set()
         thread = self._thread
         if thread is not None:
-            thread.join(timeout=max(0.0, deadline - __import__("time").monotonic()))
+            thread.join(timeout=max(0.0, deadline - time.monotonic()))
         heartbeat_stopped = thread is None or not thread.is_alive()
         receipt_stopped = self.receipt_lifecycle.stop(
             timeout=max(0.0, deadline - __import__("time").monotonic())
