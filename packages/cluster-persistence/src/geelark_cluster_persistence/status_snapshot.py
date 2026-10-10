@@ -138,9 +138,13 @@ def _safe_modules(value: Any, *, now: datetime, freshness_state: str) -> list[di
         version = raw.get("version")
         if not isinstance(version, str) or not version.strip() or len(version) > 64:
             version = None
-        checked_at = _as_utc(datetime.fromisoformat(raw["checked_at"].replace("Z", "+00:00"))) if isinstance(raw.get("checked_at"), str) else None
+        try:
+            parsed_checked_at = datetime.fromisoformat(raw["checked_at"].replace("Z", "+00:00")) if isinstance(raw.get("checked_at"), str) else None
+        except (ValueError, TypeError):
+            parsed_checked_at = None
+        checked_at = _as_utc(parsed_checked_at)
         source = raw.get("source")
-        if source not in MODULE_SOURCES:
+        if not isinstance(source, str) or source not in MODULE_SOURCES:
             source = "unknown"
         error_code = raw.get("error_code")
         if not isinstance(error_code, str) or not ERROR_CODE_RE.fullmatch(error_code):
@@ -155,7 +159,7 @@ def _safe_modules(value: Any, *, now: datetime, freshness_state: str) -> list[di
             checked_at = None
         elif now - checked_at >= MODULE_REPORT_STALE_AFTER:
             state, source, error_code = "unknown", "master-check", "REPORT_STALE"
-        elif raw_state not in MODULE_STATES or module_id not in SUPPORTED_MODULE_IDS:
+        elif not isinstance(raw_state, str) or raw_state not in MODULE_STATES or module_id not in SUPPORTED_MODULE_IDS:
             state, source, error_code = "unknown", "master-check", "INVALID_MODULE_REPORT"
 
         result.append({
