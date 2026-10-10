@@ -66,7 +66,8 @@ class AgentTransportRuntime:
             status="running", result=result,
         )
         response = self._send_receipt(
-            operation_id=operation_id, state="running", result=result, route="progress"
+            operation_id=operation_id, assignment_epoch=assignment_epoch,
+            state="running", result=result, route="progress"
         )
         return response
 
@@ -81,7 +82,8 @@ class AgentTransportRuntime:
             status=status, result=result,
         )
         response = self._send_receipt(
-            operation_id=operation_id, state=status, result=result, route="result"
+            operation_id=operation_id, assignment_epoch=assignment_epoch,
+            state=status, result=result, route="result"
         )
         return response
 
@@ -129,8 +131,11 @@ class AgentTransportRuntime:
             route = "result"
         else:
             return None
+        if isinstance(epoch, bool) or not isinstance(epoch, int) or epoch < 1:
+            raise ValueError("El recibo contiene un assignment_epoch inválido.")
         return self._send_receipt(
-            operation_id=operation_id, state=status, result=result, route=route
+            operation_id=operation_id, assignment_epoch=epoch,
+            state=status, result=result, route=route
         )
 
     def _record_local(
@@ -147,7 +152,8 @@ class AgentTransportRuntime:
         )
 
     def _send_receipt(
-        self, *, operation_id: UUID, state: str, result: dict[str, Any], route: str
+        self, *, operation_id: UUID, assignment_epoch: int,
+        state: str, result: dict[str, Any], route: str
     ) -> AgentResponse:
         payload = {"schema_version": 1, "state": state, "details": result}
         digest = payload_digest(payload)[:32]
@@ -155,10 +161,17 @@ class AgentTransportRuntime:
         response = self._request(
             "POST", f"/agent/v1/tasks/{operation_id}/{route}", payload, idempotency_key=key
         )
-        if state in {"running", "succeeded", "failed"}:
+        # Las versiones del journal han expuesto ambos nombres de API. Preferir
+        # mark_receipt_delivered(operation_id, epoch), que valida el fencing; admitir
+        # mark_receipt_synced(operation_id) solo para compatibilidad con el contrato anterior.
+        mark_delivered = getattr(self.journal, "mark_receipt_delivered", None)
+        if callable(mark_delivered):
+            mark_delivered(operation_id, assignment_epoch)
+        else:
             mark_synced = getattr(self.journal, "mark_receipt_synced", None)
-            if callable(mark_synced):
-                mark_synced(operation_id)
+            if not callable(mark_synced):
+                raise ValueError("journal debe implementar mark_receipt_delivered o mark_receipt_synced")
+            mark_synced(operation_id)
         return response
 
     def _request(
