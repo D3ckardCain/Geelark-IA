@@ -187,3 +187,29 @@ def test_runtime_syncs_real_sqlite_journal_and_persists_terminal_ack(tmp_path):
     reopened = guard.AgentJournal(tmp_path / "journal.sqlite3", node_id)
     reopened.initialize()
     assert reopened.list_pending_receipts(limit=10) == []
+
+
+
+def test_runtime_claim_accept_and_report_use_task_id_and_stable_keys():
+    node_id, task_id, operation_id, instance_id = uuid4(), uuid4(), uuid4(), uuid4()
+    client, journal = FakeClient(), FakeJournal()
+    runtime = make_runtime(client, journal, node_id)
+
+    runtime.claim_next_task(idempotency_key="task-claim-" + str(task_id))
+    assert client.requests[0][0:2] == ("POST", "/agent/v1/tasks/claim")
+    assert client.requests[0][3]["Idempotency-Key"] == "task-claim-" + str(task_id)
+
+    runtime.accept_task(task_id=task_id)
+    assert client.requests[1][1] == f"/agent/v1/tasks/{task_id}/accept"
+
+    runtime.report_progress(
+        task_id=task_id, operation_id=operation_id, instance_id=instance_id,
+        assignment_epoch=1, result={"progress_percent": 50},
+    )
+    assert client.requests[2][1] == f"/agent/v1/tasks/{task_id}/progress"
+
+    runtime.report_result(
+        task_id=task_id, operation_id=operation_id, instance_id=instance_id,
+        assignment_epoch=1, status="succeeded", result={"ok": True},
+    )
+    assert client.requests[3][1] == f"/agent/v1/tasks/{task_id}/result"
