@@ -147,3 +147,44 @@ Comprobar la cadena y el SAN con OpenSSL. No imprimir bearer tokens, claves priv
 - Revisar el manual con el usuario antes de instalar o habilitar el listener.
 
 Este paquete no inicia el listener automáticamente. La configuración debe revisarse antes de llamar a `make_uvicorn_config` y arrancar Uvicorn.
+
+
+## 10. Adaptador de runtime y reintento offline
+
+El paquete incluye `AgentTransportRuntime`, un puente entre `AgentHTTPSClient` y cualquier journal compatible con la interfaz de `AgentJournal`. No importa ni instala automáticamente el paquete de guardián para mantener separados los módulos.
+
+1. Inicializar el journal SQLite local y pasar esa instancia a `AgentTransportRuntime`.
+2. Antes de reportar progreso o resultado, el adaptador llama a `journal.record_result`. El resultado queda durable antes de intentar la red.
+3. Si el controlador responde 2xx, la entrega terminó. Si hay timeout, desconexión o error HTTP, el adaptador devuelve un error genérico y el recibo permanece en SQLite.
+4. Cuando vuelva la conexión, recuperar el recibo por `operation_id` y llamar a `runtime.sync_receipt(receipt)`. La clave idempotente de ese resultado se deriva del contenido, por lo que reintentar el mismo resultado conserva la clave y una nueva solicitud usa nonce/request ID nuevos.
+5. No reenviar resultados de otra instancia, nodo o epoch: el journal local valida propietario y epoch antes de guardar el resultado.
+
+Ejemplo de construcción del adaptador (valores sensibles deben proceder del almacén protegido del sistema operativo, no del código):
+
+```python
+from uuid import UUID
+from cluster_agent_transport import AgentHTTPSClient, AgentTransportRuntime
+from geelark_cluster_agent_guard import AgentJournal
+
+node_id = UUID("00000000-0000-4000-8000-000000000001")  # reemplazar por UUID provisionado
+journal = AgentJournal("/var/lib/geelark-agent/journal.sqlite3", node_id)
+journal.initialize()
+
+https_client = AgentHTTPSClient(
+    base_url="https://192.168.1.10:8443",
+    ca_cert="/etc/geelark/pki/geelark-agent-ca.crt",
+)
+runtime = AgentTransportRuntime(
+    client=https_client,
+    bearer_token="<token-protegido-del-nodo>",
+    journal=journal,
+    local_node_id=node_id,
+)
+```
+
+**Límites offline actuales:**
+- El guardián SQLite conserva fencing y recibos sin red.
+- El adaptador conserva progreso/resultados antes de transmitirlos y permite reintento manual por recibo.
+- Heartbeat, capacidades y consulta de estado requieren conectividad; no se encolan localmente.
+- El runtime no escanea ni envía automáticamente todos los recibos pendientes; el bucle de agente debe programar `sync_receipt` al recuperar conexión.
+- No se ejecuta Android, ADB ni shell remoto; no desplegar en nodos reales hasta completar el bucle de agente, la entrega de tareas y la revisión de outbox.
