@@ -285,31 +285,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         )
         return {"ok": True, "task_id": str(task_id), "state": state, "duplicate": False}
 
-    def claim_task(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: Any = None) -> dict[str, Any]:
-        """Entrega una tarea de la bandeja solo al nodo activo propietario."""
-        row = conn.execute(
-            """
-            SELECT t.task_id, t.operation_id, t.instance_id, t.assignment_epoch,
-                   t.payload, t.status, t.delivery_lease_until,
-                   i.owner_node_id, i.assignment_epoch, i.lease_expires_at
-              FROM geelark_control.agent_tasks AS t
-              JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
-              JOIN geelark_control.nodes AS n ON n.node_id = t.node_id
-             WHERE t.node_id = %s
-               AND n.admin_state = 'active'
-               AND t.status IN ('queued', 'delivered')
-               AND (t.delivery_lease_until IS NULL OR t.delivery_lease_until <= now())
-               AND i.owner_node_id = t.node_id
-               AND i.assignment_epoch = t.assignment_epoch
-               AND i.lease_expires_at > now()
-             ORDER BY t.created_at, t.task_id
-             LIMIT 1
-             FOR UPDATE OF t SKIP LOCKED
-            """,
-            (principal.node_id,),
-        ).fetchone()
-        if row is None:
-            return {"task": None}
+    return {"task": None}
         task_id, operation_id, instance_id, epoch, task_payload, status, lease_until, owner, current_epoch, instance_lease = row
         lease = conn.execute(
             """
@@ -421,10 +397,6 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         Operation.HEARTBEAT: heartbeat,
         Operation.CAPABILITIES: capabilities,
         Operation.STATUS_READ: status,
-        Operation.TASK_FETCH: claim_task,
-        Operation.TASK_ACCEPT: task_accept,
-        Operation.TASK_PROGRESS: task_progress,
-        Operation.TASK_RESULT: task_result,
         Operation.TASK_FETCH: claim_task,
         Operation.TASK_ACCEPT: accept_task,
         Operation.TASK_PROGRESS: progress_task,
