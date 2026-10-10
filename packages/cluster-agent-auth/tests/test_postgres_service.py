@@ -129,6 +129,92 @@ def test_rotation_revokes_old_and_activates_new_atomically():
         cleanup([node_id], [enrollment.record_id])
 
 
+
+def test_expired_enrollment_is_rejected():
+    node_id = uuid4()
+    with connect() as conn:
+        enrollment = create_enrollment(conn, node_id, "test-admin")
+        conn.execute(
+            """
+            UPDATE geelark_control.node_enrollments
+               SET created_at = now() - interval '2 minutes',
+                   expires_at = now() - interval '1 minute'
+             WHERE enrollment_id = %s
+            """,
+            (enrollment.record_id,),
+        )
+    try:
+        with connect() as conn:
+            with pytest.raises(EnrollmentError):
+                consume_enrollment(conn, enrollment.secret, "expired-enrollment-node")
+    finally:
+        cleanup([node_id], [enrollment.record_id])
+
+
+def test_expired_credential_is_rejected():
+    node_id = uuid4()
+    with connect() as conn:
+        enrollment = create_enrollment(conn, node_id, "test-admin")
+    try:
+        with connect() as conn:
+            credential = consume_enrollment(conn, enrollment.secret, "expired-credential-node")
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.nodes SET admin_state = 'active' WHERE node_id = %s",
+                (node_id,),
+            )
+            conn.execute(
+                """
+                UPDATE geelark_control.node_credentials
+                   SET status = 'active',
+                       created_at = now() - interval '2 seconds',
+                       activated_at = now() - interval '2 seconds',
+                       expires_at = now() - interval '1 second'
+                 WHERE credential_id = %s
+                """,
+                (credential.record_id,),
+            )
+        with connect() as conn:
+            with pytest.raises(AuthenticationError):
+                authenticate_bearer(conn, credential.secret)
+    finally:
+        cleanup([node_id], [enrollment.record_id])
+
+
+def test_concurrent_rotation_allows_only_one_pending_credential():
+    node_id = uuid4()
+    with connect() as conn:
+        enrollment = create_enrollment(conn, node_id, "test-admin")
+    try:
+        with connect() as conn:
+            original = consume_enrollment(conn, enrollment.secret, "auth-concurrent-rotation-node")
+        with connect() as conn:
+            conn.execute("UPDATE geelark_control.nodes SET admin_state = 'active' WHERE node_id = %s", (node_id,))
+            conn.execute(
+                "UPDATE geelark_control.node_credentials SET status = 'active', activated_at = now() WHERE credential_id = %s",
+                (original.record_id,),
+            )
+
+        def rotate():
+            try:
+                with connect() as conn:
+                    return begin_credential_rotation(conn, node_id).record_id
+            except AuthenticationError:
+                return None
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda _: rotate(), range(2)))
+        assert sum(result is not None for result in results) == 1
+        with connect() as conn:
+            pending = conn.execute(
+                "SELECT count(*) FROM geelark_control.node_credentials WHERE node_id = %s AND status = 'pending'",
+                (node_id,),
+            ).fetchone()[0]
+        assert pending == 1
+    finally:
+        cleanup([node_id], [enrollment.record_id])
+
+
 def test_concurrent_enrollment_consumption_only_succeeds_once():
     node_id = uuid4()
     with connect() as conn:
