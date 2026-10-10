@@ -33,6 +33,8 @@ La PC-MASTER alojará el plano de control de GeeLark-IA. Desde una sola interfaz
 - `revoked`: credenciales o autorización revocadas.
 
 ### Salud del nodo
+- `reported_health_state`: declaración recibida del Worker (`healthy`, `degraded`, `unhealthy`, `unknown` o ausente); es evidencia no autoritativa.
+- `health_state`: estado derivado por el Master a partir del reporte, la frescura calculada por el Master y comprobaciones independientes. Nunca copiar el reporte del Worker directamente a este campo.
 - `healthy`: datos recientes y comprobaciones requeridas correctas.
 - `degraded`: datos recientes, pero una o más comprobaciones fallan.
 - `offline`: se superó el umbral de frescura o no se puede contactar.
@@ -51,6 +53,8 @@ La PC-MASTER alojará el plano de control de GeeLark-IA. Desde una sola interfaz
 - Aprobación de despliegue.
 
 Una puerta no implica la aprobación de otra.
+
+La implementación actual de heartbeat en la rama de transporte persiste el estado enviado por el Worker; esa discrepancia está registrada en [issue #71](https://github.com/D3ckardCain/Geelark-IA/issues/71) y debe resolverse antes de exponer snapshots reales.
 
 ## 5. Seguridad no negociable
 
