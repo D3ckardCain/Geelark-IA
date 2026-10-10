@@ -315,7 +315,7 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 ### Supervisor portable del agente (2026-10-10)
 
 - PR borrador [#59 — coordinar heartbeat y sincronización durable](https://github.com/D3ckardCain/Geelark-IA/pull/59), apilado sobre #57, #54 y #48.
-- El commit ejecutable `7b452538faf7da595f5cb30efe7f3ee5cf933ed1` pasó GitHub Actions run 136: 70 pruebas aprobadas, una advertencia deprecatoria de Starlette/httpx y `pip check` correcto.
-- `AgentSupervisor` coordina heartbeat/capacidades y el sincronizador durable en hilos separados; la recuperación despierta la cola de recibos y los errores se reportan con códigos genéricos.
+- El commit ejecutable `b622c0eead3d2eee896b7442fca6dca479c7b78d` pasó GitHub Actions run 143: 90 pruebas aprobadas, migraciones PostgreSQL y `pip check` correctos; permanece una advertencia deprecatoria de Starlette/httpx.
+- `AgentSupervisor` coordina heartbeat/capacidades y el sincronizador durable en hilos separados; la recuperación despierta la cola de recibos y los errores se reportan con códigos genéricos. `CredentialProvider` abstrae el secreto; `SystemdCredentialProvider` lee credenciales entregadas por systemd y `build_agent_components` ensambla los objetos sin arrancarlos.
 - Manual técnico: [MANUAL_TECNICO_SUPERVISOR_AGENTE.md](MANUAL_TECNICO_SUPERVISOR_AGENTE.md). Manual de usuario: [MANUAL_SUPERVISOR_AGENTE.md](MANUAL_SUPERVISOR_AGENTE.md).
 - Límite: biblioteca inyectable, no un servicio/CLI instalable. La elección del SO y almacén de credenciales depende de la decisión de arquitectura documentada en [PR #60](https://github.com/D3ckardCain/Geelark-IA/pull/60) y sigue pendiente. No se ha probado en hardware físico.
