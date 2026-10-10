@@ -92,10 +92,10 @@ def test_active_node_claims_durable_task_with_separate_delivery_and_instance_lea
             conn.execute(
                 """
                 INSERT INTO geelark_control.node_credentials
-                    (credential_id, node_id, token_sha256, status, expires_at)
-                VALUES (%s, %s, %s, 'active', %s)
+                    (credential_id, node_id, token_sha256, status, expires_at, activated_at)
+                VALUES (%s, %s, %s, 'active', %s, %s)
                 """,
-                (credential_id, node_id, token_hash, now + timedelta(hours=1)),
+                (credential_id, node_id, token_hash, now + timedelta(hours=1), now),
             )
             conn.execute(
                 """
