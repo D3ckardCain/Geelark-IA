@@ -28,6 +28,9 @@ class AgentSupervisor:
         heartbeat_payload: Callable[[], dict[str, Any]],
         capabilities_payload: Callable[[], dict[str, Any]],
         heartbeat_interval_seconds: float = 30.0,
+        reconcile_inventory: Callable[[], list[dict[str, Any]]] | None = None,
+        on_reconciliation: Callable[[Any], None] | None = None,
+        reconciliation_retry_interval_seconds: float = 60.0,
         on_error: Callable[[str], None] | None = None,
     ) -> None:
         if (
@@ -49,6 +52,20 @@ class AgentSupervisor:
             raise ValueError("receipt_lifecycle debe implementar stop(timeout=...)")
         if not callable(heartbeat_payload) or not callable(capabilities_payload):
             raise ValueError("heartbeat_payload y capabilities_payload deben ser funciones")
+        if (
+            isinstance(reconciliation_retry_interval_seconds, bool)
+            or not isinstance(reconciliation_retry_interval_seconds, (int, float))
+            or not math.isfinite(reconciliation_retry_interval_seconds)
+            or not 1 <= reconciliation_retry_interval_seconds <= 3600
+        ):
+            raise ValueError("reconciliation_retry_interval_seconds debe estar entre 1 y 3600")
+        if reconcile_inventory is not None and not callable(reconcile_inventory):
+            raise ValueError("reconcile_inventory debe ser callable")
+        if on_reconciliation is not None and not callable(on_reconciliation):
+            raise ValueError("on_reconciliation debe ser callable")
+        if reconcile_inventory is not None and not callable(getattr(runtime, "reconcile_inventory", None)):
+            raise ValueError("runtime debe implementar reconcile_inventory(inventory)")
+
         if on_error is not None and not callable(on_error):
             raise ValueError("on_error debe ser callable")
 
@@ -56,6 +73,9 @@ class AgentSupervisor:
         self.receipt_lifecycle = receipt_lifecycle
         self.heartbeat_payload = heartbeat_payload
         self.capabilities_payload = capabilities_payload
+        self.reconcile_inventory = reconcile_inventory
+        self.on_reconciliation = on_reconciliation
+        self.reconciliation_retry_interval_seconds = float(reconciliation_retry_interval_seconds)
         self.heartbeat_interval_seconds = float(heartbeat_interval_seconds)
         self._on_error = on_error or (lambda code: None)
         self._stop = threading.Event()
@@ -63,6 +83,8 @@ class AgentSupervisor:
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
         self._offline = False
+        self._needs_reconciliation = reconcile_inventory is not None
+        self._next_reconciliation_at = 0.0
 
     @property
     def running(self) -> bool:
@@ -93,6 +115,8 @@ class AgentSupervisor:
         """Solicita heartbeat inmediato y despierta la cola de recibos."""
         if self._stop.is_set():
             return
+        self._needs_reconciliation = self.reconcile_inventory is not None
+        self._next_reconciliation_at = 0.0
         try:
             self.receipt_lifecycle.notify_reconnected()
         except Exception:
@@ -149,6 +173,21 @@ class AgentSupervisor:
                         self._offline = False
                     except Exception:
                         self._report_error("RECEIPT_SYNC_WAKE_FAILED")
+                if (
+                    self.reconcile_inventory is not None
+                    and self._needs_reconciliation
+                    and time.monotonic() >= self._next_reconciliation_at
+                ):
+                    try:
+                        response = self.runtime.reconcile_inventory(self.reconcile_inventory())
+                        if self.on_reconciliation is not None:
+                            self.on_reconciliation(response)
+                        self._needs_reconciliation = False
+                    except Exception:
+                        self._report_error("RECONCILIATION_FAILED")
+                        self._next_reconciliation_at = (
+                            time.monotonic() + self.reconciliation_retry_interval_seconds
+                        )
 
             try:
                 self.runtime.publish_capabilities(self.capabilities_payload())
