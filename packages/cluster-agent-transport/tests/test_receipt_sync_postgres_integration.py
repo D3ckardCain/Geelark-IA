@@ -223,6 +223,13 @@ def test_sqlite_receipt_reaches_postgres_over_real_https_and_recovers_lost_ack(t
         assert runtime.sync_pending_receipts(limit=10) == (1, 1)
         assert journal.list_pending_receipts(limit=10) == []
         assert len(client.requests) == 2
+        assert [request[0] for request in client.requests] == ["POST", "POST"]
+        assert [request[1] for request in client.requests] == [
+            f"/agent/v1/tasks/{operation_id}/result",
+            f"/agent/v1/tasks/{operation_id}/result",
+        ]
+        assert client.requests[0][2] == client.requests[1][2]
+        assert client.requests[0][3]["Authorization"] == "Bearer " + token
         assert client.requests[0][3]["Idempotency-Key"] == client.requests[1][3]["Idempotency-Key"]
         assert client.requests[0][3]["X-Agent-Nonce"] != client.requests[1][3]["X-Agent-Nonce"]
 
