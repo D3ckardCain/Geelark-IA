@@ -46,6 +46,8 @@ class AssignmentRequest:
     lease_expires_at: datetime
     engine_name: str
     engine_version: str
+    android_api_level: int
+    android_abi: str
     image_digest: str
     desired_state: str = "running"
 
@@ -62,6 +64,8 @@ def _canonical_payload(request: AssignmentRequest, cpu_units: Decimal) -> dict[s
         "lease_expires_at": lease,
         "engine_name": request.engine_name,
         "engine_version": request.engine_version,
+        "android_api_level": request.android_api_level,
+        "android_abi": request.android_abi,
         "image_digest": request.image_digest,
     }
 
@@ -94,6 +98,10 @@ def _validate_request(request: AssignmentRequest) -> Decimal:
         raise InvalidAssignmentRequest("engine_name no es válido")
     if not request.engine_version.strip() or len(request.engine_version) > 64:
         raise InvalidAssignmentRequest("engine_version no es válido")
+    if not isinstance(request.android_api_level, int) or isinstance(request.android_api_level, bool) or not 1 <= request.android_api_level <= 100:
+        raise InvalidAssignmentRequest("android_api_level debe estar entre 1 y 100")
+    if not isinstance(request.android_abi, str) or not 1 <= len(request.android_abi.strip()) <= 32:
+        raise InvalidAssignmentRequest("android_abi debe tener entre 1 y 32 caracteres")
     if not _IMAGE_DIGEST_RE.fullmatch(request.image_digest):
         raise InvalidAssignmentRequest("image_digest debe tener formato sha256")
     return cpu_units
@@ -164,10 +172,12 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
             if instance_row is None:
                 raise InstanceNotFound("La instancia no está registrada")
             observed_state, owner_node_id, previous_epoch = instance_row
-            if observed_state in {"unknown", "reconciling"}:
-                raise InstanceStateBlocked("El estado incierto bloquea una nueva asignación")
             if owner_node_id is not None:
                 raise InstanceAlreadyAssigned("La instancia ya tiene un propietario vigente")
+            if observed_state in {"unknown", "reconciling"}:
+                raise InstanceStateBlocked("El estado incierto bloquea una nueva asignación")
+            if observed_state not in {"pending", "stopped"}:
+                raise InstanceStateBlocked("El estado actual no admite una nueva asignación segura")
 
             cur.execute(
                 """
@@ -227,6 +237,8 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
                        engine_name = %s,
                        engine_version = %s,
                        image_digest = %s,
+                       android_api_level = %s,
+                       android_abi = %s,
                        updated_at = now()
                  WHERE instance_id = %s
                 """,
@@ -238,6 +250,8 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
                     request.engine_name,
                     request.engine_version,
                     request.image_digest,
+                    request.android_api_level,
+                    request.android_abi,
                     request.instance_id,
                 ),
             )
@@ -294,7 +308,16 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
                 "desired_state": request.desired_state,
                 "lease_expires_at": request.lease_expires_at.astimezone(timezone.utc).isoformat(),
                 "engine": {"name": request.engine_name, "version": request.engine_version},
-                "image_digest": request.image_digest,
+                "android": {
+                    "api_level": request.android_api_level,
+                    "abi": request.android_abi,
+                    "image_digest": request.image_digest,
+                },
+                "resource_reservation": {
+                    "cpu_units": float(cpu_units),
+                    "memory_bytes": request.memory_bytes,
+                    "storage_bytes": request.storage_bytes,
+                },
             }
             cur.execute(
                 """
