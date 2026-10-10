@@ -1,6 +1,7 @@
 """Integración real SQLite → HTTPS/TLS → API → PostgreSQL con pérdida de ACK."""
 
 import hashlib
+import json
 import os
 import secrets
 import shutil
@@ -232,6 +233,21 @@ def test_sqlite_receipt_reaches_postgres_over_real_https_and_recovers_lost_ack(t
         assert client.requests[0][3]["Authorization"] == "Bearer " + token
         assert client.requests[0][3]["Idempotency-Key"] == client.requests[1][3]["Idempotency-Key"]
         assert client.requests[0][3]["X-Agent-Nonce"] != client.requests[1][3]["X-Agent-Nonce"]
+
+        # Tras recuperar el ACK, el mismo canal HTTPS puede reconciliar el inventario
+        # sin modificar estados terminales ni convertir incertidumbre automáticamente.
+        reconciliation = runtime.reconcile_inventory([{
+            "task_id": str(task_id),
+            "operation_id": str(operation_id),
+            "instance_id": str(instance_id),
+            "assignment_epoch": 3,
+            "local_state": "succeeded",
+            "result_summary": {"exit_code": 0},
+        }])
+        assert reconciliation.status == 200
+        reconciliation_body = json.loads(reconciliation.body)
+        assert reconciliation_body["mutations_applied"] is False
+        assert reconciliation_body["decisions"][0]["decision"] == "ALREADY_CONFIRMED"
 
         with connect() as conn:
             task = conn.execute(
