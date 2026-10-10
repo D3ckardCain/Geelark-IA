@@ -34,8 +34,22 @@ TEST_SCRIPT = r"""
   nodeFilter.dispatchEvent(new Event('change', {bubbles: true}));
   result.pendingCount = count('#nodes-table tr');
   result.pendingWorker = document.getElementById('nodes-table').textContent.includes('WORKER-03');
+  const worker2 = nodes.find(n => n.id === 'w2');
+  const originalWorkerName = worker2.name;
+  worker2.name = '<img src=x onerror="window.__xss=true">';
+  renderNodes();
+  result.nodeXssEscaped = count('#nodes-table img') === 0 && document.getElementById('nodes-table').textContent.includes(worker2.name) && !window.__xss;
+  worker2.name = originalWorkerName;
+  renderNodes();
   document.querySelector('[data-page="modules"]').click();
   const moduleFilter = document.getElementById('module-filter');
+  const originalModuleName = modules[0].name;
+  moduleFilter.value = 'all';
+  moduleFilter.dispatchEvent(new Event('change', {bubbles: true}));
+  modules[0].name = '<svg onload="window.__xss=true"></svg>';
+  renderModules();
+  result.moduleXssEscaped = count('#modules-table svg') === 0 && document.getElementById('modules-table').textContent.includes(modules[0].name) && !window.__xss;
+  modules[0].name = originalModuleName;
   moduleFilter.value = 'unknown';
   moduleFilter.dispatchEvent(new Event('change', {bubbles: true}));
   result.unknownModules = count('#modules-table tr');
@@ -122,6 +136,8 @@ def main():
                 "pendingCount": 1,
                 "pendingWorker": True,
                 "unknownModules": 2,
+                "nodeXssEscaped": True,
+                "moduleXssEscaped": True,
                 "auditCurrent": True,
                 "noHorizontalPageOverflow": True,
                 "jsErrors": [],

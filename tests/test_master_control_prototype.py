@@ -136,6 +136,16 @@ class MasterControlPrototypeTests(unittest.TestCase):
             with self.subTest(foreground=foreground, background=background):
                 self.assertGreaterEqual(contrast_ratio(foreground, background), 4.5)
 
+    def test_rendered_dynamic_values_are_html_escaped(self):
+        self.assertIn('function escapeHTML(value)', self.html)
+        for expression in ('escapeHTML(n.name)', 'escapeHTML(n.role)', 'escapeHTML(n.last)',
+                           'escapeHTML(n.cpu)', 'escapeHTML(n.ram)', 'escapeHTML(n.agent)',
+                           'escapeHTML(m.name)', 'escapeHTML(m.node)', 'escapeHTML(m.version)',
+                           'escapeHTML(m.time)', 'escapeHTML(m.source)'):
+            with self.subTest(expression=expression):
+                self.assertIn(expression, self.html)
+        self.assertIn('escapeHTML(labelOverride||statusLabel[status]||status)', self.html)
+
     def test_keyboard_focus_indicator_exists(self):
         self.assertIn(':focus-visible', self.html)
         self.assertIn('outline-offset:2px', self.html)

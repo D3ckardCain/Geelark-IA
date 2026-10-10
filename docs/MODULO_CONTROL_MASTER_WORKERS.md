@@ -64,6 +64,7 @@ La implementación actual de heartbeat en la rama de transporte persiste el esta
 - Sin shell arbitrario, ADB remoto ni comandos libres.
 - No abrir listeners entrantes en Worker por defecto ni exponer APIs a Internet.
 - No guardar secretos, tokens ni datos privados de aplicaciones en logs, snapshots o GitHub.
+- Escapar todo dato procedente de Worker/Master antes de presentarlo en HTML; no interpolar valores sin sanear en `innerHTML`.
 - Las acciones administrativas futuras requieren autenticación, autorización por operación, confirmación explícita y evento de auditoría.
 - No desplegar ni modificar PCs físicas sin autorización explícita.
 

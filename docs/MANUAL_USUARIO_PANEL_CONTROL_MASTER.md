@@ -50,6 +50,7 @@ En la vista **Auditoría y CI**, pulsa **Descargar resumen**. El navegador desca
 - No ejecuta shell, ADB ni tareas.
 - No modifica el sistema operativo ni los agentes.
 - No almacena credenciales ni realiza peticiones HTTP.
+- Escapa los valores dinámicos antes de insertarlos en tablas HTML; los datos futuros del servicio se consideran no confiables.
 - La maqueta no reemplaza la auditoría de seguridad.
 - CI aprobada no significa que el código haya sido validado en hardware.
 - Las operaciones con estado `unknown` no se resuelven automáticamente.
