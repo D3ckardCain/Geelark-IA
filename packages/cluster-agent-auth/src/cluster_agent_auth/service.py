@@ -228,7 +228,7 @@ def rotate_credential(conn: psycopg.Connection, node_id: UUID, new_credential_id
         if new is None or new[0] is None:
             raise AuthenticationError("Rotación pendiente inexistente o vencida.")
         old_id = new[0]
-        conn.execute(
+        revoked = conn.execute(
             """
             UPDATE geelark_control.node_credentials
                SET status = 'revoked', revoked_at = %s
@@ -236,8 +236,8 @@ def rotate_credential(conn: psycopg.Connection, node_id: UUID, new_credential_id
             """,
             (now, old_id, node_id),
         )
-        if conn.execute("SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM geelark_control.node_credentials WHERE credential_id = %s AND status = 'revoked')", (old_id,)).fetchone() is None:
-            raise AuthenticationError("No se pudo revocar la credencial anterior.")
+        if revoked.rowcount != 1:
+            raise AuthenticationError("La credencial anterior ya no está activa.")
         updated = conn.execute(
             """
             UPDATE geelark_control.node_credentials
