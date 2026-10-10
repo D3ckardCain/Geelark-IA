@@ -116,7 +116,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             """
             SELECT t.status, t.node_id, t.instance_id, t.assignment_epoch,
                    t.result_summary, i.owner_node_id, i.assignment_epoch,
-                   i.lease_expires_at, o.status
+                   i.lease_expires_at, o.status, t.delivery_lease_until
               FROM geelark_control.agent_tasks AS t
               JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
               JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
@@ -132,6 +132,10 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         if (
             row[5] is None or str(row[5]) != principal.node_id
             or row[6] != row[3] or row[7] is None or row[7] <= datetime.now(timezone.utc)
+            or (
+                row[0] in {"delivered", "accepted", "running"}
+                and (row[9] is None or row[9] <= datetime.now(timezone.utc))
+            )
         ):
             raise HTTPException(status_code=409, detail={"code": "STALE_ASSIGNMENT"})
         return row
@@ -206,6 +210,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             """
             UPDATE geelark_control.agent_tasks
                SET status = 'accepted', accepted_at = COALESCE(accepted_at, now()),
+                   delivery_lease_until = now() + interval '60 seconds',
                    updated_at = now()
              WHERE task_id = %s
             """,
@@ -229,7 +234,9 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         conn.execute(
             """
             UPDATE geelark_control.agent_tasks
-               SET status = %s, result_summary = %s, updated_at = now()
+               SET status = %s, result_summary = %s,
+                   delivery_lease_until = now() + interval '60 seconds',
+                   updated_at = now()
              WHERE task_id = %s
             """,
             (state, Jsonb(details), task_id),
@@ -267,11 +274,12 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             """
             UPDATE geelark_control.agent_tasks
                SET status = %s, result_summary = %s,
+                   delivery_lease_until = CASE WHEN %s THEN NULL ELSE now() + interval '60 seconds' END,
                    completed_at = CASE WHEN %s THEN now() ELSE NULL END,
                    updated_at = now()
              WHERE task_id = %s
             """,
-            (state, Jsonb(details), terminal, task_id),
+            (state, Jsonb(details), terminal, terminal, task_id),
         )
         conn.execute(
             """
