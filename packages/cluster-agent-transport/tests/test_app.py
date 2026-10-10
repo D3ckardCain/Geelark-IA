@@ -110,3 +110,43 @@ def test_plain_http_is_rejected_before_authentication():
     client, _ = make_client(PENDING, base_url="http://testserver")
     response = client.get("/agent/v1/status", headers={"Authorization": "Bearer " + "a" * 64})
     assert response.status_code == 426
+
+
+
+def test_reconcile_route_requires_active_node_and_uses_handler():
+    pending_client, pending_calls = make_client(PENDING)
+    body = {"schema_version": 1, "inventory": []}
+    denied = pending_client.post("/agent/v1/reconcile", headers=headers(), json=body)
+    assert denied.status_code == 403
+    assert pending_calls == []
+
+    active_client, active_calls = make_client(ACTIVE)
+    response = active_client.post("/agent/v1/reconcile", headers=headers(), json=body)
+    assert response.status_code == 200
+    assert active_calls == ["reconcile"]
+
+
+def test_reconcile_payload_rejects_duplicate_tasks_and_oversized_result_summary():
+    client, calls = make_client(ACTIVE)
+    task_id, operation_id, instance_id = str(uuid4()), str(uuid4()), str(uuid4())
+    item = {
+        "task_id": task_id,
+        "operation_id": operation_id,
+        "instance_id": instance_id,
+        "assignment_epoch": 3,
+        "local_state": "running",
+        "result_summary": {},
+    }
+    duplicate = client.post(
+        "/agent/v1/reconcile", headers=headers(),
+        json={"schema_version": 1, "inventory": [item, item]},
+    )
+    assert duplicate.status_code == 422
+
+    oversized = {**item, "task_id": str(uuid4()), "result_summary": {"data": "x" * 70_000}}
+    response = client.post(
+        "/agent/v1/reconcile", headers=headers(),
+        json={"schema_version": 1, "inventory": [oversized]},
+    )
+    assert response.status_code == 422
+    assert calls == []
