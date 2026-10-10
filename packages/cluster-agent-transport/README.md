@@ -21,7 +21,7 @@ Paquete experimental independiente del dominio y sin listener automático.
 - `InMemoryRateLimiter` limita a 60 solicitudes/minuto/nodo por proceso y solo es apropiado para pruebas o un único worker.
 - `PostgresRateLimiter` usa un UPDATE atómico en la fila del nodo y aplica el límite global entre workers/procesos. Requiere la migración `db/migrations/0003_agent_rate_limit.sql`; el contador se satura para evitar desbordamiento.
 - El cliente `AgentHTTPSClient` usa la CA explícita, verifica cadena y hostname/IP, exige TLS 1.2+, no sigue redirects, rechaza path traversal y limita timeout, cuerpos y respuestas.
-- `AgentTransportRuntime` conecta el cliente con un journal compatible: persiste progreso/resultados antes de enviarlos y permite reintentar un recibo con la misma clave idempotente. No ejecuta tareas ni escanea automáticamente todos los recibos pendientes.
+- `AgentTransportRuntime` conecta el cliente con un journal compatible: persiste progreso/resultados antes de enviarlos y ofrece `sync_pending_receipts(limit=100)` para recorrer un lote acotado. El journal debe exponer `list_pending_receipts(limit=...)` y `mark_receipt_synced(operation_id)`; el ACK terminal solo se registra tras una respuesta HTTP 2xx. Los estados `accepted` no se envían como resultados. No ejecuta tareas ni inicia polling por sí solo.
 - Las respuestas no incluyen tokens, SQL ni excepciones internas.
 - Los handlers de dominio no configurados responden 503; el paquete no ejecuta shell/ADB ni comandos Android.
 
@@ -39,8 +39,9 @@ Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fil
 
 ## Validación pendiente
 
-- CI #38014882682 terminó en success con 26 pruebas y `pip check` correcto; también pasaron los workflows de esquema PostgreSQL y servicio de persistencia en el mismo branch.
-- La suite prueba handshake TLS real con CA local y rechaza una CA desconocida. Sigue pendiente integrar el cliente HTTPS en el runtime real del agente junto con el journal local y la reconciliación.
+- CI #38015185459 pasó con 30 pruebas en el primer corte de transporte; el intento posterior #38015624356 falló en dos pruebas del runtime porque se ejecutó antes de eliminar una duplicación de método. El código actual elimina la duplicación y mantiene `accepted` fuera de los resultados, pero falta un CI posterior que confirme el arreglo.
+- El workflow de persistencia #38015624377 pasó incluyendo pruebas del journal y auth; el workflow de esquema #38015624340 también pasó.
+- La suite prueba handshake TLS real con CA local y rechaza una CA desconocida. Sigue pendiente integrar el cliente HTTPS en el bucle principal del agente y completar la reconciliación.
 - Definir timeouts/concurrencia del servidor y cuotas apropiadas para el tamaño real de la LAN. El limitador global PostgreSQL ya está implementado y probado.
 - Completar manual de generación, rotación, respaldo y distribución de CA local.
 - No conectar handlers de producción ni desplegar hasta cerrar los criterios anteriores.
