@@ -12,6 +12,8 @@ on:
     paths:
       - "db/**"
       - "packages/cluster-persistence/**"
+      - "packages/cluster-agent-guard/**"
+      - "packages/cluster-agent-auth/**"
       - ".github/workflows/cluster-persistence-service.yml"
   workflow_dispatch:
 
