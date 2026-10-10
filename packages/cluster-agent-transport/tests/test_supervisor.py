@@ -36,6 +36,7 @@ class FakeRuntime:
         self.heartbeat_calls = []
         self.capability_calls = []
         self.reconcile_calls = []
+        self.reconcile_ids = []
         self.lock = threading.Lock()
         self.called = threading.Event()
 
@@ -57,9 +58,10 @@ class FakeRuntime:
             raise item
         return object()
 
-    def reconcile_inventory(self, inventory):
+    def reconcile_inventory(self, inventory, *, reconciliation_id=None):
         with self.lock:
             self.reconcile_calls.append(inventory)
+            self.reconcile_ids.append(reconciliation_id)
             item = self.reconcile_responses.pop(0) if self.reconcile_responses else {"ok": True}
         self.called.set()
         if isinstance(item, Exception):
@@ -266,6 +268,7 @@ def test_reconciliation_runs_on_start_and_explicit_reconnect():
     assert wait_for(lambda: len(runtime.reconcile_calls) == 2)
     assert wait_for(lambda: len(reports) == 2)
     assert reports == [{"report_id": "r1"}, {"report_id": "r2"}]
+    assert runtime.reconcile_ids[0] != runtime.reconcile_ids[1]
     assert runtime.reconcile_calls == [
         [{"task_id": "local-task"}],
         [{"task_id": "local-task"}],
@@ -291,6 +294,9 @@ def test_reconciliation_failure_is_sanitized_and_retried_after_backoff():
     assert wait_for(lambda: errors == ["RECONCILIATION_FAILED"])
     time.sleep(0.1)
     assert len(runtime.reconcile_calls) == 1
+    assert wait_for(lambda: len(runtime.reconcile_calls) == 2, timeout=1.5)
+    assert runtime.reconcile_ids[0] == runtime.reconcile_ids[1]
+    assert errors.count("RECONCILIATION_FAILED") == 1
     assert supervisor.stop(timeout=1)
 
 
@@ -302,8 +308,9 @@ def test_slow_reconciliation_does_not_block_heartbeat_or_capabilities():
             self.reconcile_started = threading.Event()
             self.release_reconcile = threading.Event()
 
-        def reconcile_inventory(self, inventory):
+        def reconcile_inventory(self, inventory, *, reconciliation_id=None):
             self.reconcile_calls.append(inventory)
+            self.reconcile_ids.append(reconciliation_id)
             self.reconcile_started.set()
             self.release_reconcile.wait(2)
             return {"ok": True}
