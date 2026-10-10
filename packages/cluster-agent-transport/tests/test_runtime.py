@@ -148,3 +148,38 @@ def test_sync_pending_receipts_marks_terminal_ack_and_stops_when_offline():
     confirmed, attempted = offline_runtime.sync_pending_receipts(limit=10)
     assert (confirmed, attempted) == (0, 1)
     assert offline_journal.synced == []
+
+
+
+def test_runtime_syncs_real_sqlite_journal_and_persists_terminal_ack(tmp_path):
+    guard = pytest.importorskip("geelark_cluster_agent_guard")
+    node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
+    journal = guard.AgentJournal(tmp_path / "journal.sqlite3", node_id)
+    journal.initialize()
+    command = guard.AgentCommand(
+        operation_id=operation_id,
+        instance_id=instance_id,
+        node_id=node_id,
+        assignment_epoch=1,
+        lease_expires_at=datetime(2030, 1, 1, tzinfo=timezone.utc),
+        payload={"kind": "test-only"},
+    )
+    journal.accept_command(command)
+    journal.record_result(
+        operation_id=operation_id,
+        instance_id=instance_id,
+        node_id=node_id,
+        assignment_epoch=1,
+        status="succeeded",
+        result={"test": True},
+    )
+
+    runtime = make_runtime(FakeClient(), journal, node_id)
+    assert len(journal.list_pending_receipts(limit=10)) == 1
+    confirmed, attempted = runtime.sync_pending_receipts(limit=10)
+    assert (confirmed, attempted) == (1, 1)
+    assert journal.list_pending_receipts(limit=10) == []
+
+    reopened = guard.AgentJournal(tmp_path / "journal.sqlite3", node_id)
+    reopened.initialize()
+    assert reopened.list_pending_receipts(limit=10) == []
