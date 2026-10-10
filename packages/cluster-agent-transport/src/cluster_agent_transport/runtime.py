@@ -120,17 +120,18 @@ class AgentTransportRuntime:
         epoch = getattr(receipt, "assignment_epoch", None)
         if not isinstance(operation_id, UUID) or not isinstance(instance_id, UUID):
             raise ValueError("Recibo local inválido.")
+        # El recibo ya fue persistido localmente. No volver a llamar report_progress
+        # / report_result aquí: eso crearía una nueva escritura local durante cada
+        # reintento y podría alterar el journal en vez de entregar el snapshot original.
         if status == "running" and isinstance(result, dict):
-            return self.report_progress(
-                operation_id=operation_id, instance_id=instance_id,
-                assignment_epoch=epoch, result=result,
-            )
-        if status in {"succeeded", "failed"} and isinstance(result, dict):
-            return self.report_result(
-                operation_id=operation_id, instance_id=instance_id,
-                assignment_epoch=epoch, status=status, result=result,
-            )
-        return None
+            route = "progress"
+        elif status in {"succeeded", "failed"} and isinstance(result, dict):
+            route = "result"
+        else:
+            return None
+        return self._send_receipt(
+            operation_id=operation_id, state=status, result=result, route=route
+        )
 
     def _record_local(
         self, *, operation_id: UUID, instance_id: UUID, assignment_epoch: int,
