@@ -77,7 +77,7 @@ class OperationReceipt:
 class AgentJournal:
     """Journal durable de un solo nodo; usar archivo en disco local, no NFS."""
 
-    _SCHEMA_VERSION = 1
+    _SCHEMA_VERSION = 2
     _STATUSES = {"accepted", "running", "succeeded", "failed", "unknown"}
     _TERMINAL_STATUSES = {"succeeded", "failed"}
 
@@ -148,10 +148,23 @@ class AgentJournal:
             version = conn.execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations").fetchone()[0]
             if version > self._SCHEMA_VERSION:
                 raise AgentGuardError("La versión del journal es más nueva que este agente")
-            if version < self._SCHEMA_VERSION:
+            if version < 1:
                 conn.execute(
                     "INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)",
-                    (self._SCHEMA_VERSION, self._now()),
+                    (1, self._now()),
+                )
+                version = 1
+            if version < 2:
+                columns = {row["name"] for row in conn.execute("PRAGMA table_info(operation_receipts)").fetchall()}
+                if "controller_ack_at" not in columns:
+                    conn.execute("ALTER TABLE operation_receipts ADD COLUMN controller_ack_at TEXT")
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_operation_receipts_pending_delivery "
+                    "ON operation_receipts(node_id, controller_ack_at, created_at, operation_id)"
+                )
+                conn.execute(
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)",
+                    (2, self._now()),
                 )
         finally:
             conn.close()
@@ -316,7 +329,7 @@ class AgentJournal:
             conn.execute(
                 """
                 UPDATE operation_receipts
-                   SET status = ?, result_json = ?, updated_at = ?
+                   SET status = ?, result_json = ?, updated_at = ?, controller_ack_at = NULL
                  WHERE operation_id = ?
                 """,
                 (status, result_json, now, str(operation_id)),
@@ -350,6 +363,66 @@ class AgentJournal:
                 (str(operation_id),),
             ).fetchone()
             return self._receipt(row, duplicate=False) if row is not None else None
+        finally:
+            conn.close()
+
+    def list_pending_receipts(
+        self,
+        *,
+        limit: int = 100,
+        statuses: tuple[str, ...] | None = None,
+    ) -> list[OperationReceipt]:
+        """Lista recibos aún no confirmados por el controlador en orden determinista."""
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 1000:
+            raise ValueError("limit debe estar entre 1 y 1000")
+        selected_statuses = tuple(sorted(self._STATUSES)) if statuses is None else tuple(statuses)
+        if not selected_statuses or any(status not in self._STATUSES for status in selected_statuses):
+            raise InvalidAgentCommand("Filtro de estados inválido")
+        placeholders = ",".join("?" for _ in selected_statuses)
+        conn = self._connect()
+        try:
+            rows = conn.execute(
+                f"""
+                SELECT operation_id, instance_id, node_id, assignment_epoch,
+                       payload_sha256, status, result_json
+                  FROM operation_receipts
+                 WHERE node_id = ? AND controller_ack_at IS NULL
+                   AND status IN ({placeholders})
+                 ORDER BY created_at ASC, operation_id ASC
+                 LIMIT ?
+                """,
+                (str(self.local_node_id), *selected_statuses, limit),
+            ).fetchall()
+            return [self._receipt(row, duplicate=False) for row in rows]
+        finally:
+            conn.close()
+
+    def mark_receipt_delivered(self, operation_id: UUID, assignment_epoch: int) -> bool:
+        """Marca entrega confirmada; una transición nueva vuelve a dejar el recibo pendiente."""
+        if not isinstance(operation_id, UUID):
+            raise InvalidAgentCommand("operation_id debe ser UUID")
+        if not isinstance(assignment_epoch, int) or isinstance(assignment_epoch, bool) or assignment_epoch < 1:
+            raise InvalidAgentCommand("assignment_epoch debe ser entero positivo")
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                "SELECT node_id, assignment_epoch FROM operation_receipts WHERE operation_id = ?",
+                (str(operation_id),),
+            ).fetchone()
+            if row is None:
+                raise UnknownOperation("No existe recibo local para operation_id")
+            if row["node_id"] != str(self.local_node_id) or row["assignment_epoch"] != assignment_epoch:
+                raise StaleOperationResult("El recibo no coincide con el nodo/epoch vigente")
+            conn.execute(
+                "UPDATE operation_receipts SET controller_ack_at = ? WHERE operation_id = ?",
+                (self._now(), str(operation_id)),
+            )
+            conn.commit()
+            return True
+        except Exception:
+            conn.rollback()
+            raise
         finally:
             conn.close()
 
