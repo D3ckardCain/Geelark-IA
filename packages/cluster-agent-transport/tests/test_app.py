@@ -65,6 +65,22 @@ def test_pending_can_send_heartbeat_and_read_status_but_not_accept_task():
     assert calls == ["heartbeat", "status_read", "capabilities"]
 
 
+def test_pending_cannot_claim_tasks_and_active_can_claim():
+    pending_client, pending_calls = make_client(PENDING)
+    denied = pending_client.post(
+        "/agent/v1/tasks/claim", headers=headers(), json={"schema_version": 1}
+    )
+    assert denied.status_code == 403
+    assert pending_calls == []
+
+    active_client, active_calls = make_client(ACTIVE)
+    accepted = active_client.post(
+        "/agent/v1/tasks/claim", headers=headers(), json={"schema_version": 1}
+    )
+    assert accepted.status_code == 200
+    assert active_calls == ["task_fetch"]
+
+
 def test_active_node_can_reach_task_handler():
     client, calls = make_client(ACTIVE)
     response = client.post(
