@@ -1,6 +1,7 @@
 """Transporte HTTPS privado para agentes GeeLark-IA."""
 
 from .app import create_agent_app
+from .bootstrap import AgentComponents, build_agent_components
 from .client import AgentHTTPSClient, AgentResponse, AgentTransportError
 from .db_auth import InvalidAgentCredential, make_database_authenticator
 from .credentials import CredentialProvider, CredentialProviderError, SystemdCredentialProvider
@@ -20,10 +21,10 @@ from .supervisor import AgentSupervisor
 from .server import TransportConfigurationError, make_uvicorn_config, validate_https_listener
 
 __all__ = [
-    "AgentHTTPSClient", "AgentPrincipal", "AgentSupervisor", "CredentialProvider", "CredentialProviderError", "AgentResponse", "AgentTransportError", "AgentTransportRuntime",
+    "AgentComponents", "AgentHTTPSClient", "AgentPrincipal", "AgentSupervisor", "CredentialProvider", "CredentialProviderError", "AgentResponse", "AgentTransportError", "AgentTransportRuntime",
     "IdempotencyConflict", "IdempotencyInProgress",
     "InMemoryRateLimiter", "InvalidAgentCredential", "Operation", "PermissionDenied", "PostgresRateLimiter",
-    "ReplayRejected", "TransportConfigurationError", "authorize_operation",
+    "ReplayRejected", "TransportConfigurationError", "authorize_operation", "build_agent_components",
     "consume_request_nonce", "create_agent_app", "execute_idempotent",
     "make_database_authenticator", "make_database_idempotency_runner", "SystemdCredentialProvider", "make_database_nonce_consumer",
     "make_postgres_agent_handlers",
