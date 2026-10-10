@@ -107,6 +107,13 @@ def test_pending_node_end_to_end_telemetry_idempotency_and_task_denial():
         assert status.json()["sequence"] == 1
         assert status.json()["capabilities"] == {"version": 1, "items": ["heartbeat", "status"]}
 
+        denied_claim = client.post(
+            "/agent/v1/tasks/claim",
+            headers=headers("task-claim-" + str(uuid4())),
+            json={"schema_version": 1},
+        )
+        assert denied_claim.status_code == 403
+
         denied = client.post(
             f"/agent/v1/tasks/{uuid4()}/accept",
             headers=headers("task-key-" + str(uuid4())),
