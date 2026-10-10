@@ -145,6 +145,15 @@ class AgentJournal:
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS synced_receipts (
+                    operation_id TEXT PRIMARY KEY,
+                    synced_at TEXT NOT NULL,
+                    FOREIGN KEY(operation_id) REFERENCES operation_receipts(operation_id)
+                )
+                """
+            )
             version = conn.execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations").fetchone()[0]
             if version > self._SCHEMA_VERSION:
                 raise AgentGuardError("La versión del journal es más nueva que este agente")
@@ -350,6 +359,60 @@ class AgentJournal:
                 (str(operation_id),),
             ).fetchone()
             return self._receipt(row, duplicate=False) if row is not None else None
+        finally:
+            conn.close()
+
+    def list_pending_receipts(self, *, limit: int = 100) -> list[OperationReceipt]:
+        """Devuelve recibos de progreso/resultados todavía no confirmados por el servidor."""
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 1000:
+            raise ValueError("limit debe ser un entero entre 1 y 1000")
+        conn = self._connect()
+        try:
+            rows = conn.execute(
+                """
+                SELECT r.operation_id, r.instance_id, r.node_id, r.assignment_epoch,
+                       r.payload_sha256, r.status, r.result_json
+                  FROM operation_receipts AS r
+                 WHERE r.node_id = ?
+                   AND r.status IN ('running', 'succeeded', 'failed', 'unknown')
+                   AND NOT EXISTS (
+                       SELECT 1 FROM synced_receipts AS s
+                        WHERE s.operation_id = r.operation_id
+                   )
+                 ORDER BY r.updated_at ASC, r.operation_id ASC
+                 LIMIT ?
+                """,
+                (str(self.local_node_id), limit),
+            ).fetchall()
+            return [self._receipt(row, duplicate=False) for row in rows]
+        finally:
+            conn.close()
+
+    def mark_receipt_synced(self, operation_id: UUID) -> None:
+        """Marca recibo terminal como sincronizado tras ACK 2xx del controlador."""
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                "SELECT node_id, status FROM operation_receipts WHERE operation_id = ?",
+                (str(operation_id),),
+            ).fetchone()
+            if row is None or row["node_id"] != str(self.local_node_id):
+                raise UnknownOperation("El recibo no existe en este nodo")
+            if row["status"] not in self._TERMINAL_STATUSES:
+                raise InvalidAgentCommand("Solo un resultado terminal puede marcarse sincronizado")
+            conn.execute(
+                """
+                INSERT INTO synced_receipts(operation_id, synced_at)
+                VALUES (?, ?)
+                ON CONFLICT(operation_id) DO NOTHING
+                """,
+                (str(operation_id), self._now()),
+            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
         finally:
             conn.close()
 
