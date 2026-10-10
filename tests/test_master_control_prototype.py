@@ -71,6 +71,9 @@ class MasterControlPrototypeTests(unittest.TestCase):
         self.assertTrue(refs, "Expected getElementById references")
         self.assertEqual(sorted(set(refs) - ids), [])
 
+    def test_master_is_not_listed_as_worker(self):
+        self.assertIn('n.id!=="master"', self.html)
+
     def test_required_views_and_filters_exist(self):
         ids = set(self.parser.ids)
         for page in ("overview", "nodes", "modules", "audit"):

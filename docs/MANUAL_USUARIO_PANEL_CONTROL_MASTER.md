@@ -38,7 +38,7 @@ El botón **Actualizar demo** solo cambia la hora mostrada en pantalla. No consu
 
 ## 6. Copiar el resumen de auditoría
 
-En la vista **Auditoría y CI**, pulsa **Copiar resumen**. El navegador descargará un archivo de texto con la síntesis de demostración. El archivo no contiene resultados nuevos ni credenciales.
+En la vista **Auditoría y CI**, pulsa **Descargar resumen**. El navegador descargará un archivo de texto con la síntesis de demostración. El archivo no contiene resultados nuevos ni credenciales.
 
 ## 7. Seguridad y limitaciones
 
