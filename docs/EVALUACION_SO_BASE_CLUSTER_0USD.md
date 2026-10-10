@@ -6,7 +6,7 @@
 
 ## Resumen ejecutivo
 
-**Estado: sin candidato ganador.** Ubuntu 26.04 LTS directo, Debian 13 Stable directo y Proxmox VE con una VM Linux dedicada permanecen como candidatos documentales. Linux directo probablemente tenga menos capas para la primera prueba del motor Android, pero no hay evidencia suficiente para preferir Ubuntu frente a Debian ni para descartar Proxmox. No se instalará nada hasta la autorización expresa del usuario.
+**Orden de pruebas acordado:** comenzar con Debian 13 Stable instalado directamente en un único equipo de prueba. Esto establece el primer candidato a evaluar, no un ganador técnico ni una decisión de producción. Proxmox VE con una VM Linux dedicada se mantiene explícitamente como alternativa para una fase posterior cuando el usuario lo indique; Ubuntu 26.04 LTS queda como referencia comparativa. No se instalará nada hasta recibir autorización expresa para el equipo y la operación concretos.
 
 Motivos:
 - Debian Stable es una distribución libre sin suscripción obligatoria, con una base conservadora y un ciclo de soporte documentado.
@@ -56,9 +56,13 @@ redroid declara que su propio código está bajo Apache 2.0 y sus módulos de ke
 - Elegir dos equipos distintos para medir heterogeneidad.
 - Crear una incidencia GitHub por cada instalación, comando, resultado y fallo; redactar secretos.
 
-### Fase 1 — Linux directo en un solo equipo desechable
+### Fase 1 — Debian 13 directo en un solo equipo de prueba
 
-Elegir Ubuntu 26.04 LTS o Debian 13 solo después de completar la puerta documental y confirmar que el usuario autoriza expresamente borrar/reinstalar el equipo designado. La matriz de decisión define cómo compararlos sin favorecer uno de antemano.
+Debian 13 es la primera plataforma elegida para organizar las pruebas. Antes de instalar, completar la puerta documental y confirmar por separado el equipo exacto, el respaldo/recuperación y la autorización explícita para borrar/reinstalar ese equipo. La elección inicial no convierte a Debian en la opción definitiva para producción.
+
+### Fase posterior — Proxmox VE
+
+Proxmox VE no se descarta. Se conserva para una prueba comparativa posterior, a iniciar cuando el usuario lo solicite. La prueba debe usar una VM Linux dedicada como comparación principal y medir el coste de RAM, la gestión, la recuperación y las limitaciones de acceso a iGPU/kernel.
 
 1. Instalar Debian 13 Stable con particiones simples y cifrado de disco si el equipo admite recuperación de clave documentada.
 2. Aplicar actualizaciones de seguridad y deshabilitar servicios/puertos innecesarios.
