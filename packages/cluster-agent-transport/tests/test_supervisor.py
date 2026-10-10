@@ -292,3 +292,38 @@ def test_reconciliation_failure_is_sanitized_and_retried_after_backoff():
     time.sleep(0.1)
     assert len(runtime.reconcile_calls) == 1
     assert supervisor.stop(timeout=1)
+
+
+
+def test_slow_reconciliation_does_not_block_heartbeat_or_capabilities():
+    class BlockingRuntime(FakeRuntime):
+        def __init__(self):
+            super().__init__()
+            self.reconcile_started = threading.Event()
+            self.release_reconcile = threading.Event()
+
+        def reconcile_inventory(self, inventory):
+            self.reconcile_calls.append(inventory)
+            self.reconcile_started.set()
+            self.release_reconcile.wait(2)
+            return {"ok": True}
+
+    runtime = BlockingRuntime()
+    lifecycle = FakeLifecycle()
+    reports = []
+    supervisor = AgentSupervisor(
+        runtime=runtime,
+        receipt_lifecycle=lifecycle,
+        heartbeat_payload=lambda: {"health_state": "healthy"},
+        capabilities_payload=lambda: {"capabilities_version": 1, "capabilities": []},
+        reconcile_inventory=lambda: [],
+        on_reconciliation=reports.append,
+        heartbeat_interval_seconds=0.1,
+    )
+    supervisor.start()
+    assert runtime.reconcile_started.wait(1)
+    assert wait_for(lambda: len(runtime.heartbeat_calls) >= 3, timeout=1)
+    assert wait_for(lambda: len(runtime.capability_calls) >= 3, timeout=1)
+    runtime.release_reconcile.set()
+    assert wait_for(lambda: len(reports) == 1)
+    assert supervisor.stop(timeout=1)
