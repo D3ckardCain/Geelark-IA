@@ -103,17 +103,34 @@ class MasterControlPrototypeTests(unittest.TestCase):
         self.assertIn("Resultados de CI de muestra, no consultados en vivo", self.html)
 
     def test_key_text_color_pairs_meet_wcag_aa_contrast(self):
+        def resolve(value):
+            value = value.strip()
+            if value.startswith("var(") and value.endswith(")"):
+                variable = value[4:-1].strip()
+                match = re.search(rf"{re.escape(variable)}:(#[0-9a-fA-F]{{6}})", self.html)
+                self.assertIsNotNone(match, f"Missing CSS variable {variable}")
+                return match.group(1)
+            self.assertRegex(value, r"^#[0-9a-fA-F]{6}$")
+            return value
+
+        def rule_value(selector, property_name):
+            rule = re.search(re.escape(selector) + r"\\{([^}]*)\\}", self.html)
+            self.assertIsNotNone(rule, f"Missing CSS rule {selector}")
+            declaration = re.search(rf"(?:^|;){re.escape(property_name)}:([^;]+)", rule.group(1))
+            self.assertIsNotNone(declaration, f"Missing {property_name} in {selector}")
+            return resolve(declaration.group(1))
+
         pairs = [
-            ("#edf3ff", "#0b1020"),  # Texto principal sobre fondo
-            ("#9caec8", "#121a2c"),  # Texto secundario sobre panel
-            ("#9caec8", "#0b1020"),  # Texto secundario sobre fondo
-            ("#8db7ff", "#121a2c"),  # Azul sobre panel
-            ("#70ddb0", "#153329"),  # Estado verde
-            ("#f5cd79", "#332b1b"),  # Estado amarillo
-            ("#ff9299", "#351f2a"),  # Estado rojo
-            ("#f8dfaa", "#2a2418"),  # Aviso de demostración
-            ("#ddcda7", "#2a2418"),  # Texto secundario del aviso
-            ("#edf3ff", "#1a2941"),  # Texto de botones
+            (resolve("var(--text)"), resolve("var(--bg)")),
+            (resolve("var(--muted)"), resolve("var(--panel)")),
+            (resolve("var(--muted)"), resolve("var(--bg)")),
+            (resolve("var(--blue)"), resolve("var(--panel)")),
+            (rule_value(".pill.green", "color"), rule_value(".pill.green", "background")),
+            (rule_value(".pill.yellow", "color"), rule_value(".pill.yellow", "background")),
+            (rule_value(".pill.red", "color"), rule_value(".pill.red", "background")),
+            (rule_value(".demo", "color"), rule_value(".demo", "background")),
+            (rule_value(".demo p", "color"), rule_value(".demo", "background")),
+            (rule_value(".btn", "color"), rule_value(".btn", "background")),
         ]
         for foreground, background in pairs:
             with self.subTest(foreground=foreground, background=background):
