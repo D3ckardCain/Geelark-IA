@@ -88,8 +88,6 @@ class AgentSupervisor:
 
     @property
     def running(self) -> bool:
-        if self._stop.is_set():
-            return False
         return any(
             thread is not None and thread.is_alive()
             for thread in (self._thread, self._reconciliation_thread)
