@@ -223,13 +223,16 @@ def test_reconcile_inventory_uses_stable_idempotency_key_and_never_marks_receipt
         "result_summary": {},
     }]
 
-    runtime.reconcile_inventory(inventory)
+    reconciliation_id = uuid4()
+    runtime.reconcile_inventory(inventory, reconciliation_id=reconciliation_id)
+    runtime.reconcile_inventory(inventory, reconciliation_id=reconciliation_id)
     runtime.reconcile_inventory(inventory)
 
-    assert len(client.requests) == 2
+    assert len(client.requests) == 3
     assert client.requests[0][0:2] == ("POST", "/agent/v1/reconcile")
     assert client.requests[0][2] == {"schema_version": 1, "inventory": inventory}
     assert client.requests[0][3]["Idempotency-Key"] == client.requests[1][3]["Idempotency-Key"]
+    assert client.requests[1][3]["Idempotency-Key"] != client.requests[2][3]["Idempotency-Key"]
     assert client.requests[0][3]["X-Agent-Nonce"] != client.requests[1][3]["X-Agent-Nonce"]
     assert journal.synced == []
 
