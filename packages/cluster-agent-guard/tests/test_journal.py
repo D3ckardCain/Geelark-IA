@@ -202,3 +202,68 @@ def test_journal_rejects_symlink_path(tmp_path):
     link.symlink_to(target)
     with pytest.raises(AgentGuardError):
         AgentJournal(link, LOCAL_NODE).initialize()
+
+
+
+def test_pending_receipts_are_bounded_stable_and_removed_only_after_terminal_ack(tmp_path):
+    journal = AgentJournal(tmp_path / "journal.sqlite3", LOCAL_NODE)
+    journal.initialize()
+    accepted = command()
+    journal.accept_command(accepted)
+    running = command()
+    journal.accept_command(running)
+    journal.record_result(
+        operation_id=running.operation_id,
+        instance_id=running.instance_id,
+        node_id=running.node_id,
+        assignment_epoch=running.assignment_epoch,
+        status="running",
+        result={"progress": 25},
+    )
+    terminal = command()
+    journal.accept_command(terminal)
+    journal.record_result(
+        operation_id=terminal.operation_id,
+        instance_id=terminal.instance_id,
+        node_id=terminal.node_id,
+        assignment_epoch=terminal.assignment_epoch,
+        status="succeeded",
+        result={"ok": True},
+    )
+
+    pending = journal.list_pending_receipts(limit=10)
+    assert {receipt.operation_id for receipt in pending} == {running.operation_id, terminal.operation_id}
+    assert all(receipt.node_id == LOCAL_NODE for receipt in pending)
+    assert [r.operation_id for r in journal.list_pending_receipts(limit=1)] == [
+        pending[0].operation_id
+    ]
+
+    journal.mark_receipt_synced(terminal.operation_id)
+    after_ack = journal.list_pending_receipts(limit=10)
+    assert {receipt.operation_id for receipt in after_ack} == {running.operation_id}
+
+    with pytest.raises(ValueError):
+        journal.list_pending_receipts(limit=0)
+    with pytest.raises(ValueError):
+        journal.list_pending_receipts(limit=True)
+
+
+def test_synced_receipt_ack_survives_journal_reopen(tmp_path):
+    path = tmp_path / "journal.sqlite3"
+    journal = AgentJournal(path, LOCAL_NODE)
+    journal.initialize()
+    cmd = command()
+    journal.accept_command(cmd)
+    journal.record_result(
+        operation_id=cmd.operation_id,
+        instance_id=cmd.instance_id,
+        node_id=cmd.node_id,
+        assignment_epoch=cmd.assignment_epoch,
+        status="succeeded",
+        result={"ok": True},
+    )
+    journal.mark_receipt_synced(cmd.operation_id)
+
+    reopened = AgentJournal(path, LOCAL_NODE)
+    reopened.initialize()
+    assert reopened.list_pending_receipts(limit=100) == []
