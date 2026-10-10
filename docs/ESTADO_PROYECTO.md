@@ -306,7 +306,7 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 ### Ciclo de vida de sincronización de recibos del agente (2026-10-10)
 
 - PR borrador #56 en rama original: https://github.com/D3ckardCain/Geelark-IA/pull/56. Esta integración se porta a una rama apilada sobre la bandeja durable #54 para que los endpoints de progreso/resultado estén presentes en el mismo stack.
-- En la rama original, el commit ejecutable `b15db80a1e6656f62bb3a25d287aadfb0092d772` pasó GitHub Actions run 119. La nueva rama requiere su propia validación.
+- El commit `6ac3f07e69b2c80bd3d5e68347e1f5c3dd64b4e1` de esta rama pasó GitHub Actions run 126: 57 pruebas aprobadas, 1 advertencia y `pip check` correcto. La prueba de integración usa TLS real en loopback, SQLite y PostgreSQL desechable, e incluye pérdida de ACK y reintento idempotente. Las modificaciones posteriores de documentación no cambian el código probado.
 - Se endureció la validación de configuración y contadores; una excepción del callback de telemetría no debe detener el worker. Se añadieron pruebas para drenaje de lotes, contadores inválidos y callback defectuoso.
 - Manual técnico: [MANUAL_CICLO_VIDA_SINCRONIZACION_AGENTE.md](MANUAL_CICLO_VIDA_SINCRONIZACION_AGENTE.md). Manual de usuario/operación: [MANUAL_USUARIO_SINCRONIZACION_AGENTES.md](MANUAL_USUARIO_SINCRONIZACION_AGENTES.md).
 - Límite: biblioteca de ciclo de vida, todavía no conectada a un proceso de agente instalable ni con interfaz/comando de usuario. CI no equivale a prueba en PCs físicas. No fusionar ni desplegar antes de revisar el flujo SQLite→HTTPS→PostgreSQL y los controles de seguridad.
