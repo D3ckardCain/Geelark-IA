@@ -1,0 +1,55 @@
+name: Cluster persistence schema
+
+on:
+  pull_request:
+    paths:
+      - "db/**"
+      - ".github/workflows/cluster-persistence-postgres.yml"
+  push:
+    branches: [main]
+    paths:
+      - "db/**"
+      - ".github/workflows/cluster-persistence-postgres.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-schema:
+    name: PostgreSQL 16 — migration and invariants
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: geelark_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d geelark_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: test-only-password
+      PGDATABASE: geelark_test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Apply migration to disposable database
+        run: psql -v ON_ERROR_STOP=1 -f db/migrations/0001_cluster_control.sql
+
+      - name: Verify schema smoke tests and constraints
+        run: psql -v ON_ERROR_STOP=1 -f db/tests/0001_cluster_control_smoke.sql
