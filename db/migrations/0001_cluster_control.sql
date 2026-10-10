@@ -52,7 +52,7 @@ CREATE TABLE geelark_control.instances (
     instance_id uuid PRIMARY KEY,
     desired_state text NOT NULL DEFAULT 'stopped'
         CHECK (desired_state IN ('running', 'stopped')),
-    observed_state text NOT NULL DEFAULT 'unknown'
+    observed_state text NOT NULL DEFAULT 'pending'
         CHECK (observed_state IN ('pending', 'reserved', 'starting', 'running', 'stopping', 'stopped', 'failed', 'unknown', 'reconciling')),
     owner_node_id uuid REFERENCES geelark_control.nodes(node_id) ON DELETE RESTRICT,
     assignment_epoch bigint NOT NULL DEFAULT 0 CHECK (assignment_epoch >= 0),
@@ -60,6 +60,8 @@ CREATE TABLE geelark_control.instances (
     engine_name varchar(128),
     engine_version varchar(64),
     image_digest varchar(128),
+    android_api_level integer CHECK (android_api_level IS NULL OR android_api_level BETWEEN 1 AND 100),
+    android_abi varchar(32) CHECK (android_abi IS NULL OR length(android_abi) BETWEEN 1 AND 32),
     resource_profile jsonb NOT NULL DEFAULT '{}'::jsonb
         CHECK (jsonb_typeof(resource_profile) = 'object'),
     created_at timestamptz NOT NULL DEFAULT now(),
