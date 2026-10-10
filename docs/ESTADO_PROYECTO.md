@@ -296,8 +296,8 @@ Esta sección distingue explícitamente el trabajo que existe en ramas/PR de lo 
 ### Estado de GitHub observado
 
 - Repositorio privado: `D3ckardCain/Geelark-IA`; rama predeterminada: `main`.
-- 14 PR abiertos en la instantánea de auditoría; todos están en borrador.
-- 29 Issues abiertas en la instantánea; no se cerraron Issues automáticamente durante la auditoría.
+- 14 PR abiertos en la instantánea tomada inmediatamente antes de crear el propio PR #45; todos estaban en borrador. La creación de #45 elevó el total a 15 PR abiertos.
+- 29 Issues abiertas en esa instantánea; no se cerraron Issues automáticamente durante la auditoría.
 - No se fusionó ningún PR ni se desplegó código en equipos físicos.
 
 ### Cadenas de cambios abiertas
