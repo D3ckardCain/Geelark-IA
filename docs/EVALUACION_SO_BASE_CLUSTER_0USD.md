@@ -6,7 +6,7 @@
 
 ## Resumen ejecutivo
 
-**Recomendación para la primera prueba de concepto: Debian 13 Stable instalado directamente en dos PCs**, sin Proxmox inicialmente. Mantener Proxmox VE como alternativa si la prueba demuestra que la administración de máquinas virtuales aporta una ventaja imprescindible.
+**Hipótesis de trabajo, no decisión aprobada:** Debian 13 Stable directo es el candidato más simple para la primera prueba controlada del motor Android. Proxmox VE sigue en comparación y solo debería elegirse si una ventaja medible de aislamiento/gestión compensa la complejidad de GPU, kernel y mantenimiento. No se instalará nada hasta la autorización expresa del usuario.
 
 Motivos:
 - Debian Stable es una distribución libre sin suscripción obligatoria, con una base conservadora y un ciclo de soporte documentado.
@@ -103,3 +103,46 @@ La decisión se toma con datos, no por preferencia:
 ## Estado real
 
 Esta es una evaluación documental basada en fuentes oficiales. No se ha instalado ningún sistema operativo, no se ha ejecutado redroid, no se ha probado aceleración GPU y no existen mediciones de rendimiento. La elección final debe esperar a la POC reversible y a la aprobación explícita del usuario.
+
+
+## Aplicación al hardware declarado (sin inspección ni cambios físicos)
+
+Inventario comunicado para planificar, pendiente de verificación por comandos de solo lectura:
+
+| Equipo | CPU declarada | RAM | Almacenamiento | Gráficos |
+|---|---|---:|---|---|
+| PC-MASTER | Intel Core i7; modelo exacto pendiente | 16 GB | 500 GB | Sin GPU dedicada declarada; iGPU exacta pendiente |
+| WORKER-01 | Intel Core i5-11400 | 32 GB | NVMe M.2 500 GB | UHD Graphics 730 según ficha de Intel; comprobar controlador y aceleración |
+| WORKER-02 | Intel Core i5-11400 | 32 GB | NVMe M.2 500 GB | UHD Graphics 730 según ficha de Intel; comprobar controlador y aceleración |
+| WORKER-03 | Intel Core i5-11400 | 32 GB | NVMe M.2 500 GB | UHD Graphics 730 según ficha de Intel; comprobar controlador y aceleración |
+
+Los i5-11400 especifican VT-x y VT-d, pero esto no prueba que la placa base, el firmware y la configuración actual permitan usarlos. El i7 de PC-MASTER se ha mencionado previamente como posiblemente i7-11700, pero no debe tratarse como dato confirmado. Si se confirma ese modelo, Intel indica UHD Graphics 750, VT-x y VT-d; también requiere verificar firmware, controlador y acceso real a la GPU.
+
+Red declarada: LAN Gigabit e Internet simétrico de 10 Mbps. Esto favorece descargar artefactos una vez y distribuirlos por LAN, con hashes, versiones, licencias y aprobación; no justifica que los nodos dependan de Internet para operar.
+
+## Comparación enfocada al motor Android y al clúster
+
+| Necesidad del proyecto | Debian 13 directo | Proxmox VE |
+|---|---|---|
+| Ejecutar redroid sobre kernel Linux del host | Camino más directo para probar binder/binderfs y contenedores; se debe auditar el modelo de privilegios | En un LXC hay que configurar nesting y dispositivos/kernel con cuidado; en una VM se obtiene un kernel invitado propio, pero se añaden capas |
+| Acceso a iGPU Intel para renderizado/captura | Menos capas, pero depende del driver Mesa/kernel y de que el motor realmente use aceleración | Passthrough/compartición de iGPU puede complicar la configuración; no asumir aceleración dentro de las VMs |
+| Aislar cada motor Android | Namespaces, cgroups, políticas de usuario, seccomp/AppArmor y red aislada; requiere diseñarlo y probarlo | Las VMs dan una frontera adicional más fuerte en ciertos escenarios; LXC comparte kernel. El aislamiento no queda garantizado por instalar Proxmox |
+| Administrar cuatro hosts heterogéneos | GeeLark-IA implementa el inventario, planificador y ciclo de vida; SSH/gestión local deben protegerse | Añade panel y herramientas de gestión de infraestructura, pero GeeLark-IA aún necesita su propio control de tareas y estados |
+| Mantener $0 sin suscripción | Repositorios oficiales de Debian y soporte de seguridad/LTS según sus políticas | El repositorio no-subscription existe sin clave, pero Proxmox lo documenta para pruebas/no producción; resolver ese riesgo antes de producción |
+| Recuperación/rollback | Se puede usar imagen reproducible, backups y reinstalación automatizada; hay que construirlos | Snapshots/backups y gestión de VM facilitan ciertas recuperaciones, pero consumen almacenamiento y no reemplazan backups externos |
+| Riesgo principal | Mayor responsabilidad propia por aislamiento, actualización y recuperación del host | Complejidad adicional, gestión de cluster/quorum si se usa esa función y posibles restricciones prácticas de iGPU/Android |
+
+### Hipótesis de arquitectura que merece validación
+
+Para GeeLark-IA, el candidato inicial más simple sigue siendo probar el motor Android directamente sobre Linux, pero no se toma una decisión final: redroid puede requerir permisos elevados y su modelo de seguridad debe evaluarse antes de confiarle aplicaciones o datos. Proxmox solo debe ganar si sus ventajas de aislamiento/gestión superan de forma medible las complicaciones de GPU, kernel y operación, y si existe una estrategia de actualizaciones aceptable sin suscripción.
+
+No se debe convertir automáticamente cada PC en un nodo Proxmox de un cluster de infraestructura solo porque el producto GeeLark-IA tenga su propio cluster. Son capas distintas: el plano de control de GeeLark-IA debe seguir siendo portable y no depender de una API específica de Proxmox.
+
+## Siguiente trabajo permitido sin modificar equipos
+
+1. Mantener la selección del SO y del motor como **pendiente**.
+2. Reconciliar este documento con ADR-001, que actualmente menciona Ubuntu LTS como referencia de host, para que el repositorio no tenga decisiones contradictorias: [Issue #64](https://github.com/D3ckardCain/Geelark-IA/issues/64).
+3. Preparar una hoja de decisión con métricas, límites y comandos de inventario de solo lectura.
+4. Definir la prueba comparable antes de ejecutarla: misma APK autorizada, misma versión de imagen, mismos límites de CPU/RAM, mismo conjunto de acciones y tres repeticiones por configuración.
+5. No instalar paquetes, cambiar BIOS, particionar discos, descargar ISOs a los equipos ni arrancar instaladores hasta autorización explícita.
+
