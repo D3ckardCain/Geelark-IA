@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from cluster_agent_transport.domain_handlers import HEARTBEAT_STALE_AFTER, _derive_health_state
+from cluster_agent_transport.domain_handlers import HEARTBEAT_STALE_AFTER, _derive_health_state, _derive_module_reports
 
 
 NOW = datetime(2026, 10, 10, 20, 0, tzinfo=timezone.utc)
@@ -42,3 +42,21 @@ def test_heartbeat_exactly_at_freshness_boundary_is_stale():
         NOW - HEARTBEAT_STALE_AFTER,
         now=NOW,
     ) == "offline"
+
+
+def test_module_report_is_unknown_when_node_heartbeat_is_stale():
+    reports = [{"module_id": "agent-supervisor", "state": "operational", "version": "0.1.0",
+                "checked_at": NOW.isoformat(), "source": "agent-report", "error_code": None}]
+    result = _derive_module_reports(reports, NOW - timedelta(minutes=5), now=NOW)
+    assert result[0]["state"] == "unknown"
+    assert result[0]["source"] == "master-check"
+    assert result[0]["error_code"] == "NODE_STALE"
+
+
+def test_module_report_is_unknown_when_its_observation_is_old():
+    reports = [{"module_id": "agent-supervisor", "state": "operational", "version": "0.1.0",
+                "checked_at": (NOW - timedelta(minutes=10)).isoformat(), "source": "agent-report", "error_code": None}]
+    result = _derive_module_reports(reports, NOW - timedelta(seconds=1), now=NOW)
+    assert result[0]["state"] == "unknown"
+    assert result[0]["source"] == "master-check"
+    assert result[0]["error_code"] == "REPORT_STALE"

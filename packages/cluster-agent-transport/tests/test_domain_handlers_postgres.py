@@ -86,3 +86,58 @@ def test_pending_telemetry_persists_and_status_is_scoped_to_own_node():
             conn.execute("DELETE FROM geelark_control.agent_request_nonces WHERE node_id = %s", (node_id,))
             conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
             conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))
+
+
+def test_active_module_inventory_is_persisted_and_stale_reports_become_unknown():
+    node_id, credential_id = uuid4(), uuid4()
+    token_hash = hashlib.sha256(secrets.token_hex(32).encode()).hexdigest()
+    connect = lambda: psycopg.connect(DATABASE_URL)
+    handlers = make_postgres_agent_handlers(connect)
+    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active")
+    payload = {"schema_version": 1, "modules": [
+        {"module_id": "agent-supervisor", "state": "operational", "version": "0.1.0", "error_code": None},
+        {"module_id": "android-engine", "state": "not-installed", "version": None, "error_code": None},
+    ]}
+    try:
+        with connect() as conn:
+            conn.execute(
+                "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state, last_seen_at) VALUES (%s, %s, 'active', now())",
+                (node_id, "test-modules-" + str(node_id)),
+            )
+            conn.execute(
+                """
+                INSERT INTO geelark_control.node_credentials
+                    (credential_id, node_id, token_sha256, status, expires_at, activated_at)
+                VALUES (%s, %s, %s, 'active', %s, %s)
+                """,
+                (credential_id, node_id, token_hash, datetime.now(timezone.utc) + timedelta(hours=1), datetime.now(timezone.utc)),
+            )
+        with connect() as conn:
+            result = handlers[Operation.MODULES_REPORT](conn=conn, principal=principal, payload=payload)
+        assert result["module_count"] == 2
+        state = handlers[Operation.STATUS_READ](principal=principal)
+        assert [item["module_id"] for item in state["modules"]] == ["agent-supervisor", "android-engine"]
+        assert state["modules"][0]["state"] == "operational"
+        assert state["modules"][0]["source"] == "agent-report"
+        assert state["modules"][1]["state"] == "not-installed"
+
+        with connect() as conn:
+            conn.execute(
+                """
+                UPDATE geelark_control.nodes
+                   SET module_reports = jsonb_set(
+                       module_reports, '{0,checked_at}', to_jsonb((now() - interval '10 minutes')::text)
+                   )
+                 WHERE node_id = %s
+                """,
+                (node_id,),
+            )
+        stale = handlers[Operation.STATUS_READ](principal=principal)
+        assert stale["modules"][0]["state"] == "unknown"
+        assert stale["modules"][0]["source"] == "master-check"
+        assert stale["modules"][0]["error_code"] == "REPORT_STALE"
+    finally:
+        with connect() as conn:
+            conn.execute("DELETE FROM geelark_control.agent_request_nonces WHERE node_id = %s", (node_id,))
+            conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
+            conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))

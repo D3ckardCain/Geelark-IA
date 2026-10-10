@@ -57,12 +57,33 @@ def test_pending_can_send_heartbeat_and_read_status_but_not_accept_task():
     assert client.get("/agent/v1/status", headers=headers()).status_code == 200
     capabilities = {"capabilities_version": 1, "capabilities": ["heartbeat", "status"]}
     assert client.put("/agent/v1/capabilities", headers=headers(), json=capabilities).status_code == 200
+    modules = {"schema_version": 1, "modules": [{"module_id": "agent-supervisor", "state": "operational", "version": "0.1.0"}]}
+    assert client.put("/agent/v1/modules", headers=headers(), json=modules).status_code == 403
     response = client.post(
         f"/agent/v1/tasks/{uuid4()}/accept", headers=headers(),
         json={"schema_version": 1, "state": "accepted", "details": {}},
     )
     assert response.status_code == 403
     assert calls == ["heartbeat", "status_read", "capabilities"]
+
+
+def test_active_node_can_report_modules_and_unknown_module_is_rejected():
+    client, calls = make_client(ACTIVE)
+    valid = {"schema_version": 1, "modules": [{"module_id": "agent-supervisor", "state": "operational", "version": "0.1.0"}]}
+    assert client.put("/agent/v1/modules", headers=headers(), json=valid).status_code == 200
+    assert calls == ["modules_report"]
+    invalid = {"schema_version": 1, "modules": [{"module_id": "unlisted-module", "state": "operational"}]}
+    assert client.put("/agent/v1/modules", headers=headers(), json=invalid).status_code == 422
+
+
+def test_duplicate_module_ids_are_rejected():
+    client, calls = make_client(ACTIVE)
+    duplicate = {"schema_version": 1, "modules": [
+        {"module_id": "agent-supervisor", "state": "operational"},
+        {"module_id": "agent-supervisor", "state": "degraded"},
+    ]}
+    assert client.put("/agent/v1/modules", headers=headers(), json=duplicate).status_code == 422
+    assert calls == []
 
 
 def test_active_node_can_reach_task_handler():
