@@ -287,3 +287,40 @@ El PR borrador #16 ahora incluye validación de coherencia entre `status` y `obs
 ### Persistencia de asignaciones documentada (2026-10-09)
 
 Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md). Define transacciones, restricciones para un único propietario, idempotencia durable, outbox y pruebas de caída/concurrencia. No hay DDL, migraciones ni código de persistencia implementados; PostgreSQL local sigue siendo una propuesta pendiente de validar.
+
+
+## Auditoría del trabajo en ramas no integradas — 2026-10-10 UTC
+
+Esta sección distingue explícitamente el trabajo que existe en ramas/PR de lo que está integrado en `main`. **Un PR abierto, aunque tenga CI verde, no significa que el código esté integrado ni validado en las PCs físicas.**
+
+### Estado de GitHub observado
+
+- Repositorio privado: `D3ckardCain/Geelark-IA`; rama predeterminada: `main`.
+- 14 PR abiertos en la instantánea de auditoría; todos están en borrador.
+- 29 Issues abiertas en la instantánea; no se cerraron Issues automáticamente durante la auditoría.
+- No se fusionó ningún PR ni se desplegó código en equipos físicos.
+
+### Cadenas de cambios abiertas
+
+| Área | Cadena de PR | Estado y precaución |
+|---|---|---|
+| Contratos del clúster | #16 → #30; #28 se basa en la rama de #16 | Borradores; ejecutar/revisar el checkout exacto antes de integrar |
+| Persistencia y asignación | #32 → #34 → #36 → #38 | Borradores apilados; no integrar fuera de orden |
+| Autenticación de agentes | #42 → #44; #40 documenta la ADR por separado | Borradores; revisar dependencia documental de ADR-005 y CI del HEAD actual |
+| Documentación/investigación | #21, #23, #25, #26 | Borradores independientes basados en `main` |
+
+### Hallazgos y controles de auditoría
+
+1. PR #19 fue cerrado como supersedido, no fusionado; Issue #20 sigue abierta porque recuperación, backup/restauración y reconciliación aún no están demostrados.
+2. PR #44 recibió una corrección de calidad: el workflow de integración ahora contempla cambios del guardián y autenticación también en `push` a `main`; las credenciales tienen un máximo de vigencia de 365 días, con 90 días por defecto.
+3. La primera CI tras ese cambio detectó una omisión en la ruta de rotación de credenciales. Se corrigió en el commit `10df3c863f7a9ec2d1abd751964d7f9818eb0351`; la corrección no se considera validada hasta que una nueva ejecución de CI termine en éxito.
+4. La implementación de persistencia, outbox, journal offline y autenticación descrita en los PR sigue siendo trabajo de ramas. No es todavía una capacidad integrada de `main` ni una validación operativa en hardware real.
+5. Mantener abiertas las Issues relacionadas hasta que los PR sucesores estén integrados y sus criterios de aceptación se hayan demostrado. No cerrar en bloque ni considerar duplicada una Issue solo porque exista un PR.
+
+### Próximos pasos de integración
+
+- Obtener CI satisfactoria para el HEAD actualizado de PR #44.
+- Revisar los diffs y dependencias de las cadenas apiladas como conjuntos, incluida la decisión ADR-005.
+- Añadir pruebas pendientes de expiración, rotación concurrente, recuperación y backup/restauración.
+- Revisar permisos mínimos, HTTPS con CA local, redacción de secretos y límites antes de cualquier transporte real.
+- Conservar el coste operativo obligatorio de 0 USD y no instalar/desplegar nada en las PCs físicas sin autorización explícita.
