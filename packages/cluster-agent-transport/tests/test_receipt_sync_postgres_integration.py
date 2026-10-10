@@ -1,102 +1,133 @@
-"""Integración del recibo SQLite con handlers PostgreSQL mediante la API ASGI.
+"""Integración real SQLite → HTTPS/TLS → API → PostgreSQL con pérdida de ACK."""
 
-La capa de red/TLS se prueba por separado en test_client.py. Aquí TestClient usa
-scope HTTPS para ejecutar middleware/rutas sin abrir sockets ni tocar producción;
-el adaptador simula la frontera del cliente y permite reproducir una respuesta 2xx
-perdida después de que PostgreSQL haya confirmado el resultado.
-"""
 import hashlib
-import json
+import os
 import secrets
+import shutil
+import socket
+import subprocess
+import threading
+import time
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import psycopg
 import pytest
-from fastapi.testclient import TestClient
-from psycopg.types.json import Jsonb
 
 from geelark_cluster_agent_guard import AgentCommand, AgentJournal
-from cluster_agent_transport.app import create_agent_app
-from cluster_agent_transport.client import AgentResponse, AgentTransportError
-from cluster_agent_transport.domain_handlers import make_postgres_agent_handlers
-from cluster_agent_transport.policy import AgentPrincipal, Operation
-from cluster_agent_transport.runtime import AgentTransportRuntime
+from cluster_agent_transport import (
+    AgentHTTPSClient,
+    AgentTransportError,
+    AgentTransportRuntime,
+    PostgresRateLimiter,
+    create_agent_app,
+    make_database_authenticator,
+    make_database_idempotency_runner,
+    make_database_nonce_consumer,
+    make_postgres_agent_handlers,
+)
+from cluster_agent_transport.server import make_uvicorn_config
 
 
-DATABASE_URL = __import__("os").environ.get("TEST_DATABASE_URL")
+DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="requiere PostgreSQL de integración")
-TOKEN = "a" * 64
 
 
-class ASGIClientAdapter:
-    """Adaptador de test: no abre sockets y puede simular la pérdida del primer ACK."""
+class LoseFirstAckClient:
+    """Usa HTTPS real y simula que se pierde la primera respuesta 2xx."""
 
-    def __init__(self, client, *, lose_first_response=False):
+    def __init__(self, client):
         self.client = client
-        self.lose_first_response = lose_first_response
+        self.drop_next_success = True
         self.requests = []
 
     def request(self, method, path, *, payload=None, headers=None):
         self.requests.append((method, path, payload, dict(headers or {})))
-        response = self.client.request(method, path, json=payload, headers=headers)
-        if self.lose_first_response:
-            self.lose_first_response = False
-            if 200 <= response.status_code < 300:
-                raise AgentTransportError("respuesta de prueba perdida")
-        return AgentResponse(
-            status=response.status_code,
-            body=response.content,
-            content_type=response.headers.get("content-type"),
-        )
+        response = self.client.request(method, path, payload=payload, headers=headers)
+        if self.drop_next_success and 200 <= response.status < 300:
+            self.drop_next_success = False
+            raise AgentTransportError("respuesta de prueba perdida")
+        return response
 
 
-def test_sqlite_receipt_sync_is_idempotent_when_postgres_commits_but_ack_is_lost(tmp_path):
+def create_local_tls_identity(tmp_path):
+    ca_key, ca_cert = tmp_path / "ca.key", tmp_path / "ca.crt"
+    server_key, server_csr, server_cert = (
+        tmp_path / "server.key",
+        tmp_path / "server.csr",
+        tmp_path / "server.crt",
+    )
+    extensions = tmp_path / "server.ext"
+    extensions.write_text(
+        "basicConstraints=critical,CA:FALSE\n"
+        "keyUsage=critical,digitalSignature,keyEncipherment\n"
+        "extendedKeyUsage=serverAuth\n"
+        "subjectAltName=IP:127.0.0.1\n",
+        encoding="utf-8",
+    )
+    commands = [
+        [
+            "openssl", "genpkey", "-algorithm", "RSA", "-pkeyopt", "rsa_keygen_bits:2048",
+            "-out", str(ca_key),
+        ],
+        [
+            "openssl", "req", "-x509", "-new", "-sha256", "-days", "1",
+            "-key", str(ca_key), "-out", str(ca_cert), "-subj", "/CN=GeeLark-IA Integration CA",
+            "-addext", "basicConstraints=critical,CA:TRUE",
+            "-addext", "keyUsage=critical,keyCertSign,cRLSign",
+        ],
+        [
+            "openssl", "genpkey", "-algorithm", "RSA", "-pkeyopt", "rsa_keygen_bits:2048",
+            "-out", str(server_key),
+        ],
+        [
+            "openssl", "req", "-new", "-sha256", "-key", str(server_key), "-out", str(server_csr),
+            "-subj", "/CN=GeeLark-IA Integration Server",
+        ],
+        [
+            "openssl", "x509", "-req", "-sha256", "-days", "1", "-in", str(server_csr),
+            "-CA", str(ca_cert), "-CAkey", str(ca_key), "-CAcreateserial",
+            "-out", str(server_cert), "-extfile", str(extensions),
+        ],
+    ]
+    for command in commands:
+        subprocess.run(command, check=True, capture_output=True, text=True)
+    return ca_cert, server_cert, server_key
+
+
+@pytest.mark.skipif(shutil.which("openssl") is None, reason="requiere OpenSSL para la CA temporal")
+def test_sqlite_receipt_reaches_postgres_over_real_https_and_recovers_lost_ack(tmp_path):
     node_id, credential_id = uuid4(), uuid4()
-    instance_id = uuid4()
-    operation_id = uuid4()
-    task_id = operation_id  # El runtime identifica la ruta por operation_id; el modelo actual usa el mismo UUID.
+    instance_id, operation_id = uuid4(), uuid4()
+    task_id = operation_id  # El contrato actual construye la ruta de resultado con operation_id.
     request_id = uuid4()
+    token = secrets.token_hex(32)
     now = datetime.now(timezone.utc)
     connect = lambda: psycopg.connect(DATABASE_URL)
-    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active")
-    handlers = make_postgres_agent_handlers(connect)
-    executions = []
-    cached = {}
 
-    def authenticate(token):
-        assert token == TOKEN
-        return principal
-
-    def consume_nonce(**_kwargs):
-        return None
-
-    def idempotency_runner(*, principal, operation, key, payload, execute):
-        cache_key = (principal.node_id, operation, key)
-        payload_hash = hashlib.sha256(
-            json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
-        ).hexdigest()
-        previous = cached.get(cache_key)
-        if previous is not None:
-            old_hash, result = previous
-            if old_hash != payload_hash:
-                raise RuntimeError("clave idempotente reutilizada con otro payload")
-            return result
-        with connect() as conn:
-            result = execute(conn)
-        executions.append((operation, key))
-        cached[cache_key] = (payload_hash, result)
-        return result
-
+    ca_cert, server_cert, server_key = create_local_tls_identity(tmp_path)
     app = create_agent_app(
-        authenticate=authenticate,
-        consume_nonce=consume_nonce,
-        handlers=handlers,
-        idempotency_runner=idempotency_runner,
+        authenticate=make_database_authenticator(connect),
+        consume_nonce=make_database_nonce_consumer(connect),
+        idempotency_runner=make_database_idempotency_runner(connect),
+        rate_limiter=PostgresRateLimiter(connect, max_requests=60, window_seconds=60),
+        handlers=make_postgres_agent_handlers(connect),
     )
-    asgi = TestClient(app, base_url="https://testserver")
-    adapter = ASGIClientAdapter(asgi, lose_first_response=True)
 
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(128)
+    port = listener.getsockname()[1]
+    config = make_uvicorn_config(
+        app, host="127.0.0.1", port=port,
+        certfile=str(server_cert), keyfile=str(server_key),
+    )
+
+    import uvicorn
+
+    server = uvicorn.Server(config)
+    thread = threading.Thread(target=lambda: server.run(sockets=[listener]), daemon=True)
     try:
         with connect() as conn:
             conn.execute(
@@ -110,8 +141,7 @@ def test_sqlite_receipt_sync_is_idempotent_when_postgres_commits_but_ack_is_lost
                 VALUES (%s, %s, %s, 'active', %s, %s, %s)
                 """,
                 (
-                    credential_id, node_id,
-                    hashlib.sha256(TOKEN.encode()).hexdigest(),
+                    credential_id, node_id, hashlib.sha256(token.encode("ascii")).hexdigest(),
                     now, now + timedelta(hours=1), now,
                 ),
             )
@@ -140,13 +170,24 @@ def test_sqlite_receipt_sync_is_idempotent_when_postgres_commits_but_ack_is_lost
                 """,
                 (
                     task_id, operation_id, node_id, instance_id,
-                    Jsonb({"desired_state": "running"}),
+                    psycopg.types.json.Jsonb({"desired_state": "running"}),
                     now + timedelta(minutes=2), now, now,
                 ),
             )
 
-        journal_path = tmp_path / "agent-journal.sqlite3"
-        journal = AgentJournal(journal_path, node_id)
+        thread.start()
+        deadline = time.monotonic() + 8
+        while not server.started and thread.is_alive() and time.monotonic() < deadline:
+            time.sleep(0.02)
+        assert server.started, "El servidor HTTPS de integración no llegó a iniciar"
+
+        https = AgentHTTPSClient(
+            base_url=f"https://127.0.0.1:{port}",
+            ca_cert=str(ca_cert),
+            timeout_seconds=5,
+        )
+        client = LoseFirstAckClient(https)
+        journal = AgentJournal(tmp_path / "agent-journal.sqlite3", node_id)
         journal.initialize()
         journal.accept_command(
             AgentCommand(
@@ -166,42 +207,49 @@ def test_sqlite_receipt_sync_is_idempotent_when_postgres_commits_but_ack_is_lost
             status="succeeded",
             result={"exit_code": 0},
         )
-
         runtime = AgentTransportRuntime(
-            client=adapter,
-            bearer_token=TOKEN,
+            client=client,
+            bearer_token=token,
             journal=journal,
             local_node_id=node_id,
-            clock=lambda: datetime.now(timezone.utc),
         )
 
-        # PostgreSQL commitó el resultado, pero el agente no recibió el primer ACK.
+        # El controlador confirma en PostgreSQL; se pierde la respuesta en el enlace HTTPS.
         assert runtime.sync_pending_receipts(limit=10) == (0, 1)
         assert len(journal.list_pending_receipts(limit=10)) == 1
 
-        # Reintento: la clave es estable, el servidor responde idempotentemente y el journal guarda ACK.
+        # El reintento reutiliza la clave idempotente; PostgreSQL devuelve el snapshot previo.
         assert runtime.sync_pending_receipts(limit=10) == (1, 1)
         assert journal.list_pending_receipts(limit=10) == []
-        assert len(adapter.requests) == 2
-        assert adapter.requests[0][3]["Idempotency-Key"] == adapter.requests[1][3]["Idempotency-Key"]
-        assert adapter.requests[0][3]["X-Agent-Nonce"] != adapter.requests[1][3]["X-Agent-Nonce"]
-        assert len(executions) == 1
+        assert len(client.requests) == 2
+        assert client.requests[0][3]["Idempotency-Key"] == client.requests[1][3]["Idempotency-Key"]
+        assert client.requests[0][3]["X-Agent-Nonce"] != client.requests[1][3]["X-Agent-Nonce"]
 
         with connect() as conn:
-            task_status = conn.execute(
+            task = conn.execute(
                 "SELECT status, result_summary FROM geelark_control.agent_tasks WHERE task_id = %s",
                 (task_id,),
             ).fetchone()
-            operation_status = conn.execute(
+            operation = conn.execute(
                 "SELECT status, result_summary FROM geelark_control.operations WHERE operation_id = %s",
                 (operation_id,),
             ).fetchone()
-        assert task_status == ("succeeded", {"exit_code": 0})
-        assert operation_status == ("succeeded", {"exit_code": 0})
+        assert task == ("succeeded", {"exit_code": 0})
+        assert operation == ("succeeded", {"exit_code": 0})
     finally:
+        server.should_exit = True
+        if thread.is_alive():
+            thread.join(timeout=8)
+        listener.close()
         with connect() as conn:
+            conn.execute(
+                "DELETE FROM geelark_control.idempotency_records WHERE scope LIKE %s",
+                (f"agent:{node_id}:%",),
+            )
+            conn.execute("DELETE FROM geelark_control.agent_request_nonces WHERE node_id = %s", (node_id,))
             conn.execute("DELETE FROM geelark_control.agent_tasks WHERE task_id = %s", (task_id,))
             conn.execute("DELETE FROM geelark_control.operations WHERE operation_id = %s", (operation_id,))
             conn.execute("DELETE FROM geelark_control.instances WHERE instance_id = %s", (instance_id,))
             conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
             conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))
+        assert not thread.is_alive(), "El servidor HTTPS temporal no terminó"
