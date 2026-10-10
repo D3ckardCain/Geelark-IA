@@ -60,9 +60,7 @@ redroid declara que su propio código está bajo Apache 2.0 y sus módulos de ke
 
 Debian 13 es la primera plataforma elegida para organizar las pruebas. Antes de instalar, completar la puerta documental y confirmar por separado el equipo exacto, el respaldo/recuperación y la autorización explícita para borrar/reinstalar ese equipo. La elección inicial no convierte a Debian en la opción definitiva para producción.
 
-### Fase posterior — Proxmox VE
-
-Proxmox VE no se descarta. Se conserva para una prueba comparativa posterior, a iniciar cuando el usuario lo solicite. La prueba debe usar una VM Linux dedicada como comparación principal y medir el coste de RAM, la gestión, la recuperación y las limitaciones de acceso a iGPU/kernel.
+Procedimiento propuesto para Debian (no ejecutar hasta completar la autorización):
 
 1. Instalar Debian 13 Stable con particiones simples y cifrado de disco si el equipo admite recuperación de clave documentada.
 2. Aplicar actualizaciones de seguridad y deshabilitar servicios/puertos innecesarios.
@@ -71,6 +69,8 @@ Proxmox VE no se descarta. Se conserva para una prueba comparativa posterior, a 
 5. Medir arranque, RAM, CPU, almacenamiento, estabilidad, captura de pantalla y entrada.
 6. Confirmar que ADB solo escucha en loopback o en una interfaz aislada y que no es accesible desde redes no autorizadas.
 7. Repetir al menos tres veces y registrar fallos.
+
+Proxmox VE no se descarta. Se conserva para una prueba comparativa posterior, a iniciar cuando el usuario lo solicite. La prueba debe usar una VM Linux dedicada como comparación principal y medir el coste de RAM, la gestión, la recuperación y las limitaciones de acceso a iGPU/kernel.
 
 ### Fase 2 — segundo nodo y red aislada
 
