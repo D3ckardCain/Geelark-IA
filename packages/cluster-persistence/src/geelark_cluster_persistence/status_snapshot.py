@@ -14,7 +14,7 @@ from uuid import UUID, uuid4
 
 import psycopg
 
-from .module_registry import SUPPORTED_MODULE_IDS, MODULE_REPORT_STALE_AFTER
+MODULE_REPORT_STALE_AFTER = timedelta(minutes=5)
 
 HEARTBEAT_STALE_AFTER = timedelta(seconds=90)
 CLOCK_SKEW_TOLERANCE = timedelta(seconds=5)
@@ -160,7 +160,7 @@ def _safe_modules(value: Any, *, now: datetime, freshness_state: str) -> list[di
         elif now - checked_at >= MODULE_REPORT_STALE_AFTER:
             state, source, error_code = "unknown", "master-check", "REPORT_STALE"
         elif (not isinstance(raw_state, str) or raw_state not in MODULE_STATES
-              or module_id not in SUPPORTED_MODULE_IDS or source != "agent-report"):
+              or source != "agent-report"):
             state, source, error_code = "unknown", "master-check", "INVALID_MODULE_REPORT"
 
         result.append({
