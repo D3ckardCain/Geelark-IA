@@ -1,12 +1,15 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from dataclasses import replace
+import os
+import stat
 from uuid import UUID, uuid4
 
 import pytest
 
 from geelark_cluster_agent_guard import (
     AgentCommand,
+    AgentGuardError,
     AgentJournal,
     AssignmentOwnerConflict,
     ExpiredAssignmentLease,
@@ -181,3 +184,21 @@ def test_expired_lease_is_rejected_before_persisting_command(tmp_path):
         journal.accept_command(expired)
     assert journal.get_fence(INSTANCE) is None
     assert journal.get_receipt(expired.operation_id) is None
+
+
+@pytest.mark.skipif(os.name == "nt", reason="permisos POSIX no aplican igual en Windows")
+def test_journal_file_permissions_are_owner_only(tmp_path):
+    path = tmp_path / "private-journal.sqlite3"
+    journal = AgentJournal(path, LOCAL_NODE)
+    journal.initialize()
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlinks requieren permisos especiales en algunos Windows")
+def test_journal_rejects_symlink_path(tmp_path):
+    target = tmp_path / "target.sqlite3"
+    target.write_bytes(b"")
+    link = tmp_path / "linked.sqlite3"
+    link.symlink_to(target)
+    with pytest.raises(AgentGuardError):
+        AgentJournal(link, LOCAL_NODE).initialize()
