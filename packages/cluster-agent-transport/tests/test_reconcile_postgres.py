@@ -206,3 +206,69 @@ def test_reconcile_reports_server_task_missing_from_local_inventory_without_reas
         assert status == "accepted"
     finally:
         cleanup(connect, node, instance, operation, credential)
+
+
+
+def test_reconcile_local_progress_ahead_requests_normal_idempotent_progress_endpoint():
+    connect, node, credential, instance, operation, task = seed_task("accepted")
+    try:
+        result = run_reconcile(
+            connect, node, credential,
+            [item(task, operation, instance, state="running", summary={"step": 1})],
+        )
+        assert result["decisions"][0]["decision"] == "RESEND_PROGRESS"
+        assert result["mutations_applied"] is False
+        with connect() as conn:
+            status = conn.execute(
+                "SELECT status FROM geelark_control.agent_tasks WHERE task_id = %s", (task,)
+            ).fetchone()[0]
+        assert status == "accepted"
+    finally:
+        cleanup(connect, node, instance, operation, credential)
+
+
+def test_reconcile_detects_task_operation_state_mismatch():
+    connect, node, credential, instance, operation, task = seed_task("running")
+    try:
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.operations SET status = 'accepted' WHERE operation_id = %s",
+                (operation,),
+            )
+        result = run_reconcile(
+            connect, node, credential,
+            [item(task, operation, instance, state="running")],
+        )
+        assert result["decisions"][0]["decision"] == "SERVER_TASK_OPERATION_STATE_MISMATCH"
+        with connect() as conn:
+            task_status, operation_status = conn.execute(
+                """
+                SELECT t.status, o.status FROM geelark_control.agent_tasks t
+                JOIN geelark_control.operations o ON o.operation_id = t.operation_id
+                WHERE t.task_id = %s
+                """,
+                (task,),
+            ).fetchone()
+        assert (task_status, operation_status) == ("running", "accepted")
+    finally:
+        cleanup(connect, node, instance, operation, credential)
+
+
+def test_reconcile_terminal_result_conflict_requires_manual_review():
+    connect, node, credential, instance, operation, task = seed_task(
+        "succeeded", result_summary={"exit_code": 0}
+    )
+    try:
+        result = run_reconcile(
+            connect, node, credential,
+            [item(task, operation, instance, state="succeeded", summary={"exit_code": 1})],
+        )
+        assert result["decisions"][0]["decision"] == "TERMINAL_CONFLICT_MANUAL_REVIEW"
+        with connect() as conn:
+            summary = conn.execute(
+                "SELECT result_summary FROM geelark_control.agent_tasks WHERE task_id = %s",
+                (task,),
+            ).fetchone()[0]
+        assert summary == {"exit_code": 0}
+    finally:
+        cleanup(connect, node, instance, operation, credential)
