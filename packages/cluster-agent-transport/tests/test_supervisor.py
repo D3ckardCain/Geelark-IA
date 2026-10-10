@@ -264,6 +264,7 @@ def test_reconciliation_runs_on_start_and_explicit_reconnect():
     assert wait_for(lambda: len(runtime.reconcile_calls) == 1)
     supervisor.notify_reconnected()
     assert wait_for(lambda: len(runtime.reconcile_calls) == 2)
+    assert wait_for(lambda: len(reports) == 2)
     assert reports == [{"report_id": "r1"}, {"report_id": "r2"}]
     assert runtime.reconcile_calls == [
         [{"task_id": "local-task"}],
