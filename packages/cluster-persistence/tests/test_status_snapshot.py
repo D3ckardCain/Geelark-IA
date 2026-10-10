@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta, timezone
+import json
+from pathlib import Path
 from uuid import UUID
 
 import pytest
@@ -161,3 +163,22 @@ def test_module_without_trusted_source_cannot_be_operational():
     assert snapshot["node"]["modules"][0]["state"] == "unknown"
     assert snapshot["node"]["modules"][0]["source"] == "master-check"
     assert snapshot["node"]["modules"][0]["error_code"] == "INVALID_MODULE_REPORT"
+
+
+def test_snapshot_output_fields_stay_aligned_with_versioned_json_schema():
+    root = Path(__file__).resolve().parents[3]
+    schema = json.loads((root / "docs/contracts/master-worker-status-v1.schema.json").read_text())
+    snapshot = build_status_snapshot(make_row(), now=NOW)
+    node_schema = schema["properties"]["node"]
+    freshness_schema = schema["properties"]["freshness"]
+    module_schema = node_schema["properties"]["modules"]["items"]
+
+    assert set(snapshot) == set(schema["required"])
+    assert set(snapshot["node"]) == set(node_schema["required"])
+    assert set(snapshot["freshness"]) == set(freshness_schema["required"])
+    assert set(snapshot["node"]["modules"][0]) == set(module_schema["required"])
+    assert snapshot["schema_version"] == schema["properties"]["schema_version"]["const"]
+    assert snapshot["source"] in schema["properties"]["source"]["enum"]
+    assert snapshot["node"]["health_state"] in node_schema["properties"]["health_state"]["enum"]
+    assert snapshot["node"]["authorization_state"] in node_schema["properties"]["authorization_state"]["enum"]
+    assert snapshot["freshness"]["state"] in freshness_schema["properties"]["state"]["enum"]
