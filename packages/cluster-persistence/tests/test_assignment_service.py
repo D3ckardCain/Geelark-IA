@@ -16,6 +16,7 @@ from geelark_cluster_persistence import (
     InvalidAssignmentRequest,
     InstanceStateBlocked,
     InsufficientCapacity,
+    NodeCapacityNotConfigured,
     assign_instance,
 )
 
@@ -311,6 +312,21 @@ def test_active_observed_state_without_owner_fails_closed():
     })
     with psycopg.connect(DATABASE_URL) as conn:
         with pytest.raises(InstanceStateBlocked):
+            assign_instance(conn, make_request())
+    with psycopg.connect(DATABASE_URL) as conn:
+        assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
+
+
+def test_unknown_capacity_confidence_blocks_assignment():
+    seed_database()
+    with psycopg.connect(DATABASE_URL) as conn:
+        conn.execute(
+            "UPDATE geelark_control.node_resource_capacity SET confidence = 'unknown' WHERE node_id = %s",
+            (NODE_A,),
+        )
+        conn.commit()
+    with psycopg.connect(DATABASE_URL) as conn:
+        with pytest.raises(NodeCapacityNotConfigured):
             assign_instance(conn, make_request())
     with psycopg.connect(DATABASE_URL) as conn:
         assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
