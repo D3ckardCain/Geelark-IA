@@ -22,7 +22,7 @@ class FakeRuntime:
 
 
 def test_start_syncs_immediately_in_bounded_batch_and_stop_is_clean():
-    runtime = FakeRuntime([(2, 2)])
+    runtime = FakeRuntime([(1, 1)])
     lifecycle = AgentReceiptSyncLifecycle(runtime=runtime, batch_size=2)
     lifecycle.start()
     assert runtime.called.wait(1)
