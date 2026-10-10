@@ -65,6 +65,12 @@ La interfaz no hace solicitudes directas a Workers. El controlador determina aut
 - Pruebas automáticas cubren estado fresco/obsoleto, nodo ausente, credenciales revocadas, contrato inválido y falta de permisos.
 - No se añaden servicios ni APIs de pago; la integración sigue siendo migrable y local.
 
+## Estado de auditoría (10-10-2026)
+
+La revisión de PR #48 encontró una comprobación de frescura de 90 segundos en la elegibilidad de asignación y separación de `reported_health_state`/ `health_state` en el endpoint de estado. En el commit `2c58c3edf732de265235dae3dc683aa958e4208d`, los workflows de transporte, servicio de persistencia y esquema terminaron en success; se añadieron pruebas de derivación para heartbeat fresco, obsoleto y ausente. Evidencia: [CI transporte](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38085624799), [CI persistencia](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38085624804), [CI esquema](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38085624822).
+
+Esto **no cierra automáticamente la issue #71**: PR #48 sigue abierta en borrador y la corrección aún debe revisarse dentro del stack apilado completo. Mantener la integración del panel bloqueada hasta que ese stack se integre y vuelva a validarse.
+
 ## Consecuencias
 
 Esta decisión retrasa la telemetría real hasta que el stack de seguridad esté listo, pero evita dos fuentes de verdad, endpoints duplicados y una falsa impresión de salud. La maqueta y el contrato pueden evolucionar sin abrir ejecución remota.

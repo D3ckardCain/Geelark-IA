@@ -87,7 +87,7 @@ Este manual describe el prototipo visual. Antes de considerarlo módulo operativ
 
 ## 12. Contrato técnico de estado v1
 
-Para el significado exacto de los estados y campos de telemetría, consulta el [contrato Master/Worker v1](contracts/CONTRATO_ESTADO_MASTER_WORKER_V1.md), su [esquema JSON](contracts/master-worker-status-v1.schema.json) y el [ejemplo ficticio](contracts/examples/master-worker-status-v1.example.json). El contrato separa `reported_health_state` (reporte del Worker, no autoritativo) de `health_state` (derivado por el Master) y rechaza `healthy` cuando la frescura es `stale/missing/unknown` o no hay heartbeat. La discrepancia del backend actual está registrada en [issue #71](https://github.com/D3ckardCain/Geelark-IA/issues/71). El contrato está diseñado, pero aún no alimenta la interfaz ni una API operativa.
+Para el significado exacto de los estados y campos de telemetría, consulta el [contrato Master/Worker v1](contracts/CONTRATO_ESTADO_MASTER_WORKER_V1.md), su [esquema JSON](contracts/master-worker-status-v1.schema.json) y el [ejemplo ficticio](contracts/examples/master-worker-status-v1.example.json). El contrato separa `reported_health_state` (reporte del Worker, no autoritativo) de `health_state` (derivado por el Master) y rechaza `healthy` cuando la frescura es `stale/missing/unknown` o no hay heartbeat. La discrepancia original está registrada en [issue #71](https://github.com/D3ckardCain/Geelark-IA/issues/71). El HEAD actual de PR #48 ya separa ambos campos, deriva el estado leído según frescura y bloquea asignaciones con heartbeat obsoleto; los workflows de CI relevantes pasaron. La PR sigue en borrador y el contrato aún no alimenta esta interfaz ni una API operativa.
 
 
 ## 13. Comparación funcional con GeeLark
