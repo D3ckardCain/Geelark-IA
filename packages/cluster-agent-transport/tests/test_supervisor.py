@@ -29,11 +29,13 @@ class FakeLifecycle:
 
 
 class FakeRuntime:
-    def __init__(self, heartbeat=None, capabilities=None):
+    def __init__(self, heartbeat=None, capabilities=None, reconcile_responses=None):
         self.heartbeat = list(heartbeat or [])
         self.capabilities = list(capabilities or [])
+        self.reconcile_responses = list(reconcile_responses or [])
         self.heartbeat_calls = []
         self.capability_calls = []
+        self.reconcile_calls = []
         self.lock = threading.Lock()
         self.called = threading.Event()
 
@@ -54,6 +56,15 @@ class FakeRuntime:
         if isinstance(item, Exception):
             raise item
         return object()
+
+    def reconcile_inventory(self, inventory):
+        with self.lock:
+            self.reconcile_calls.append(inventory)
+            item = self.reconcile_responses.pop(0) if self.reconcile_responses else {"ok": True}
+        self.called.set()
+        if isinstance(item, Exception):
+            raise item
+        return item
 
 
 def wait_for(predicate, timeout=1):
@@ -233,3 +244,50 @@ def test_stop_from_error_callback_requests_shutdown_without_self_join():
     supervisor._thread.join(timeout=1)
     assert not supervisor._thread.is_alive()
     assert lifecycle.stops
+
+
+
+def test_reconciliation_runs_on_start_and_explicit_reconnect():
+    runtime = FakeRuntime(reconcile_responses=[{"report_id": "r1"}, {"report_id": "r2"}])
+    lifecycle = FakeLifecycle()
+    reports = []
+    supervisor = AgentSupervisor(
+        runtime=runtime,
+        receipt_lifecycle=lifecycle,
+        heartbeat_payload=lambda: {"health_state": "healthy"},
+        capabilities_payload=lambda: {"capabilities_version": 1, "capabilities": []},
+        reconcile_inventory=lambda: [{"task_id": "local-task"}],
+        on_reconciliation=reports.append,
+        heartbeat_interval_seconds=0.5,
+    )
+    supervisor.start()
+    assert wait_for(lambda: len(runtime.reconcile_calls) == 1)
+    supervisor.notify_reconnected()
+    assert wait_for(lambda: len(runtime.reconcile_calls) == 2)
+    assert reports == [{"report_id": "r1"}, {"report_id": "r2"}]
+    assert runtime.reconcile_calls == [
+        [{"task_id": "local-task"}],
+        [{"task_id": "local-task"}],
+    ]
+    assert supervisor.stop(timeout=1)
+
+
+def test_reconciliation_failure_is_sanitized_and_retried_after_backoff():
+    runtime = FakeRuntime(reconcile_responses=[OSError("do not log"), {"ok": True}])
+    lifecycle = FakeLifecycle()
+    errors = []
+    supervisor = AgentSupervisor(
+        runtime=runtime,
+        receipt_lifecycle=lifecycle,
+        heartbeat_payload=lambda: {},
+        capabilities_payload=lambda: {},
+        reconcile_inventory=lambda: [],
+        reconciliation_retry_interval_seconds=1,
+        heartbeat_interval_seconds=0.1,
+        on_error=errors.append,
+    )
+    supervisor.start()
+    assert wait_for(lambda: errors == ["RECONCILIATION_FAILED"])
+    time.sleep(0.1)
+    assert len(runtime.reconcile_calls) == 1
+    assert supervisor.stop(timeout=1)
