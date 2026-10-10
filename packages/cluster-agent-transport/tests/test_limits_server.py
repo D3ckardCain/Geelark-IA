@@ -13,7 +13,7 @@ def test_rate_limiter_rejects_after_configured_window_quota():
     assert limiter.allow("node-b", now=3)
 
 
-@pytest.mark.parametrize("host", ["0.0.0.0", "192.0.2.5", "example.invalid", "::"])
+@pytest.mark.parametrize("host", ["0.0.0.0", "8.8.8.8", "example.invalid", "::"])
 def test_listener_rejects_unspecified_public_or_nonliteral_hosts(host, tmp_path):
     cert, key = tmp_path / "cert.pem", tmp_path / "key.pem"
     cert.write_text("cert")
