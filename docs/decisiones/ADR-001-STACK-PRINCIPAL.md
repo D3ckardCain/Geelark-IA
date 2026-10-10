@@ -1,16 +1,18 @@
 # ADR-001: Stack principal y sistema operativo de referencia
 
-- **Estado:** propuesta adoptada para prototipo, pendiente de validación experimental.
-- **Fecha:** 2026-10-09
-- **Contexto:** Geelark-IA debe operar sin costes obligatorios, localmente, con Android virtualizado, automatización, API/CLI y opción offline. El usuario permite elegir el mejor hardware y sistema operativo; no hace falta optimizar para un equipo existente.
-- **Decisión:**
-  1. Usar **Linux Ubuntu LTS x86_64 como sistema operativo de referencia para el anfitrión Android**. Permite controlar kernel, virtualización, contenedores, ADB y aislamiento con herramientas abiertas. La versión exacta LTS se fijará al preparar la imagen reproducible.
+- **Estado:** propuesta de stack para prototipo; **sistema operativo anfitrión pendiente de decisión y prueba**.
+- **Fecha:** 2026-10-09; revisión documental en curso 2026-10-10.
+- **Contexto:** GeeLark-IA debe operar sin costes obligatorios, localmente, con Android virtualizado, automatización, API/CLI y opción offline. El usuario permite elegir el mejor hardware y sistema operativo; no hace falta optimizar para un equipo existente. El usuario pidió comparar Debian 13 Stable directo y Proxmox VE antes de decidir; la auditoría detectó que también debe compararse Ubuntu LTS, nombrado en la versión previa de esta ADR.
+- **Decisiones provisionales de stack:**
+  1. Mantener **Linux x86_64 como requisito candidato para el anfitrión Android**, pero no seleccionar todavía una distribución. Los candidatos documentales son Ubuntu 26.04 LTS directo, Debian 13 Stable directo y Proxmox VE con una VM Linux dedicada. Ver [evaluación de SO del clúster](../EVALUACION_SO_BASE_CLUSTER_0USD.md), [matriz de decisión](../MATRIZ_DECISION_SO_CLUSTER.md) e [Issue #64](https://github.com/D3ckardCain/Geelark-IA/issues/64).
   2. Usar **Tauri 2 + React + TypeScript + Vite** para la aplicación de escritorio de control.
   3. Usar **Python + FastAPI + Pydantic** para la API y el dominio local.
-  4. Usar **SQLite con migraciones** para la instalación de un solo anfitrión; no introducir PostgreSQL, Redis ni servicios adicionales hasta que pruebas de concurrencia justifiquen la complejidad.
-  5. Mantener **Android Emulator oficial como baseline de compatibilidad** y probar **redroid como candidato de ejecución multiinstancia** en Linux. La selección final de motor es un ADR separado y requiere pruebas.
+  4. Mantener SQLite con migraciones como opción para una instalación mononodo; la persistencia autoritativa distribuida se define aparte, no asumir que SQLite mononodo sirve automáticamente para el clúster.
+  5. Mantener **Android Emulator oficial como baseline de compatibilidad** y probar **redroid como candidato de ejecución multiinstancia**. La selección final de motor requiere pruebas y revisión de licencias.
   6. Encapsular ADB detrás de una lista de operaciones permitidas; no exponer puertos ADB ni la API administrativa a redes públicas.
   7. Crear el RPA como motor propio de estados, con acciones tipadas, límites, pausas, cancelación, reintentos idempotentes y trazabilidad. Usar Appium/UIAutomator2 para pruebas y Playwright para la UI web.
+
+**Condición de aprobación del SO:** no se instalará ni cambiará nada en PCs físicas, BIOS/UEFI o discos hasta que la comparación documental, la matriz de pruebas y la autorización explícita del usuario estén completas. El candidato ganador debe superar puertas de coste obligatorio $0, actualizaciones de seguridad aceptables, licencias claras, ADB aislado, compatibilidad Android y recuperación reproducible.
 - **Consecuencias positivas:** stack portable, poco acoplamiento, costes de licencia bajos/nulos, API documentada, operación local y capacidad de cambiar el motor Android sin rehacer la UI.
 - **Costes/riesgos:** hay que empaquetar dependencias; Linux es el anfitrión de referencia y no garantiza por sí mismo compatibilidad de cada app Android; redroid puede requerir permisos elevados y revisión de seguridad; Tauri necesita un proceso de instalación/actualización bien diseñado.
 - **Alternativas descartadas por ahora:**
