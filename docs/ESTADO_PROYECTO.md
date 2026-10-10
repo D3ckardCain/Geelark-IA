@@ -301,3 +301,12 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 - El commit `efbf8a6` añade una comprobación PostgreSQL adicional: una segunda consulta durante el lease vigente no vuelve a entregar la misma tarea. CI del commit `efbf8a6` pasó en los tres workflows: transporte **#38018668716**, persistencia/auth **#38018668703** y esquema **#38018668702**.
 - El PR sigue draft; no se fusiona ni se despliega. Siguientes pruebas: doble consumidor realmente concurrente, epoch obsoleto, transiciones terminales y recuperación/reconciliación tras caída.
 - La reconciliación continúa sin configurar (503). No hay ejecución de Android, ADB, shell ni despliegue en PCs físicas.
+
+
+### Ciclo de vida de sincronización de recibos del agente (2026-10-10)
+
+- PR borrador #56 en rama original: https://github.com/D3ckardCain/Geelark-IA/pull/56. Esta integración se porta a una rama apilada sobre la bandeja durable #54 para que los endpoints de progreso/resultado estén presentes en el mismo stack.
+- En la rama original, el commit ejecutable `b15db80a1e6656f62bb3a25d287aadfb0092d772` pasó GitHub Actions run 119. La nueva rama requiere su propia validación.
+- Se endureció la validación de configuración y contadores; una excepción del callback de telemetría no debe detener el worker. Se añadieron pruebas para drenaje de lotes, contadores inválidos y callback defectuoso.
+- Manual técnico: [MANUAL_CICLO_VIDA_SINCRONIZACION_AGENTE.md](MANUAL_CICLO_VIDA_SINCRONIZACION_AGENTE.md). Manual de usuario/operación: [MANUAL_USUARIO_SINCRONIZACION_AGENTES.md](MANUAL_USUARIO_SINCRONIZACION_AGENTES.md).
+- Límite: biblioteca de ciclo de vida, todavía no conectada a un proceso de agente instalable ni con interfaz/comando de usuario. CI no equivale a prueba en PCs físicas. No fusionar ni desplegar antes de revisar el flujo SQLite→HTTPS→PostgreSQL y los controles de seguridad.
