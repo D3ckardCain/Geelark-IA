@@ -303,3 +303,21 @@ def test_reconcile_local_terminal_result_requests_normal_result_endpoint():
         assert status == "accepted"
     finally:
         cleanup(connect, node, instance, operation, credential)
+
+
+
+def test_reconcile_detects_operation_identity_epoch_mismatch():
+    connect, node, credential, instance, operation, task = seed_task("running")
+    try:
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.operations SET assignment_epoch = 2 WHERE operation_id = %s",
+                (operation,),
+            )
+        result = run_reconcile(
+            connect, node, credential,
+            [item(task, operation, instance, epoch=3, state="running")],
+        )
+        assert result["decisions"][0]["decision"] == "SERVER_TASK_OPERATION_IDENTITY_MISMATCH"
+    finally:
+        cleanup(connect, node, instance, operation, credential)
