@@ -6,7 +6,7 @@ on:
       - "prototypes/master-control/**"
       - "tests/test_master_control_prototype.py"
       - "tests/test_master_worker_status_contract.py"
-      - "docs/contracts/**"
+      - "docs/**"
       - "tests/smoke_master_control_browser.py"
       - "docs/MANUAL_USUARIO_PANEL_CONTROL_MASTER.md"
       - ".github/workflows/master-control-prototype.yml"
