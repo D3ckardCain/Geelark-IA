@@ -310,3 +310,13 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 - Se endureció la validación de configuración y contadores; una excepción del callback de telemetría no debe detener el worker. Se añadieron pruebas para drenaje de lotes, contadores inválidos y callback defectuoso.
 - Manual técnico: [MANUAL_CICLO_VIDA_SINCRONIZACION_AGENTE.md](MANUAL_CICLO_VIDA_SINCRONIZACION_AGENTE.md). Manual de usuario/operación: [MANUAL_USUARIO_SINCRONIZACION_AGENTES.md](MANUAL_USUARIO_SINCRONIZACION_AGENTES.md).
 - Límite: biblioteca de ciclo de vida, todavía no conectada a un proceso de agente instalable ni con interfaz/comando de usuario. CI no equivale a prueba en PCs físicas. No fusionar ni desplegar antes de revisar el flujo SQLite→HTTPS→PostgreSQL y los controles de seguridad.
+
+
+### Supervisor de agente de telemetría (2026-10-10)
+
+- Se creó la rama de revisión `feat/agent-supervisor-heartbeat`, apilada sobre el HEAD de PR #57 (`eb02ebdfc77592d9f6f9c3b32ab6db31c4ebdd74`); no cambia `main`.
+- Añadido `AgentNodeSupervisor` con ciclos separados para heartbeat, capacidades, consulta de estado y sincronización durable de recibos; comando de entrada `geelark-agent --config ...`.
+- La configuración TOML referencia por separado un archivo privado de credencial. El cliente conserva HTTPS/TLS estricto y no abre puertos. Las capacidades por defecto de la documentación son solo telemetría; no se reclama ni ejecuta trabajo.
+- Añadidas pruebas unitarias de arranque/parada, telemetría, reconexión, códigos de error genéricos y validación de configuración. La creación de los archivos no implica que hayan pasado CI; aún no se ha ejecutado una prueba local ni en hardware.
+- Manual nuevo: [MANUAL_SUPERVISOR_AGENTE.md](MANUAL_SUPERVISOR_AGENTE.md).
+- Pendiente: revisar CI del PR, validar carga de configuración/credencial y permisos, integrar detector real de reconexión, comprobar stack apilado y resolver reconciliación `unknown` sin autoéxito/fallo. Mantener PR en draft y no desplegar en PCs físicas.
