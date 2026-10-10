@@ -342,3 +342,33 @@ def test_slow_reconciliation_does_not_block_heartbeat_or_capabilities():
     runtime.release_reconcile.set()
     assert wait_for(lambda: len(reports) == 1)
     assert supervisor.stop(timeout=1)
+
+
+
+def test_automatic_heartbeat_recovery_triggers_new_reconciliation():
+    runtime = FakeRuntime(
+        heartbeat=[None, OSError("offline"), None],
+        reconcile_responses=[{"report_id": "initial"}, {"report_id": "recovered"}],
+    )
+    lifecycle = FakeLifecycle()
+    errors = []
+    reports = []
+    supervisor = AgentSupervisor(
+        runtime=runtime,
+        receipt_lifecycle=lifecycle,
+        heartbeat_payload=lambda: {},
+        capabilities_payload=lambda: {},
+        reconcile_inventory=lambda: [{"task_id": "local-task"}],
+        on_reconciliation=reports.append,
+        heartbeat_interval_seconds=0.1,
+        on_error=errors.append,
+    )
+    supervisor.start()
+    assert wait_for(lambda: len(runtime.reconcile_calls) == 1)
+    assert wait_for(lambda: len(reports) == 1)
+    assert wait_for(lambda: "HEARTBEAT_FAILED" in errors)
+    assert wait_for(lambda: len(runtime.reconcile_calls) == 2, timeout=2)
+    assert wait_for(lambda: len(reports) == 2)
+    assert runtime.reconcile_ids[0] != runtime.reconcile_ids[1]
+    assert lifecycle.reconnections == 1
+    assert supervisor.stop(timeout=1)
