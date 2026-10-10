@@ -194,25 +194,30 @@ def begin_credential_rotation(
     secret = _new_secret()
     credential_id = uuid4()
     expires_at = datetime.now(timezone.utc) + ttl
-    with conn.transaction():
-        old = conn.execute(
-            """
-            SELECT credential_id FROM geelark_control.node_credentials
-             WHERE node_id = %s AND status = 'active' AND expires_at > now()
-             FOR UPDATE
-            """,
-            (node_id,),
-        ).fetchone()
-        if old is None:
-            raise AuthenticationError("No existe una credencial activa para rotar.")
-        conn.execute(
-            """
-            INSERT INTO geelark_control.node_credentials
-                (credential_id, node_id, token_sha256, status, expires_at, replaces_credential_id)
-            VALUES (%s, %s, %s, 'pending', %s, %s)
-            """,
-            (credential_id, node_id, _secret_hash(secret), expires_at, old[0]),
-        )
+    try:
+        with conn.transaction():
+            old = conn.execute(
+                """
+                SELECT credential_id FROM geelark_control.node_credentials
+                 WHERE node_id = %s AND status = 'active' AND expires_at > now()
+                 FOR UPDATE
+                """,
+                (node_id,),
+            ).fetchone()
+            if old is None:
+                raise AuthenticationError("No existe una credencial activa para rotar.")
+            conn.execute(
+                """
+                INSERT INTO geelark_control.node_credentials
+                    (credential_id, node_id, token_sha256, status, expires_at, replaces_credential_id)
+                VALUES (%s, %s, %s, 'pending', %s, %s)
+                """,
+                (credential_id, node_id, _secret_hash(secret), expires_at, old[0]),
+            )
+    except psycopg.errors.UniqueViolation as exc:
+        if exc.diag.constraint_name != "one_pending_credential_rotation_per_node":
+            raise
+        raise AuthenticationError("Ya existe una rotación pendiente para este nodo.") from exc
     return IssuedSecret(secret, credential_id, expires_at)
 
 
