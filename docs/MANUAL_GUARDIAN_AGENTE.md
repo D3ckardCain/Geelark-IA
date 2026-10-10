@@ -19,8 +19,8 @@ Antes de llamar a `AgentJournal.accept_command`, una futura capa de transporte d
 2. Canonicaliza el payload JSON y calcula SHA-256; rechaza NaN/Infinity y payloads mayores de 1 MB.
 3. Si `operation_id` ya existe con el mismo hash, devuelve el recibo previo como duplicado sin crear otra fila.
 4. Si `operation_id` se reutiliza con otro payload, devuelve conflicto.
-5. Rechaza epochs menores que el último guardado.
-6. Rechaza que el mismo epoch cambie de propietario.
+5. Rechaza comandos con lease vencida o sin fecha con zona horaria.
+6. Rechaza epochs menores que el último guardado y que el mismo epoch cambie de propietario.
 7. Persiste fence y recibo en una transacción `BEGIN IMMEDIATE`.
 
 ## 3. Resultados
