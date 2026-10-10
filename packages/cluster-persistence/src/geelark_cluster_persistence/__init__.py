@@ -12,11 +12,13 @@ from .domain import (
     NodeCapacityNotConfigured,
     NodeNotEligible,
 )
+from .outbox import ClaimedOutboxEvent, claim_outbox_batch, mark_outbox_delivered, retry_outbox_event
 from .service import AssignmentRequest, assign_instance
 
 __all__ = [
     "AssignmentError",
     "AssignmentRequest",
+    "ClaimedOutboxEvent",
     "IdempotencyConflict",
     "IdempotencyRecordIncomplete",
     "InstanceAlreadyAssigned",
@@ -27,4 +29,7 @@ __all__ = [
     "NodeCapacityNotConfigured",
     "NodeNotEligible",
     "assign_instance",
+    "claim_outbox_batch",
+    "mark_outbox_delivered",
+    "retry_outbox_event",
 ]
