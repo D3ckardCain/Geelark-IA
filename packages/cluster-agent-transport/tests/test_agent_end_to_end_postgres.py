@@ -14,6 +14,7 @@ from cluster_agent_transport import (
     make_database_idempotency_runner,
     make_database_nonce_consumer,
     make_postgres_agent_handlers,
+    PostgresRateLimiter,
 )
 
 
@@ -31,6 +32,7 @@ def test_pending_node_end_to_end_telemetry_idempotency_and_task_denial():
         authenticate=make_database_authenticator(connect),
         consume_nonce=make_database_nonce_consumer(connect),
         idempotency_runner=make_database_idempotency_runner(connect),
+        rate_limiter=PostgresRateLimiter(connect, max_requests=60, window_seconds=60),
         handlers=handlers,
     )
     client = TestClient(app, base_url="https://testserver")
