@@ -14,7 +14,11 @@ from .idempotency import payload_digest
 
 
 class AgentTransportRuntime:
-    """Adaptador de comunicación saliente con persistencia previa de resultados."""
+    """Adaptador saliente; nunca ejecuta tareas y conserva resultados si falla la red.
+
+    Los recibos en estado accepted no se envían como si fueran resultados de tarea:
+    solo running/succeeded/failed se transmiten por este adaptador.
+    """
 
     def __init__(
         self,
