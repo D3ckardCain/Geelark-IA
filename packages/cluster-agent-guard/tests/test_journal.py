@@ -205,7 +205,7 @@ def test_journal_rejects_symlink_path(tmp_path):
 
 
 
-def test_pending_receipts_are_bounded_stable_and_removed_only_after_terminal_ack(tmp_path):
+def test_pending_receipts_are_bounded_stable_and_acknowledged_versions_requeue(tmp_path):
     journal = AgentJournal(tmp_path / "journal.sqlite3", LOCAL_NODE)
     journal.initialize()
     accepted = command()
@@ -239,8 +239,22 @@ def test_pending_receipts_are_bounded_stable_and_removed_only_after_terminal_ack
     ]
 
     journal.mark_receipt_synced(terminal.operation_id)
-    after_ack = journal.list_pending_receipts(limit=10)
-    assert {receipt.operation_id for receipt in after_ack} == {running.operation_id}
+    journal.mark_receipt_synced(running.operation_id)
+    assert journal.list_pending_receipts(limit=10) == []
+
+    # Una actualización posterior del mismo progreso debe volver a la cola.
+    journal.record_result(
+        operation_id=running.operation_id,
+        instance_id=running.instance_id,
+        node_id=running.node_id,
+        assignment_epoch=running.assignment_epoch,
+        status="running",
+        result={"progress": 50},
+    )
+    requeued = journal.list_pending_receipts(limit=10)
+    assert len(requeued) == 1
+    assert requeued[0].operation_id == running.operation_id
+    assert requeued[0].result == {"progress": 50}
 
     with pytest.raises(ValueError):
         journal.list_pending_receipts(limit=0)
