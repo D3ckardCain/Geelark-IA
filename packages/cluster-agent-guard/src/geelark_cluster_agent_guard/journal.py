@@ -442,7 +442,7 @@ class AgentJournal:
                        r.payload_sha256, r.status, r.result_json
                   FROM operation_receipts AS r
                  WHERE r.node_id = ?
-                   AND r.status IN ('running', 'succeeded', 'failed', 'unknown')
+                   AND r.status IN ('running', 'succeeded', 'rejected', 'failed', 'unknown')
                    AND NOT EXISTS (
                        SELECT 1 FROM synced_receipts AS s
                         WHERE s.operation_id = r.operation_id
