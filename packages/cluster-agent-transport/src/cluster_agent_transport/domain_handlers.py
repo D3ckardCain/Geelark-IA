@@ -349,10 +349,10 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                   FROM geelark_control.agent_tasks AS t
                   JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
                   JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
-                 WHERE t.task_id = %s
+                 WHERE t.task_id = %s AND t.node_id = %s
                  FOR UPDATE OF t, i, o
                 """,
-                (task_id,),
+                (task_id, principal.node_id),
             ).fetchone()
 
             decision = "MANUAL_REVIEW_REQUIRED"
