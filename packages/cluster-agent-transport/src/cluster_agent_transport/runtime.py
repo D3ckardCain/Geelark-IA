@@ -91,6 +91,30 @@ class AgentTransportRuntime:
         self._mark_delivered(operation_id, assignment_epoch)
         return response
 
+    def sync_pending_receipts(self, *, limit: int = 100) -> tuple[int, int]:
+        """Envía un lote acotado de recibos pendientes tras reconectar.
+
+        Devuelve (confirmados, intentados). Un error de red detiene el lote y deja
+        los recibos restantes en el journal para el siguiente ciclo.
+        """
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 1000:
+            raise ValueError("limit debe ser un entero entre 1 y 1000")
+        list_pending = getattr(self.journal, "list_pending_receipts", None)
+        if not callable(list_pending):
+            raise ValueError("journal debe implementar list_pending_receipts(limit=...)")
+        receipts = list_pending(limit=limit)
+        confirmed = 0
+        attempted = 0
+        for receipt in receipts:
+            attempted += 1
+            try:
+                response = self.sync_receipt(receipt)
+            except AgentTransportError:
+                break
+            if response is not None and 200 <= response.status < 300:
+                confirmed += 1
+        return confirmed, attempted
+
     def sync_receipt(self, receipt: Any) -> AgentResponse | None:
         """Reintenta un recibo durable tras reconectar; el journal conserva el resultado."""
         if getattr(receipt, "node_id", None) != self.local_node_id:
@@ -173,9 +197,14 @@ class AgentTransportRuntime:
         payload = {"schema_version": 1, "state": state, "details": result}
         digest = payload_digest(payload)[:32]
         key = f"{route}-{operation_id}-{digest}"
-        return self._request(
+        response = self._request(
             "POST", f"/agent/v1/tasks/{operation_id}/{route}", payload, idempotency_key=key
         )
+        if state in {"succeeded", "failed"}:
+            mark_synced = getattr(self.journal, "mark_receipt_synced", None)
+            if callable(mark_synced):
+                mark_synced(operation_id)
+        return response
 
     def _request(
         self, method: str, path: str, payload: Any, *, idempotency_key: str | None = None
