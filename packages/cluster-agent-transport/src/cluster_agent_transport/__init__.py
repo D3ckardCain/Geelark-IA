@@ -15,10 +15,11 @@ from .limits import InMemoryRateLimiter, PostgresRateLimiter
 from .policy import AgentPrincipal, Operation, PermissionDenied, authorize_operation
 from .replay import ReplayRejected, consume_request_nonce, make_database_nonce_consumer
 from .runtime import AgentTransportRuntime
+from .supervisor import AgentSupervisor
 from .server import TransportConfigurationError, make_uvicorn_config, validate_https_listener
 
 __all__ = [
-    "AgentHTTPSClient", "AgentPrincipal", "AgentResponse", "AgentTransportError", "AgentTransportRuntime",
+    "AgentHTTPSClient", "AgentPrincipal", "AgentSupervisor", "AgentResponse", "AgentTransportError", "AgentTransportRuntime",
     "IdempotencyConflict", "IdempotencyInProgress",
     "InMemoryRateLimiter", "InvalidAgentCredential", "Operation", "PermissionDenied", "PostgresRateLimiter",
     "ReplayRejected", "TransportConfigurationError", "authorize_operation",
