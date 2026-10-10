@@ -1,7 +1,5 @@
-import http.client
 import shutil
 import socket
-import ssl
 import subprocess
 import threading
 import time
@@ -9,16 +7,15 @@ import time
 import pytest
 from fastapi import FastAPI
 
+from cluster_agent_transport.client import AgentHTTPSClient, AgentTransportError
 from cluster_agent_transport.server import make_uvicorn_config
 
 
-@pytest.mark.skipif(shutil.which("openssl") is None, reason="requiere OpenSSL para generar una CA temporal de prueba")
+@pytest.mark.skipif(shutil.which("openssl") is None, reason="requiere OpenSSL para generar CA temporales de prueba")
 def test_real_tls_handshake_trusts_local_ca_and_rejects_untrusted_ca(tmp_path):
-    ca_key = tmp_path / "ca.key"
-    ca_cert = tmp_path / "ca.crt"
-    server_key = tmp_path / "server.key"
-    server_csr = tmp_path / "server.csr"
-    server_cert = tmp_path / "server.crt"
+    ca_key, ca_cert = tmp_path / "ca.key", tmp_path / "ca.crt"
+    other_ca_key, other_ca_cert = tmp_path / "other-ca.key", tmp_path / "other-ca.crt"
+    server_key, server_csr, server_cert = tmp_path / "server.key", tmp_path / "server.csr", tmp_path / "server.crt"
     extensions = tmp_path / "server.ext"
     extensions.write_text(
         "basicConstraints=critical,CA:FALSE\n"
@@ -31,6 +28,10 @@ def test_real_tls_handshake_trusts_local_ca_and_rejects_untrusted_ca(tmp_path):
         ["openssl", "genpkey", "-algorithm", "RSA", "-pkeyopt", "rsa_keygen_bits:2048", "-out", str(ca_key)],
         ["openssl", "req", "-x509", "-new", "-sha256", "-days", "1", "-key", str(ca_key),
          "-out", str(ca_cert), "-subj", "/CN=GeeLark-IA Test CA",
+         "-addext", "basicConstraints=critical,CA:TRUE", "-addext", "keyUsage=critical,keyCertSign,cRLSign"],
+        ["openssl", "genpkey", "-algorithm", "RSA", "-pkeyopt", "rsa_keygen_bits:2048", "-out", str(other_ca_key)],
+        ["openssl", "req", "-x509", "-new", "-sha256", "-days", "1", "-key", str(other_ca_key),
+         "-out", str(other_ca_cert), "-subj", "/CN=GeeLark-IA Untrusted Test CA",
          "-addext", "basicConstraints=critical,CA:TRUE", "-addext", "keyUsage=critical,keyCertSign,cRLSign"],
         ["openssl", "genpkey", "-algorithm", "RSA", "-pkeyopt", "rsa_keygen_bits:2048", "-out", str(server_key)],
         ["openssl", "req", "-new", "-sha256", "-key", str(server_key), "-out", str(server_csr),
@@ -53,11 +54,8 @@ def test_real_tls_handshake_trusts_local_ca_and_rejects_untrusted_ca(tmp_path):
     listener.bind(("127.0.0.1", 0))
     listener.listen(128)
     port = listener.getsockname()[1]
+    config = make_uvicorn_config(app, host="127.0.0.1", port=port, certfile=str(server_cert), keyfile=str(server_key))
 
-    config = make_uvicorn_config(
-        app, host="127.0.0.1", port=port,
-        certfile=str(server_cert), keyfile=str(server_key),
-    )
     import uvicorn
     server = uvicorn.Server(config)
     thread = threading.Thread(target=lambda: server.run(sockets=[listener]), daemon=True)
@@ -69,21 +67,23 @@ def test_real_tls_handshake_trusts_local_ca_and_rejects_untrusted_ca(tmp_path):
             time.sleep(0.02)
         assert server.started, "Uvicorn HTTPS no llegó a iniciar en el socket local de prueba"
 
-        trusted = ssl.create_default_context(cafile=str(ca_cert))
-        connection = http.client.HTTPSConnection("127.0.0.1", port, context=trusted, timeout=3)
-        connection.request("GET", "/healthz")
-        response = connection.getresponse()
+        trusted = AgentHTTPSClient(base_url=f"https://127.0.0.1:{port}", ca_cert=str(ca_cert))
+        response = trusted.request("GET", "/healthz")
         assert response.status == 200
-        assert response.read() == b'{"ok":true}'
-        connection.close()
+        assert response.body == b'{"ok":true}'
 
-        untrusted = ssl.create_default_context()
-        connection = http.client.HTTPSConnection("127.0.0.1", port, context=untrusted, timeout=3)
-        with pytest.raises(ssl.SSLCertVerificationError):
-            connection.request("GET", "/healthz")
-        connection.close()
+        untrusted = AgentHTTPSClient(base_url=f"https://127.0.0.1:{port}", ca_cert=str(other_ca_cert))
+        with pytest.raises(AgentTransportError):
+            untrusted.request("GET", "/healthz")
     finally:
         server.should_exit = True
         thread.join(timeout=5)
         listener.close()
         assert not thread.is_alive(), "El servidor TLS temporal no terminó"
+
+
+def test_client_rejects_http_and_public_controller_urls():
+    with pytest.raises(ValueError):
+        AgentHTTPSClient(base_url="http://127.0.0.1:8443", ca_cert="/missing/ca.crt")
+    with pytest.raises(ValueError):
+        AgentHTTPSClient(base_url="https://8.8.8.8:8443", ca_cert="/missing/ca.crt")
