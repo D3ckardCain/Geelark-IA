@@ -33,23 +33,20 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
-    env:
-      PGHOST: 127.0.0.1
-      PGPORT: 5432
-      PGUSER: postgres
-      PGPASSWORD: test-only-password
-      PGDATABASE: geelark_test
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes postgresql-client
-
       - name: Apply migration to disposable database
-        run: psql -v ON_ERROR_STOP=1 -f db/migrations/0001_cluster_control.sql
+        shell: bash
+        run: |
+          container_id="$(docker ps --filter 'ancestor=postgres:16-alpine' --format '{{.ID}}' | head -n 1)"
+          test -n "$container_id"
+          docker exec -i "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 < db/migrations/0001_cluster_control.sql
 
       - name: Verify schema smoke tests and constraints
-        run: psql -v ON_ERROR_STOP=1 -f db/tests/0001_cluster_control_smoke.sql
+        shell: bash
+        run: |
+          container_id="$(docker ps --filter 'ancestor=postgres:16-alpine' --format '{{.ID}}' | head -n 1)"
+          test -n "$container_id"
+          docker exec -i "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 < db/tests/0001_cluster_control_smoke.sql
