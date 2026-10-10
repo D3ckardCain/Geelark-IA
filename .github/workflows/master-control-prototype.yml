@@ -1,14 +1,6 @@
 name: Master control prototype checks
 
 on:
-  push:
-    branches:
-      - feat/master-control-dashboard-prototype
-    paths:
-      - "prototypes/master-control/**"
-      - "tests/test_master_control_prototype.py"
-      - "docs/MANUAL_USUARIO_PANEL_CONTROL_MASTER.md"
-      - ".github/workflows/master-control-prototype.yml"
   pull_request:
     paths:
       - "prototypes/master-control/**"
@@ -30,7 +22,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Run Python standard-library regression tests
         run: python3 -m unittest tests/test_master_control_prototype.py
