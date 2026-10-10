@@ -123,7 +123,7 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
     operation_id = uuid4()
     reservation_id = uuid4()
     outbox_event_id = uuid4()
-    task_id = uuid4()
+    task_id = operation_id
 
     with conn.transaction():
         with conn.cursor() as cur:
