@@ -324,7 +324,7 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 ### Reconciliación conservadora del agente (2026-10-10)
 
 - PR borrador [#61 — reconciliar inventario sin mutaciones automáticas](https://github.com/D3ckardCain/Geelark-IA/pull/61), apilado sobre #59.
-- El commit ejecutable `5186c5700b5eb346485d4dd7f0880437dca54021` pasó Actions run 163 (transporte: 107 pruebas, una advertencia deprecatoria), run 143 (migraciones/invariantes PostgreSQL) y run 177 (servicio/concurrencia PostgreSQL); los tres terminaron correctamente.
+- El commit ejecutable `eb5e71e8b4848f6761b4da15507d070bcc9dfded` pasó Actions run 174 (transporte: 110 pruebas, una advertencia deprecatoria), run 154 (migraciones/invariantes PostgreSQL) y run 188 (servicio/concurrencia PostgreSQL); los tres terminaron correctamente.
 - Migration 0005 añade informes de reconciliación auditables. El endpoint compara identidad, propietario, assignment_epoch, leases y resultados; no cambia automáticamente tareas, operaciones ni propietario/epoch de instancias.
 - `AgentTransportRuntime.reconcile_inventory` usa un UUID por intento; el supervisor lo conserva para reintentos y lo renueva para una reconciliación nueva. Un worker separado evita bloquear heartbeat/capacidades.
 - Manuales: [MANUAL_RECONCILIACION_AGENTES.md](MANUAL_RECONCILIACION_AGENTES.md) y [MANUAL_TECNICO_RECONCILIACION_AGENTES.md](MANUAL_TECNICO_RECONCILIACION_AGENTES.md).
