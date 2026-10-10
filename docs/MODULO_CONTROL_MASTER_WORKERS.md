@@ -107,3 +107,8 @@ La información de CI que aparece en la maqueta es una muestra documentada para 
 - Se diferencian CI, revisión de seguridad y validación física.
 - El diseño es utilizable en móvil y escritorio.
 - El manual describe los límites reales y no afirma integración todavía.
+
+
+## 10. Contrato versionado de estado
+
+El esquema propuesto para snapshots de solo lectura está en [`docs/contracts/master-worker-status-v1.schema.json`](contracts/master-worker-status-v1.schema.json), con un ejemplo ficticio y un contrato explicativo. Distingue autorización Master, salud derivada y frescura calculada en el Master. No incluye tareas, comandos, credenciales ni logs arbitrarios. Sigue sin estar conectado a la API operativa.

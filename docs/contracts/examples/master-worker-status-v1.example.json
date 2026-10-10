@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "snapshot_id": "91c6f7bd-84bd-4a8e-9a4a-5e7b4a5d2b11",
+  "generated_at": "2026-10-10T19:10:00Z",
+  "source": "master-live",
+  "node": {
+    "node_id": "b8c1b201-77a3-49b7-a5f3-39b1d5f4a100",
+    "display_name": "WORKER-01",
+    "authorization_state": "active",
+    "health_state": "healthy",
+    "last_heartbeat_at": "2026-10-10T19:09:42Z",
+    "agent_version": "0.1.0-demo",
+    "capabilities": [
+      "heartbeat-v1",
+      "self-status-v1",
+      "capability-report-v1",
+      "module-inventory-v1"
+    ],
+    "modules": [
+      {
+        "module_id": "agent-supervisor",
+        "state": "operational",
+        "version": "0.1.0-demo",
+        "checked_at": "2026-10-10T19:09:42Z",
+        "source": "agent-report",
+        "error_code": null
+      },
+      {
+        "module_id": "android-engine",
+        "state": "not-installed",
+        "version": null,
+        "checked_at": null,
+        "source": "unknown",
+        "error_code": null
+      }
+    ]
+  },
+  "freshness": {
+    "state": "fresh",
+    "age_seconds": 18,
+    "threshold_seconds": 60,
+    "observed_at": "2026-10-10T19:09:42Z"
+  }
+}
