@@ -63,3 +63,5 @@ python -m pytest packages/cluster-agent-transport/tests -q
 - El Master fija `checked_at`; no confía en el reloj del Worker.
 - Si el heartbeat supera 90 segundos o el reporte supera 5 minutos, el estado leído pasa a `unknown`, con origen `master-check` y código seguro (`NODE_STALE` o `REPORT_STALE`).
 - Migración requerida: `db/migrations/0004_worker_module_inventory.sql`. No está desplegado ni conectado a PCs físicas.
+
+- Esquema normativo del payload: [worker-module-inventory-v1.schema.json](../../docs/contracts/worker-module-inventory-v1.schema.json); [ejemplo](../../docs/contracts/examples/worker-module-inventory-v1.example.json).
