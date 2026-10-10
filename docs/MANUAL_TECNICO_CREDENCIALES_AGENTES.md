@@ -49,8 +49,8 @@ python -m pip install -e "packages/cluster-agent-auth[test]"
 python -m pytest packages/cluster-agent-auth/tests -q
 ```
 
-La CI instala el paquete y ejecuta pruebas unitarias junto con las suites del clúster. La suite inicial cubre generación/formato de secretos y rechazos tempranos. Antes de producción faltan pruebas de integración PostgreSQL para consumo concurrente, expiración/revocación, aprobación del nodo y rotación concurrente.
+La CI instala el paquete y ejecuta pruebas unitarias y de integración contra PostgreSQL desechable. La suite actual cubre consumo único y concurrente del enrolamiento, estado pendiente, aprobación manual en fixture, autenticación, revocación y rotación básica. Aún faltan casos de expiración temporal real, rotación concurrente, revocación administrativa del nodo bajo carga y pruebas de transporte TLS/replay/rate limiting; estos últimos pertenecen a la siguiente fase de transporte y no deben darse por implementados.
 
 ## 6. Límites y próximos pasos
 
-Este cambio no implementa API HTTP, CA/certificados, rate limiting ni endpoints administrativos. Tampoco despliega ni instala agentes en las PC físicas. Antes de habilitar la red hay que validar integración PostgreSQL y después implementar una capa ASGI con TLS obligatorio, límites de cuerpo, timeouts, rate limiting, redacción de secretos y autorización por operación. Mantener PR en draft hasta que CI y revisión de seguridad sean satisfactorias.
+Este cambio no implementa API HTTP, CA/certificados, rate limiting ni endpoints administrativos. Tampoco despliega ni instala agentes en las PC físicas. Antes de habilitar la red hay que completar revisión de seguridad y pruebas de expiración/revocación bajo concurrencia; después se podrá implementar una capa ASGI con TLS obligatorio, límites de cuerpo, timeouts, rate limiting, redacción de secretos y autorización por operación. Mantener PR en draft hasta que CI y revisión de seguridad sean satisfactorias.
