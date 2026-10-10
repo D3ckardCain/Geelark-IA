@@ -157,7 +157,7 @@ El paquete incluye `AgentTransportRuntime`, un puente entre `AgentHTTPSClient` y
 2. Antes de reportar progreso o resultado, el adaptador llama a `journal.record_result`. El resultado queda durable antes de intentar la red.
 3. Si el controlador responde 2xx, la entrega terminó. Si hay timeout, desconexión o error HTTP, el adaptador devuelve un error genérico y el recibo permanece en SQLite.
 4. Cuando vuelva la conexión, llamar a `runtime.sync_pending_receipts(limit=100)`. El adaptador pide al journal un lote acotado y ordenado de recibos aún no confirmados; se detiene ante el primer error de red para no agotar recursos sin conexión.
-5. Para resultados terminales, el journal marca el recibo sincronizado solo después de recibir una respuesta HTTP 2xx. El ACK se guarda en SQLite y sobrevive a un reinicio. Si el controlador recibió el resultado pero se perdió la respuesta, el agente lo reenvía con la misma clave idempotente y un nonce/request ID nuevos.
+5. Para progreso y resultados, el journal marca esa versión del recibo sincronizada solo después de recibir una respuesta HTTP 2xx. Una actualización posterior elimina el ACK anterior y vuelve a poner el recibo en la cola; así el progreso antiguo no bloquea resultados más recientes. El ACK se guarda en SQLite y sobrevive a un reinicio. Si el controlador recibió el resultado pero se perdió la respuesta, el agente lo reenvía con la misma clave idempotente y un nonce/request ID nuevos.
 6. No reenviar resultados de otra instancia, nodo o epoch: el journal local valida propietario y epoch antes de guardar el resultado.
 
 Ejemplo de construcción del adaptador (valores sensibles deben proceder del almacén protegido del sistema operativo, no del código):
