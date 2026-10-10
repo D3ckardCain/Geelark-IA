@@ -45,3 +45,10 @@ SQLite conserva recibos locales durante interrupciones y reinicios. Heartbeat, c
 - No se ha probado en hardware físico.
 - Mantener los PR en borrador hasta revisar seguridad, verificar CI del HEAD exacto y obtener autorización explícita antes de despliegue.
 - El diseño no requiere APIs de pago ni servicios externos obligatorios; el hardware, electricidad y red local siguen teniendo costes propios.
+
+
+## Comparación funcional con GeeLark como referencia
+
+Esta fase cubre solo una base de gestión de nodos: estado/heartbeat, capacidades, conexión segura y entrega durable de recibos. No equivale a las funciones de GeeLark para crear/administrar teléfonos en la nube, perfiles, aplicaciones Android, automatizaciones ni operación visual. No afirmar paridad funcional en esta fase.
+
+La siguiente evaluación debe comparar cada módulo futuro con la función equivalente de GeeLark, documentar diferencias y pruebas, y mantener deshabilitada toda ejecución Android hasta que exista un diseño de permisos, aislamiento, auditoría y aprobación independiente.
