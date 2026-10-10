@@ -303,8 +303,8 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                AND i.assignment_epoch = t.assignment_epoch
                AND i.lease_expires_at > now()
              ORDER BY t.created_at, t.task_id
-             FOR UPDATE OF t SKIP LOCKED
              LIMIT 1
+             FOR UPDATE OF t SKIP LOCKED
             """,
             (principal.node_id,),
         ).fetchone()
@@ -382,11 +382,12 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             """
             UPDATE geelark_control.agent_tasks
                SET status = %s, result_summary = %s,
+                   delivery_lease_until = CASE WHEN %s THEN delivery_lease_until ELSE now() + interval '60 seconds' END,
                    completed_at = CASE WHEN %s THEN now() ELSE completed_at END,
                    updated_at = now(), last_error_code = %s
              WHERE task_id = %s
             """,
-            (new_task_status, Jsonb(summary), terminal, details.get("error_code"), task_id),
+            (new_task_status, Jsonb(summary), terminal, terminal, details.get("error_code"), task_id),
         )
         conn.execute(
             """
