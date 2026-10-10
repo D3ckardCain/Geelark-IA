@@ -321,3 +321,44 @@ def test_reconcile_detects_operation_identity_epoch_mismatch():
         assert result["decisions"][0]["decision"] == "SERVER_TASK_OPERATION_IDENTITY_MISMATCH"
     finally:
         cleanup(connect, node, instance, operation, credential)
+
+
+
+def test_reconcile_does_not_disclose_tasks_owned_by_another_node():
+    connect, node_a, credential_a, instance, operation, task = seed_task("running")
+    node_b, credential_b = uuid4(), uuid4()
+    now = datetime.now(timezone.utc)
+    try:
+        with connect() as conn:
+            conn.execute(
+                "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state, health_state) VALUES (%s, %s, 'active', 'healthy')",
+                (node_b, "test-reconcile-other-" + str(node_b)),
+            )
+            conn.execute(
+                """
+                INSERT INTO geelark_control.node_credentials
+                    (credential_id, node_id, token_sha256, status, created_at, expires_at, activated_at)
+                VALUES (%s, %s, %s, 'active', %s, %s, %s)
+                """,
+                (
+                    credential_b, node_b, hashlib.sha256(str(uuid4()).encode()).hexdigest(),
+                    now, now + timedelta(hours=1), now,
+                ),
+            )
+        result = run_reconcile(
+            connect, node_b, credential_b,
+            [item(task, operation, instance, state="running")],
+        )
+        assert result["decisions"][0]["decision"] == "UNKNOWN_TASK"
+    finally:
+        with connect() as conn:
+            conn.execute(
+                "DELETE FROM geelark_control.agent_reconciliation_reports WHERE node_id = %s",
+                (node_b,),
+            )
+            conn.execute(
+                "DELETE FROM geelark_control.node_credentials WHERE credential_id = %s",
+                (credential_b,),
+            )
+            conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_b,))
+        cleanup(connect, node_a, instance, operation, credential_a)
