@@ -707,9 +707,9 @@ El commit que ajustó el fixture en `packages/cluster-master-admin/tests/test_au
 ### Reconciliación pendiente de la cadena base → asignaciones → outbox → journal → auth — 2026-10-11
 
 Comparaciones de HEAD actuales (no se ha modificado ninguna base de PR):
-- #32 → #34: `diverged`, #34 tiene 29 commits propios y le faltan 7 de #32; diff común en migración `0001_cluster_control.sql`, servicio, dominio, tests y workflows. [Comentario #34](https://github.com/D3ckardCain/Geelark-IA/pull/34#issuecomment-undefined).
-- #34 → #36: `diverged`, #36 tiene 12 commits propios y le faltan 3 de #34; diff en outbox, tests y workflows. [Comentario #36](https://github.com/D3ckardCain/Geelark-IA/pull/36#issuecomment-undefined).
-- #36 → #38: `diverged`, #38 tiene 33 commits propios y le faltan 5 de #36; diff en journal/tests y workflows. [Comentario #38](https://github.com/D3ckardCain/Geelark-IA/pull/38#issuecomment-undefined).
-- #38 → #42: `diverged`, #42 tiene 3 commits propios y le faltan 13 de #38; diff en migración `0002_agent_auth.sql`, smoke test y manual. [Comentario #42](https://github.com/D3ckardCain/Geelark-IA/pull/42#issuecomment-undefined).
+- #32 → #34: `diverged`, #34 tiene 29 commits propios y le faltan 7 de #32; diff común en migración `0001_cluster_control.sql`, servicio, dominio, tests y workflows. [Comentario #34](https://github.com/D3ckardCain/Geelark-IA/pull/34#issuecomment-6114097322).
+- #34 → #36: `diverged`, #36 tiene 12 commits propios y le faltan 3 de #34; diff en outbox, tests y workflows. [Comentario #36](https://github.com/D3ckardCain/Geelark-IA/pull/36#issuecomment-6114097619).
+- #36 → #38: `diverged`, #38 tiene 33 commits propios y le faltan 5 de #36; diff en journal/tests y workflows. [Comentario #38](https://github.com/D3ckardCain/Geelark-IA/pull/38#issuecomment-6114097979).
+- #38 → #42: `diverged`, #42 tiene 3 commits propios y le faltan 13 de #38; diff en migración `0002_agent_auth.sql`, smoke test y manual. [Comentario #42](https://github.com/D3ckardCain/Geelark-IA/pull/42#issuecomment-6114098269).
 
 Estas diferencias no prueban por sí solas que falte cada cambio funcional (algunas ramas pueden haber portado cambios manualmente), pero sí impiden tratar la cadena como lineal o dar por validado el árbol final con CI de cada SHA por separado. Próximo trabajo: inventariar diferencias funcionales exclusivas por PR, decidir la única secuencia de migraciones y sincronizar un nivel a la vez, solo después de revisar cuota de Actions. Ninguna PR se fusionó o cerró.
