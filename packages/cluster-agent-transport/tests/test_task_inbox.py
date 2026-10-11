@@ -60,7 +60,7 @@ def test_pending_node_is_rejected_before_task_claim_query():
     node_id, credential_id = uuid4(), uuid4()
     conn = FakeConnection([("pending", "pending")])
     handlers = make_postgres_agent_handlers(lambda: conn)
-    principal = AgentPrincipal(str(node_id), str(credential_id), "pending", "pending")
+    principal = AgentPrincipal(str(node_id), str(credential_id), "pending", "pending", datetime.now(timezone.utc) + timedelta(hours=1))
 
     with pytest.raises(HTTPException) as exc:
         handlers[Operation.TASK_FETCH](
