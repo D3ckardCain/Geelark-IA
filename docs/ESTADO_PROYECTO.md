@@ -507,3 +507,8 @@ El HEAD sincronizado `31c93b3ab54f91d357b7cd16bba9d205e277deab` terminó con los
 Se incorporó la base actual de PR #73 a la rama del proveedor de snapshots mediante el commit [`a8ce049458e94ae2587caeb8a42269a0b094b09a`](https://github.com/D3ckardCain/Geelark-IA/commit/a8ce049458e94ae2587caeb8a42269a0b094b09a), sin fusionar #74. La comparación de ramas indica `ahead 3 / behind 0` y `mergeable=true`. El workflow de persistencia #38157104581 está en cola.
 
 Corrección del hallazgo previo: el schema v1 ya no es idéntico entre #70 y #74. #70 conserva blob `6802ec9d2a973840edd774301b2c9259bc514c2e`; #74 usa `d7f5975aebf3ac605e1afa5bee75d1674636fb62`, con enum cerrado para `module_id` y validaciones más estrictas de estado/origen/versión. Se registró en [#74](https://github.com/D3ckardCain/Geelark-IA/pull/74#issuecomment-6111362474) y [#70](https://github.com/D3ckardCain/Geelark-IA/pull/70#issuecomment-6111362841). La decisión pendiente es consolidar una fuente canónica y actualizar los tests del panel/proveedor en consecuencia; no se cerró ni fusionó ninguna PR.
+
+
+### CI de PR #74 proveedor de snapshots — 2026-10-11
+
+El HEAD `a8ce049458e94ae2587caeb8a42269a0b094b09a` de [PR #74](https://github.com/D3ckardCain/Geelark-IA/pull/74) pasó el workflow [#38157104581](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38157104581), `completed/success`. La suite valida el proveedor de snapshots y la prueba de rol SELECT-only contra PostgreSQL desechable, además de las suites de persistencia/guard/auth disponibles. No valida permisos del rol real ni autenticación humana del panel. El comentario y el cuerpo de #74 fueron actualizados; la divergencia de schema con #70 sigue abierta.
