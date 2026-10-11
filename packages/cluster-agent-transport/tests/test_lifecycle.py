@@ -122,3 +122,35 @@ def test_stop_before_start_is_safe_and_timeout_is_validated():
         lifecycle.stop(timeout=float("nan"))
     with pytest.raises(RuntimeError):
         lifecycle.start()
+
+
+def test_error_callback_can_stop_lifecycle_without_self_join():
+    callback_called = threading.Event()
+    stop_results = []
+
+    class BrokenRuntime(FakeRuntime):
+        def sync_pending_receipts(self, *, limit):
+            with self.lock:
+                self.calls.append(limit)
+            self.called.set()
+            raise OSError("sensitive database/network detail")
+
+    runtime = BrokenRuntime([])
+    lifecycle = None
+
+    def on_error(_code):
+        stop_results.append(lifecycle.stop(timeout=1))
+        callback_called.set()
+
+    lifecycle = AgentReceiptSyncLifecycle(
+        runtime=runtime,
+        initial_backoff_seconds=0.01,
+        on_error=on_error,
+    )
+    lifecycle.start()
+    assert callback_called.wait(1)
+    assert stop_results == [False]
+    thread = lifecycle._thread
+    assert thread is not None
+    thread.join(timeout=1)
+    assert not thread.is_alive()

@@ -92,6 +92,10 @@ class AgentReceiptSyncLifecycle:
         thread = self._thread
         if thread is None:
             return True
+        # An error observer can request shutdown from this worker. Never join
+        # the current thread; report False until it exits cooperatively.
+        if thread is threading.current_thread():
+            return False
         thread.join(timeout=float(timeout))
         return not thread.is_alive()
 

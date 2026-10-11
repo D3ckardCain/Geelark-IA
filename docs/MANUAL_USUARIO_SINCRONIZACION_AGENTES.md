@@ -74,7 +74,7 @@ No se afirma que el clúster completo funcione offline. Sin red, el estado local
 
 ## 8. Validación automatizada disponible
 
-La integración PostgreSQL desechable crea certificados temporales, levanta un servidor HTTPS local y conecta SQLite con los handlers PostgreSQL. Simula un ACK perdido tras confirmar el resultado y verifica el reintento idempotente. La validación exacta de esta pila canónica está en curso; actualizar el estado con el run asociado al HEAD actual antes de integrar. CI no equivale a despliegue en PCs físicas. La conexión del coordinador al supervisor real se mantiene pendiente en Issue #58.
+La integración PostgreSQL desechable crea certificados temporales, levanta un servidor HTTPS local y conecta SQLite con los handlers PostgreSQL. Simula un ACK perdido tras confirmar el resultado y verifica el reintento idempotente. GitHub Actions run 38124354815 pasó con 84 pruebas, 1 advertencia deprecatoria Starlette/httpx y `pip check` correcto. CI no equivale a despliegue en PCs físicas. La conexión del coordinador al supervisor real se mantiene pendiente en Issue #58.
 
 ## 9. Validación antes de habilitarlo en un agente real
 
