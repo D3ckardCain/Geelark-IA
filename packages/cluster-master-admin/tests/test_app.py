@@ -119,6 +119,19 @@ def test_login_get_snapshots_and_logout_revoke_session(tmp_path: Path) -> None:
     assert client.get("/admin/v1/status/snapshots").status_code == 401
 
 
+def test_validation_error_never_reflects_submitted_password(tmp_path: Path) -> None:
+    client, _ = make_client(tmp_path)
+    oversized_secret = "S" * 1025
+    response = client.post(
+        "/admin/v1/login",
+        json={"password": oversized_secret},
+        headers={"Origin": "https://master.test"},
+    )
+    assert response.status_code == 400
+    assert response.json() == {"error": {"code": "INVALID_REQUEST"}}
+    assert oversized_secret not in response.text
+
+
 def test_login_rate_limit_and_https_required(tmp_path: Path) -> None:
     client, _ = make_client(tmp_path)
     for _ in range(5):
