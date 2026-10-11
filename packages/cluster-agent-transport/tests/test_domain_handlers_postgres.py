@@ -21,7 +21,7 @@ def test_pending_telemetry_persists_and_status_is_scoped_to_own_node():
     token_hash = hashlib.sha256(secrets.token_hex(32).encode()).hexdigest()
     connect = lambda: psycopg.connect(DATABASE_URL)
     handlers = make_postgres_agent_handlers(connect)
-    principal = AgentPrincipal(str(node_id), str(credential_id), "pending", "pending")
+    principal = AgentPrincipal(str(node_id), str(credential_id), "pending", "pending", datetime.now(timezone.utc) + timedelta(hours=1))
     heartbeat = {
         "agent_version": "0.1.0",
         "health_state": "healthy",
@@ -93,7 +93,7 @@ def test_active_module_inventory_is_persisted_and_stale_reports_become_unknown()
     token_hash = hashlib.sha256(secrets.token_hex(32).encode()).hexdigest()
     connect = lambda: psycopg.connect(DATABASE_URL)
     handlers = make_postgres_agent_handlers(connect)
-    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active")
+    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active", datetime.now(timezone.utc) + timedelta(hours=1))
     payload = {"schema_version": 1, "modules": [
         {"module_id": "agent-supervisor", "state": "operational", "version": "0.1.0", "error_code": None},
         {"module_id": "android-engine", "state": "not-installed", "version": None, "error_code": None},
