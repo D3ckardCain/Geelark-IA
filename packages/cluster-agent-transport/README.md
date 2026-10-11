@@ -1,6 +1,6 @@
 # Transporte HTTPS privado de agentes
 
-Paquete experimental independiente del dominio y sin listener automático.
+Paquete experimental de transporte, sin listener automático. La autorización por operación se delega al paquete canónico `cluster-agent-auth`, que debe instalarse junto con el transporte.
 
 ## Política de acceso
 
@@ -63,6 +63,8 @@ Los tests de configuración TLS usan archivos ficticios para probar restriccione
 ## Pruebas locales
 
 ```sh
+python -m pip install -e "packages/cluster-agent-auth[test]"
 python -m pip install -e "packages/cluster-agent-transport[test]"
+python -m pip check
 python -m pytest packages/cluster-agent-transport/tests -q
 ```
