@@ -1,6 +1,6 @@
 # Manual de transporte HTTPS privado para agentes
 
-**Estado:** guía técnica preliminar. No ejecutar en las PC físicas ni activar el listener hasta aprobar la revisión de seguridad y completar el adaptador de dominio.
+**Estado:** guía técnica preliminar. No ejecutar en las PC físicas ni activar el listener hasta aprobar la revisión de seguridad y validar la integración del adaptador de dominio.
 
 ## 1. Principios y límites
 
@@ -12,7 +12,19 @@
 - Un nodo `pending` puede reportar heartbeat/capacidades y consultar su propio estado; no acepta tareas.
 - Ninguna instrucción de este manual abre puertos ni inicia servicios por sí misma.
 
-## 2. Preparar una CA local (equipo administrativo confiable)
+## 2. Instalar los paquetes locales de forma coherente
+
+El transporte utiliza la política canónica del paquete `cluster-agent-auth`; instala ambos paquetes desde la raíz del repositorio y verifica dependencias. No instales `cluster-agent-transport` aislado.
+
+```sh
+python -m pip install -e "packages/cluster-agent-auth[test]"
+python -m pip install -e "packages/cluster-agent-transport[test]"
+python -m pip check
+```
+
+La autenticación PostgreSQL devuelve el vencimiento real de la credencial. La política canónica vuelve a validar ese timestamp antes de autorizar cada operación. Las credenciales expiradas, revocadas o con estados incoherentes se rechazan.
+
+## 3. Preparar una CA local (equipo administrativo confiable)
 
 Usar una estación administrativa controlada, no el Master ni un agente. Se requiere OpenSSL, software libre local.
 
@@ -33,7 +45,7 @@ chmod 644 geelark-agent-ca.crt
 - El certificado `geelark-agent-ca.crt` es público; su integridad debe verificarse al distribuirlo.
 - Definir antes de usarla un registro de propietario, fecha de creación, vencimiento y procedimiento de revocación.
 
-## 3. Generar la clave y CSR del servidor en el Master
+## 4. Generar la clave y CSR del servidor en el Master
 
 Sustituir `192.168.1.10` por la IP privada fija que se haya reservado para el Master. No usar una IP pública ni un nombre que el helper actual no permita.
 
@@ -50,7 +62,7 @@ chmod 600 /etc/geelark/pki/agent-server.key
 
 Copiar únicamente el CSR a la estación administrativa por un canal controlado. No copiar la clave privada del servidor.
 
-## 4. Firmar el certificado del servidor fuera del Master
+## 5. Firmar el certificado del servidor fuera del Master
 
 En la estación administrativa, crear un archivo de extensiones con la IP privada real:
 
@@ -73,7 +85,7 @@ openssl verify -CAfile geelark-agent-ca.crt agent-server.crt
 
 Verificar que el SAN coincide exactamente con la IP de conexión. Transferir al Master solo `agent-server.crt`; mantener su clave privada en el Master con permisos restrictivos. Renovar antes de vencer.
 
-## 5. Distribuir confianza y restringir red
+## 6. Distribuir confianza y restringir red
 
 1. Instalar el certificado público `geelark-agent-ca.crt` en cada agente mediante un canal autenticado.
 2. Usar el cliente `AgentHTTPSClient` del paquete `cluster_agent_transport`: valida cadena y SAN, exige TLS 1.2+, rechaza HTTP, redirects y hosts fuera de la LAN privada. No desactivar la verificación TLS ni aceptar certificados autofirmados arbitrarios.
@@ -117,7 +129,7 @@ print(response.status)
 
 El ejemplo ilustra la interfaz del cliente; no se ejecuta automáticamente ni constituye un agente completo. El runtime del agente todavía debe integrar esta llamada con el journal local y el flujo de reconciliación.
 
-## 6. Enrolamiento y estado pending
+## 7. Enrolamiento y estado pending
 
 1. Un administrador emite un token de enrolamiento de un solo uso con vencimiento corto.
 2. Entregarlo una sola vez al nodo esperado; nunca incluirlo en logs, tickets ni commits.
@@ -126,7 +138,7 @@ El ejemplo ilustra la interfaz del cliente; no se ejecuta automáticamente ni co
 5. Aprobar manualmente el nodo después de verificar identidad, versión y capacidades.
 6. Rotar o revocar la credencial cuando haya sospecha de exposición o al retirar un nodo.
 
-## 7. Rotación y recuperación
+## 8. Rotación y recuperación
 
 - Renovar el certificado del servidor antes de su vencimiento; generar una clave nueva y firmar una nueva CSR.
 - Mantener una ventana de transición documentada si se cambia la CA, confiando temporalmente en la CA antigua y nueva solo durante el periodo necesario.
@@ -134,11 +146,11 @@ El ejemplo ilustra la interfaz del cliente; no se ejecuta automáticamente ni co
 - La revocación de tokens de agente es independiente de la revocación de certificados TLS.
 - Mantener copias de seguridad cifradas y pruebas periódicas de restauración de la CA offline; no respaldar claves privadas en el repositorio.
 
-## 8. Diagnóstico sin filtrar secretos
+## 9. Diagnóstico sin filtrar secretos
 
 Comprobar la cadena y el SAN con OpenSSL. No imprimir bearer tokens, claves privadas, payloads sensibles ni URLs con credenciales. Las respuestas HTTP deben ser genéricas y llevar un request ID; los detalles internos se registran saneados.
 
-## 9. Bloqueos antes de operación real
+## 10. Bloqueos antes de operación real
 
 - Integrar los handlers con la persistencia transaccional y la tabla de outbox.
 - CI ejecuta un handshake TLS real contra un servidor temporal con CA local: el cliente que confía en la CA conecta y el cliente sin esa CA es rechazado. El helper cliente ya valida TLS/CA; sigue pendiente integrarlo en el runtime del agente junto al journal local y la reconciliación.
@@ -149,7 +161,7 @@ Comprobar la cadena y el SAN con OpenSSL. No imprimir bearer tokens, claves priv
 Este paquete no inicia el listener automáticamente. La configuración debe revisarse antes de llamar a `make_uvicorn_config` y arrancar Uvicorn.
 
 
-## 10. Adaptador de runtime y reintento offline
+## 11. Adaptador de runtime y reintento offline
 
 El paquete incluye `AgentTransportRuntime`, un puente entre `AgentHTTPSClient` y cualquier journal compatible con la interfaz de `AgentJournal`. No importa ni instala automáticamente el paquete de guardián para mantener separados los módulos.
 
