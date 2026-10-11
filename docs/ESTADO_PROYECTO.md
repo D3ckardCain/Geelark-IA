@@ -294,7 +294,7 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 - Decisión ADR-005: autenticación local gestionada por PC-MASTER, sin proveedor externo.
 - PR #76 añade API de snapshots protegida, login/logout local, sesiones SQLite, panel HTML en el mismo origen, arranque TLS explícito y rol PostgreSQL lector.
 - El endpoint usa una consulta acotada de solo lectura; no hay rutas de mutación, tareas, ADB, shell ni reconciliación.
-- Se añadieron `db/admin/MASTER_ADMIN_READONLY_ROLE.sql` y `db/tests/0005_master_admin_readonly_role.sql` para preparar y verificar el rol dedicado.
+- Se añadieron `packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql` y `packages/cluster-master-admin/sql/verify_readonly_role.sql` para preparar y verificar el rol dedicado.
 - CI para este paquete está configurada manualmente para reducir consumo de Actions. La última ejecución verde corresponde a un commit anterior a la integración de panel, runtime y nuevos tests; volver a ejecutar solo después de revisar cuota y coste.
 - No se ha instalado ni iniciado en PC-MASTER, no se han verificado los grants en la base real y no se ha desplegado. Esas validaciones siguen pendientes; no declarar la pantalla operativa hasta completarlas.
 
