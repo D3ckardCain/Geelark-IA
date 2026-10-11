@@ -5,7 +5,10 @@ en el mismo origen del panel, y proporcionar una conexión PostgreSQL SELECT-onl
 """
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -47,6 +50,23 @@ def _security_headers(response: Response) -> Response:
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
     return response
+
+
+def _panel_csp(panel_path: Path) -> str:
+    """Permite únicamente los bloques JS inline exactos incluidos en el panel versionado."""
+    source = panel_path.read_text(encoding="utf-8")
+    scripts = re.findall(r"<script\\b[^>]*>(.*?)</script\\s*>", source, flags=re.IGNORECASE | re.DOTALL)
+    hashes = []
+    for script in scripts:
+        digest = base64.b64encode(hashlib.sha256(script.encode("utf-8")).digest()).decode("ascii")
+        hashes.append("'sha256-" + digest + "'")
+    script_policy = " ".join(["'self'", *hashes])
+    return (
+        "default-src 'self'; script-src " + script_policy +
+        "; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; connect-src 'self'; "
+        "img-src 'self' data:; object-src 'none'; base-uri 'none'; "
+        "frame-ancestors 'none'; form-action 'self'"
+    )
 
 
 def _same_origin(request: Request) -> bool:
@@ -109,7 +129,7 @@ def create_admin_app(
                 "Cache-Control": "no-store, max-age=0",
                 "X-Content-Type-Options": "nosniff",
                 "Referrer-Policy": "no-referrer",
-                "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+                "Content-Security-Policy": _panel_csp(Path(panel_path)),
             },
         )
 
