@@ -48,9 +48,22 @@ Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fil
 
 Los tests de configuración TLS usan archivos ficticios para probar restricciones del listener, no para simular certificados válidos. El paquete no instala software en PCs físicas ni requiere APIs o servicios de pago.
 
+## Instalación local del monorepo
+
+El transporte delega la autorización en el paquete canónico `cluster-agent-auth`. Instala ambos paquetes desde la raíz del repositorio; no instales el transporte de forma aislada.
+
+```sh
+python -m pip install -e "packages/cluster-agent-auth[test]"
+python -m pip install -e "packages/cluster-agent-transport[test]"
+python -m pip check
+```
+
+La autenticación PostgreSQL devuelve `credential_expires_at`; la política canónica vuelve a validar ese timestamp en cada operación. Los nodos pending no pueden reclamar tareas ni reportar módulos.
+
 ## Pruebas locales
 
 ```sh
+python -m pip install -e "packages/cluster-agent-auth[test]"
 python -m pip install -e "packages/cluster-agent-transport[test]"
 python -m pytest packages/cluster-agent-transport/tests -q
 ```
