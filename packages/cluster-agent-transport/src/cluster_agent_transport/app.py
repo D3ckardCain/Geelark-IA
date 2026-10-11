@@ -15,6 +15,7 @@ from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, field_validator
 
 from .limits import InMemoryRateLimiter
+from .module_registry import SUPPORTED_MODULE_IDS
 from .policy import AgentPrincipal, Operation, PermissionDenied, authorize_operation
 from .replay import ReplayRejected
 
@@ -23,7 +24,7 @@ class HeartbeatPayload(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     schema_version: int = Field(ge=1, le=1)
     agent_version: str = Field(min_length=1, max_length=64)
-    health_state: str = Field(pattern="^(healthy|degraded|unhealthy|unknown)$")
+    health_state: str = Field(pattern="^(healthy|degraded|unhealthy|unknown)$", description="Declaración reportada por el Worker; no es una salud autoritativa del controlador.")
     cpu_load_percent: FiniteFloat = Field(ge=0, le=100)
     memory_total_bytes: int = Field(ge=0, le=2**63 - 1)
     memory_available_bytes: int = Field(ge=0, le=2**63 - 1)
@@ -45,6 +46,42 @@ class CapabilitiesPayload(BaseModel):
         return value
 
 
+class ModuleReportItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    module_id: str = Field(min_length=1, max_length=64, pattern="^[a-z0-9][a-z0-9._-]{0,63}$")
+    state: str = Field(pattern="^(operational|degraded|not-installed|unknown)$")
+    version: str | None = Field(default=None, max_length=64)
+    error_code: str | None = Field(default=None, pattern="^[A-Z0-9_]{1,64}$")
+
+    @field_validator("module_id")
+    @classmethod
+    def validate_known_module(cls, value: str) -> str:
+        if value not in SUPPORTED_MODULE_IDS:
+            raise ValueError("module_id no pertenece al registro permitido.")
+        return value
+
+    @field_validator("version")
+    @classmethod
+    def validate_version(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("version debe ser null o una cadena no vacía.")
+        return value
+
+
+class ModuleInventoryPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: int = Field(ge=1, le=1)
+    modules: list[ModuleReportItem] = Field(max_length=32)
+
+    @field_validator("modules")
+    @classmethod
+    def validate_unique_module_ids(cls, value: list[ModuleReportItem]) -> list[ModuleReportItem]:
+        ids = [item.module_id for item in value]
+        if len(ids) != len(set(ids)):
+            raise ValueError("No se permiten module_id duplicados.")
+        return value
+
+
 class TaskMessage(BaseModel):
     model_config = ConfigDict(extra="forbid")
     schema_version: int = Field(ge=1, le=1)
@@ -58,6 +95,24 @@ class TaskClaimPayload(BaseModel):
 
 
 class ReconcileItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    task_id: UUID
+    operation_id: UUID
+    instance_id: UUID
+    assignment_epoch: int = Field(ge=1, le=2**63 - 1)
+    observed_state: str = Field(
+        pattern="^(queued|delivered|accepted|running|succeeded|rejected|failed|unknown|reserved|starting|stopping|stopped)$",
+        max_length=32,
+    )
+    result_summary: dict[str, Any] = Field(default_factory=dict)
+
+
+class ReconcilePayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: int = Field(ge=1, le=1)
+    assignments: list[ReconcileItem] = Field(max_length=500)
+
+class InventoryReconcileItem(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     task_id: UUID
     operation_id: UUID
@@ -68,7 +123,7 @@ class ReconcileItem(BaseModel):
 
     @field_validator("result_summary")
     @classmethod
-    def validate_result_summary(cls, value: dict[str, Any]) -> dict[str, Any]:
+    def validate_inventory_result_summary(cls, value: dict[str, Any]) -> dict[str, Any]:
         try:
             encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
         except (TypeError, ValueError):
@@ -78,14 +133,14 @@ class ReconcileItem(BaseModel):
         return value
 
 
-class ReconcilePayload(BaseModel):
+class InventoryReconcilePayload(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     schema_version: int = Field(ge=1, le=1, strict=True)
-    inventory: list[ReconcileItem] = Field(max_length=100)
+    inventory: list[InventoryReconcileItem] = Field(max_length=100)
 
     @field_validator("inventory")
     @classmethod
-    def validate_unique_tasks(cls, value: list[ReconcileItem]) -> list[ReconcileItem]:
+    def validate_unique_inventory_tasks(cls, value: list[InventoryReconcileItem]) -> list[InventoryReconcileItem]:
         task_ids = [item.task_id for item in value]
         if len(task_ids) != len(set(task_ids)):
             raise ValueError("inventory no puede contener task_id duplicados.")
@@ -284,6 +339,18 @@ def create_agent_app(
         principal = authorize(Operation.CAPABILITIES, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
         return invoke_write(Operation.CAPABILITIES, principal, payload.model_dump(), idempotency_key)
 
+    @app.put("/agent/v1/modules")
+    def modules(
+        payload: ModuleInventoryPayload,
+        authorization: str | None = Header(default=None),
+        x_agent_nonce: str | None = Header(default=None),
+        x_agent_timestamp: str | None = Header(default=None),
+        x_request_id: str | None = Header(default=None),
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    ) -> Any:
+        principal = authorize(Operation.MODULES_REPORT, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
+        return invoke_write(Operation.MODULES_REPORT, principal, payload.model_dump(), idempotency_key)
+
     @app.get("/agent/v1/status")
     def status(
         authorization: str | None = Header(default=None),
@@ -293,7 +360,6 @@ def create_agent_app(
     ) -> Any:
         principal = authorize(Operation.STATUS_READ, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
         return invoke(Operation.STATUS_READ, principal)
-
     @app.post("/agent/v1/tasks/claim")
     def claim_task(
         payload: TaskClaimPayload,
@@ -305,6 +371,7 @@ def create_agent_app(
     ) -> Any:
         principal = authorize(Operation.TASK_FETCH, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
         return invoke_write(Operation.TASK_FETCH, principal, payload.model_dump(), idempotency_key)
+
 
     def task_route(operation: Operation) -> Callable[..., Any]:
         def endpoint(
@@ -336,5 +403,17 @@ def create_agent_app(
     ) -> Any:
         principal = authorize(Operation.RECONCILE, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
         return invoke_write(Operation.RECONCILE, principal, payload.model_dump(mode="json"), idempotency_key)
+
+    @app.post("/agent/v1/reconcile/inventory")
+    def reconcile_inventory(
+        payload: InventoryReconcilePayload,
+        authorization: str | None = Header(default=None),
+        x_agent_nonce: str | None = Header(default=None),
+        x_agent_timestamp: str | None = Header(default=None),
+        x_request_id: str | None = Header(default=None),
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    ) -> Any:
+        principal = authorize(Operation.RECONCILE_INVENTORY, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
+        return invoke_write(Operation.RECONCILE_INVENTORY, principal, payload.model_dump(mode="json"), idempotency_key)
 
     return app
