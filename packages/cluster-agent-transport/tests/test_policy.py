@@ -31,3 +31,29 @@ def test_inconsistent_or_revoked_states_fail_closed():
             pass
         else:
             raise AssertionError("Un estado inconsistente no debe autorizarse")
+
+def test_all_revoked_expired_unknown_and_inconsistent_pairs_fail_closed():
+    denied_principals = (
+        principal("active", "revoked"),
+        principal("pending", "revoked"),
+        principal("revoked", "active"),
+        principal("revoked", "pending"),
+        principal("revoked", "revoked"),
+        principal("active", "expired"),
+        principal("pending", "expired"),
+        principal("expired", "active"),
+        principal("unknown", "active"),
+        principal("active", "unknown"),
+        principal("", "active"),
+        principal("active", ""),
+    )
+    for p in denied_principals:
+        for operation in Operation:
+            try:
+                authorize_operation(p, operation)
+            except PermissionDenied:
+                continue
+            raise AssertionError(
+                f"Estado no autorizado {p.admin_state}/{p.credential_status} "
+                f"permitió {operation.value}"
+            )
