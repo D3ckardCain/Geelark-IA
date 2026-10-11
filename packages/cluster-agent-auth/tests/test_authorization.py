@@ -36,6 +36,8 @@ def test_pending_node_can_only_use_limited_telemetry_operations(operation):
 @pytest.mark.parametrize(
     "operation",
     [
+        AgentOperation.REPORT_MODULES,
+        AgentOperation.CLAIM_TASK,
         AgentOperation.ACCEPT_TASK,
         AgentOperation.REPORT_PROGRESS,
         AgentOperation.REPORT_RESULT,
