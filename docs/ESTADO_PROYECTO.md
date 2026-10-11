@@ -289,50 +289,23 @@ El PR borrador #16 ahora incluye validación de coherencia entre `status` y `obs
 Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md). Define transacciones, restricciones para un único propietario, idempotencia durable, outbox y pruebas de caída/concurrencia. No hay DDL, migraciones ni código de persistencia implementados; PostgreSQL local sigue siendo una propuesta pendiente de validar.
 
 
-### Bandeja durable de tareas por nodo (2026-10-10)
+### Portación del ciclo de vida a la bandeja canónica (2026-10-11)
 
-- PR borrador [#53 — bandeja durable y consulta saliente de tareas](https://github.com/D3ckardCain/Geelark-IA/pull/53), apilado sobre el transporte privado.
-- Se añadió la migración `0004_agent_task_inbox.sql` para separar la cola de asignaciones del outbox de eventos.
-- La asignación inserta la tarea en la misma transacción que operación, reserva y outbox.
-- El endpoint `POST /agent/v1/tasks/claim` aplica autenticación, nonce anti-replay, idempotencia y permisos por operación. Solo nodos activos pueden reclamar; nodos pendientes solo envían heartbeat/capacidades y consultan estado.
-- El claim bloquea tarea, instancia y operación con `FOR UPDATE ... SKIP LOCKED`, valida epoch/lease y devuelve el vencimiento de la lease.
-- Se añadieron pruebas unitarias y una prueba de integración PostgreSQL real que crea nodo, credencial activa, instancia, operación y tarea; valida el claim, el lease de entrega y el lease de instancia por separado, y confirma el estado durable `delivered`.
-- CI del commit `c6c004d`: transporte **#38018593438 success**, persistencia/auth **#38018593437 success** y esquema PostgreSQL **#38018593402 success**. Todas las migraciones se aplicaron en PostgreSQL 16 y pasó la suite configurada; la prueba de integración quedó incluida. No equivale todavía a una prueba de estrés con doble claim concurrente ni a validación física.
-- El commit `efbf8a6` añade una comprobación PostgreSQL adicional: una segunda consulta durante el lease vigente no vuelve a entregar la misma tarea. CI del commit `efbf8a6` pasó en los tres workflows: transporte **#38018668716**, persistencia/auth **#38018668703** y esquema **#38018668702**.
-- El PR sigue draft; no se fusiona ni se despliega. Siguientes pruebas: doble consumidor realmente concurrente, epoch obsoleto, transiciones terminales y recuperación/reconciliación tras caída.
-- La reconciliación continúa sin configurar (503). No hay ejecución de Android, ADB, shell ni despliegue en PCs físicas.
+- Se porta `AgentReceiptSyncLifecycle`, las pruebas unitarias y la prueba SQLite→HTTPS/TLS→PostgreSQL sobre la rama canónica `feat/agent-task-inbox-v2` (PR #52), evitando la variante histórica que usa `0004_agent_task_inbox.sql`.
+- La migración de la bandeja permanece como `0005_agent_task_inbox.sql` para no colisionar con `0004_worker_module_inventory.sql`.
+- El runtime no debe reescribir un recibo local al sincronizarlo: el ACK de HTTP 2xx marca la versión actual como sincronizada; un nuevo resultado local vuelve a encolarse. El reintento no cambia el resultado persistido y conserva la idempotencia.
+- PR #57 pasó CI en HEAD `ead30bd427a67e0247f8efdb365161d60f02632e` (run 38124748912, 85 pruebas). PR #67 pasó CI en HEAD `4aa8363f06737ebaca85adfb8740dc846e7bfa6a` (run 38124797722, 131 pruebas). No hay instalación ni pruebas en PCs físicas; no activar ADB/shell ni ejecución de tareas.
 
 
-### Ciclo de vida de sincronización de recibos del agente (2026-10-10)
+### Supervisor sobre pila canónica (2026-10-11, actualización)
 
-- PR borrador #56 en rama original: https://github.com/D3ckardCain/Geelark-IA/pull/56. Esta integración se porta a una rama apilada sobre la bandeja durable #54 para que los endpoints de progreso/resultado estén presentes en el mismo stack.
-- El commit ejecutable `e6d93147d1e04460770241d83e28938eb948bbbe` pasó GitHub Actions run 128: 57 pruebas aprobadas, una advertencia deprecatoria de Starlette/httpx y `pip check` correcto. La integración usa TLS real en loopback, SQLite y PostgreSQL desechable; simula la pérdida del primer ACK y verifica el reintento idempotente. No hay pruebas en PCs físicas.
-- Se endureció la validación de configuración y contadores; una excepción del callback de telemetría no debe detener el worker. Se añadieron pruebas para drenaje de lotes, contadores inválidos y callback defectuoso.
-- Manual técnico: [MANUAL_CICLO_VIDA_SINCRONIZACION_AGENTE.md](MANUAL_CICLO_VIDA_SINCRONIZACION_AGENTE.md). Manual de usuario/operación: [MANUAL_USUARIO_SINCRONIZACION_AGENTES.md](MANUAL_USUARIO_SINCRONIZACION_AGENTES.md).
-- Límite: biblioteca de ciclo de vida, todavía no conectada a un proceso de agente instalable ni con interfaz/comando de usuario. CI no equivale a prueba en PCs físicas. No fusionar ni desplegar antes de revisar el flujo SQLite→HTTPS→PostgreSQL y los controles de seguridad.
+- PR #67 está apilada sobre PR #57 → #52, con una sola línea de migraciones 0001–0005.
+- La validación combinada en HEAD `4aa8363f06737ebaca85adfb8740dc846e7bfa6a` pasó en run 38124797722 (131 pruebas, `pip check` correcto). La documentación se actualiza sobre ese código y no cambia el comportamiento ejecutable.
+- No hay despliegue físico ni ejecución Android/ADB/shell.
 
 
-### Supervisor portable del agente (2026-10-10)
+### Reconciliación de inventario separada de reconciliación de tareas — 2026-10-11
 
-- PR borrador [#59 — coordinar heartbeat y sincronización durable](https://github.com/D3ckardCain/Geelark-IA/pull/59), apilado sobre #57, #54 y #48.
-- El commit ejecutable `b622c0eead3d2eee896b7442fca6dca479c7b78d` pasó GitHub Actions run 143: 90 pruebas aprobadas, migraciones PostgreSQL y `pip check` correctos; permanece una advertencia deprecatoria de Starlette/httpx.
-- `AgentSupervisor` coordina heartbeat/capacidades y el sincronizador durable en hilos separados; la recuperación despierta la cola de recibos y los errores se reportan con códigos genéricos. `CredentialProvider` abstrae el secreto; `SystemdCredentialProvider` lee credenciales entregadas por systemd y `build_agent_components` ensambla los objetos sin arrancarlos.
-- Manual técnico: [MANUAL_TECNICO_SUPERVISOR_AGENTE.md](MANUAL_TECNICO_SUPERVISOR_AGENTE.md). Manual de usuario: [MANUAL_SUPERVISOR_AGENTE.md](MANUAL_SUPERVISOR_AGENTE.md).
-- Límite: biblioteca inyectable, no un servicio/CLI instalable. La elección del SO y almacén de credenciales depende de la decisión de arquitectura documentada en [PR #60](https://github.com/D3ckardCain/Geelark-IA/pull/60) y sigue pendiente. No se ha probado en hardware físico.
+La integración con el supervisor actual conserva `POST /agent/v1/reconcile` para comparar asignaciones (`assignments`) y añade `POST /agent/v1/reconcile/inventory` para informes de inventario local (`inventory`). El transporte usa `Operation.RECONCILE_INVENTORY`, mapeada a la autorización canónica `AgentOperation.RECONCILE`; ambas rutas son solo lectura y no resuelven `unknown`, conflictos terminales ni epochs obsoletos automáticamente.
 
-
-### Reconciliación conservadora del agente (2026-10-10)
-
-- PR borrador [#61 — reconciliar inventario sin mutaciones automáticas](https://github.com/D3ckardCain/Geelark-IA/pull/61), apilado sobre #59.
-- El commit ejecutable `eb5e71e8b4848f6761b4da15507d070bcc9dfded` pasó Actions run 174 (transporte: 110 pruebas, una advertencia deprecatoria), run 154 (migraciones/invariantes PostgreSQL) y run 188 (servicio/concurrencia PostgreSQL); los tres terminaron correctamente.
-- Migration 0006 añade informes de reconciliación auditables. El endpoint compara identidad, propietario, assignment_epoch, leases y resultados; no cambia automáticamente tareas, operaciones ni propietario/epoch de instancias.
-- `AgentTransportRuntime.reconcile_inventory` usa un UUID por intento; el supervisor lo conserva para reintentos y lo renueva para una reconciliación nueva. Un worker separado evita bloquear heartbeat/capacidades.
-- Manuales: [MANUAL_RECONCILIACION_AGENTES.md](MANUAL_RECONCILIACION_AGENTES.md) y [MANUAL_TECNICO_RECONCILIACION_AGENTES.md](MANUAL_TECNICO_RECONCILIACION_AGENTES.md).
-- Límite: no se ha probado en hardware físico; decisiones manuales de conflictos/unknown y el entry point instalable siguen pendientes.
-
-
-### Control de coste de CI (2026-10-10)
-
-- El repositorio es privado y GitHub Actions consume cuota mensual en runners alojados. No tenemos visibilidad desde este flujo sobre los minutos restantes.
-- Issue [#63](https://github.com/D3ckardCain/Geelark-IA/issues/63) registra la optimización pendiente: cancelar ejecuciones obsoletas por PR, limitar rutas y evitar disparar varios workflows por cada commit.
-- Hasta revisar la cuota y optimizar concurrencia, evitar pushes repetidos que disparen CI. El código ejecutable de PR #61 ya pasó los tres workflows en el commit `eb5e71e8b4848f6761b4da15507d070bcc9dfded`; la actualización posterior de este estado es solo documentación.
+La migración de informes se renombró a `db/migrations/0006_agent_reconciliation_reports.sql`, porque esta pila ya contiene `0004_worker_module_inventory.sql` y `0005_agent_task_inbox.sql`. El supervisor mantiene un worker separado para reconciliación, UUID/snapshot estable en reintentos, renovación tras reconexión y errores genéricos; el proveedor de inventario es opcional, por lo que la CLI no ejecuta reconciliación sin un proveedor explícito. Pendiente CI del HEAD combinado y revisión de seguridad.
