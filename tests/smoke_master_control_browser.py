@@ -1,60 +1,43 @@
-"""Exercise the actual standalone dashboard HTML in installed headless Chrome/Chromium.
-
-The test adds a temporary test-only script to a temporary copy of the real HTML.
-No browser packages, external URLs, or network requests are required.
-"""
+"""Exercise the dashboard in headless Chrome/Chromium at desktop and mobile sizes."""
 from html.parser import HTMLParser
 from pathlib import Path
 import json
 import shutil
 import subprocess
-import sys
 import tempfile
-
 
 HTML_FILE = Path(__file__).resolve().parents[1] / "prototypes" / "master-control" / "index.html"
 
 TEST_SCRIPT = r"""
 <script>
-(() => {
+(async () => {
+  await new Promise(resolve => setTimeout(resolve, 100));
   const result = {};
   const count = selector => document.querySelectorAll(selector).length;
+  result.liveModeStartsEmpty = document.getElementById('overview-nodes').textContent.trim() === '';
   result.initialOverviewCurrent = document.querySelector('[data-page="overview"]').getAttribute('aria-current') === 'page';
+  document.getElementById('demo-toggle').click();
+  result.demoExplicitlyEnabled = document.getElementById('demo-toggle').getAttribute('aria-pressed') === 'true';
   document.querySelector('[data-page="nodes"]').click();
-  result.nodesCount = count('#nodes-table tr');
-  result.masterExcluded = !document.getElementById('nodes-table').textContent.includes('PC-MASTER');
+  result.nodeCount = count('#nodes-table tr');
   const search = document.getElementById('node-search');
-  search.value = 'WORKER-02';
+  search.value = 'WORKER-DEMO-02';
   search.dispatchEvent(new Event('input', {bubbles: true}));
   result.searchCount = count('#nodes-table tr');
+  result.searchMatch = document.getElementById('nodes-table').textContent.includes('WORKER-DEMO-02');
   search.value = '';
   search.dispatchEvent(new Event('input', {bubbles: true}));
-  const nodeFilter = document.getElementById('node-filter');
-  nodeFilter.value = 'pending';
-  nodeFilter.dispatchEvent(new Event('change', {bubbles: true}));
-  result.pendingCount = count('#nodes-table tr');
-  result.pendingWorker = document.getElementById('nodes-table').textContent.includes('WORKER-03');
-  nodeFilter.value = 'all';
-  nodeFilter.dispatchEvent(new Event('change', {bubbles: true}));
-  const worker2 = nodes.find(n => n.id === 'w2');
-  const originalWorkerName = worker2.name;
-  worker2.name = '<img src=x onerror="window.__xss=true">';
-  renderNodes();
-  result.nodeXssEscaped = count('#nodes-table img') === 0 && document.getElementById('nodes-table').textContent.includes(worker2.name) && !window.__xss;
-  worker2.name = originalWorkerName;
-  renderNodes();
+  const originalName = demoSnapshots[0].node.display_name;
+  demoSnapshots[0].node.display_name = '<img src=x onerror="window.__xss=true">';
+  render();
+  result.nodeXssEscaped = count('#overview-nodes img') === 0 && document.getElementById('overview-nodes').textContent.includes(demoSnapshots[0].node.display_name) && !window.__xss;
+  demoSnapshots[0].node.display_name = originalName;
   document.querySelector('[data-page="modules"]').click();
-  const moduleFilter = document.getElementById('module-filter');
-  const originalModuleName = modules[0].name;
-  moduleFilter.value = 'all';
-  moduleFilter.dispatchEvent(new Event('change', {bubbles: true}));
-  modules[0].name = '<svg onload="window.__xss=true"></svg>';
-  renderModules();
-  result.moduleXssEscaped = count('#modules-table svg') === 0 && document.getElementById('modules-table').textContent.includes(modules[0].name) && !window.__xss;
-  modules[0].name = originalModuleName;
-  moduleFilter.value = 'unknown';
-  moduleFilter.dispatchEvent(new Event('change', {bubbles: true}));
-  result.unknownModules = count('#modules-table tr');
+  const originalModuleId = demoSnapshots[0].node.modules[0].module_id;
+  demoSnapshots[0].node.modules[0].module_id = '<svg onload="window.__xss=true"></svg>';
+  render();
+  result.moduleXssEscaped = count('#modules-table svg') === 0 && document.getElementById('modules-table').textContent.includes(demoSnapshots[0].node.modules[0].module_id) && !window.__xss;
+  demoSnapshots[0].node.modules[0].module_id = originalModuleId;
   document.querySelector('[data-page="audit"]').click();
   result.auditCurrent = document.querySelector('[data-page="audit"]').getAttribute('aria-current') === 'page';
   result.noHorizontalPageOverflow = document.documentElement.scrollWidth <= window.innerWidth;
@@ -64,34 +47,15 @@ TEST_SCRIPT = r"""
 </script>
 """
 
-
 class RenderedDOMParser(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.overview_rows = 0
-        self.in_overview = False
-        self.current_page = False
-        self.demo_warning = False
         self.results = None
-        self._text = []
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
-        if tag == "tbody" and attrs.get("id") == "overview-nodes":
-            self.in_overview = True
-        if tag == "tr" and self.in_overview:
-            self.overview_rows += 1
-        if tag == "button" and attrs.get("data-page") == "overview" and attrs.get("aria-current") == "page":
-            self.current_page = True
         if tag == "body" and attrs.get("data-browser-test-results"):
             self.results = json.loads(attrs["data-browser-test-results"])
-
-    def handle_endtag(self, tag):
-        if tag == "tbody" and self.in_overview:
-            self.in_overview = False
-
-    def handle_data(self, data):
-        self._text.append(data)
 
 
 def main():
@@ -118,26 +82,21 @@ def main():
             result = subprocess.run(
                 [browser, "--headless", "--no-sandbox", "--disable-gpu",
                  "--disable-dev-shm-usage", f"--window-size={size}",
-                 "--virtual-time-budget=1500", "--dump-dom", test_file.resolve().as_uri()],
+                 "--virtual-time-budget=2000", "--dump-dom", test_file.resolve().as_uri()],
                 check=True, capture_output=True, text=True, timeout=25,
             )
             parser = RenderedDOMParser()
             parser.feed(result.stdout)
             parser.close()
-            if parser.overview_rows != 3:
-                raise AssertionError(f"{label}: se esperaban 3 Workers en Resumen; aparecieron {parser.overview_rows}")
-            if "Modo demostración: datos ficticios" not in " ".join(parser._text):
-                raise AssertionError(f"{label}: falta el aviso visible de datos ficticios")
             if parser.results is None:
                 raise AssertionError(f"{label}: no se publicaron los resultados de interacción")
             expected = {
+                "liveModeStartsEmpty": True,
                 "initialOverviewCurrent": True,
-                "nodesCount": 3,
-                "masterExcluded": True,
+                "demoExplicitlyEnabled": True,
+                "nodeCount": 2,
                 "searchCount": 1,
-                "pendingCount": 1,
-                "pendingWorker": True,
-                "unknownModules": 2,
+                "searchMatch": True,
                 "nodeXssEscaped": True,
                 "moduleXssEscaped": True,
                 "auditCurrent": True,
@@ -146,9 +105,8 @@ def main():
             }
             if parser.results != expected:
                 raise AssertionError(f"{label}: resultados inesperados: {parser.results!r}")
-            print(f"{label}: navegación, búsqueda, filtros, accesibilidad, 3 Workers y layout sin desbordamiento horizontal OK")
-    print("Browser interaction smoke test OK: HTML real probado en Chrome/Chromium a 1440x900 y 390x844.")
-
+            print(f"{label}: estado vacío seguro, modo demo explícito, navegación, búsqueda, escape HTML y layout OK")
+    print("Browser smoke test OK: HTML real probado en Chrome/Chromium a 1440x900 y 390x844.")
 
 if __name__ == "__main__":
     main()
