@@ -1,7 +1,7 @@
-"""Adaptadores de dominio PostgreSQL para telemetría y consulta propia del agente.
+"""Adaptadores PostgreSQL para telemetría, inventario y bandeja durable del agente.
 
-No se implementan aquí handlers de tareas; esas operaciones permanecen sin
-configurar hasta integrar y revisar la capa de operaciones/outbox.
+Las operaciones de tareas validan propiedad, epoch y leases bajo bloqueo de filas;
+la reconciliación se mantiene de solo lectura y no resuelve estados inciertos.
 """
 from __future__ import annotations
 
