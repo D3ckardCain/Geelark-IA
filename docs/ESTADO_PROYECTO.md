@@ -440,3 +440,7 @@ También se verificó la topología real de ramas: PR #47 y PR #48 son hermanas 
 Se actualizó `.github/workflows/cluster-agent-transport.yml` en [commit `62bfdbe74bba49652058420d7485ee8afab8750e`](https://github.com/D3ckardCain/Geelark-IA/commit/62bfdbe74bba49652058420d7485ee8afab8750e): `actions/checkout@v5`, `actions/setup-python@v6` y checkout del journal desde el HEAD `e37e5aaef72837c19837eb5b648c29f05ae9b3c3` de PR #38. La consulta inmediatamente posterior aún no devolvía workflow runs ni check-runs para el nuevo SHA; **CI pendiente de confirmación**, no declarada como aprobada.
 
 Siguiente paso: confirmar el resultado de CI en ese SHA y, con base en ello, ejecutar pruebas de conformidad entre operaciones de ambas policies (incluyendo pending/active, estados incoherentes y expiración) antes de integrar la dependencia. No se ha fusionado ni desplegado nada.
+
+### Actualización de evidencia CI del panel Master — 2026-10-10
+
+Se volvió a consultar la rama de PR #70: HEAD `ba22e44a67d4253f08cc7a2bad79acdabca7f465`. Para ese SHA, [Master control prototype checks #38095144974](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38095144974) está `completed/success`; se verificaron los pasos de regresión Python, render del HTML real con Chrome/Chromium y análisis de sintaxis del JavaScript embebido. La evidencia quedó registrada también en [comentario de PR #70](https://github.com/D3ckardCain/Geelark-IA/pull/70#issuecomment-6104296571). Esto no cubre accesibilidad manual completa ni integración con estado real de Workers; la PR sigue abierta y draft.
