@@ -449,3 +449,10 @@ Se volvió a consultar la rama de PR #70: HEAD `ba22e44a67d4253f08cc7a2bad79acda
 ### Resultado CI posterior a la actualización del transporte — 2026-10-10
 
 La actualización de `.github/workflows/cluster-agent-transport.yml` quedó validada para el HEAD `62bfdbe74bba49652058420d7485ee8afab8750e`: [transporte HTTPS #38102709434](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38102709434), [esquema #38102709315](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38102709315) y [servicio de persistencia #38102709380](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38102709380) terminaron `completed/success`; los tres jobs aparecen completados sin pasos fallidos. La descripción de [PR #48](https://github.com/D3ckardCain/Geelark-IA/pull/48) se actualizó con esta evidencia. Sigue sin probarse la pila final con #47 ni resolverse la policy duplicada; #48 permanece draft.
+
+
+### Comparación de ramas de bandeja durable y ciclo de vida — 2026-10-10
+
+La comparación de archivos confirma que PR #52 y #54 son alternativas superpuestas: comparten `0004_agent_task_inbox.sql`, handlers/rutas de transporte, policy y servicio de persistencia. #52 contiene entregables adicionales (runtime y reconciliación read-only, validación de datos sensibles); #54 documenta pruebas específicas de API/handler y carrera concurrente de claim. No se declara #54 supersedida hasta verificar que su cobertura exclusiva está incorporada y pasa en un único HEAD combinado. Registro en [comentario de #52](https://github.com/D3ckardCain/Geelark-IA/pull/52#issuecomment-6104302286).
+
+PR #59 y #67 tampoco son duplicados exactos: #59 aporta proveedor de credenciales/bootstrap/supervisor coordinador; #67 aporta entrada CLI configurable y monitor netlink con fallback. Comparten base y parte de documentación, por lo que hay que conservar los componentes complementarios y revisar las colisiones de contrato antes de integrar. Registro en [comentario de #67](https://github.com/D3ckardCain/Geelark-IA/pull/67#issuecomment-6104302505). No se cerró ni fusionó ninguna PR.
