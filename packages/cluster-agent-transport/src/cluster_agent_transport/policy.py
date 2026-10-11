@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 
 from cluster_agent_auth.authorization import (
     AgentAuthorizationContext,
@@ -16,7 +17,7 @@ from cluster_agent_auth.authorization import (
 )
 
 
-class Operation(str, __import__("enum").Enum):
+class Operation(str, Enum):
     HEARTBEAT = "heartbeat"
     CAPABILITIES = "capabilities"
     STATUS_READ = "status_read"
