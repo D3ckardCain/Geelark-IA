@@ -11,6 +11,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from geelark_cluster_persistence.status_snapshot import (
     PostgresStatusSnapshotProvider,
     build_status_snapshot,
+    SUPPORTED_MODULE_IDS,
 )
 
 NOW = datetime(2026, 10, 10, 23, 0, tzinfo=timezone.utc)
@@ -289,3 +290,23 @@ def test_postgres_read_role_can_select_but_cannot_mutate_when_database_is_availa
             admin.execute(
                 psycopg.sql.SQL("DROP ROLE {}").format(psycopg.sql.Identifier(role_name))
             )
+
+
+def test_unknown_module_id_is_not_trusted_even_if_report_is_fresh():
+    reports = [{
+        "module_id": "unregistered-module",
+        "state": "operational",
+        "version": "9.9.9",
+        "checked_at": NOW.isoformat(),
+        "source": "agent-report",
+        "error_code": None,
+    }]
+    snapshot = build_status_snapshot(make_row(modules=reports), now=NOW)
+    assert snapshot["node"]["modules"] == []
+
+
+def test_snapshot_schema_uses_the_closed_module_registry():
+    root = Path(__file__).resolve().parents[3]
+    schema = json.loads((root / "docs/contracts/master-worker-status-v1.schema.json").read_text())
+    module_id_schema = schema["properties"]["node"]["properties"]["modules"]["items"]["properties"]["module_id"]
+    assert module_id_schema["enum"] == sorted(SUPPORTED_MODULE_IDS)

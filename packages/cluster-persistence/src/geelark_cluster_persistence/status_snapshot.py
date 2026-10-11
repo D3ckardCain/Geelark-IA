@@ -24,6 +24,7 @@ ERROR_CODE_RE = re.compile(r"^[A-Z0-9_]{1,64}$")
 HEALTH_REPORTS = frozenset({"healthy", "degraded", "unhealthy", "unknown"})
 MODULE_STATES = frozenset({"operational", "degraded", "not-installed", "unknown"})
 MODULE_SOURCES = frozenset({"agent-report", "master-check", "unknown"})
+SUPPORTED_MODULE_IDS = frozenset({"agent-guard", "agent-supervisor", "agent-transport", "android-engine", "task-journal"})
 CAPABILITY_ALIASES = {
     "heartbeat": "heartbeat-v1",
     "heartbeat-v1": "heartbeat-v1",
@@ -128,7 +129,7 @@ def _safe_modules(value: Any, *, now: datetime, freshness_state: str) -> list[di
         if not isinstance(raw, dict):
             continue
         module_id = raw.get("module_id")
-        if not isinstance(module_id, str) or not MODULE_ID_RE.fullmatch(module_id):
+        if not isinstance(module_id, str) or not MODULE_ID_RE.fullmatch(module_id) or module_id not in SUPPORTED_MODULE_IDS:
             continue
         if module_id in seen:
             continue
