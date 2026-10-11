@@ -659,3 +659,8 @@ Se actualizó [Issue #50](https://github.com/D3ckardCain/Geelark-IA/issues/50#is
 ### PR #76: límite de cuerpo HTTP añadido — 2026-10-11
 
 Se añadió un `BodyLimitMiddleware` con límite de 16 KiB para la API administrativa, incluido el caso de cuerpos sin `Content-Length`, y un test que espera 413 sin reflejar el contenido. Commits: [implementación `f67d17a64276aae650467aa42480d97ca0f60627`](https://github.com/D3ckardCain/Geelark-IA/commit/f67d17a64276aae650467aa42480d97ca0f60627) y [test `4124edc2ea4f0f0bb13978e6e22a93758fef56b9`](https://github.com/D3ckardCain/Geelark-IA/commit/4124edc2ea4f0f0bb13978e6e22a93758fef56b9). CI no se ejecutó porque el workflow es manual-only; no declarar la prueba aprobada hasta ejecutar con cuota confirmada. Continúan pendientes ACL NTFS efectiva y verificación de grants fuera de `geelark_control`.
+
+
+### PR #74: consulta de snapshot con nombre de columna incorrecto — 2026-10-11
+
+El HEAD actual `a8ce049458e94ae2587caeb8a42269a0b094b09a` de #74 consulta `reported_health_state` como columna física de `geelark_control.nodes`; el esquema real expone `health_state`. La corrección `health_state AS reported_health_state` existe en la rama descendiente #76, pero no en #74. Se registró en [comentario de #74](https://github.com/D3ckardCain/Geelark-IA/pull/74#issuecomment-6113572496). No se modificó #74 para no disparar workflows automáticos hasta verificar la cuota de Actions; no integrar el proveedor de forma independiente hasta portar el alias y probar la consulta real.
