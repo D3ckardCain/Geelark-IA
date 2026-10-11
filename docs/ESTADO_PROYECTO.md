@@ -444,3 +444,8 @@ Siguiente paso: confirmar el resultado de CI en ese SHA y, con base en ello, eje
 ### Actualización de evidencia CI del panel Master — 2026-10-10
 
 Se volvió a consultar la rama de PR #70: HEAD `ba22e44a67d4253f08cc7a2bad79acdabca7f465`. Para ese SHA, [Master control prototype checks #38095144974](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38095144974) está `completed/success`; se verificaron los pasos de regresión Python, render del HTML real con Chrome/Chromium y análisis de sintaxis del JavaScript embebido. La evidencia quedó registrada también en [comentario de PR #70](https://github.com/D3ckardCain/Geelark-IA/pull/70#issuecomment-6104296571). Esto no cubre accesibilidad manual completa ni integración con estado real de Workers; la PR sigue abierta y draft.
+
+
+### Resultado CI posterior a la actualización del transporte — 2026-10-10
+
+La actualización de `.github/workflows/cluster-agent-transport.yml` quedó validada para el HEAD `62bfdbe74bba49652058420d7485ee8afab8750e`: [transporte HTTPS #38102709434](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38102709434), [esquema #38102709315](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38102709315) y [servicio de persistencia #38102709380](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38102709380) terminaron `completed/success`; los tres jobs aparecen completados sin pasos fallidos. La descripción de [PR #48](https://github.com/D3ckardCain/Geelark-IA/pull/48) se actualizó con esta evidencia. Sigue sin probarse la pila final con #47 ni resolverse la policy duplicada; #48 permanece draft.
