@@ -75,7 +75,8 @@ def test_terminal_result_is_journaled_before_send_and_retry_key_is_stable():
     second_key = client.requests[1][3]["Idempotency-Key"]
     assert first_key == second_key
     assert client.requests[1][3]["X-Agent-Nonce"] != client.requests[0][3]["X-Agent-Nonce"]
-    assert len(journal.calls) == 2
+    assert len(journal.calls) == 1
+    assert journal.synced.count(operation_id) == 2
 
 
 def test_result_remains_durable_when_network_is_offline():
@@ -190,24 +191,75 @@ def test_runtime_syncs_real_sqlite_journal_and_persists_terminal_ack(tmp_path):
 
 
 
-def test_running_progress_ack_is_persisted_and_does_not_block_later_receipts():
-    node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
-    journal = FakeJournal()
-    journal.pending = [
-        SimpleNamespace(
-            node_id=node_id, instance_id=instance_id, operation_id=operation_id,
-            assignment_epoch=1, status="running", result={"progress": 25},
-        ),
-        SimpleNamespace(
-            node_id=node_id, instance_id=uuid4(), operation_id=uuid4(),
-            assignment_epoch=1, status="succeeded", result={"ok": True},
-        ),
-    ]
-    runtime = make_runtime(FakeClient(), journal, node_id)
-    confirmed, attempted = runtime.sync_pending_receipts(limit=2)
-    assert (confirmed, attempted) == (2, 2)
-    assert journal.synced == [operation_id, journal.pending[1].operation_id]
+def test_runtime_claim_accept_and_report_use_task_id_and_stable_keys():
+    node_id, task_id, operation_id, instance_id = uuid4(), uuid4(), uuid4(), uuid4()
+    client, journal = FakeClient(), FakeJournal()
+    runtime = make_runtime(client, journal, node_id)
 
+    runtime.claim_next_task(idempotency_key="task-claim-" + str(task_id))
+    assert client.requests[0][0:2] == ("POST", "/agent/v1/tasks/claim")
+    assert client.requests[0][3]["Idempotency-Key"] == "task-claim-" + str(task_id)
+
+    runtime.accept_task(task_id=task_id)
+    assert client.requests[1][1] == f"/agent/v1/tasks/{task_id}/accept"
+
+    runtime.report_progress(
+        task_id=task_id, operation_id=operation_id, instance_id=instance_id,
+        assignment_epoch=1, result={"progress_percent": 50},
+    )
+    assert client.requests[2][1] == f"/agent/v1/tasks/{task_id}/progress"
+
+    runtime.report_result(
+        task_id=task_id, operation_id=operation_id, instance_id=instance_id,
+        assignment_epoch=1, status="succeeded", result={"ok": True},
+    )
+    assert client.requests[3][1] == f"/agent/v1/tasks/{task_id}/result"
+
+
+
+def test_runtime_reconcile_is_read_only_and_bounded():
+    node_id = uuid4()
+    client, journal = FakeClient(), FakeJournal()
+    runtime = make_runtime(client, journal, node_id)
+    item = {
+        "task_id": str(uuid4()),
+        "operation_id": str(uuid4()),
+        "instance_id": str(uuid4()),
+        "assignment_epoch": 1,
+        "observed_state": "unknown",
+        "result_summary": {"reason_code": "NETWORK_TIMEOUT"},
+    }
+    runtime.reconcile(assignments=[item], idempotency_key="reconcile-" + str(uuid4()))
+    method, path, payload, headers = client.requests[0]
+    assert (method, path) == ("POST", "/agent/v1/reconcile")
+    assert payload == {"schema_version": 1, "assignments": [item]}
+    assert headers["Idempotency-Key"].startswith("reconcile-")
+    with pytest.raises(ValueError):
+        runtime.reconcile(assignments=[{}] * 501, idempotency_key="reconcile-overflow-key")
+
+
+def test_syncing_running_receipt_does_not_rewrite_local_journal():
+    node_id, instance_id, operation_id, task_id = uuid4(), uuid4(), uuid4(), uuid4()
+    journal = FakeJournal()
+    receipt = SimpleNamespace(
+        node_id=node_id,
+        instance_id=instance_id,
+        operation_id=operation_id,
+        task_id=task_id,
+        assignment_epoch=7,
+        status="running",
+        result={"progress_percent": 50},
+    )
+    runtime = make_runtime(FakeClient(), journal, node_id)
+
+    response = runtime.sync_receipt(receipt)
+
+    assert response.status == 200
+    assert journal.calls == []
+    assert journal.synced == [operation_id]
+    method, path, payload, _headers = runtime.client.requests[0]
+    assert (method, path) == ("POST", f"/agent/v1/tasks/{task_id}/progress")
+    assert payload["details"] == {"progress_percent": 50}
 
 
 def test_reconcile_inventory_uses_stable_idempotency_key_and_never_marks_receipts():
@@ -229,7 +281,7 @@ def test_reconcile_inventory_uses_stable_idempotency_key_and_never_marks_receipt
     runtime.reconcile_inventory(inventory)
 
     assert len(client.requests) == 3
-    assert client.requests[0][0:2] == ("POST", "/agent/v1/reconcile")
+    assert client.requests[0][0:2] == ("POST", "/agent/v1/reconcile/inventory")
     assert client.requests[0][2] == {"schema_version": 1, "inventory": inventory}
     assert client.requests[0][3]["Idempotency-Key"] == client.requests[1][3]["Idempotency-Key"]
     assert client.requests[1][3]["Idempotency-Key"] != client.requests[2][3]["Idempotency-Key"]
