@@ -791,3 +791,12 @@ Acción registrada en [#57](https://github.com/D3ckardCain/Geelark-IA/pull/57#is
 ### Bloqueo de historial del journal #38/#49 — 2026-10-11
 
 PR #49 aparece `mergeable=false`. Comparación entre #38 HEAD `e37e5aaef72837c19837eb5b648c29f05ae9b3c3` y #49 HEAD `936857a0cded51079b94769f09c641751113fb13`: `diverged`, 4 commits exclusivos de #49, 13 exclusivos del journal base, merge-base `707e9b643f9ffee07c34b3106173d92f99d163b6`. #49 extiende el journal con ACK de recibos y una migración documentada v1→v2, mientras el journal actual de #38 ya está en v3 y contiene `task_id`; no se puede asumir que ambas migraciones/contratos se combinen sin rebase y pruebas específicas. Hallazgo registrado en [#49](https://github.com/D3ckardCain/Geelark-IA/pull/49#issuecomment-6114266840) y [#38](https://github.com/D3ckardCain/Geelark-IA/pull/38#issuecomment-6114267245). Acción: sincronizar historial y validar migración, filtros, ACK por epoch y flujo de recibos antes de integrar. No se cambió la rama ni se fusionó nada.
+
+
+### Reconciliación de inventario, snapshots y supervisor — 2026-10-11
+
+- **#73 inventario Worker:** HEAD `31c93b3ab54f91d357b7cd16bba9d205e277deab` es 14 commits por delante de la base actual de transporte `a1b2298d2dc5385a792dd5dec65a69b2e51cce10`, sin commits faltantes. CI de esquema #38156909211, servicio #38156909212 y transporte #38156909185 completó en success.
+- **#74 proveedor de snapshots:** HEAD `a8ce049458e94ae2587caeb8a42269a0b094b09a` es 3 commits por delante de #73. El único run asociado a este HEAD es persistencia #38157104581 en success; no hay evidencia de runs de transporte/esquema para ese SHA. El contrato JSON Master/Worker es idéntico al de #70 (blob `d7f5975aebf3ac605e1afa5bee75d1674636fb62`).
+- **#61 reconciliación/supervisor:** CI de su HEAD `10f95457e236275ab1c232e5e5c4ef44f0190e90` pasó en los tres workflows (#38159107744, #38159108522, #38159107343), pero el HEAD no contiene cuatro commits de #52 posteriores al merge-base `2e0f9011e60850aa2d6fd13d140615d7f23921fc`. Los commits faltantes cambian `app.py`, `domain_handlers.py`, `pyproject.toml` y pruebas PostgreSQL; `domain_handlers.py` tiene blobs diferentes en #52 y #61. Hay que reconciliar antes de declarar integrada la bandeja con el supervisor.
+
+Hallazgos comentados en [PR #61](https://github.com/D3ckardCain/Geelark-IA/pull/61), [PR #73](https://github.com/D3ckardCain/Geelark-IA/pull/73) y [PR #74](https://github.com/D3ckardCain/Geelark-IA/pull/74). No se ejecutaron workflows manuales, ni se fusionaron o desplegaron ramas.
