@@ -135,8 +135,8 @@ def test_login_rate_limit_and_https_required(tmp_path: Path) -> None:
     )
     assert limited.status_code == 429
 
-    http_client, _ = make_client(tmp_path / "http")
-    response = http_client.get("/admin/v1/session", base_url="http://master.test")
+    http_client = TestClient(client.app, base_url="http://master.test")
+    response = http_client.get("/admin/v1/session")
     assert response.status_code == 426
 
 
