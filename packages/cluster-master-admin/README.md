@@ -91,7 +91,34 @@ icacls "$StateDir\master-local.key" /inheritance:r /grant:r "$($env:USERDOMAIN)\
 
 Guarda ambos archivos fuera de Git y protege la clave privada. Para evitar avisos del navegador, instala el certificado local como certificado de confianza en el equipo operador. No desactives la validación TLS. No uses este certificado autofirmado para publicar el servicio en Internet ni en una LAN.
 
-### 5. Crear y verificar el rol PostgreSQL
+### 5. Preparar el esquema PostgreSQL local
+
+Si usas una base PostgreSQL local nueva, primero aplica las migraciones en orden, una sola vez y con una cuenta administradora. Hazlo únicamente sobre la base destinada a GeeLark-IA; no apuntes a una base con datos importantes sin revisar antes cada migración.
+
+Linux/macOS, desde la raíz del repositorio:
+```sh
+for migration in db/migrations/0001_cluster_control.sql db/migrations/0002_agent_auth.sql db/migrations/0003_agent_rate_limit.sql db/migrations/0004_worker_module_inventory.sql; do
+  psql "$ADMIN_DSN" -v ON_ERROR_STOP=1 -f "$migration" || exit 1
+done
+```
+
+Windows PowerShell:
+```powershell
+$Migrations = @(
+  "db/migrations/0001_cluster_control.sql",
+  "db/migrations/0002_agent_auth.sql",
+  "db/migrations/0003_agent_rate_limit.sql",
+  "db/migrations/0004_worker_module_inventory.sql"
+)
+foreach ($Migration in $Migrations) {
+  psql $env:ADMIN_DSN -v ON_ERROR_STOP=1 -f $Migration
+  if ($LASTEXITCODE -ne 0) { throw "Falló la migración $Migration; detén la instalación y revisa el error." }
+}
+```
+
+No repitas estas migraciones sobre una base ya inicializada sin consultar el historial y las instrucciones de migración.
+
+### 6. Crear y verificar el rol PostgreSQL
 
 El script `packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql` crea/configura el rol dedicado y concede únicamente `USAGE` en el esquema y `SELECT` en `geelark_control.nodes`. Ejecútalo con una cuenta administradora, nunca con el usuario que usará el panel:
 
@@ -104,7 +131,7 @@ En el prompt interactivo de psql ejecuta `\password geelark_master_reader` y est
 
 Después, conecta como `geelark_master_reader` y ejecuta `packages/cluster-master-admin/sql/verify_readonly_role.sql`. La prueba debe terminar sin excepción. Verifica además que el rol no pertenezca a otros roles ni tenga privilegios de escritura concedidos por otros mecanismos. No se han verificado grants reales: el proyecto Supabase vinculado aparece INACTIVE y no se restauró. Hasta que el usuario decida entre reactivarlo tras confirmar que seguirá en $0 o configurar PostgreSQL local, el control de permisos de base de datos sigue pendiente.
 
-### 6. Configurar el entorno sin guardar secretos en Git
+### 7. Configurar el entorno sin guardar secretos en Git
 
 Variables obligatorias:
 - `GEELARK_ADMIN_OPERATOR_AUTH_FILE`: ruta del JSON privado del hash.
@@ -141,7 +168,7 @@ python -m geelark_master_admin.runtime
 
 Para PostgreSQL local, usa `localhost` o socket local. Para una base remota, exige `sslmode=verify-full` y almacena la contraseña en un archivo `PGPASSFILE` privado o en el gestor de secretos del sistema. No pegues DSN con contraseña en GitHub ni en el chat. La base remota requiere conectividad y puede tener límites del proveedor; el coste $0 no está garantizado por proveedores externos. PostgreSQL local es la opción con menor dependencia externa.
 
-### 7. Iniciar y comprobar
+### 8. Iniciar y comprobar
 
 Solo después de configurar lo anterior, inicia manualmente desde el entorno virtual:
 
