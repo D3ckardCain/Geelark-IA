@@ -500,3 +500,10 @@ Después se sincronizó la rama de #73 con ese HEAD mediante [`31c93b3ab54f91d35
 ### CI final de PR #73 con autorización canónica — 2026-10-11
 
 El HEAD sincronizado `31c93b3ab54f91d357b7cd16bba9d205e277deab` terminó con los tres workflows exitosos: [transporte #38156909185](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38156909185), [esquema #38156909211](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38156909211), [persistencia #38156909212](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38156909212). Los logs del transporte confirman **58 pruebas aprobadas**, `pip check` correcto y un warning deprecatorio Starlette/httpx; no es fallo de CI. Quedó registrado en [comentario de #73](https://github.com/D3ckardCain/Geelark-IA/pull/73#issuecomment-6111345986). La PR sigue draft, no fusionada ni desplegada.
+
+
+### Sincronización del proveedor de snapshots y divergencia real del schema v1 — 2026-10-11
+
+Se incorporó la base actual de PR #73 a la rama del proveedor de snapshots mediante el commit [`a8ce049458e94ae2587caeb8a42269a0b094b09a`](https://github.com/D3ckardCain/Geelark-IA/commit/a8ce049458e94ae2587caeb8a42269a0b094b09a), sin fusionar #74. La comparación de ramas indica `ahead 3 / behind 0` y `mergeable=true`. El workflow de persistencia #38157104581 está en cola.
+
+Corrección del hallazgo previo: el schema v1 ya no es idéntico entre #70 y #74. #70 conserva blob `6802ec9d2a973840edd774301b2c9259bc514c2e`; #74 usa `d7f5975aebf3ac605e1afa5bee75d1674636fb62`, con enum cerrado para `module_id` y validaciones más estrictas de estado/origen/versión. Se registró en [#74](https://github.com/D3ckardCain/Geelark-IA/pull/74#issuecomment-6111362474) y [#70](https://github.com/D3ckardCain/Geelark-IA/pull/70#issuecomment-6111362841). La decisión pendiente es consolidar una fuente canónica y actualizar los tests del panel/proveedor en consecuencia; no se cerró ni fusionó ninguna PR.
