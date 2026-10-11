@@ -8,7 +8,7 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from geelark_master_admin import create_admin_app, hash_operator_password
-from geelark_master_admin.app import SESSION_COOKIE
+from geelark_master_admin.app import SESSION_COOKIE, _panel_csp
 
 
 class FakeConnection(AbstractContextManager):
@@ -63,6 +63,19 @@ def make_client(tmp_path: Path, rows=None):
         session_db_path=str(tmp_path / "private" / "sessions.sqlite3"),
     )
     return TestClient(app, base_url="https://master.test"), connections
+
+
+def test_packaged_panel_has_local_login_and_strict_script_csp() -> None:
+    panel = Path(__file__).parents[1] / "src" / "geelark_master_admin" / "panel.html"
+    source = panel.read_text(encoding="utf-8")
+    assert 'id="login-form"' in source
+    assert '"/admin/v1/login"' in source
+    assert '"/admin/v1/logout"' in source
+    assert "localStorage" not in source
+    assert "sessionStorage" not in source
+    csp = _panel_csp(panel)
+    assert "script-src 'self' 'sha256-" in csp
+    assert "script-src 'self' 'unsafe-inline'" not in csp
 
 
 def test_root_serves_login_panel_same_origin(tmp_path: Path) -> None:
