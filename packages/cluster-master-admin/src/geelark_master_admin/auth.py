@@ -5,8 +5,10 @@ import hashlib
 import hmac
 import secrets
 import sqlite3
+import subprocess
 import time
 from collections import defaultdict, deque
+from getpass import getuser
 from pathlib import Path
 from typing import Callable
 
@@ -61,14 +63,32 @@ class LoginRateLimiter:
         self._attempts.pop(key, None)
 
 
+def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
+    """Restringe ACL NTFS al usuario actual; falla cerrado si icacls no funciona."""
+    try:
+        identity = subprocess.run(
+            ["whoami"], check=True, capture_output=True, text=True, timeout=3
+        ).stdout.strip()
+        grant = f"{identity}:(OI)(CI)F" if directory else f"{identity}:F"
+        subprocess.run(
+            ["icacls", str(path), "/inheritance:r", "/grant:r", grant],
+            check=True, capture_output=True, text=True, timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise PermissionError("No se pudieron restringir las ACL NTFS del almacén de sesiones.") from exc
+
+
 class SessionStore:
     """Almacén SQLite de sesiones opacas, con revocación y expiración."""
     def __init__(self, path: str | Path, *, clock: Callable[[], float] = time.time) -> None:
         self.path = Path(path)
         self.clock = clock
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        if self.path.parent.stat().st_mode & 0o077:
-            raise PermissionError("El directorio de sesiones debe tener permisos privados (0700).")
+        if os.name == "posix":
+            if self.path.parent.stat().st_mode & 0o077:
+                raise PermissionError("El directorio de sesiones debe tener permisos privados (0700).")
+        elif os.name == "nt":
+            _restrict_windows_acl(self.path.parent, directory=True)
         with self._connect() as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS operator_sessions (
@@ -79,10 +99,15 @@ class SessionStore:
             """)
             conn.execute("CREATE INDEX IF NOT EXISTS operator_sessions_expiry_idx ON operator_sessions(expires_at)")
             conn.commit()
-        try:
-            self.path.chmod(0o600)
-        except OSError as exc:
-            raise PermissionError("No se pudieron restringir los permisos del archivo de sesiones.") from exc
+        if os.name == "posix":
+            try:
+                self.path.chmod(0o600)
+                if self.path.stat().st_mode & 0o077:
+                    raise PermissionError("El archivo SQLite no quedó privado.")
+            except OSError as exc:
+                raise PermissionError("No se pudieron restringir los permisos del archivo de sesiones.") from exc
+        elif os.name == "nt":
+            _restrict_windows_acl(self.path, directory=False)
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.path, timeout=1.0)
