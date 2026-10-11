@@ -161,7 +161,7 @@ No se recomienda exponerlo a la LAN. El arranque rechaza un bind no-loopback sal
 
 ## CI y coste
 
-El workflow `.github/workflows/cluster-master-admin.yml` se ejecuta manualmente para evitar consumo automático de minutos en un repositorio privado. La última ejecución completada validó 10 pruebas en el commit anterior a los cambios recientes; estos últimos cambios aún requieren nueva validación. No ejecutar Actions sin comprobar la cuota disponible y confirmar que no se producirán cargos. Objetivo operativo obligatorio: $0 USD.
+El workflow `.github/workflows/cluster-master-admin.yml` se ejecuta manualmente para evitar consumo automático de minutos en un repositorio privado. La última ejecución de este paquete validó 10 pruebas en el commit anterior a los cambios recientes; los nuevos tests aún requieren validación. Una ejecución del workflow general de esquema falló porque la prueba específica de grants se encontraba temporalmente en `db/tests` y se ejecutó como superusuario; se movió a `packages/cluster-master-admin/sql/verify_readonly_role.sql`, fuera del filtro de CI general. Ese fallo no verifica los grants reales y no debe interpretarse como prueba de producción. No ejecutar Actions sin comprobar la cuota disponible y confirmar que no se producirán cargos. Objetivo operativo obligatorio: $0 USD.
 
 ## Límites conocidos
 
