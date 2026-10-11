@@ -118,6 +118,21 @@ def test_active_node_with_unconfigured_task_handlers_gets_503_without_mutation()
     assert calls == []
 
 
+def test_pending_cannot_claim_tasks_and_active_can_claim():
+    pending_client, pending_calls = make_client(PENDING)
+    denied = pending_client.post(
+        "/agent/v1/tasks/claim", headers=headers(), json={"schema_version": 1}
+    )
+    assert denied.status_code == 403
+    assert pending_calls == []
+
+    active_client, active_calls = make_client(ACTIVE)
+    accepted = active_client.post(
+        "/agent/v1/tasks/claim", headers=headers(), json={"schema_version": 1}
+    )
+    assert accepted.status_code == 200
+    assert active_calls == ["task_fetch"]
+
 def test_active_node_can_reach_task_handler():
     client, calls = make_client(ACTIVE)
     response = client.post(
