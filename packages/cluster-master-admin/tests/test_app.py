@@ -193,3 +193,19 @@ def test_empty_node_list_is_valid(tmp_path: Path) -> None:
     response = client.get("/admin/v1/status/snapshots")
     assert response.status_code == 200
     assert response.json()["snapshots"] == []
+
+
+def test_oversized_request_body_is_rejected_without_reflecting_content(tmp_path: Path) -> None:
+    client, _ = make_client(tmp_path)
+    oversized = b'{"password":"' + b"A" * 20_000 + b'"}'
+    response = client.post(
+        "/admin/v1/login",
+        content=oversized,
+        headers={
+            "Origin": "https://master.test",
+            "Content-Type": "application/json",
+        },
+    )
+    assert response.status_code == 413
+    assert response.json() == {"error": {"code": "BODY_TOO_LARGE"}}
+    assert "A" * 100 not in response.text
