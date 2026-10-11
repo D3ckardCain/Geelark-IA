@@ -536,3 +536,8 @@ Se cerraron [PR #54](https://github.com/D3ckardCain/Geelark-IA/pull/54) y [PR #6
 ### Unificación del contrato Master/Worker status v1 — 2026-10-11
 
 La divergencia de schema entre #70 y #74 quedó resuelta al actualizar el esquema de la rama canónica del panel con el endurecimiento de inventario Worker. Ambas ramas comparten blob `d7f5975aebf3ac605e1afa5bee75d1674636fb62`; el ejemplo ficticio continúa idéntico (blob `9a7976293e4c874d369fcfb4f1aadf4677234b02`). El schema restringe `module_id` a IDs soportados y valida estado/origen/versión. Se actualizaron [PR #70](https://github.com/D3ckardCain/Geelark-IA/pull/70#issuecomment-6111435560) y [PR #74](https://github.com/D3ckardCain/Geelark-IA/pull/74#issuecomment-6111435860). CI de #70 para HEAD `195cd0012806d539304c1d0ec27d9a616e6f5081` está en cola (#38157662672); hasta que pase, la unificación está hecha en código pero no revalidada por CI.
+
+
+### CI del contrato v1 unificado — 2026-10-11
+
+El HEAD `195cd0012806d539304c1d0ec27d9a616e6f5081` de [PR #70](https://github.com/D3ckardCain/Geelark-IA/pull/70) pasó [Master control prototype checks #38157662672](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38157662672): regresión Python, renderizado HTML real con Chrome/Chromium y sintaxis JavaScript completados en success. El esquema v1 ahora coincide con #74 (blob `d7f5975aebf3ac605e1afa5bee75d1674636fb62`), y el ejemplo también es idéntico. Quedan accesibilidad manual e integración con estado real. Evidencia en [comentario de #70](https://github.com/D3ckardCain/Geelark-IA/pull/70#issuecomment-6111439985).
