@@ -1,100 +1,106 @@
 # Manual de usuario — Panel de control PC-MASTER
 
-**Versión:** prototipo 0.1  
-**Estado:** maqueta local con datos ficticios. No es todavía el panel operativo de la aplicación.
+**Versión:** panel de solo lectura v0.2  
+**Estado:** interfaz preparada para API de snapshots; el endpoint backend aún no está implementado ni desplegado. No debe considerarse operativo con Workers reales hasta completar esa integración.
 
-## 1. Abrir el prototipo
+## 1. Abrir el panel
 
-1. Abre el repositorio GeeLark-IA en GitHub.
-2. En la rama de la propuesta, abre `prototypes/master-control/index.html`.
-3. Usa la opción de visualizar/descargar el archivo y ábrelo en un navegador moderno. También puedes clonar la rama y abrir directamente el archivo en Firefox o Chromium.
-4. No se necesita instalar paquetes ni tener conexión a Internet para utilizar la maqueta una vez guardado el archivo.
+1. Abre la rama de la propuesta en GitHub y descarga la carpeta del panel, o clona/descarga el repositorio.
+2. Abre prototypes/master-control/index.html en Edge, Chrome o Firefox.
+3. La interfaz intenta consultar GET /admin/v1/status/snapshots en el mismo origen. Si se abre como archivo local, el endpoint no estará disponible y aparecerá “Sin conectar”; es el comportamiento esperado.
+4. Para ver la distribución de la interfaz sin equipos reales, pulsa **Ver ejemplo ficticio**. El modo de muestra está separado de los datos reales.
+5. Pulsa **Volver a datos reales** para abandonar la muestra y volver a consultar el servicio.
 
-## 2. Aviso de demostración
+No necesita bibliotecas JavaScript externas. La pantalla no está desplegada ni conectada a PCs Worker.
 
-La franja superior indica que todos los datos son ficticios. No existe conexión con las PCs Worker, la base de datos ni GitHub. No uses los estados mostrados para tomar decisiones operativas.
+## 2. Conexión y mensajes de estado
 
-## 3. Navegación y accesibilidad
+- **Esperando al servicio / Sin conectar:** no se recibieron snapshots reales.
+- **Conectado al servicio de solo lectura:** el endpoint respondió correctamente y el contrato básico fue validado en el cliente.
+- **Autenticación/autorización requerida:** el backend respondió 401/403. Inicia sesión por el mecanismo oficial del sistema; la interfaz no pide ni guarda tokens.
+- **Servicio no disponible:** el backend devolvió error, timeout o JSON inválido. No se reemplazan los datos reales por ejemplos automáticamente.
+- **Ejemplo ficticio:** datos locales solo para revisar navegación; no son evidencia del estado de equipos.
 
-La navegación marca la vista activa con `aria-current="page"`, las tablas tienen títulos accesibles y encabezados que identifican sus columnas, y los iconos decorativos se ocultan a lectores de pantalla. Los controles muestran un indicador de foco para navegación con teclado.
+El endpoint definido está documentado en docs/contracts/MASTER_CONTROL_STATUS_API_V1.md. Su implementación y las verificaciones de autenticación/autorización aún son una puerta pendiente.
 
-## 3.1 Navegación
+## 3. Navegación
 
-- **Resumen:** indicadores globales, nodos de muestra, alertas y puertas de validación.
-- **Nodos Worker:** busca por nombre/rol y filtra por estado.
-- **Módulos:** busca por nombre o nodo y filtra por estado operativo.
-- **Auditoría y CI:** muestra resultados de ejemplo, distingue CI de revisión manual y validación física, y permite descargar un resumen de la muestra.
+- **Resumen:** contadores derivados de los snapshots recibidos y tabla de nodos.
+- **Nodos Worker:** busca por nombre o ID, consulta autorización, salud, heartbeat, versión y capacidades.
+- **Módulos:** consulta módulos reportados, estado, versión, fecha y fuente.
+- **Auditoría y CI:** muestra el estado de integración y enlaza a GitHub Actions para revisar ejecuciones reales.
+
+Los contadores muestran “—” antes de tener datos reales. No se inventan cifras por defecto.
 
 ## 4. Significado de estados
 
-- **Saludable:** la muestra considera reciente la telemetría y sin fallos reportados.
-- **Degradado:** hay datos recientes, pero una comprobación presenta problemas.
-- **Desconectado:** no llegó un heartbeat dentro del umbral de ejemplo.
+- **Saludable:** estado derivado por el Master con evidencia fresca.
+- **Degradado:** hay un problema reportado o derivado.
+- **Desconectado:** el heartbeat está obsoleto.
 - **Pendiente:** el nodo no está autorizado para aceptar tareas.
-- **Desconocido:** no hay evidencia suficiente para determinar el estado.
-- **No instalado:** no existe evidencia de que el módulo esté instalado.
+- **Revocado:** credencial o autorización revocada.
+- **Desconocido:** no hay evidencia suficiente.
+- **Fresco / obsoleto / ausente:** estado de frescura del heartbeat.
+- **No instalado:** solo debe mostrarse si el contrato de estado tiene evidencia explícita; un módulo ausente no se considera operativo.
 
-En el sistema real, estos estados deberán derivarse de contratos y políticas versionados. No deben calcularse solo con valores visuales.
+La autorización y la salud son campos distintos. Los estados desconocidos no se resuelven automáticamente.
 
-## 5. Actualizar la demostración
+## 5. Consultar y actualizar
 
-El botón **Actualizar demo** solo cambia la hora mostrada en pantalla. No consulta la red ni actualiza datos reales.
+Pulsa **Consultar ahora** para hacer un GET al endpoint del mismo origen. La solicitud no contiene mutaciones, se realiza con credenciales de sesión same-origin y desactiva la caché. No hay una URL arbitraria ni un campo para introducir tokens.
 
-## 6. Descargar el resumen de auditoría
+Si la solicitud falla, se vacía la lista real para no dejar información obsoleta presentada como actual. El mensaje de estado explica el error.
 
-En la vista **Auditoría y CI**, pulsa **Descargar resumen**. El navegador descargará un archivo de texto con la síntesis de demostración. El archivo no contiene resultados nuevos ni credenciales.
+## 6. Modo de ejemplo
+
+Pulsa **Ver ejemplo ficticio** para inspeccionar la interfaz sin un backend. El ejemplo se genera localmente, está rotulado como ficticio y no se mezcla con la respuesta del servicio. No se guarda en almacenamiento persistente del navegador.
 
 ## 7. Seguridad y limitaciones
 
-- No hay botones para iniciar, detener ni reasignar instancias.
-- No ejecuta shell, ADB ni tareas.
-- No modifica el sistema operativo ni los agentes.
-- No almacena credenciales ni realiza peticiones HTTP.
-- Escapa los valores dinámicos antes de insertarlos en tablas HTML; los datos futuros del servicio se consideran no confiables.
-- La maqueta no reemplaza la auditoría de seguridad.
-- CI aprobada no significa que el código haya sido validado en hardware.
-- Las operaciones con estado `unknown` no se resuelven automáticamente.
+- El único endpoint de administración consultado por la interfaz es GET /admin/v1/status/snapshots.
+- El backend debe autenticar y autorizar al operador y usar una conexión PostgreSQL de solo lectura.
+- No hay botones para iniciar, detener, reasignar o ejecutar tareas.
+- No ejecuta shell, ADB ni acciones en Workers.
+- No habilita reconciliación ni cambia operaciones unknown.
+- No guarda tokens, credenciales ni snapshots en localStorage o sessionStorage.
+- Los valores remotos se escapan antes de renderizarse.
+- La validación de forma JSON en el navegador no sustituye la validación completa del servidor contra el esquema.
+- La CI no sustituye la revisión manual de seguridad ni las pruebas autorizadas en hardware.
 
 ## 8. Resolución de problemas
 
-**La página se ve sin estilos:** comprueba que abriste el archivo HTML completo y que el navegador no lo truncó al guardarlo.
+**Aparece “Sin conectar” al abrir el archivo local:** normal; el endpoint no se ejecuta dentro del HTML. El backend debe estar instalado y servido en el mismo origen.
 
-**No veo nodos reales:** es el comportamiento esperado; el prototipo usa datos ficticios.
+**Aparece 401/403:** el servicio requiere autenticación o el operador no tiene permiso. No añadas tokens al HTML ni desactives el control de acceso.
 
-**El botón Actualizar demo no cambia el estado de los nodos:** solo actualiza el reloj visual, no simula una conexión real.
+**Aparece 503 o JSON inválido:** el servicio todavía no está listo, o no cumple el contrato. No uses el modo ficticio para tomar decisiones operativas.
 
-**No se descarga el resumen:** permite descargas para el archivo local en el navegador e inténtalo de nuevo.
+**No aparecen nodos:** el servicio devolvió una lista vacía o no hay snapshots autorizados. Un inventario vacío no se interpreta como que todo esté saludable.
 
 ## 9. Funciones offline y funciones que requieren conexión
 
 | Función | Offline |
 |---|---|
-| Abrir la maqueta guardada | Sí |
-| Navegar, filtrar y buscar datos ficticios | Sí |
-| Descargar resumen ficticio | Sí, si el navegador permite descargas locales |
-| Consultar Workers reales | No en esta maqueta |
-| Consultar PR/issues/CI en vivo | No en esta maqueta |
+| Abrir el HTML descargado | Sí |
+| Navegar por las cuatro vistas | Sí |
+| Buscar y filtrar el ejemplo ficticio | Sí |
+| Ver ejemplo ficticio | Sí |
+| Consultar snapshots reales | No |
+| Consultar estado actual de GitHub Actions | Requiere Internet |
 | Ejecutar acciones administrativas | No implementado |
 
-## 10. Estado de validación y límites de accesibilidad
+## 10. Validación automatizada y accesibilidad
 
-La CI abre el HTML real en Chrome/Chromium preinstalado a 1440×900 y 390×844; prueba navegación, búsqueda, filtros, exclusión de PC-MASTER, vista activa, errores JavaScript y desbordamiento horizontal. También se añadieron comprobaciones estáticas para la vista activa, los encabezados y títulos accesibles de tablas, los iconos decorativos y el indicador de foco. También se añadieron cálculos de contraste WCAG AA para diez combinaciones clave, obteniendo los colores directamente del CSS para detectar futuras regresiones; no sustituyen una auditoría visual completa. Estas pruebas no sustituyen una evaluación con lector de pantalla ni una auditoría WCAG completa.
+La CI prueba el documento HTML, las referencias DOM, navegación accesible, estado vacío seguro, modo de muestra explícito, escape de valores remotos, sintaxis JavaScript y renderizado con Chrome/Chromium en escritorio y móvil. Esto no equivale a una auditoría WCAG completa ni a una evaluación con lector de pantalla.
 
-## 11. Estado de validación
+## 11. Contrato de datos
 
-Este manual describe el prototipo visual. Antes de considerarlo módulo operativo hacen falta contrato de datos, servicio local de lectura, autenticación/autorización, pruebas automáticas, persistencia de snapshots, revisión de seguridad y validación autorizada.
+Los snapshots individuales siguen docs/contracts/master-worker-status-v1.schema.json. La envoltura HTTP está definida en docs/contracts/MASTER_CONTROL_STATUS_API_V1.md. Debe incluir schema_version 1.0, generated_at y snapshots[] con un límite máximo de 500 elementos. Los datos sensibles, credenciales, logs libres y payloads de tareas quedan excluidos.
 
+## 12. Comparación funcional con GeeLark
 
-## 12. Contrato técnico de estado v1
+GeeLark ofrece un dashboard para cloud phones Android, gestión por grupos, colaboración/permisos y automatización mediante herramientas/API. Esta pantalla está orientada al estado de Workers físicos locales y solo cubre una parte del plano de control. No ofrece paridad funcional con GeeLark. La comparación de brechas debe mantenerse actualizada en el manual técnico.
 
-Para el significado exacto de los estados y campos de telemetría, consulta el [contrato Master/Worker v1](contracts/CONTRATO_ESTADO_MASTER_WORKER_V1.md), su [esquema JSON](contracts/master-worker-status-v1.schema.json) y el [ejemplo ficticio](contracts/examples/master-worker-status-v1.example.json). El contrato separa `reported_health_state` (reporte del Worker, no autoritativo) de `health_state` (derivado por el Master) y rechaza `healthy` cuando la frescura es `stale/missing/unknown` o no hay heartbeat. La discrepancia original está registrada en [issue #71](https://github.com/D3ckardCain/Geelark-IA/issues/71). El HEAD actual de PR #48 ya separa ambos campos, deriva el estado leído según frescura y bloquea asignaciones con heartbeat obsoleto; los workflows de CI relevantes pasaron. La PR sigue en borrador y el contrato aún no alimenta esta interfaz ni una API operativa.
+## 13. Integración con datos reales: pendiente
 
-
-## 13. Comparación funcional con GeeLark
-
-GeeLark ofrece un dashboard para cloud phones Android, gestión por grupos, colaboración/permisos y automatización mediante herramientas/API, según su [página oficial de Cloud Phone](https://www.geelark.com/product/cloud-phone/) y su [documentación pública de API](https://www.geelark.com/features/api/). Este prototipo solo muestra datos ficticios de Workers físicos locales; no ofrece cloud phones, gestión de cuentas/proxies, automatización ni auditoría operativa. No debe afirmarse paridad funcional. El manual técnico contiene la matriz de brechas y los criterios para validar cada capacidad antes de implementarla.
-
-
-## 14. Integración con datos reales: pendiente
-
-La futura conexión de solo lectura está definida en [ADR-005](decisiones/ADR-005-LECTURA-ESTADO-CLUSTER.md). No se deben configurar URLs, credenciales ni agentes reales desde esta maqueta. La integración espera la revisión del transporte/autorización, la fuente de verdad del controlador y la identidad del operador. El inventario de módulos se está implementando en la [PR #73](https://github.com/D3ckardCain/Geelark-IA/pull/73), y el proveedor interno de snapshots de solo lectura está en la [PR #74](https://github.com/D3ckardCain/Geelark-IA/pull/74), ambas aún en borrador y sin fusionar. El proveedor no tiene endpoint administrativo ni está conectado al panel; faltan verificar permisos reales de PostgreSQL y definir autenticación/autorización del operador. El trabajo está registrado en [issue #72](https://github.com/D3ckardCain/Geelark-IA/issues/72). Hasta completar esas puertas, el panel sigue siendo una demostración offline con datos ficticios.
+El proveedor interno de snapshots está en PR #74 y el inventario de módulos en PR #73; ambas propuestas siguen en borrador y sin fusionar. El proveedor actual es un puerto interno de solo lectura por nodo, no una API HTTP de administración. Antes de considerar operativo este panel, falta implementar el endpoint del Master, integrar autenticación/autorización humana, verificar permisos efectivos de PostgreSQL, probar 401/403/503 y payloads inválidos, y completar revisión de seguridad. No desplegar ni probar en PCs físicas sin autorización explícita.
