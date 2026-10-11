@@ -28,12 +28,13 @@ BEGIN
         RAISE EXCEPTION 'El rol tiene privilegios de escritura o DDL sobre nodes';
     END IF;
 
-    FOREACH forbidden_table IN ARRAY ARRAY[
-        'instances', 'operations', 'resource_reservations',
-        'idempotency_records', 'assignment_events', 'schema_migrations'
-    ] LOOP
-        IF to_regclass('geelark_control.' || forbidden_table) IS NOT NULL
-           AND has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'SELECT') THEN
+    FOR forbidden_table IN
+        SELECT tablename
+          FROM pg_tables
+         WHERE schemaname = 'geelark_control'
+           AND tablename <> 'nodes'
+    LOOP
+        IF has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'SELECT') THEN
             RAISE EXCEPTION 'El rol tiene SELECT no permitido sobre %', forbidden_table;
         END IF;
     END LOOP;
