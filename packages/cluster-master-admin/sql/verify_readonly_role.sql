@@ -10,6 +10,9 @@ BEGIN
     IF current_setting('transaction_read_only') <> 'on' THEN
         RAISE EXCEPTION 'La transacción no está en modo read-only';
     END IF;
+    IF NOT has_database_privilege(current_user, current_database(), 'CONNECT') THEN
+        RAISE EXCEPTION 'Falta CONNECT sobre la base de datos actual';
+    END IF;
     IF NOT has_schema_privilege(current_user, 'geelark_control', 'USAGE') THEN
         RAISE EXCEPTION 'Falta USAGE sobre geelark_control';
     END IF;
