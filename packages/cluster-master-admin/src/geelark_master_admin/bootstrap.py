@@ -37,6 +37,12 @@ def main() -> int:
     with os.fdopen(fd, "w", encoding="utf-8") as handle:
         json.dump({"password_hash": password_hash}, handle)
         handle.write("\n")
+    if os.name == "nt":
+        try:
+            _restrict_windows_acl(target, directory=False)
+        except PermissionError as exc:
+            target.unlink(missing_ok=True)
+            parser.error(str(exc))
     print(f"Hash de operador guardado en {target}; no se guarda la contraseña en texto plano.")
     return 0
 
