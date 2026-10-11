@@ -512,3 +512,10 @@ Corrección del hallazgo previo: el schema v1 ya no es idéntico entre #70 y #74
 ### CI de PR #74 proveedor de snapshots — 2026-10-11
 
 El HEAD `a8ce049458e94ae2587caeb8a42269a0b094b09a` de [PR #74](https://github.com/D3ckardCain/Geelark-IA/pull/74) pasó el workflow [#38157104581](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38157104581), `completed/success`. La suite valida el proveedor de snapshots y la prueba de rol SELECT-only contra PostgreSQL desechable, además de las suites de persistencia/guard/auth disponibles. No valida permisos del rol real ni autenticación humana del panel. El comentario y el cuerpo de #74 fueron actualizados; la divergencia de schema con #70 sigue abierta.
+
+
+### Sincronización de bandeja durable sobre pila canónica — 2026-10-11
+
+La base real de PR #52 es `feat/master-status-snapshot-provider-v1` (#74), que depende de #73 → #48 → #47; su descripción original decía incorrectamente que se apilaba directamente sobre #48. Se incorporó la base actual con el merge commit [`9fc25e10fd0ba9b14c4febd1b8072498c596cb54`](https://github.com/D3ckardCain/Geelark-IA/commit/9fc25e10fd0ba9b14c4febd1b8072498c596cb54). GitHub informa `mergeable=true`, `ahead 14 / behind 0`.
+
+La migración `0005_agent_task_inbox.sql` es secuencial y adecuada en esta pila porque el inventario de módulos usa `0004_worker_module_inventory.sql`. La alternativa #54 basada directamente en #48 utiliza `0004_agent_task_inbox.sql`, por lo que no se deben combinar ambos archivos de migración sin resolver antes la cadena base. La policy de #52 ahora mapea `TASK_FETCH → CLAIM_TASK` y `MODULES_REPORT → REPORT_MODULES` en la política canónica; se actualizaron fixtures con `credential_expires_at`. CI del HEAD `9fc25e10fd0ba9b14c4febd1b8072498c596cb54` está en cola: [persistencia #38157391979](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38157391979), [esquema #38157392001](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38157392001). Pendiente comprobar el workflow de transporte y comparar la cobertura con #54.
