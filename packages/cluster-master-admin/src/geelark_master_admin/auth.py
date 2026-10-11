@@ -67,10 +67,8 @@ class SessionStore:
         self.path = Path(path)
         self.clock = clock
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        try:
-            self.path.parent.chmod(0o700)
-        except OSError:
-            pass
+        if self.path.parent.stat().st_mode & 0o077:
+            raise PermissionError("El directorio de sesiones debe tener permisos privados (0700).")
         with self._connect() as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS operator_sessions (
@@ -81,6 +79,10 @@ class SessionStore:
             """)
             conn.execute("CREATE INDEX IF NOT EXISTS operator_sessions_expiry_idx ON operator_sessions(expires_at)")
             conn.commit()
+        try:
+            self.path.chmod(0o600)
+        except OSError as exc:
+            raise PermissionError("No se pudieron restringir los permisos del archivo de sesiones.") from exc
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.path, timeout=1.0)
