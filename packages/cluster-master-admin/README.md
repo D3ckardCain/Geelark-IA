@@ -48,8 +48,7 @@ Estos componentes son software libre/open source. No necesitan OAuth externo ni 
 
 Linux:
 ```sh
-sudo install -d -m 700 /etc/geelark/master-admin
-sudo install -d -m 700 /var/lib/geelark/master-admin
+install -d -m 700 "$HOME/.config/geelark/master-admin" "$HOME/.local/state/geelark/master-admin"
 ```
 
 Windows PowerShell (elige rutas locales privadas y ejecuta como el usuario que operará PC-MASTER):
@@ -66,7 +65,7 @@ En Windows, las ACL NTFS deben limitar las rutas privadas al usuario del servici
 Ejecuta una sola vez y usa una contraseña larga y única. El comando pide la contraseña dos veces y guarda solo el hash, nunca la contraseña:
 
 ```sh
-python -m geelark_master_admin.bootstrap --output /etc/geelark/master-admin/operator-auth.json
+python -m geelark_master_admin.bootstrap --output "$HOME/.config/geelark/master-admin/operator-auth.json"
 ```
 
 En Windows sustituye la ruta por una dentro de tu directorio privado. Después restringe el archivo a permisos 0600 en Linux o a la ACL NTFS del usuario de PC-MASTER en Windows. El comando no sobrescribe el archivo existente.
@@ -106,6 +105,19 @@ Variables obligatorias:
 - `GEELARK_ADMIN_DATABASE_URL`: DSN PostgreSQL usando exactamente `geelark_master_reader`.
 - `GEELARK_ADMIN_TLS_CERT` y `GEELARK_ADMIN_TLS_KEY`: certificado y clave TLS.
 - Opcionales: `GEELARK_ADMIN_BIND_HOST` (por defecto `127.0.0.1`) y `GEELARK_ADMIN_PORT` (por defecto `8765`).
+
+Ejemplo de configuración en Linux/macOS, después de crear el hash, el certificado y el archivo de contraseña PostgreSQL:
+```sh
+export GEELARK_ADMIN_OPERATOR_AUTH_FILE="$HOME/.config/geelark/master-admin/operator-auth.json"
+export GEELARK_ADMIN_STATE_DIR="$HOME/.local/state/geelark/master-admin"
+export GEELARK_ADMIN_DATABASE_URL="postgresql://geelark_master_reader@localhost:5432/geelark?sslmode=disable"
+export GEELARK_ADMIN_TLS_CERT="$HOME/.config/geelark/master-admin/master-local.crt"
+export GEELARK_ADMIN_TLS_KEY="$HOME/.config/geelark/master-admin/master-local.key"
+export PGPASSFILE="$HOME/.config/geelark/master-admin/pgpass"
+chmod 600 "$PGPASSFILE"
+python -m geelark_master_admin.runtime
+```
+El archivo `pgpass` contiene una línea con formato `host:port:database:username:password`, por ejemplo los cuatro primeros campos deben coincidir con el DSN. No pongas la contraseña en el DSN ni en el repositorio.
 
 Para PostgreSQL local, usa `localhost` o socket local. Para una base remota, exige `sslmode=verify-full` y almacena la contraseña en un archivo `PGPASSFILE` privado o en el gestor de secretos del sistema. No pegues DSN con contraseña en GitHub ni en el chat. La base remota requiere conectividad y puede tener límites del proveedor; el coste $0 no está garantizado por proveedores externos. PostgreSQL local es la opción con menor dependencia externa.
 
