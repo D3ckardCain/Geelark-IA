@@ -26,6 +26,8 @@ def main() -> int:
     except ValueError as exc:
         parser.error(str(exc))
     target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if os.name == "posix" and target.parent.stat().st_mode & 0o077:
+        parser.error("El directorio de destino debe ser privado (0700); corrige sus permisos antes de continuar.")
     fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as handle:
         json.dump({"password_hash": password_hash}, handle)
