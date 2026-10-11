@@ -260,3 +260,42 @@ def test_syncing_running_receipt_does_not_rewrite_local_journal():
     method, path, payload, _headers = runtime.client.requests[0]
     assert (method, path) == ("POST", f"/agent/v1/tasks/{task_id}/progress")
     assert payload["details"] == {"progress_percent": 50}
+
+
+def test_reconcile_inventory_uses_stable_idempotency_key_and_never_marks_receipts():
+    node_id = uuid4()
+    client, journal = FakeClient(), FakeJournal()
+    runtime = make_runtime(client, journal, node_id)
+    inventory = [{
+        "task_id": str(uuid4()),
+        "operation_id": str(uuid4()),
+        "instance_id": str(uuid4()),
+        "assignment_epoch": 3,
+        "local_state": "running",
+        "result_summary": {},
+    }]
+
+    reconciliation_id = uuid4()
+    runtime.reconcile_inventory(inventory, reconciliation_id=reconciliation_id)
+    runtime.reconcile_inventory(inventory, reconciliation_id=reconciliation_id)
+    runtime.reconcile_inventory(inventory)
+
+    assert len(client.requests) == 3
+    assert client.requests[0][0:2] == ("POST", "/agent/v1/reconcile/inventory")
+    assert client.requests[0][2] == {"schema_version": 1, "inventory": inventory}
+    assert client.requests[0][3]["Idempotency-Key"] == client.requests[1][3]["Idempotency-Key"]
+    assert client.requests[1][3]["Idempotency-Key"] != client.requests[2][3]["Idempotency-Key"]
+    assert client.requests[0][3]["X-Agent-Nonce"] != client.requests[1][3]["X-Agent-Nonce"]
+    assert journal.synced == []
+
+
+def test_reconcile_inventory_rejects_oversized_or_non_json_inventory():
+    node_id = uuid4()
+    client, journal = FakeClient(), FakeJournal()
+    runtime = make_runtime(client, journal, node_id)
+
+    with pytest.raises(ValueError):
+        runtime.reconcile_inventory([{}] * 101)
+    with pytest.raises(ValueError):
+        runtime.reconcile_inventory([{"invalid": float("nan")}])
+    assert client.requests == []
