@@ -21,6 +21,12 @@ ALTER ROLE geelark_master_reader SET statement_timeout = '1500ms';
 ALTER ROLE geelark_master_reader SET lock_timeout = '500ms';
 ALTER ROLE geelark_master_reader SET idle_in_transaction_session_timeout = '5000ms';
 
+DO $
+BEGIN
+    EXECUTE format('GRANT CONNECT ON DATABASE %I TO geelark_master_reader', current_database());
+END
+$;
+
 REVOKE ALL PRIVILEGES ON SCHEMA geelark_control FROM geelark_master_reader;
 GRANT USAGE ON SCHEMA geelark_control TO geelark_master_reader;
 
