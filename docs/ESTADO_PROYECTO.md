@@ -551,3 +551,8 @@ PR #57 se sincronizó con el HEAD validado de #52 mediante [`3bbd65d6c4988440808
 ### CI final de sincronización durable #57 — 2026-10-11
 
 El HEAD `3bbd65d6c49884408086219a364f251ddbd8c9b7` de [PR #57](https://github.com/D3ckardCain/Geelark-IA/pull/57) pasó [Transporte HTTPS #38157876743](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38157876743): **83 pruebas aprobadas**, un warning deprecatorio Starlette/httpx y `pip check` correcto. El job instaló la autorización canónica y ejecutó la integración SQLite→HTTPS/TLS loopback→PostgreSQL desechable. No es validación física. Evidencia en [comentario de #57](https://github.com/D3ckardCain/Geelark-IA/pull/57#issuecomment-6111468700).
+
+
+### Sincronización del supervisor con ciclo de recibos canónico — 2026-10-11
+
+PR #67 se sincronizó con el HEAD validado de #57 mediante [`3b1c21610e7de8d608a967f68daabc7abc5bda30`](https://github.com/D3ckardCain/Geelark-IA/commit/3b1c21610e7de8d608a967f68daabc7abc5bda30). GitHub informa `mergeable=true`, `ahead 5 / behind 0`. Se conservaron CLI/supervisor, proveedores file/systemd, monitor netlink y la base canónica con lifecycle/auth/expiración. CI transporte [#38158083417](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38158083417) está en ejecución; revisar el resultado combinado antes de validar.
