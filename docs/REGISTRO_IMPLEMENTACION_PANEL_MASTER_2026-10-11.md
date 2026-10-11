@@ -27,3 +27,10 @@ Fecha: 2026-10-11. PR: #76 (borrador).
 
 ## Coste
 No se incorporan APIs de pago ni autenticación SaaS. El workflow de esta API es manual. No se afirma coste cero de proveedores de base de datos externos; PostgreSQL local es la alternativa de coste controlable.
+
+
+## Revisión de seguridad adicional
+- El SQL de preparación crea el rol dentro de un bloque DO usando ejecución dinámica, evitando depender de soporte de comandos DDL estáticos en PL/pgSQL.
+- El inicializador de credenciales restringe ACL NTFS del directorio y del archivo en Windows; si no puede aplicar la ACL al archivo, lo elimina y falla cerrado.
+- El script de prueba de grants es `packages/cluster-master-admin/sql/verify_readonly_role.sql` (no ejecutar como administrador: debe ejecutarse como el rol lector).
+- Estas últimas modificaciones también están pendientes de pruebas automatizadas. No se lanzó GitHub Actions para no arriesgar cargos.
