@@ -13,6 +13,7 @@ import uvicorn
 from psycopg.conninfo import conninfo_to_dict
 
 from .app import create_admin_app
+from .auth import _restrict_windows_acl
 
 
 def _required_path(name: str) -> Path:
@@ -42,8 +43,8 @@ def _check_private_file(path: Path, label: str) -> None:
             raise PermissionError(
                 f"{label} debe tener permisos 0600; permisos actuales: {mode:04o}."
             )
-    # En Windows los bits POSIX no validan ACL NTFS; el manual exige limitar
-    # el acceso al usuario de PC-MASTER mediante icacls.
+    elif os.name == "nt":
+        _restrict_windows_acl(path, directory=False)
 
 
 def _load_password_hash() -> str:
