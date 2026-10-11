@@ -163,19 +163,6 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
             try:
                 cur.execute(
                     """
-                    SELECT admin_state, health_state
-                      FROM geelark_control.nodes
-                     WHERE node_id = %s
-                     FOR UPDATE
-                    """,
-                    (request.node_id,),
-                )
-                node_row = cur.fetchone()
-                if node_row is None or node_row[0] != "active" or node_row[1] != "healthy":
-                    raise NodeNotEligible("El nodo no está activo y saludable")
-    
-                cur.execute(
-                    """
                     SELECT observed_state, owner_node_id, assignment_epoch
                       FROM geelark_control.instances
                      WHERE instance_id = %s
@@ -193,6 +180,20 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
                     raise InstanceStateBlocked("El estado incierto bloquea una nueva asignación")
                 if observed_state not in {"pending", "stopped"}:
                     raise InstanceStateBlocked("El estado actual no admite una nueva asignación segura")
+    
+                cur.execute(
+                    """
+                    SELECT admin_state, health_state,
+                           last_seen_at IS NOT NULL AND last_seen_at > now() - interval '90 seconds'
+                      FROM geelark_control.nodes
+                     WHERE node_id = %s
+                     FOR UPDATE
+                    """,
+                    (request.node_id,),
+                )
+                node_row = cur.fetchone()
+                if node_row is None or node_row[0] != "active" or node_row[1] != "healthy" or node_row[2] is not True:
+                    raise NodeNotEligible("El nodo no está activo y saludable")
     
                 cur.execute(
                     """
