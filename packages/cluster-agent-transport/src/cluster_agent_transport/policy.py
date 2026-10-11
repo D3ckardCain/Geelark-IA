@@ -13,6 +13,7 @@ class Operation(str, Enum):
     HEARTBEAT = "heartbeat"
     CAPABILITIES = "capabilities"
     MODULES_REPORT = "modules_report"
+    TASK_FETCH = "task_fetch"
     STATUS_READ = "status_read"
     TASK_ACCEPT = "task_accept"
     TASK_PROGRESS = "task_progress"
@@ -41,6 +42,7 @@ _ACTIVE_ALLOWED = frozenset({
     Operation.HEARTBEAT,
     Operation.CAPABILITIES,
     Operation.MODULES_REPORT,
+    Operation.TASK_FETCH,
     Operation.STATUS_READ,
     Operation.TASK_ACCEPT,
     Operation.TASK_PROGRESS,
