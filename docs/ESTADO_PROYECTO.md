@@ -399,3 +399,11 @@ Se publicaron comentarios de auditoría en las conversaciones de GitHub:
 - Comentarios de seguimiento en [PR #38](https://github.com/D3ckardCain/Geelark-IA/pull/38#issuecomment-6104215555), [Issue #65](https://github.com/D3ckardCain/Geelark-IA/issues/65#issuecomment-6104217466) y [Issue #20](https://github.com/D3ckardCain/Geelark-IA/issues/20#issuecomment-6104217719).
 
 **Balance de esta sesión:** cambios documentales y una corrección de prueba implementados; arquitectura de autorización duplicada, sincronización de ramas y verificación de CI siguen pendientes. No se fusionó ni cerró ningún elemento, no se desplegó ni se tocó hardware o base de datos operativa.
+
+
+### Última actualización de CI en #38 — 10-oct-2026
+
+- Se actualizaron las acciones del workflow `.github/workflows/cluster-persistence-service.yml` de `actions/checkout@v4`/`actions/setup-python@v5` a `@v5`/`@v6`, alineadas con las versiones modernas usadas en otras ramas.
+- Commit más reciente de la rama de #38: [e37e5aaef72837c19837eb5b648c29f05ae9b3c3](https://github.com/D3ckardCain/Geelark-IA/commit/e37e5aaef72837c19837eb5b648c29f05ae9b3c3). Incluye la corrección de expectativa v1→v3 anterior y el ajuste del workflow.
+- En la consulta posterior, tanto los status checks como los workflow runs visibles para ese SHA siguen vacíos. Aunque el workflow tiene trigger `pull_request` y filtros de paths que incluyen `packages/cluster-agent-guard/**`, no hay evidencia para declarar CI iniciada o aprobada. Investigar el motivo sin lanzar reintentos redundantes.
+- PR #38 sigue abierta y en draft. No se cerró por falta de evidencia; CI, integración de ramas y validación operativa permanecen como estados separados.
