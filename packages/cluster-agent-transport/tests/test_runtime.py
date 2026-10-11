@@ -75,7 +75,8 @@ def test_terminal_result_is_journaled_before_send_and_retry_key_is_stable():
     second_key = client.requests[1][3]["Idempotency-Key"]
     assert first_key == second_key
     assert client.requests[1][3]["X-Agent-Nonce"] != client.requests[0][3]["X-Agent-Nonce"]
-    assert len(journal.calls) == 2
+    assert len(journal.calls) == 1
+    assert journal.synced.count(operation_id) == 2
 
 
 def test_result_remains_durable_when_network_is_offline():
@@ -235,3 +236,27 @@ def test_runtime_reconcile_is_read_only_and_bounded():
     assert headers["Idempotency-Key"].startswith("reconcile-")
     with pytest.raises(ValueError):
         runtime.reconcile(assignments=[{}] * 501, idempotency_key="reconcile-overflow-key")
+
+
+def test_syncing_running_receipt_does_not_rewrite_local_journal():
+    node_id, instance_id, operation_id, task_id = uuid4(), uuid4(), uuid4(), uuid4()
+    journal = FakeJournal()
+    receipt = SimpleNamespace(
+        node_id=node_id,
+        instance_id=instance_id,
+        operation_id=operation_id,
+        task_id=task_id,
+        assignment_epoch=7,
+        status="running",
+        result={"progress_percent": 50},
+    )
+    runtime = make_runtime(FakeClient(), journal, node_id)
+
+    response = runtime.sync_receipt(receipt)
+
+    assert response.status == 200
+    assert journal.calls == []
+    assert journal.synced == [operation_id]
+    method, path, payload, _headers = runtime.client.requests[0]
+    assert (method, path) == ("POST", f"/agent/v1/tasks/{task_id}/progress")
+    assert payload["details"] == {"progress_percent": 50}

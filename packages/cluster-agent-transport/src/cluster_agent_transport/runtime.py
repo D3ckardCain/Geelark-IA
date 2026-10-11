@@ -151,14 +151,14 @@ class AgentTransportRuntime:
         if not isinstance(operation_id, UUID) or not isinstance(instance_id, UUID):
             raise ValueError("Recibo local inválido.")
         if status == "running" and isinstance(result, dict):
-            return self.report_progress(
-                operation_id=operation_id, instance_id=instance_id,
-                assignment_epoch=epoch, result=result, task_id=task_id,
+            return self._send_receipt(
+                operation_id=operation_id, task_id=task_id, state=status,
+                result=result, route="progress",
             )
         if status in {"succeeded", "rejected", "failed", "unknown"} and isinstance(result, dict):
-            return self.report_result(
-                operation_id=operation_id, instance_id=instance_id,
-                assignment_epoch=epoch, status=status, result=result, task_id=task_id,
+            return self._send_receipt(
+                operation_id=operation_id, task_id=task_id, state=status,
+                result=result, route="result",
             )
         return None
 
@@ -185,10 +185,12 @@ class AgentTransportRuntime:
         response = self._request(
             "POST", f"/agent/v1/tasks/{task_id or operation_id}/{route}", payload, idempotency_key=key
         )
-        if state in {"succeeded", "rejected", "failed"}:
-            mark_synced = getattr(self.journal, "mark_receipt_synced", None)
-            if callable(mark_synced):
-                mark_synced(operation_id)
+        # A 2xx acknowledges this exact durable receipt version, including
+        # running/progress updates. The journal requeues it only after a new
+        # local result version is recorded.
+        mark_synced = getattr(self.journal, "mark_receipt_synced", None)
+        if callable(mark_synced):
+            mark_synced(operation_id)
         return response
 
     def _request(
