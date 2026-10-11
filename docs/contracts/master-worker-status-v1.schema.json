@@ -125,7 +125,14 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 64,
-                "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+                "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+                "enum": [
+                  "agent-guard",
+                  "agent-supervisor",
+                  "agent-transport",
+                  "android-engine",
+                  "task-journal"
+                ]
               },
               "state": {
                 "type": "string",
