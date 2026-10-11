@@ -713,3 +713,7 @@ Comparaciones de HEAD actuales (no se ha modificado ninguna base de PR):
 - #38 → #42: `diverged`, #42 tiene 3 commits propios y le faltan 13 de #38; diff en migración `0002_agent_auth.sql`, smoke test y manual. [Comentario #42](https://github.com/D3ckardCain/Geelark-IA/pull/42#issuecomment-6114098269).
 
 Estas diferencias no prueban por sí solas que falte cada cambio funcional (algunas ramas pueden haber portado cambios manualmente), pero sí impiden tratar la cadena como lineal o dar por validado el árbol final con CI de cada SHA por separado. Próximo trabajo: inventariar diferencias funcionales exclusivas por PR, decidir la única secuencia de migraciones y sincronizar un nivel a la vez, solo después de revisar cuota de Actions. Ninguna PR se fusionó o cerró.
+
+### Rama inicial de contratos #16 desactualizada respecto de main — 2026-10-11
+
+La comparación de `main` actual (`f62fd1163fcb45e338978b6d8f777135dc87584b`) con HEAD #16 (`6fa17c579b7743e75a205bfb09619dd28b337307`) devuelve `diverged`: 20 commits propios de #16 y 12 commits recientes de `main` ausentes. El diff visible se concentra en `.github/workflows/cluster-contracts.yml`, `packages/cluster-contracts/{README.md,pyproject.toml}`, modelos, máquina de estados y tests. #28 y #30 dependen de este HEAD, así que una sincronización debe hacerse primero en #16 y luego validar sus descendientes. No se modificó la base para evitar disparar CI sin verificar cuota. Hallazgo: [comentario #16](https://github.com/D3ckardCain/Geelark-IA/pull/16#issuecomment-6114103278).
