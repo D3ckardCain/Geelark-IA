@@ -75,8 +75,12 @@ def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
             [str(whoami)], check=True, capture_output=True, text=True, timeout=3
         ).stdout.strip()
         grant = f"{identity}:(OI)(CI)F" if directory else f"{identity}:F"
+        # /grant:r solo reemplaza las ACE de la identidad indicada; no elimina
+        # permisos explícitos de otras identidades. /reset elimina esas ACE
+        # preexistentes restaurando primero la ACL heredada; después se corta
+        # la herencia y se concede acceso únicamente al usuario actual.
         subprocess.run(
-            [str(icacls), str(path), "/inheritance:r", "/grant:r", grant],
+            [str(icacls), str(path), "/reset", "/inheritance:r", "/grant:r", grant],
             check=True, capture_output=True, text=True, timeout=5,
         )
     except (OSError, subprocess.SubprocessError) as exc:
