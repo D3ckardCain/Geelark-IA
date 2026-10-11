@@ -429,3 +429,14 @@ La inspección de código confirma que la duplicación de policy no se puede res
 **Decisión:** no borrar todavía la policy del transporte ni cambiar imports hasta hacer explícita la dependencia apilada de #47, crear un adaptador que mapee todas las operaciones y pase la expiración real, instalar el paquete local en CI y probar los casos pending/active/revoked/expired. Esto evita introducir una autorización incompleta por una refactorización prematura.
 
 **Estado actualizado de #38:** CI verde en el HEAD `e37e5aaef72837c19837eb5b648c29f05ae9b3c3`: [schema #38102140362](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38102140362) y [persistence/guard #38102140404](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38102140404). La PR continúa abierta y en draft; CI no equivale a integración ni a validación operativa.
+
+
+### Revalidación de CI del transporte y dependencias de autorización — 2026-10-10
+
+La auditoría de `packages/cluster-agent-transport/src/cluster_agent_transport/db_auth.py` confirma que la consulta de autenticación exige `c.expires_at > now()` y que solo acepta pares coherentes `active/active` o `pending/pending`. No obstante, la expiración no se devuelve en `AgentPrincipal`; la policy canónica de PR #47 requiere `credential_expires_at`. Por tanto, la expiración sí se filtra en la autenticación actual, pero las dos políticas siguen sin ser equivalentes ni estar integradas.
+
+También se verificó la topología real de ramas: PR #47 y PR #48 son hermanas basadas en `feat/cluster-agent-auth-service`; #48 no hereda automáticamente el paquete de autorización de #47. No cambiar imports ni eliminar la policy local hasta decidir si se apila #48 sobre #47 o se define un adaptador/dependencia de monorepo verificable.
+
+Se actualizó `.github/workflows/cluster-agent-transport.yml` en [commit `62bfdbe74bba49652058420d7485ee8afab8750e`](https://github.com/D3ckardCain/Geelark-IA/commit/62bfdbe74bba49652058420d7485ee8afab8750e): `actions/checkout@v5`, `actions/setup-python@v6` y checkout del journal desde el HEAD `e37e5aaef72837c19837eb5b648c29f05ae9b3c3` de PR #38. La consulta inmediatamente posterior aún no devolvía workflow runs ni check-runs para el nuevo SHA; **CI pendiente de confirmación**, no declarada como aprobada.
+
+Siguiente paso: confirmar el resultado de CI en ese SHA y, con base en ello, ejecutar pruebas de conformidad entre operaciones de ambas policies (incluyendo pending/active, estados incoherentes y expiración) antes de integrar la dependencia. No se ha fusionado ni desplegado nada.
