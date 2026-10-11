@@ -702,3 +702,14 @@ La comparación de commits de #38 (`e37e5aaef72837c19837eb5b648c29f05ae9b3c3`) c
 ### Evidencia adicional de ejecuciones redundantes de Actions — 2026-10-11
 
 El commit que ajustó el fixture en `packages/cluster-master-admin/tests/test_auth.py` dentro de la PR apilada #76 provocó la ejecución de [Cluster persistence service #38177200860](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38177200860), porque el diff total de esa PR incluye cambios en `packages/cluster-persistence/**`. El job pasó, pero no ejecutó tests del paquete `cluster-master-admin`. Esto demuestra que los pushes repetidos a ramas apiladas pueden gastar minutos aunque el archivo editado no pertenezca al workflow; se registró en [Issue #63](https://github.com/D3ckardCain/Geelark-IA/issues/63#issuecomment-6114090257). Mitigación inmediata: agrupar cambios y no volver a hacer push a #76 hasta revisar la cuota; mantener su workflow específico manual-only. El gasto real sigue sin verificarse en Billing.
+
+
+### Reconciliación pendiente de la cadena base → asignaciones → outbox → journal → auth — 2026-10-11
+
+Comparaciones de HEAD actuales (no se ha modificado ninguna base de PR):
+- #32 → #34: `diverged`, #34 tiene 29 commits propios y le faltan 7 de #32; diff común en migración `0001_cluster_control.sql`, servicio, dominio, tests y workflows. [Comentario #34](https://github.com/D3ckardCain/Geelark-IA/pull/34#issuecomment-undefined).
+- #34 → #36: `diverged`, #36 tiene 12 commits propios y le faltan 3 de #34; diff en outbox, tests y workflows. [Comentario #36](https://github.com/D3ckardCain/Geelark-IA/pull/36#issuecomment-undefined).
+- #36 → #38: `diverged`, #38 tiene 33 commits propios y le faltan 5 de #36; diff en journal/tests y workflows. [Comentario #38](https://github.com/D3ckardCain/Geelark-IA/pull/38#issuecomment-undefined).
+- #38 → #42: `diverged`, #42 tiene 3 commits propios y le faltan 13 de #38; diff en migración `0002_agent_auth.sql`, smoke test y manual. [Comentario #42](https://github.com/D3ckardCain/Geelark-IA/pull/42#issuecomment-undefined).
+
+Estas diferencias no prueban por sí solas que falte cada cambio funcional (algunas ramas pueden haber portado cambios manualmente), pero sí impiden tratar la cadena como lineal o dar por validado el árbol final con CI de cada SHA por separado. Próximo trabajo: inventariar diferencias funcionales exclusivas por PR, decidir la única secuencia de migraciones y sincronizar un nivel a la vez, solo después de revisar cuota de Actions. Ninguna PR se fusionó o cerró.
