@@ -65,6 +65,23 @@ def make_client(tmp_path: Path, rows=None):
     return TestClient(app, base_url="https://master.test"), connections
 
 
+def test_root_serves_login_panel_same_origin(tmp_path: Path) -> None:
+    panel_path = tmp_path / "panel.html"
+    panel_path.write_text("<!doctype html><html lang='es'><body id='local-panel'>PC-MASTER</body></html>", encoding="utf-8")
+    app = create_admin_app(
+        connect=lambda: FakeConnection([]),
+        operator_password_hash=hash_operator_password("Correct Horse Battery 2030!"),
+        session_db_path=str(tmp_path / "private" / "sessions.sqlite3"),
+        panel_path=panel_path,
+    )
+    client = TestClient(app, base_url="https://master.test")
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "PC-MASTER" in response.text
+    assert response.headers["cache-control"] == "no-store, max-age=0"
+    assert "connect-src 'self'" in response.headers["content-security-policy"]
+
+
 def test_snapshots_require_auth_and_never_cache(tmp_path: Path) -> None:
     client, _ = make_client(tmp_path)
     response = client.get("/admin/v1/status/snapshots")
