@@ -1,44 +1,141 @@
-# API local de administración PC-MASTER
+# API y panel local de administración PC-MASTER
 
 ## Estado
 
-Implementación inicial de la API de snapshots autenticada. La fábrica ASGI no abre un listener ni despliega servicios. Aún falta montarla en el proceso anfitrión real de PC-MASTER, cargar configuración desde rutas privadas, crear el rol PostgreSQL de solo lectura y conectar el formulario de acceso de la interfaz.
+La PR implementa una API FastAPI, formulario de acceso en el panel del mismo origen, sesiones locales y una consulta de snapshots. El proceso de arranque exige TLS y configuración explícita. No se ha iniciado en el PC-MASTER del usuario, no se ha conectado a su PostgreSQL y no se ha desplegado.
 
 ## Rutas
 
+- `GET /`: sirve el panel local empaquetado.
 - `GET /admin/v1/session`: consulta si la cookie actual tiene una sesión válida.
-- `POST /admin/v1/login`: valida contraseña local y emite una cookie opaca.
-- `POST /admin/v1/logout`: revoca la sesión en SQLite y elimina la cookie.
-- `GET /admin/v1/status/snapshots`: requiere sesión y devuelve hasta 500 snapshots v1.
+- `POST /admin/v1/login`: valida contraseña local y emite cookie opaca.
+- `POST /admin/v1/logout`: revoca la sesión local.
+- `GET /admin/v1/status/snapshots`: requiere sesión, ejecuta SELECT limitado a 500 filas y devuelve contrato v1.
 
-Solo la ruta de snapshots lee el estado del clúster. No existen rutas administrativas de mutación.
+No existen rutas administrativas de mutación.
 
-## Seguridad
+## Seguridad implementada
 
-- Contraseña derivada con PBKDF2-HMAC-SHA256, 600.000 iteraciones y salt aleatorio de 16 bytes.
-- Las sesiones usan tokens aleatorios; SQLite almacena únicamente SHA-256 del token, con expiración a 8 horas y revocación explícita.
-- Cookie `__Host-geelark_master_session`, HttpOnly, Secure (predeterminado), SameSite=Strict, Path=/.
-- HTTPS obligatorio en middleware; rutas de login/logout rechazan solicitudes sin Origin del mismo origen.
-- Límite de cinco intentos fallidos por dirección en 15 minutos (en memoria, para un solo proceso).
-- Respuestas sin caché; errores genéricos; sin docs/OpenAPI en ejecución.
-- Consulta PostgreSQL limitada por `LIMIT 500`, solo columnas de estado conocidas. No consulta tareas, payloads, logs libres ni secretos.
-- Tamaño máximo de respuesta: 1 MiB.
-- No se confía en la UI para autorizar acceso.
+- PBKDF2-HMAC-SHA256 con salt aleatorio y 600.000 iteraciones.
+- Token aleatorio opaco; SQLite almacena únicamente SHA-256 del token. Expiración en 8 horas y revocación en logout.
+- Cookie `__Host-geelark_master_session`: HttpOnly, Secure, SameSite=Strict, Path=/.
+- HTTPS obligatorio en Uvicorn; sin confiar en cabeceras de proxy.
+- POST exige Origin del mismo origen. El limitador admite cinco intentos fallidos por IP en 15 minutos; es en memoria y presupone un solo proceso.
+- Respuestas sin caché, errores genéricos y sin OpenAPI expuesto.
+- PostgreSQL exige el rol `geelark_master_reader`; transacciones read-only y límites de conexión, sentencia y bloqueo.
+- PostgreSQL remoto exige `sslmode=verify-full` o `verify-ca`.
+- La consulta usa `health_state AS reported_health_state`, que coincide con el esquema actual; módulos se leen de `module_reports`.
+- La UI no almacena contraseña, token ni snapshots en localStorage/sessionStorage. El ejemplo ficticio es explícito y no concede sesión.
+- El arranque por defecto escucha únicamente en `127.0.0.1:8765`. TLS y el hash de operador son obligatorios.
 
-## Inicializar contraseña local
+## Instalación local en PC-MASTER (no ejecutada por ChatGPT)
 
-Instala el paquete en el entorno privado de PC-MASTER y ejecuta:
+### 1. Preparar Python y los paquetes
+
+Usa Python 3.11 o posterior. Desde la raíz de un checkout local:
+
+```sh
+python -m venv .venv
+# Linux/macOS
+. .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -e packages/cluster-persistence -e packages/cluster-master-admin
+```
+
+Estos componentes son software libre/open source. No necesitan OAuth externo ni APIs de pago. Instalar paquetes requiere Internet una vez; operar la API después de instalarlos es local salvo que PostgreSQL esté alojado externamente.
+
+### 2. Crear directorios privados
+
+Linux:
+```sh
+sudo install -d -m 700 /etc/geelark/master-admin
+sudo install -d -m 700 /var/lib/geelark/master-admin
+```
+
+Windows PowerShell (elige rutas locales privadas y ejecuta como el usuario que operará PC-MASTER):
+```powershell
+$StateDir = "$env:LOCALAPPDATA\GeeLark-IA\master-admin"
+New-Item -ItemType Directory -Force $StateDir | Out-Null
+icacls $StateDir /inheritance:r /grant:r "$($env:USERDOMAIN)\$($env:USERNAME):(OI)(CI)F"
+```
+
+En Windows, las ACL NTFS deben limitar las rutas privadas al usuario del servicio; los bits POSIX no sirven para demostrarlo.
+
+### 3. Crear contraseña de operador
+
+Ejecuta una sola vez y usa una contraseña larga y única. El comando pide la contraseña dos veces y guarda solo el hash, nunca la contraseña:
 
 ```sh
 python -m geelark_master_admin.bootstrap --output /etc/geelark/master-admin/operator-auth.json
 ```
 
-El comando solicita la contraseña dos veces y escribe solo el hash en un archivo nuevo con permisos restrictivos. No sobrescribe un archivo existente. La contraseña y el hash no deben almacenarse en GitHub.
+En Windows sustituye la ruta por una dentro de tu directorio privado. Después restringe el archivo a permisos 0600 en Linux o a la ACL NTFS del usuario de PC-MASTER en Windows. El comando no sobrescribe el archivo existente.
 
-## Conexión PostgreSQL
+### 4. Configurar TLS local
 
-El callback `connect` debe crear conexiones con timeout y `statement_timeout` configurados en el DSN/opciones de PostgreSQL y utilizar un rol dedicado con permisos SELECT estrictos sobre las columnas necesarias. No se debe usar el usuario propietario ni una credencial de escritura. La comprobación de grants reales queda pendiente.
+Necesitas OpenSSL instalado (herramienta gratuita) y certificado con SAN para `localhost` y `127.0.0.1`. Ejemplo para crear un certificado autofirmado local:
 
-## Offline y coste
+```sh
+openssl req -x509 -newkey rsa:3072 -sha256 -nodes -days 365 \
+  -keyout master-local.key -out master-local.crt \
+  -subj "/CN=localhost" \
+  -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+chmod 600 master-local.key
+```
 
-Autenticación y sesión funcionan localmente sin APIs ni SaaS. Consultar snapshots reales requiere que el proceso y PostgreSQL local estén disponibles. No hay coste obligatorio de servicio externo; cualquier despliegue en infraestructura externa queda fuera del alcance y no se recomienda para esta fase.
+Guarda ambos archivos fuera de Git y protege la clave privada. Para evitar avisos del navegador, instala el certificado local como certificado de confianza en el equipo operador. No desactives la validación TLS. No uses este certificado autofirmado para publicar el servicio en Internet ni en una LAN.
+
+### 5. Crear y verificar el rol PostgreSQL
+
+El script `db/admin/MASTER_ADMIN_READONLY_ROLE.sql` crea/configura el rol dedicado y concede únicamente `USAGE` en el esquema y `SELECT` en `geelark_control.nodes`. Ejecútalo con una cuenta administradora, nunca con el usuario que usará el panel:
+
+```sh
+psql "$ADMIN_DSN" -v ON_ERROR_STOP=1 -f db/admin/MASTER_ADMIN_READONLY_ROLE.sql
+psql "$ADMIN_DSN"
+```
+
+En el prompt interactivo de psql ejecuta `\\password geelark_master_reader` y establece una contraseña fuerte. No la pongas en el script SQL, GitHub, argumentos de comandos ni logs.
+
+Después, conecta como `geelark_master_reader` y ejecuta `db/tests/0005_master_admin_readonly_role.sql`. La prueba debe terminar sin excepción. Verifica además que el rol no pertenezca a otros roles ni tenga privilegios de escritura concedidos por otros mecanismos. No hemos verificado grants reales en tu instancia porque no tenemos acceso a sus credenciales; hasta ejecutar esta prueba, el control de permisos de base de datos sigue pendiente.
+
+### 6. Configurar el entorno sin guardar secretos en Git
+
+Variables obligatorias:
+- `GEELARK_ADMIN_OPERATOR_AUTH_FILE`: ruta del JSON privado del hash.
+- `GEELARK_ADMIN_STATE_DIR`: directorio privado para SQLite.
+- `GEELARK_ADMIN_DATABASE_URL`: DSN PostgreSQL usando exactamente `geelark_master_reader`.
+- `GEELARK_ADMIN_TLS_CERT` y `GEELARK_ADMIN_TLS_KEY`: certificado y clave TLS.
+- Opcionales: `GEELARK_ADMIN_BIND_HOST` (por defecto `127.0.0.1`) y `GEELARK_ADMIN_PORT` (por defecto `8765`).
+
+Para PostgreSQL local, usa `localhost` o socket local. Para una base remota, exige `sslmode=verify-full` y almacena la contraseña en un archivo `PGPASSFILE` privado o en el gestor de secretos del sistema. No pegues DSN con contraseña en GitHub ni en el chat. La base remota requiere conectividad y puede tener límites del proveedor; el coste $0 no está garantizado por proveedores externos. PostgreSQL local es la opción con menor dependencia externa.
+
+### 7. Iniciar y comprobar
+
+Solo después de configurar lo anterior, inicia manualmente desde el entorno virtual:
+
+```sh
+python -m geelark_master_admin.runtime
+```
+
+Abre `https://localhost:8765/`, acepta el certificado solo después de instalar/verificar su confianza y entra con la contraseña local. Confirma:
+1. Sin iniciar sesión, `GET /admin/v1/status/snapshots` devuelve 401.
+2. La contraseña incorrecta devuelve 401; después de cinco fallos devuelve 429.
+3. El login correcto muestra la sesión y snapshots reales.
+4. Logout revoca la cookie; el endpoint vuelve a devolver 401.
+5. La consulta solo lee `geelark_control.nodes` y el rol no puede actualizar filas.
+6. El panel muestra errores y no inventa datos reales cuando PostgreSQL está inaccesible.
+
+No se recomienda exponerlo a la LAN. Para hacerlo, primero se requiere certificado con SAN para el hostname/IP real, firewall restringido, revisión de CSRF/Origin y pruebas de seguridad; no cambies el bind host por comodidad.
+
+## CI y coste
+
+El workflow `.github/workflows/cluster-master-admin.yml` se ejecuta manualmente para evitar consumo automático de minutos en un repositorio privado. La última ejecución completada validó 10 pruebas en el commit anterior a los cambios recientes; estos últimos cambios aún requieren nueva validación. No ejecutar Actions sin comprobar la cuota disponible y confirmar que no se producirán cargos. Objetivo operativo obligatorio: $0 USD.
+
+## Límites conocidos
+
+- No es un servicio de alta disponibilidad; un proceso único.
+- El rate limiter vive en memoria; reiniciar el proceso reinicia la ventana.
+- SQLite guarda sesiones localmente; una pérdida del archivo cierra sesiones.
+- No hay rutas para tareas, ADB, shell, reconciliación ni cambios de estado.
+- Consulta real requiere PostgreSQL disponible; si es remoto, requiere Internet.
+- No se ha instalado ni ejecutado en el PC-MASTER real, ni se ha validado el certificado/ACL de la máquina del usuario.
