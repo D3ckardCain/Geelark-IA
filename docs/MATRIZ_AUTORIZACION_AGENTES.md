@@ -10,10 +10,10 @@ Autenticación y autorización son controles distintos. El transporte futuro deb
 
 ## Matriz inicial
 
-| Estado administrativo del nodo | Estado de credencial | Heartbeat | Publicar capacidades | Consultar estado propio | Aceptar tarea | Progreso/resultado | Reconciliar |
-|---|---|---:|---:|---:|---:|---:|---:|
-| pending | pending, no vencida | Sí | Sí | Sí | No | No | No |
-| active | active, no vencida | Sí | Sí | Sí | Sí | Sí | Sí |
+| Estado administrativo del nodo | Estado de credencial | Heartbeat | Publicar capacidades | Reportar módulos | Consultar estado propio | Reclamar/aceptar tarea | Progreso/resultado | Reconciliar |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| pending | pending, no vencida | Sí | Sí | No | Sí | No | No | No |
+| active | active, no vencida | Sí | Sí | Sí | Sí | Sí | Sí | Sí |
 | Cualquier otro estado | cualquiera | No | No | No | No | No | No |
 | cualquiera | revoked o expired | No | No | No | No | No | No |
 | cualquiera | credencial vencida por timestamp | No | No | No | No | No | No |
