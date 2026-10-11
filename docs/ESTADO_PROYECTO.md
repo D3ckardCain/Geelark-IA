@@ -389,3 +389,13 @@ Se publicaron comentarios de auditoría en las conversaciones de GitHub:
 - [Issue #63 — coste de CI](https://github.com/D3ckardCain/Geelark-IA/issues/63#issuecomment-6104211309): mantener 0 USD, reducir ejecuciones redundantes y no afirmar coste real cero sin datos de uso.
 
 **Estado de resolución:** los comentarios y decisiones quedaron registrados, pero las correcciones de código y la validación combinada siguen pendientes. No se fusionó ninguna PR, no se cerraron elementos, no se desplegó, no se tocaron PCs físicas ni bases de datos del usuario. El fallo #38 no se debe declarar corregido hasta obtener evidencia verde sobre el nuevo HEAD.
+
+### Corrección aplicada después del corte — journal offline (#38)
+
+- Commit de test: [61284c2e0f936a17c2d2236370f08baa9868e00d](https://github.com/D3ckardCain/Geelark-IA/commit/61284c2e0f936a17c2d2236370f08baa9868e00d).
+- Se actualizó el nombre de la prueba de migración de v1→v2 a v1→v3, se espera `schema_migrations.version == 3` y se verifica la columna `task_id`, manteniendo la comprobación de ACK sincronizado.
+- Se actualizaron el comentario y la sección de criterios de aceptación de PR #38.
+- **CI pendiente de evidencia:** para el SHA nuevo, el conector no reporta workflow runs ni status checks. No declarar el fallo resuelto hasta comprobar una ejecución verde sobre ese SHA.
+- Comentarios de seguimiento en [PR #38](https://github.com/D3ckardCain/Geelark-IA/pull/38#issuecomment-6104215555), [Issue #65](https://github.com/D3ckardCain/Geelark-IA/issues/65#issuecomment-6104217466) y [Issue #20](https://github.com/D3ckardCain/Geelark-IA/issues/20#issuecomment-6104217719).
+
+**Balance de esta sesión:** cambios documentales y una corrección de prueba implementados; arquitectura de autorización duplicada, sincronización de ramas y verificación de CI siguen pendientes. No se fusionó ni cerró ningún elemento, no se desplegó ni se tocó hardware o base de datos operativa.
