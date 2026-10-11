@@ -12,7 +12,19 @@
 - Un nodo `pending` puede reportar heartbeat/capacidades y consultar su propio estado; no acepta tareas.
 - Ninguna instrucción de este manual abre puertos ni inicia servicios por sí misma.
 
-## 2. Preparar una CA local (equipo administrativo confiable)
+## 2. Instalar los paquetes locales de forma coherente
+
+El transporte utiliza la política canónica del paquete `cluster-agent-auth`; instala ambos paquetes desde la raíz del repositorio y verifica dependencias. No instales `cluster-agent-transport` aislado.
+
+```sh
+python -m pip install -e "packages/cluster-agent-auth[test]"
+python -m pip install -e "packages/cluster-agent-transport[test]"
+python -m pip check
+```
+
+La autenticación PostgreSQL devuelve el vencimiento real de la credencial. La política canónica vuelve a validar ese timestamp antes de autorizar cada operación. Las credenciales expiradas, revocadas o con estados incoherentes se rechazan.
+
+## 3. Preparar una CA local (equipo administrativo confiable)
 
 Usar una estación administrativa controlada, no el Master ni un agente. Se requiere OpenSSL, software libre local.
 
