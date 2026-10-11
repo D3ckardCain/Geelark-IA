@@ -14,6 +14,7 @@ from .domain import (
 )
 from .outbox import ClaimedOutboxEvent, claim_outbox_batch, mark_outbox_delivered, retry_outbox_event
 from .service import AssignmentRequest, assign_instance
+from .status_snapshot import PostgresStatusSnapshotProvider, StatusSnapshotProvider, build_status_snapshot
 
 __all__ = [
     "AssignmentError",
@@ -28,7 +29,10 @@ __all__ = [
     "InvalidAssignmentRequest",
     "NodeCapacityNotConfigured",
     "NodeNotEligible",
+    "PostgresStatusSnapshotProvider",
+    "StatusSnapshotProvider",
     "assign_instance",
+    "build_status_snapshot",
     "claim_outbox_batch",
     "mark_outbox_delivered",
     "retry_outbox_event",
