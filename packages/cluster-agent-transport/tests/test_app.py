@@ -11,7 +11,7 @@ PENDING = AgentPrincipal("11111111-1111-4111-8111-111111111111", "22222222-2222-
 ACTIVE = AgentPrincipal("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "active", "active")
 
 
-def make_client(principal, *, base_url="https://testserver"):
+def make_client(principal, *, base_url="https://testserver", configure_task_handlers=True):
     calls = []
 
     def authenticate(secret):
@@ -22,9 +22,15 @@ def make_client(principal, *, base_url="https://testserver"):
         assert kwargs["node_id"].int != 0
         assert kwargs["timestamp"].tzinfo is not None
 
+    configured_operations = set(Operation)
+    if not configure_task_handlers:
+        configured_operations -= {
+            Operation.TASK_ACCEPT, Operation.TASK_PROGRESS,
+            Operation.TASK_RESULT, Operation.RECONCILE,
+        }
     handlers = {
         op: (lambda *, principal, payload=None, conn=None, op=op: calls.append(op.value) or {"ok": True})
-        for op in Operation
+        for op in configured_operations
     }
     def idempotency_runner(*, principal, operation, key, payload, execute):
         assert len(key) >= 16
@@ -63,6 +69,32 @@ def test_pending_can_send_heartbeat_and_read_status_but_not_accept_task():
     )
     assert response.status_code == 403
     assert calls == ["heartbeat", "status_read", "capabilities"]
+
+
+def test_pending_is_denied_all_task_and_reconciliation_routes_without_handler_calls():
+    client, calls = make_client(PENDING)
+    payload = {"schema_version": 1, "state": "accepted", "details": {}}
+    responses = [
+        client.post(f"/agent/v1/tasks/{uuid4()}/accept", headers=headers(), json=payload),
+        client.post(f"/agent/v1/tasks/{uuid4()}/progress", headers=headers(), json=payload),
+        client.post(f"/agent/v1/tasks/{uuid4()}/result", headers=headers(), json=payload),
+        client.post("/agent/v1/reconcile", headers=headers(), json=payload),
+    ]
+    assert [response.status_code for response in responses] == [403, 403, 403, 403]
+    assert calls == []
+
+
+def test_active_node_with_unconfigured_task_handlers_gets_503_without_mutation():
+    client, calls = make_client(ACTIVE, configure_task_handlers=False)
+    payload = {"schema_version": 1, "state": "accepted", "details": {}}
+    responses = [
+        client.post(f"/agent/v1/tasks/{uuid4()}/accept", headers=headers(), json=payload),
+        client.post(f"/agent/v1/tasks/{uuid4()}/progress", headers=headers(), json=payload),
+        client.post(f"/agent/v1/tasks/{uuid4()}/result", headers=headers(), json=payload),
+        client.post("/agent/v1/reconcile", headers=headers(), json=payload),
+    ]
+    assert [response.status_code for response in responses] == [503, 503, 503, 503]
+    assert calls == []
 
 
 def test_active_node_can_reach_task_handler():
