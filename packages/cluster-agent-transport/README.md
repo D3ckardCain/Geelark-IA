@@ -25,18 +25,6 @@ Paquete experimental independiente del dominio y sin listener automático.
 - Las respuestas no incluyen tokens, SQL ni excepciones internas.
 - Los handlers de dominio no configurados responden 503; el paquete no ejecuta shell/ADB ni comandos Android.
 
-## Instalación local del monorepo
-
-El transporte delega la decisión de permisos en `packages/cluster-agent-auth`; por eso deben instalarse ambos paquetes desde este repositorio (no instalar solo el paquete de transporte):
-
-```sh
-python -m pip install -e "packages/cluster-agent-auth[test]"
-python -m pip install -e "packages/cluster-agent-transport[test]"
-python -m pip check
-```
-
-El paquete de autorización valida también `credential_expires_at` en cada petición. La consulta PostgreSQL de autenticación filtra además credenciales vencidas y devuelve su timestamp real al principal autenticado.
-
 ## Integración
 
 Para el primer tramo de telemetría, usar:
@@ -47,7 +35,7 @@ Para el primer tramo de telemetría, usar:
 - `handlers=make_postgres_agent_handlers(connect)`
 - `AgentTransportRuntime(client=https_client, bearer_token=token, journal=agent_journal, local_node_id=node_id)` para integrar el cliente con el journal local del agente.
 
-Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fila antes de mutar; guardan heartbeat/capacidades y consultan únicamente el nodo autenticado. Los handlers de tareas/reconciliación siguen sin configurarse y devuelven 503; no deben conectarse a operaciones reales hasta integrar el servicio de dominio/outbox y revisarlo.
+Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fila antes de mutar; guardan heartbeat/capacidades y consultan únicamente el nodo autenticado. Los handlers de tareas/reconciliación están implementados en la rama de bandeja durable y se conectan solo al crear explícitamente `make_postgres_agent_handlers`; esta PR sigue draft y no habilita ningún listener ni despliegue. La reconciliación permanece de solo lectura; no se ejecuta Android, ADB ni shell.
 
 ## Validación pendiente
 
@@ -60,9 +48,22 @@ Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fil
 
 Los tests de configuración TLS usan archivos ficticios para probar restricciones del listener, no para simular certificados válidos. El paquete no instala software en PCs físicas ni requiere APIs o servicios de pago.
 
+## Instalación local del monorepo
+
+El transporte delega la autorización en el paquete canónico `cluster-agent-auth`. Instala ambos paquetes desde la raíz del repositorio; no instales el transporte de forma aislada.
+
+```sh
+python -m pip install -e "packages/cluster-agent-auth[test]"
+python -m pip install -e "packages/cluster-agent-transport[test]"
+python -m pip check
+```
+
+La autenticación PostgreSQL devuelve `credential_expires_at`; la política canónica vuelve a validar ese timestamp en cada operación. Los nodos pending no pueden reclamar tareas ni reportar módulos.
+
 ## Pruebas locales
 
 ```sh
+python -m pip install -e "packages/cluster-agent-auth[test]"
 python -m pip install -e "packages/cluster-agent-transport[test]"
 python -m pytest packages/cluster-agent-transport/tests -q
 ```
@@ -77,3 +78,15 @@ python -m pytest packages/cluster-agent-transport/tests -q
 - Migración requerida: `db/migrations/0004_worker_module_inventory.sql`. No está desplegado ni conectado a PCs físicas.
 
 - Esquema normativo del payload: [worker-module-inventory-v1.schema.json](../../docs/contracts/worker-module-inventory-v1.schema.json); [ejemplo](../../docs/contracts/examples/worker-module-inventory-v1.example.json).
+
+## Bandeja durable de tareas (en revisión)
+
+- `POST /agent/v1/tasks/claim` entrega una única asignación tipada a un nodo `active/active` y saludable; los nodos `pending` reciben 403.
+- Claim, aceptación, progreso y resultado usan idempotencia, nonce anti-replay, propietario, epoch y leases de entrega/asignación.
+- El claim bloquea la tarea, instancia y operación con `FOR UPDATE ... SKIP LOCKED`; la respuesta incluye las dos expiraciones de lease.
+- Los resúmenes de resultado se limitan a 1 MB y rechazan claves sensibles en snake_case, kebab-case o camelCase.
+- `POST /agent/v1/reconcile` es estrictamente read-only: devuelve discrepancias y `mutations_applied=0`; `unknown` requiere revisión.
+- Migración secuencial al inventario de módulos: `db/migrations/0005_agent_task_inbox.sql`; smoke SQL: `db/tests/0005_agent_task_inbox_smoke.sql`.
+- La prueba de integración PostgreSQL cubre doble claim concurrente, recuperación idempotente, lease de entrega, estados terminales, campos sensibles y epoch obsoleto. La integración con el bucle real del agente sigue pendiente.
+
+No activar listeners ni desplegar en nodos físicos hasta que la pila completa esté revisada y sus pruebas pasen sobre el HEAD actualizado.
