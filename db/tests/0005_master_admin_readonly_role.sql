@@ -34,10 +34,29 @@ BEGIN
          WHERE schemaname = 'geelark_control'
            AND tablename <> 'nodes'
     LOOP
-        IF has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'SELECT') THEN
-            RAISE EXCEPTION 'El rol tiene SELECT no permitido sobre %', forbidden_table;
+        IF has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'SELECT')
+           OR has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'INSERT')
+           OR has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'UPDATE')
+           OR has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'DELETE')
+           OR has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'TRUNCATE')
+           OR has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'REFERENCES')
+           OR has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'TRIGGER') THEN
+            RAISE EXCEPTION 'El rol tiene privilegios no permitidos sobre %', forbidden_table;
         END IF;
     END LOOP;
+
+    IF EXISTS (
+        SELECT 1
+          FROM pg_sequences
+         WHERE schemaname = 'geelark_control'
+           AND (
+             has_sequence_privilege(current_user, format('%I.%I', schemaname, sequencename), 'USAGE')
+             OR has_sequence_privilege(current_user, format('%I.%I', schemaname, sequencename), 'SELECT')
+             OR has_sequence_privilege(current_user, format('%I.%I', schemaname, sequencename), 'UPDATE')
+           )
+    ) THEN
+        RAISE EXCEPTION 'El rol tiene privilegios sobre secuencias';
+    END IF;
 
     IF EXISTS (
         SELECT 1 FROM pg_roles
