@@ -590,3 +590,10 @@ La policy de transporte en #52 adapta los nombres HTTP a `cluster_agent_auth.aut
 ### Resultado CI confirmado de PR #52 tras correcciones — 2026-10-11
 
 Para el HEAD `1fc6f4ffe41e40a8264075bccd8d5c133c464f49`, los tres workflows terminaron correctamente y los jobs consultados no muestran pasos fallidos: [transporte HTTPS #38172698726](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38172698726), [servicio de persistencia #38172698723](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38172698723) y [esquema PostgreSQL #38172698717](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38172698717). El HEAD incluye la eliminación del modelo de reconciliación duplicado y la declaración de dependencia del paquete de autorización. El resultado se registró en el cuerpo y comentarios de [PR #52](https://github.com/D3ckardCain/Geelark-IA/pull/52). La PR sigue draft y su base es `feat/master-status-snapshot-provider-v1`; la integración combinada y validación operativa siguen pendientes.
+
+
+### Comparación final provisional de PR #54 contra el HEAD corregido de #52 — 2026-10-11
+
+Las pruebas y rutas presentes en #54 parecen estar cubiertas por #52 en el HEAD `1fc6f4ffe41e40a8264075bccd8d5c133c464f49`: claim con lease y nodo activo, denegación de nodos pending, validaciones HTTP/headers, claim concurrente, lease y fencing. El CI de #52 está verde en [transporte #38172698726](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38172698726), [persistencia #38172698723](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38172698723) y [esquema #38172698717](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38172698717).
+
+No cerrar #54 todavía: #52 sigue en draft y su base/migración (`feat/master-status-snapshot-provider-v1`, migración 0005) difiere de #54 (base transporte, migración 0004). Falta comprobar el diff combinado y la numeración de migraciones antes de declarar formalmente supersesión. Registro en [comentario de #54](https://github.com/D3ckardCain/Geelark-IA/pull/54#issuecomment-6113459412).
