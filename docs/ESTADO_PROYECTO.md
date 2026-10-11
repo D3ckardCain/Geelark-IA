@@ -556,3 +556,8 @@ El HEAD `3bbd65d6c49884408086219a364f251ddbd8c9b7` de [PR #57](https://github.co
 ### Sincronización del supervisor con ciclo de recibos canónico — 2026-10-11
 
 PR #67 se sincronizó con el HEAD validado de #57 mediante [`3b1c21610e7de8d608a967f68daabc7abc5bda30`](https://github.com/D3ckardCain/Geelark-IA/commit/3b1c21610e7de8d608a967f68daabc7abc5bda30). GitHub informa `mergeable=true`, `ahead 5 / behind 0`. Se conservaron CLI/supervisor, proveedores file/systemd, monitor netlink y la base canónica con lifecycle/auth/expiración. CI transporte [#38158083417](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38158083417) está en ejecución; revisar el resultado combinado antes de validar.
+
+
+### CI final del supervisor sobre lifecycle y auth canónica — 2026-10-11
+
+El HEAD `3b1c21610e7de8d608a967f68daabc7abc5bda30` de [PR #67](https://github.com/D3ckardCain/Geelark-IA/pull/67) pasó [Transporte HTTPS #38158083417](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38158083417) con **129 pruebas aprobadas**, un warning deprecatorio Starlette/httpx y `pip check` correcto. El workflow instaló auth canónica y transporte; no hay validación física. Reconciliación conservadora permanece en #61. Evidencia en [comentario de #67](https://github.com/D3ckardCain/Geelark-IA/pull/67#issuecomment-6111500419).
