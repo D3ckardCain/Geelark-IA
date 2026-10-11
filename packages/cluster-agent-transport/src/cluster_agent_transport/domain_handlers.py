@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
+import re
 from typing import Any
 
 import psycopg
@@ -14,10 +15,73 @@ from fastapi import HTTPException
 from psycopg.types.json import Jsonb
 
 from .policy import AgentPrincipal, Operation
+from .module_registry import MODULE_REPORT_STALE_AFTER, SUPPORTED_MODULE_IDS
 
 
 HEARTBEAT_STALE_AFTER = timedelta(seconds=90)
 
+
+def _derive_module_reports(reports: list[dict[str, Any]], last_seen_at: datetime | None, *, now: datetime | None = None) -> list[dict[str, Any]]:
+    """Sanea filas persistidas y degrada a unknown datos obsoletos o incoherentes."""
+    current_time = now or datetime.now(timezone.utc)
+    node_stale = last_seen_at is None or last_seen_at <= current_time - HEARTBEAT_STALE_AFTER
+    allowed_states = {"operational", "degraded", "not-installed", "unknown"}
+    error_code_pattern = re.compile(r"^[A-Z0-9_]{1,64}$")
+    result: list[dict[str, Any]] = []
+    source_reports = reports[:32] if isinstance(reports, list) else []
+
+    for item in source_reports:
+        if not isinstance(item, dict):
+            continue
+        module_id = item.get("module_id")
+        # No se reenvían identificadores arbitrarios desde una fila persistida.
+        if not isinstance(module_id, str) or module_id not in SUPPORTED_MODULE_IDS:
+            continue
+
+        raw_checked_at = item.get("checked_at")
+        try:
+            checked_at = (
+                datetime.fromisoformat(raw_checked_at.replace("Z", "+00:00"))
+                if isinstance(raw_checked_at, str) else None
+            )
+            if checked_at is not None and (checked_at.tzinfo is None or checked_at.utcoffset() is None):
+                checked_at = None
+            elif checked_at is not None:
+                checked_at = checked_at.astimezone(timezone.utc)
+        except (ValueError, TypeError):
+            checked_at = None
+
+        state = item.get("state")
+        source = item.get("source")
+        error_code = item.get("error_code")
+        version = item.get("version")
+        if not isinstance(version, str) or not version.strip() or len(version) > 64:
+            version = None
+        if not isinstance(error_code, str) or not error_code_pattern.fullmatch(error_code):
+            error_code = None
+
+        if node_stale:
+            state, source, error_code = "unknown", "master-check", "NODE_STALE"
+        elif checked_at is None:
+            state, source, error_code = "unknown", "master-check", "REPORT_MISSING"
+        elif checked_at > current_time + timedelta(seconds=5):
+            state, source, error_code = "unknown", "master-check", "REPORT_TIME_SKEW"
+            checked_at = None
+        elif current_time - checked_at >= MODULE_REPORT_STALE_AFTER:
+            state, source, error_code = "unknown", "master-check", "REPORT_STALE"
+        elif (not isinstance(state, str) or state not in allowed_states
+              or not isinstance(source, str) or source != "agent-report"):
+            state, source, error_code = "unknown", "master-check", "INVALID_MODULE_REPORT"
+
+        result.append({
+            "module_id": module_id,
+            "state": state if isinstance(state, str) and state in allowed_states else "unknown",
+            "version": version,
+            "checked_at": checked_at.isoformat().replace("+00:00", "Z") if checked_at else None,
+            "source": source if isinstance(source, str) and source in {"agent-report", "master-check", "unknown"} else "unknown",
+            "error_code": error_code,
+        })
+    return result
 
 def _derive_health_state(reported_health_state: str, last_seen_at: datetime | None, *, now: datetime | None = None) -> str:
     """Deriva salud usando el reloj del controlador, nunca solo el valor del agente."""
@@ -106,13 +170,36 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             "capability_count": len(payload["capabilities"]),
         }
 
+    def modules(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
+        """Persiste inventario; el UPDATE solo permite nodos active."""
+        _assert_principal_current(conn, principal)
+        received_at = datetime.now(timezone.utc)
+        normalized = [
+            {"module_id": item["module_id"], "state": item["state"], "version": item.get("version"),
+             "checked_at": received_at.isoformat(), "source": "agent-report", "error_code": item.get("error_code")}
+            for item in payload["modules"]
+        ]
+        row = conn.execute(
+            """
+            UPDATE geelark_control.nodes
+               SET module_reports = %s, updated_at = now()
+             WHERE node_id = %s AND admin_state = 'active' AND revoked_at IS NULL
+            RETURNING node_id, admin_state
+            """,
+            (Jsonb(normalized), principal.node_id),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=403, detail={"code": "PERMISSION_DENIED"})
+        return {"ok": True, "node_id": str(row[0]), "admin_state": row[1],
+                "module_count": len(normalized), "received_at": received_at.isoformat()}
+
     def status(*, principal: AgentPrincipal, payload: Any = None) -> dict[str, Any]:
         with connect() as conn:
             _assert_principal_current(conn, principal)
             row = conn.execute(
                 """
                 SELECT node_id, display_name, admin_state, reported_health_state, agent_version,
-                       protocol_version, last_seen_at, last_sequence, capabilities
+                       protocol_version, last_seen_at, last_sequence, capabilities, module_reports
                   FROM geelark_control.nodes
                  WHERE node_id = %s
                 """,
@@ -131,10 +218,12 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 "last_seen_at": row[6].astimezone(timezone.utc).isoformat() if row[6] else None,
                 "sequence": row[7],
                 "capabilities": row[8],
+                "modules": _derive_module_reports(row[9], row[6]),
             }
 
     return {
         Operation.HEARTBEAT: heartbeat,
         Operation.CAPABILITIES: capabilities,
+        Operation.MODULES_REPORT: modules,
         Operation.STATUS_READ: status,
     }
