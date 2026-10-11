@@ -83,6 +83,12 @@ openssl req -x509 -newkey rsa:3072 -sha256 -nodes -days 365 \
 chmod 600 "$HOME/.config/geelark/master-admin/master-local.key"
 ```
 
+En Windows PowerShell, usando el directorio `$StateDir` creado arriba:
+```powershell
+openssl req -x509 -newkey rsa:3072 -sha256 -nodes -days 365 -keyout "$StateDir\master-local.key" -out "$StateDir\master-local.crt" -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+icacls "$StateDir\master-local.key" /inheritance:r /grant:r "$($env:USERDOMAIN)\$($env:USERNAME):F"
+```
+
 Guarda ambos archivos fuera de Git y protege la clave privada. Para evitar avisos del navegador, instala el certificado local como certificado de confianza en el equipo operador. No desactives la validación TLS. No uses este certificado autofirmado para publicar el servicio en Internet ni en una LAN.
 
 ### 5. Crear y verificar el rol PostgreSQL
@@ -94,7 +100,7 @@ psql "$ADMIN_DSN" -v ON_ERROR_STOP=1 -f db/admin/MASTER_ADMIN_READONLY_ROLE.sql
 psql "$ADMIN_DSN"
 ```
 
-En el prompt interactivo de psql ejecuta `\\password geelark_master_reader` y establece una contraseña fuerte. No la pongas en el script SQL, GitHub, argumentos de comandos ni logs.
+En el prompt interactivo de psql ejecuta `\password geelark_master_reader` y establece una contraseña fuerte. No la pongas en el script SQL, GitHub, argumentos de comandos ni logs.
 
 Después, conecta como `geelark_master_reader` y ejecuta `db/tests/0005_master_admin_readonly_role.sql`. La prueba debe terminar sin excepción. Verifica además que el rol no pertenezca a otros roles ni tenga privilegios de escritura concedidos por otros mecanismos. No hemos verificado grants reales en tu instancia porque no tenemos acceso a sus credenciales; hasta ejecutar esta prueba, el control de permisos de base de datos sigue pendiente.
 
@@ -119,6 +125,19 @@ chmod 600 "$PGPASSFILE"
 python -m geelark_master_admin.runtime
 ```
 El archivo `pgpass` contiene una línea con formato `host:port:database:username:password`, por ejemplo los cuatro primeros campos deben coincidir con el DSN. No pongas la contraseña en el DSN ni en el repositorio.
+
+Equivalente en Windows PowerShell (usa un `PGPASSFILE` con ACL limitada al usuario actual):
+```powershell
+$StateDir = "$env:LOCALAPPDATA\GeeLark-IA\master-admin"
+$env:GEELARK_ADMIN_OPERATOR_AUTH_FILE = Join-Path $StateDir "operator-auth.json"
+$env:GEELARK_ADMIN_STATE_DIR = $StateDir
+$env:GEELARK_ADMIN_DATABASE_URL = "postgresql://geelark_master_reader@localhost:5432/geelark?sslmode=disable"
+$env:GEELARK_ADMIN_TLS_CERT = Join-Path $StateDir "master-local.crt"
+$env:GEELARK_ADMIN_TLS_KEY = Join-Path $StateDir "master-local.key"
+$env:PGPASSFILE = Join-Path $StateDir "pgpass"
+icacls $env:PGPASSFILE /inheritance:r /grant:r "$($env:USERDOMAIN)\$($env:USERNAME):F"
+python -m geelark_master_admin.runtime
+```
 
 Para PostgreSQL local, usa `localhost` o socket local. Para una base remota, exige `sslmode=verify-full` y almacena la contraseña en un archivo `PGPASSFILE` privado o en el gestor de secretos del sistema. No pegues DSN con contraseña en GitHub ni en el chat. La base remota requiere conectividad y puede tener límites del proveedor; el coste $0 no está garantizado por proveedores externos. PostgreSQL local es la opción con menor dependencia externa.
 
