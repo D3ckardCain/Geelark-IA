@@ -634,3 +634,8 @@ El script de rol lector se reforzó también en [commit `9fee5b72900df76193a9aab
 ### Corrección final de estado CI y coste — 2026-10-11
 
 Corrección de la nota anterior de coste: transporte #38172963463 terminó `completed/success`, al igual que persistencia #38172963423 y esquema #38172963435 para el HEAD `3d54bab99b4b5acdba8f6c0a1c821a0ba31e143a` de #52. La aclaración quedó en [Issue #63](https://github.com/D3ckardCain/Geelark-IA/issues/63#issuecomment-6113529038). El coste real de Actions sigue sin verificarse porque no hay datos de Billing disponibles en el conector de repositorio.
+
+
+### PR #76: alcance de revocación/verificación de grants — 2026-10-11
+
+Se identificó un límite adicional del rol lector: el script de preparación y `verify_readonly_role.sql` revisan privilegios sobre `geelark_control`, pero no detectan grants explícitos preexistentes del rol en otros esquemas de usuario. La API ejecuta una consulta fija sobre `geelark_control.nodes`, por lo que no se ha demostrado una ruta de explotación directa; aun así, el rol no puede declararse estrictamente de privilegio mínimo hasta ampliar preparación/verificación a otros esquemas o usar un rol nuevo en una base dedicada. Registrado en [comentario de PR #76](https://github.com/D3ckardCain/Geelark-IA/pull/76#issuecomment-6113533519). No se ejecutó SQL contra una base real.
