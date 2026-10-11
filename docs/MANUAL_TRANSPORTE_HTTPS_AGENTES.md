@@ -1,6 +1,6 @@
 # Manual de transporte HTTPS privado para agentes
 
-**Estado:** guía técnica preliminar. No ejecutar en las PC físicas ni activar el listener hasta aprobar la revisión de seguridad y completar el adaptador de dominio.
+**Estado:** guía técnica preliminar. No ejecutar en las PC físicas ni activar el listener hasta aprobar la revisión de seguridad y validar la integración del adaptador de dominio.
 
 ## 1. Principios y límites
 
