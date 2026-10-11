@@ -674,3 +674,8 @@ La carpeta `docs/decisiones` en `main` contiene ADR-001 a ADR-004. Tres ramas ab
 ### Corrección de estado PR #59/#67 — 2026-10-11
 
 La comparación inicial que describía #59 y #67 como ramas complementarias quedó obsoleta: la rama actual #67 (`3b1c21610e7de8d608a967f68daabc7abc5bda30`) incorpora `credentials.py`, `SystemdCredentialProvider`, `bootstrap.py`, CLI/configuración, `AgentNodeSupervisor` y monitor netlink. PR #59 está cerrada como sustituida por #67 (comentario de cierre #6107033798). El HEAD actual de #67 tiene CI [#38158083417](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38158083417) `completed/success`, con 129 pruebas, un warning deprecatorio y `pip check` correcto. Se corrigió la nota en [comentario de #67](https://github.com/D3ckardCain/Geelark-IA/pull/67#issuecomment-6113593229). No hay merge ni despliegue.
+
+
+### Aclaración: CI de #67/#61 anterior al último avance de #52 — 2026-10-11
+
+Aunque #67 [#38158083417](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38158083417) y #61 [#38159108522](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38159108522) (junto con los otros workflows de #61) terminaron success para sus HEADs, esas ejecuciones son anteriores al último avance de #52 a `3d54bab99b4b5acdba8f6c0a1c821a0ba31e143a`. No acreditan el merge result actual de la pila descendiente; revalidar #57/#67/#61 con la base actualizada antes de integrar. Comentarios: [#67](https://github.com/D3ckardCain/Geelark-IA/pull/67#issuecomment-6113595941), [#61](https://github.com/D3ckardCain/Geelark-IA/pull/61#issuecomment-6113596241).
