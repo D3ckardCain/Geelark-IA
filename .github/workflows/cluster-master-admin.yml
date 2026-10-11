@@ -1,0 +1,36 @@
+name: Cluster Master Admin API
+
+on:
+  pull_request:
+    paths:
+      - "packages/cluster-master-admin/**"
+      - "packages/cluster-persistence/**"
+      - ".github/workflows/cluster-master-admin.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  admin-api:
+    name: Python 3.11 — API administrativa local
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install persistence and admin packages with tests
+        run: |
+          python -m pip install -e "packages/cluster-persistence[test]"
+          python -m pip install -e "packages/cluster-master-admin[test]"
+      - name: Run admin API security tests
+        run: python -m pytest packages/cluster-master-admin/tests -q
+      - name: Check dependency consistency
+        run: python -m pip check
