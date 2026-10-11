@@ -100,3 +100,10 @@ No activar listeners ni desplegar en nodos físicos hasta que la pila completa e
 - Heartbeat, capacidades y consulta de estado siguen requiriendo conectividad y no se encolan en esta capa.
 - Este coordinador no reclama ni ejecuta tareas, no abre listeners y no activa ADB/shell.
 - La prueba de integración crea TLS de loopback, SQLite y PostgreSQL desechable; no sustituye pruebas en hardware físico.
+
+
+## Supervisor de telemetría
+
+`AgentNodeSupervisor` coordina heartbeat, capacidades y consulta de estado con ciclos separados y límites explícitos; la sincronización durable usa `AgentReceiptSyncLifecycle` en un hilo independiente. La fábrica `build_agent_components()` construye el cliente TLS, runtime, journal/sincronizador y supervisor sin arrancar hilos automáticamente.
+
+El CLI `geelark-agent --config /ruta/agente.toml` requiere configuración explícita y mantiene `credential_provider = "file"` por defecto; Linux/systemd puede usar `credential_provider = "systemd"` cuando el servicio monte una credencial mediante `LoadCredential`. No se incluye unit file ni instalador de producción. No se ejecutan tareas, ADB ni shell.

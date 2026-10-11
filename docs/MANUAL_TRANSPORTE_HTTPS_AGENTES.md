@@ -224,3 +224,10 @@ El esquema JSON formal y el ejemplo están en [worker-module-inventory-v1.schema
 El agente debe ejecutar `AgentReceiptSyncLifecycle` como componente separado del supervisor de telemetría. Inícialo una sola vez durante el arranque, deja que sincronice lotes limitados y llama `notify_reconnected()` únicamente cuando el monitor de conectividad detecte una transición real a conectado. Al apagar, llama `stop(timeout=...)` y considera `False` como un timeout real; no declares que el hilo terminó si sigue vivo.
 
 La sincronización solo envía recibos ya persistidos en el journal. Un HTTP 2xx confirma la versión transmitida; los fallos de red o la pérdida del ACK mantienen el recibo pendiente y el reintento conserva la clave de idempotencia con un nonce nuevo. No registrar tokens, payloads ni cuerpos de respuesta. El worker no ejecuta operaciones Android ni reclama tareas.
+
+
+## Supervisor de telemetría y conectividad
+
+El entry point `geelark-agent --config` carga un TOML explícito, valida HTTPS/CA y credenciales, inicializa el journal SQLite y construye el supervisor. El supervisor envía heartbeat, capacidades y estado en ciclos independientes; la sincronización de recibos mantiene su propio hilo. El monitor Linux usa eventos netlink para notificar cambios de conectividad, no sondeo continuo ni comandos externos.
+
+La configuración usa `credential_provider = "file"` de forma predeterminada. `credential_provider = "systemd"` solo funciona si systemd monta la credencial configurada; todavía no hay unit file ni procedimiento de instalación/rotación aprobado. El supervisor no reclama ni ejecuta tareas Android y no abre listeners.
