@@ -561,3 +561,10 @@ PR #67 se sincronizó con el HEAD validado de #57 mediante [`3b1c21610e7de8d608a
 ### CI final del supervisor sobre lifecycle y auth canónica — 2026-10-11
 
 El HEAD `3b1c21610e7de8d608a967f68daabc7abc5bda30` de [PR #67](https://github.com/D3ckardCain/Geelark-IA/pull/67) pasó [Transporte HTTPS #38158083417](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38158083417) con **129 pruebas aprobadas**, un warning deprecatorio Starlette/httpx y `pip check` correcto. El workflow instaló auth canónica y transporte; no hay validación física. Reconciliación conservadora permanece en #61. Evidencia en [comentario de #67](https://github.com/D3ckardCain/Geelark-IA/pull/67#issuecomment-6111500419).
+
+
+### Reconciliación de inventario portado al supervisor canónico — 2026-10-11
+
+PR #61 se sincronizó con #67 mediante [`4d4b5a1e9aac3f6ad8e8f62dc165bd4ae7a4712a`](https://github.com/D3ckardCain/Geelark-IA/commit/4d4b5a1e9aac3f6ad8e8f62dc165bd4ae7a4712a); `ahead 140 / behind 0`, `mergeable=true`. Se resolvió el conflicto de contrato detectado: `POST /agent/v1/reconcile` queda para `assignments`; el inventario local usa `POST /agent/v1/reconcile/inventory`, operación `RECONCILE_INVENTORY` mapeada a autorización canónica `RECONCILE`. La migración se renumeró a `0006_agent_reconciliation_reports.sql` para seguir a `0004_worker_module_inventory.sql` y `0005_agent_task_inbox.sql`.
+
+El worker se portó a `AgentNodeSupervisor`, usa hilo separado, espera un heartbeat exitoso, conserva UUID/snapshot durante reintentos y renueva al reconectar. El proveedor de inventario es opcional y no se activa desde la CLI sin una fuente explícita. CI del HEAD combinado en cola: [transporte #38158919448](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38158919448), [esquema #38158919574](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38158919574), [persistencia #38158919454](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38158919454).
