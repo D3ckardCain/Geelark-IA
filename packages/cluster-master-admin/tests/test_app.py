@@ -101,7 +101,7 @@ def test_login_get_snapshots_and_logout_revoke_session(tmp_path: Path) -> None:
     assert login.json() == {"authenticated": True}
     cookie = login.headers["set-cookie"].lower()
     assert "httponly" in cookie and "secure" in cookie and "samesite=strict" in cookie
-    assert SESSION_COOKIE in cookie
+    assert SESSION_COOKIE.lower() in cookie
 
     status = client.get("/admin/v1/session")
     assert status.json() == {"authenticated": True}
