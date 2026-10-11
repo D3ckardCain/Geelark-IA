@@ -93,16 +93,16 @@ Guarda ambos archivos fuera de Git y protege la clave privada. Para evitar aviso
 
 ### 5. Crear y verificar el rol PostgreSQL
 
-El script `db/admin/MASTER_ADMIN_READONLY_ROLE.sql` crea/configura el rol dedicado y concede únicamente `USAGE` en el esquema y `SELECT` en `geelark_control.nodes`. Ejecútalo con una cuenta administradora, nunca con el usuario que usará el panel:
+El script `packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql` crea/configura el rol dedicado y concede únicamente `USAGE` en el esquema y `SELECT` en `geelark_control.nodes`. Ejecútalo con una cuenta administradora, nunca con el usuario que usará el panel:
 
 ```sh
-psql "$ADMIN_DSN" -v ON_ERROR_STOP=1 -f db/admin/MASTER_ADMIN_READONLY_ROLE.sql
+psql "$ADMIN_DSN" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql
 psql "$ADMIN_DSN"
 ```
 
 En el prompt interactivo de psql ejecuta `\password geelark_master_reader` y establece una contraseña fuerte. No la pongas en el script SQL, GitHub, argumentos de comandos ni logs.
 
-Después, conecta como `geelark_master_reader` y ejecuta `db/tests/0005_master_admin_readonly_role.sql`. La prueba debe terminar sin excepción. Verifica además que el rol no pertenezca a otros roles ni tenga privilegios de escritura concedidos por otros mecanismos. No se han verificado grants reales: el proyecto Supabase vinculado aparece INACTIVE y no se restauró. Hasta que el usuario decida entre reactivarlo tras confirmar que seguirá en $0 o configurar PostgreSQL local, el control de permisos de base de datos sigue pendiente.
+Después, conecta como `geelark_master_reader` y ejecuta `packages/cluster-master-admin/sql/verify_readonly_role.sql`. La prueba debe terminar sin excepción. Verifica además que el rol no pertenezca a otros roles ni tenga privilegios de escritura concedidos por otros mecanismos. No se han verificado grants reales: el proyecto Supabase vinculado aparece INACTIVE y no se restauró. Hasta que el usuario decida entre reactivarlo tras confirmar que seguirá en $0 o configurar PostgreSQL local, el control de permisos de base de datos sigue pendiente.
 
 ### 6. Configurar el entorno sin guardar secretos en Git
 
