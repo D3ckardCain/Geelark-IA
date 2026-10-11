@@ -654,3 +654,8 @@ La rama #38 está en esquema v3 (`task_id`, estado `rejected`, tabla `synced_rec
 ### Seguimiento de Issues #50 y #72 — 2026-10-11
 
 Se actualizó [Issue #50](https://github.com/D3ckardCain/Geelark-IA/issues/50#issuecomment-6113553786) con el HEAD de #52, CI verde, prueba de replay terminal con ambas leases vencidas, cierres supersedidos #54/#68 y puertas pendientes para la pila descendiente. Se actualizó [Issue #72](https://github.com/D3ckardCain/Geelark-IA/issues/72#issuecomment-6113554628) con el estado del inventario (#73), proveedor (#74) y panel autenticado (#76), manteniendo la salvedad de CI exacta para el HEAD de #74 y de grants/ACL aún no verificados en operación real.
+
+
+### PR #76: límite de cuerpo HTTP añadido — 2026-10-11
+
+Se añadió un `BodyLimitMiddleware` con límite de 16 KiB para la API administrativa, incluido el caso de cuerpos sin `Content-Length`, y un test que espera 413 sin reflejar el contenido. Commits: [implementación `f67d17a64276aae650467aa42480d97ca0f60627`](https://github.com/D3ckardCain/Geelark-IA/commit/f67d17a64276aae650467aa42480d97ca0f60627) y [test `4124edc2ea4f0f0bb13978e6e22a93758fef56b9`](https://github.com/D3ckardCain/Geelark-IA/commit/4124edc2ea4f0f0bb13978e6e22a93758fef56b9). CI no se ejecutó porque el workflow es manual-only; no declarar la prueba aprobada hasta ejecutar con cuota confirmada. Continúan pendientes ACL NTFS efectiva y verificación de grants fuera de `geelark_control`.
