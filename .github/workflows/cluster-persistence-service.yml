@@ -88,7 +88,7 @@ jobs:
         run: python -m pip install -e "packages/cluster-agent-auth[test]"
 
       - name: Run agent auth service tests when present
-        if: hashFiles('packages/cluster-agent-auth/pyproject.yml') != ''
+        if: hashFiles('packages/cluster-agent-auth/pyproject.toml') != ''
         run: python -m pytest packages/cluster-agent-auth/tests -q
 
       - name: Check dependency consistency
