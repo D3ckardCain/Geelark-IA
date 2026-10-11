@@ -297,3 +297,5 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 - Se añadieron `db/admin/MASTER_ADMIN_READONLY_ROLE.sql` y `db/tests/0005_master_admin_readonly_role.sql` para preparar y verificar el rol dedicado.
 - CI para este paquete está configurada manualmente para reducir consumo de Actions. La última ejecución verde corresponde a un commit anterior a la integración de panel, runtime y nuevos tests; volver a ejecutar solo después de revisar cuota y coste.
 - No se ha instalado ni iniciado en PC-MASTER, no se han verificado los grants en la base real y no se ha desplegado. Esas validaciones siguen pendientes; no declarar la pantalla operativa hasta completarlas.
+
+- Comprobación de infraestructura (solo lectura, 2026-10-11): la organización Supabase vinculada figura en plan Free, pero el proyecto de base de datos está `INACTIVE`. No se restauró ni modificó para no arriesgar un coste; por tanto, no se verificó la base real. La integración queda bloqueada hasta que el usuario decida reactivarlo tras confirmar $0 o usar PostgreSQL local.
