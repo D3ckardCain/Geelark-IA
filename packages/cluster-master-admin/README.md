@@ -2,7 +2,7 @@
 
 ## Estado
 
-La PR implementa una API FastAPI, formulario de acceso en el panel del mismo origen, sesiones locales y una consulta de snapshots. El proceso de arranque exige TLS y configuración explícita. No se ha iniciado en el PC-MASTER del usuario, no se ha conectado a su PostgreSQL y no se ha desplegado.
+La PR implementa una API FastAPI, formulario de acceso en el panel del mismo origen, sesiones locales y una consulta de snapshots. El proceso de arranque exige TLS y configuración explícita. No se ha iniciado en el PC-MASTER del usuario ni se ha desplegado. El proyecto Supabase vinculado aparece actualmente como INACTIVE en el plan Free; no se restauró ni modificó para evitar cualquier riesgo de coste. Por ello no se pudieron verificar grants ni conectividad reales.
 
 ## Rutas
 
@@ -102,7 +102,7 @@ psql "$ADMIN_DSN"
 
 En el prompt interactivo de psql ejecuta `\password geelark_master_reader` y establece una contraseña fuerte. No la pongas en el script SQL, GitHub, argumentos de comandos ni logs.
 
-Después, conecta como `geelark_master_reader` y ejecuta `db/tests/0005_master_admin_readonly_role.sql`. La prueba debe terminar sin excepción. Verifica además que el rol no pertenezca a otros roles ni tenga privilegios de escritura concedidos por otros mecanismos. No hemos verificado grants reales en tu instancia porque no tenemos acceso a sus credenciales; hasta ejecutar esta prueba, el control de permisos de base de datos sigue pendiente.
+Después, conecta como `geelark_master_reader` y ejecuta `db/tests/0005_master_admin_readonly_role.sql`. La prueba debe terminar sin excepción. Verifica además que el rol no pertenezca a otros roles ni tenga privilegios de escritura concedidos por otros mecanismos. No se han verificado grants reales: el proyecto Supabase vinculado aparece INACTIVE y no se restauró. Hasta que el usuario decida entre reactivarlo tras confirmar que seguirá en $0 o configurar PostgreSQL local, el control de permisos de base de datos sigue pendiente.
 
 ### 6. Configurar el entorno sin guardar secretos en Git
 
