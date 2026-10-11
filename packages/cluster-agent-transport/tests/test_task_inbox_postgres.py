@@ -216,6 +216,12 @@ def test_active_node_claims_assignment_and_reports_fenced_result():
                 "UPDATE geelark_control.agent_tasks SET delivery_lease_until = now() - interval '1 second' WHERE task_id = %s",
                 (task_id,),
             )
+            conn.execute(
+                "UPDATE geelark_control.instances SET lease_expires_at = now() - interval '1 second' WHERE instance_id = %s",
+                (instance_id,),
+            )
+        # Un reintento terminal idéntico se reconoce aun vencidas ambas leases,
+        # siempre que no haya cambiado el propietario ni assignment_epoch.
         duplicate_result = client.post(
             f"/agent/v1/tasks/{task_id}/result",
             headers=headers("task-result-duplicate-" + str(uuid4())),
@@ -223,6 +229,11 @@ def test_active_node_claims_assignment_and_reports_fenced_result():
         )
         assert duplicate_result.status_code == 200
         assert duplicate_result.json()["duplicate"] is True
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.instances SET lease_expires_at = now() + interval '5 minutes' WHERE instance_id = %s",
+                (instance_id,),
+            )
         conflicting_result = client.post(
             f"/agent/v1/tasks/{task_id}/result",
             headers=headers("task-result-conflict-" + str(uuid4())),
