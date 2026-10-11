@@ -46,7 +46,7 @@ def _database_connector():
     hosts = host.split(",") if host else [""]
     remote = [h for h in hosts if h and h not in {"localhost", "127.0.0.1", "::1"} and not h.startswith("/")]
     if remote and details.get("sslmode") not in {"verify-full", "verify-ca"}: raise RuntimeError("PostgreSQL remoto exige sslmode=verify-full o verify-ca.")
-    if details.get("user", "").lower() in {"postgres", "root", "admin", "supabase_admin"}: raise RuntimeError("No se permite usar una cuenta PostgreSQL privilegiada; configure el rol dedicado SELECT-only.")
+    if details.get("user", "") != "geelark_master_reader": raise RuntimeError("GEELARK_ADMIN_DATABASE_URL debe usar exactamente el rol dedicado geelark_master_reader.")
     def connect():
         return psycopg.connect(dsn, connect_timeout=3, options="-c default_transaction_read_only=on -c statement_timeout=1500 -c lock_timeout=500")
     return connect
