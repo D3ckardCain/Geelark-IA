@@ -89,7 +89,7 @@ def cleanup(connect, node_id, instance_id, operation_id, credential_id):
 
 
 def run_reconcile(connect, node_id, credential_id, inventory):
-    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active")
+    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active", datetime.now(timezone.utc) + timedelta(hours=1))
     handler = make_postgres_agent_handlers(connect)[Operation.RECONCILE_INVENTORY]
     with connect() as conn:
         with conn.transaction():
