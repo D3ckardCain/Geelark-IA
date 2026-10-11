@@ -38,7 +38,7 @@ def test_claim_task_returns_durable_task_and_lease_only_for_active_node():
         (delivery_lease_expires_at,),
     ])
     handlers = make_postgres_agent_handlers(lambda: conn)
-    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active")
+    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active", datetime.now(timezone.utc) + timedelta(hours=1))
 
     response = handlers[Operation.TASK_FETCH](
         conn=conn, principal=principal, payload={"schema_version": 1}
