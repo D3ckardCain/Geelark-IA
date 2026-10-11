@@ -43,6 +43,67 @@ class RequireHTTPSMiddleware:
         await self.app(scope, receive, send)
 
 
+class BodyLimitMiddleware:
+    """Limita cuerpos ASGI incluso si no se declara Content-Length."""
+
+    def __init__(self, app: Any, max_bytes: int = 16_384) -> None:
+        if isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes < 1:
+            raise ValueError("max_bytes debe ser un entero positivo")
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
+        if scope.get("type") != "http":
+            await self.app(scope, receive, send)
+            return
+        headers = dict(scope.get("headers", []))
+        raw_length = headers.get(b"content-length")
+        if raw_length is not None:
+            try:
+                if int(raw_length) > self.max_bytes:
+                    await self._respond(scope, receive, send, 413, "BODY_TOO_LARGE")
+                    return
+            except ValueError:
+                await self._respond(scope, receive, send, 400, "INVALID_CONTENT_LENGTH")
+                return
+
+        chunks: list[bytes] = []
+        total = 0
+        more = True
+        while more:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            chunk = message.get("body", b"")
+            total += len(chunk)
+            if total > self.max_bytes:
+                await self._respond(scope, receive, send, 413, "BODY_TOO_LARGE")
+                return
+            chunks.append(chunk)
+            more = message.get("more_body", False)
+
+        body = b"".join(chunks)
+        delivered = False
+
+        async def replay_receive() -> dict[str, Any]:
+            nonlocal delivered
+            if not delivered:
+                delivered = True
+                return {"type": "http.request", "body": body, "more_body": False}
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        await self.app(scope, replay_receive, send)
+
+    @staticmethod
+    async def _respond(
+        scope: dict[str, Any], receive: Any, send: Any, status: int, code: str
+    ) -> None:
+        response = JSONResponse({"error": {"code": code}}, status_code=status)
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        await response(scope, receive, send)
+
+
 def _security_headers(response: Response) -> Response:
     response.headers["Cache-Control"] = "no-store, max-age=0"
     response.headers["Pragma"] = "no-cache"
@@ -107,6 +168,7 @@ def create_admin_app(
     sessions = SessionStore(session_db_path)
     limiter = rate_limiter or LoginRateLimiter()
     app = FastAPI(title="GeeLark-IA Master Admin API", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None)
+    app.add_middleware(BodyLimitMiddleware, max_bytes=16_384)
     app.add_middleware(RequireHTTPSMiddleware)
 
     @app.exception_handler(RequestValidationError)
