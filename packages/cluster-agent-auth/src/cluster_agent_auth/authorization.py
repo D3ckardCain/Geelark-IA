@@ -14,7 +14,9 @@ from enum import StrEnum
 class AgentOperation(StrEnum):
     HEARTBEAT = "heartbeat"
     PUBLISH_CAPABILITIES = "publish_capabilities"
+    REPORT_MODULES = "report_modules"
     READ_OWN_STATUS = "read_own_status"
+    CLAIM_TASK = "claim_task"
     ACCEPT_TASK = "accept_task"
     REPORT_PROGRESS = "report_progress"
     REPORT_RESULT = "report_result"
