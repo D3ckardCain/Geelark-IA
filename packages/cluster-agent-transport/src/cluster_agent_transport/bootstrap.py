@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from time import monotonic
 from typing import Any, Callable
 from uuid import UUID
 
@@ -11,7 +12,7 @@ from .client import AgentHTTPSClient
 from .credentials import CredentialProvider
 from .lifecycle import AgentReceiptSyncLifecycle
 from .runtime import AgentTransportRuntime
-from .supervisor import AgentSupervisor
+from .supervisor import AgentNodeSupervisor
 
 
 @dataclass(frozen=True)
@@ -21,7 +22,7 @@ class AgentComponents:
     client: AgentHTTPSClient
     runtime: AgentTransportRuntime
     receipt_lifecycle: AgentReceiptSyncLifecycle
-    supervisor: AgentSupervisor
+    supervisor: AgentNodeSupervisor
 
 
 def build_agent_components(
@@ -31,16 +32,20 @@ def build_agent_components(
     credential_provider: CredentialProvider,
     journal: Any,
     local_node_id: UUID,
-    heartbeat_payload: Callable[[], dict[str, Any]],
-    capabilities_payload: Callable[[], dict[str, Any]],
+    agent_version: str,
+    capabilities: list[str],
     request_timeout_seconds: float = 5.0,
     receipt_batch_size: int = 100,
     heartbeat_interval_seconds: float = 30.0,
+    capabilities_interval_seconds: float = 300.0,
+    status_interval_seconds: float = 60.0,
     reconcile_inventory: Callable[[], list[dict[str, Any]]] | None = None,
     on_reconciliation: Callable[[Any], None] | None = None,
     reconciliation_retry_interval_seconds: float = 60.0,
+    metrics_provider: Callable[[], dict[str, int | float]] | None = None,
     clock: Callable[..., Any] | None = None,
     on_error: Callable[[str], None] | None = None,
+    monotonic_clock: Callable[[], float] = monotonic,
 ) -> AgentComponents:
     """Construye cliente TLS, runtime, sincronizador y supervisor, pero no los arranca.
 
@@ -69,16 +74,20 @@ def build_agent_components(
         runtime=runtime,
         batch_size=receipt_batch_size,
     )
-    supervisor = AgentSupervisor(
+    supervisor = AgentNodeSupervisor(
         runtime=runtime,
-        receipt_lifecycle=receipt_lifecycle,
-        heartbeat_payload=heartbeat_payload,
-        capabilities_payload=capabilities_payload,
+        receipt_sync=receipt_lifecycle,
+        agent_version=agent_version,
+        capabilities=capabilities,
         heartbeat_interval_seconds=heartbeat_interval_seconds,
+        capabilities_interval_seconds=capabilities_interval_seconds,
+        status_interval_seconds=status_interval_seconds,
         reconcile_inventory=reconcile_inventory,
         on_reconciliation=on_reconciliation,
         reconciliation_retry_interval_seconds=reconciliation_retry_interval_seconds,
+        metrics_provider=metrics_provider,
         on_error=on_error,
+        monotonic=monotonic_clock,
     )
     return AgentComponents(
         client=client,
