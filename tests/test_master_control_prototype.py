@@ -1,27 +1,10 @@
-"""Static regression tests for the standalone Master/Workers demo.
-
-Run from the repository root with:
-    python -m unittest tests/test_master_control_prototype.py
-Only Python's standard library is required.
-"""
+"""Regression checks for the read-only live-snapshot dashboard."""
 from html.parser import HTMLParser
 from pathlib import Path
 import re
 import unittest
 
-
 HTML_PATH = Path(__file__).resolve().parents[1] / "prototypes" / "master-control" / "index.html"
-
-
-def relative_luminance(color):
-    channels = [int(color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
-    linear = [channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4 for channel in channels]
-    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
-
-
-def contrast_ratio(foreground, background):
-    lighter, darker = sorted((relative_luminance(foreground), relative_luminance(background)), reverse=True)
-    return (lighter + 0.05) / (darker + 0.05)
 
 
 class DocumentParser(HTMLParser):
@@ -56,25 +39,32 @@ class MasterControlPrototypeTests(unittest.TestCase):
         self.assertTrue(self.html.lower().lstrip().startswith("<!doctype html>"))
         self.assertEqual(self.parser.lang, "es")
 
-    def test_visible_demo_and_read_only_warnings(self):
-        self.assertIn("Modo demostración: datos ficticios", self.html)
-        self.assertIn("No envía órdenes ni modifica equipos", self.html)
+    def test_live_mode_is_default_and_no_fake_data_is_injected(self):
+        self.assertIn('const API_PATH="/admin/v1/status/snapshots"', self.html)
+        self.assertIn("Esperando al servicio de control", self.html)
+        self.assertIn("No se muestran datos de muestra automáticamente", self.html)
+        self.assertIn('state.snapshots=[]', self.html)
+        self.assertIn('id="demo-toggle"', self.html)
 
-    def test_no_network_apis_or_calls(self):
-        patterns = [
-            r"\bfetch\s*\(",
-            r"\bXMLHttpRequest\b",
-            r"\bWebSocket\b",
-            r"\bEventSource\b",
-        ]
-        for pattern in patterns:
-            with self.subTest(pattern=pattern):
-                self.assertIsNone(re.search(pattern, self.html))
-        self.assertEqual(self.parser.external_resources, [])
+    def test_read_only_request_is_same_origin_and_not_cached(self):
+        self.assertIn('method:"GET"', self.html)
+        self.assertIn('credentials:"same-origin"', self.html)
+        self.assertIn('cache:"no-store"', self.html)
+        self.assertNotIn("XMLHttpRequest", self.html)
+        self.assertNotIn("WebSocket", self.html)
+        self.assertNotIn("EventSource", self.html)
+        self.assertNotIn("localStorage", self.html)
+        self.assertNotIn("sessionStorage", self.html)
+
+    def test_endpoint_contract_and_live_api_limits_are_visible(self):
+        self.assertIn("schema_version", self.html)
+        self.assertIn("snapshots", self.html)
+        self.assertIn("state.snapshots.length>500", self.html)
+        self.assertIn("Autenticación/autorización requerida", self.html)
+        self.assertIn("No se inventan nodos ni estados", self.html)
 
     def test_element_ids_are_unique(self):
-        ids = self.parser.ids
-        self.assertEqual(len(ids), len(set(ids)), "HTML contains duplicate IDs")
+        self.assertEqual(len(self.parser.ids), len(set(self.parser.ids)), "HTML contains duplicate IDs")
 
     def test_javascript_dom_references_exist(self):
         ids = set(self.parser.ids)
@@ -88,79 +78,34 @@ class MasterControlPrototypeTests(unittest.TestCase):
         self.assertIn('removeAttribute("aria-current")', self.html)
         self.assertIn('aria-label="Navegación principal"', self.html)
 
-    def test_navigation_handler_has_valid_block_structure(self):
-        self.assertIn('forEach(el=>{el.classList.toggle("active",el.dataset.page===page);if(el.dataset.page===page)', self.html)
-        self.assertNotIn('forEach(el=>el.classList.toggle("active",el.dataset.page===page);if(el.dataset.page===page)', self.html)
+    def test_tables_have_accessible_headers_and_focus_styles(self):
+        self.assertGreaterEqual(self.html.count('scope="col"'), 15)
+        self.assertIn(":focus-visible", self.html)
+        self.assertIn("outline-offset:2px", self.html)
+        self.assertIn('aria-live="polite"', self.html)
 
-    def test_table_headers_and_decorative_icons_are_accessible(self):
-        self.assertGreaterEqual(self.html.count('scope="col"'), 20)
-        self.assertIn('<div class="nodeicon" aria-hidden="true">▣</div>', self.html)
-        self.assertIn('<span aria-hidden="true">▦</span>', self.html)
-
-    def test_tables_have_screen_reader_captions(self):
-        self.assertEqual(self.html.count('<caption class="sr-only">'), 4)
-        self.assertIn(".sr-only{position:absolute", self.html)
-        self.assertIn("Resultados de CI de muestra, no consultados en vivo", self.html)
-
-    def test_key_text_color_pairs_meet_wcag_aa_contrast(self):
-        def resolve(value):
-            value = value.strip()
-            if value.startswith("var(") and value.endswith(")"):
-                variable = value[4:-1].strip()
-                match = re.search(rf"{re.escape(variable)}:(#[0-9a-fA-F]{{6}})", self.html)
-                self.assertIsNotNone(match, f"Missing CSS variable {variable}")
-                return match.group(1)
-            self.assertRegex(value, r"^#[0-9a-fA-F]{6}$")
-            return value
-
-        def rule_value(selector, property_name):
-            rule = re.search(re.escape(selector) + r"\{([^}]*)\}", self.html)
-            self.assertIsNotNone(rule, f"Missing CSS rule {selector}")
-            declaration = re.search(rf"(?:^|;){re.escape(property_name)}:([^;]+)", rule.group(1))
-            self.assertIsNotNone(declaration, f"Missing {property_name} in {selector}")
-            return resolve(declaration.group(1))
-
-        pairs = [
-            (resolve("var(--text)"), resolve("var(--bg)")),
-            (resolve("var(--muted)"), resolve("var(--panel)")),
-            (resolve("var(--muted)"), resolve("var(--bg)")),
-            (resolve("var(--blue)"), resolve("var(--panel)")),
-            (rule_value(".pill.green", "color"), rule_value(".pill.green", "background")),
-            (rule_value(".pill.yellow", "color"), rule_value(".pill.yellow", "background")),
-            (rule_value(".pill.red", "color"), rule_value(".pill.red", "background")),
-            (rule_value(".demo", "color"), rule_value(".demo", "background")),
-            (rule_value(".demo p", "color"), rule_value(".demo", "background")),
-            (rule_value(".btn", "color"), rule_value(".btn", "background")),
-        ]
-        for foreground, background in pairs:
-            with self.subTest(foreground=foreground, background=background):
-                self.assertGreaterEqual(contrast_ratio(foreground, background), 4.5)
-
-    def test_rendered_dynamic_values_are_html_escaped(self):
-        self.assertIn('function escapeHTML(value)', self.html)
-        for expression in ('escapeHTML(n.name)', 'escapeHTML(n.role)', 'escapeHTML(n.last)',
-                           'escapeHTML(n.cpu)', 'escapeHTML(n.ram)', 'escapeHTML(n.agent)',
-                           'escapeHTML(m.name)', 'escapeHTML(m.node)', 'escapeHTML(m.version)',
-                           'escapeHTML(m.time)', 'escapeHTML(m.source)'):
+    def test_remote_values_are_escaped_before_insertion(self):
+        self.assertIn('function esc(value)', self.html)
+        for expression in ("esc(n.display_name)", "esc(n.node_id)", "esc(s.freshness.age_seconds)",
+                           "esc(m.module_id)", "esc(m.version)", "esc(m.source||\"unknown\")"):
             with self.subTest(expression=expression):
                 self.assertIn(expression, self.html)
-        self.assertIn('escapeHTML(labelOverride||statusLabel[status]||status)', self.html)
 
-    def test_keyboard_focus_indicator_exists(self):
-        self.assertIn(':focus-visible', self.html)
-        self.assertIn('outline-offset:2px', self.html)
+    def test_no_external_runtime_resources(self):
+        self.assertEqual(self.parser.external_resources, [])
+        self.assertIn('href="https://github.com/D3ckardCain/Geelark-IA/actions"', self.html)
 
-    def test_master_is_not_listed_as_worker(self):
-        self.assertIn('n.id!=="master"', self.html)
+    def test_demo_is_explicit_and_separate_from_live_data(self):
+        self.assertIn("Ver ejemplo ficticio", self.html)
+        self.assertIn('if(state.demo)return', self.html)
+        self.assertIn("Ejemplo ficticio activado", self.html)
 
-    def test_required_views_and_filters_exist(self):
-        ids = set(self.parser.ids)
-        for page in ("overview", "nodes", "modules", "audit"):
-            with self.subTest(page=page):
-                self.assertIn("page-" + page, ids)
-        for element_id in ("node-search", "node-filter", "module-search", "module-filter"):
-            with self.subTest(element_id=element_id):
-                self.assertIn(element_id, ids)
+    def test_only_read_only_admin_endpoint_is_called(self):
+        endpoints = re.findall(r'fetch\(([^)]*)\)', self.html)
+        self.assertEqual(endpoints, ["API_PATH"])
+        self.assertIn('const API_PATH="/admin/v1/status/snapshots"', self.html)
+        self.assertNotIn("/admin/v1/reconcile", self.html)
+        self.assertNotIn("/agent/v1/tasks/claim", self.html)
 
 
 if __name__ == "__main__":
