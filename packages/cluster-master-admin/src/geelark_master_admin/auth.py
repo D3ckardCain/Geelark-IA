@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import os
 import secrets
 import sqlite3
 import subprocess
 import time
 from collections import defaultdict, deque
-from getpass import getuser
 from pathlib import Path
 from typing import Callable
 
