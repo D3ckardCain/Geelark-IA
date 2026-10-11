@@ -800,3 +800,10 @@ PR #49 aparece `mergeable=false`. Comparación entre #38 HEAD `e37e5aaef72837c19
 - **#61 reconciliación/supervisor:** CI de su HEAD `10f95457e236275ab1c232e5e5c4ef44f0190e90` pasó en los tres workflows (#38159107744, #38159108522, #38159107343), pero el HEAD no contiene cuatro commits de #52 posteriores al merge-base `2e0f9011e60850aa2d6fd13d140615d7f23921fc`. Los commits faltantes cambian `app.py`, `domain_handlers.py`, `pyproject.toml` y pruebas PostgreSQL; `domain_handlers.py` tiene blobs diferentes en #52 y #61. Hay que reconciliar antes de declarar integrada la bandeja con el supervisor.
 
 Hallazgos comentados en [PR #61](https://github.com/D3ckardCain/Geelark-IA/pull/61), [PR #73](https://github.com/D3ckardCain/Geelark-IA/pull/73) y [PR #74](https://github.com/D3ckardCain/Geelark-IA/pull/74). No se ejecutaron workflows manuales, ni se fusionaron o desplegaron ramas.
+
+
+### Revisión formal de PRs y control de coste Actions — 2026-10-11
+
+Se consultaron reviews y review threads de PR #38, #48, #52, #57 y #76: el conector devuelve cero reviews formales y cero threads inline en esas cinco PRs. Los hallazgos técnicos y decisiones están registrados en comentarios de conversación y el registro central; sigue pendiente una revisión independiente humana antes de integrar.
+
+El HEAD de #52 y el de #61 tienen cada uno tres workflows exitosos asociados. #76 usa `workflow_dispatch` para evitar minutos automáticos. No hay acceso desde el conector a la facturación/uso de Actions, por lo que **no se puede afirmar que el gasto real sea $0**. Se mantiene la política conservadora: no ejecutar workflows manuales ni reintentos sin revisar antes Billing/usage; mantener cancelación de runs redundantes y evaluar filtros `paths` solo con matriz de dependencias para no omitir pruebas críticas. Hallazgo registrado en [Issue #63](https://github.com/D3ckardCain/Geelark-IA/issues/63#issuecomment-6114273401).
