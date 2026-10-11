@@ -19,7 +19,7 @@ La autenticación del panel es local y gestionada por PC-MASTER. No depende de S
 - Token de sesión aleatorio opaco; SQLite guarda solo su SHA-256. Expira en 8 horas y logout revoca la sesión.
 - Cookie HttpOnly, Secure por defecto, SameSite=Strict y prefijo `__Host-`.
 - HTTPS obligatorio, Origin estricto para operaciones POST, limitador de intentos fallidos, headers anti-cache y errores genéricos.
-- SQL de snapshots: una consulta SELECT, `health_state AS reported_health_state`, `ORDER BY` estable y `LIMIT 500`. La conexión exige el rol `geelark_master_reader`, transacciones read-only, `statement_timeout`, `lock_timeout` y TLS verificado para PostgreSQL remoto. El script de creación y la prueba de grants están en `db/admin/MASTER_ADMIN_READONLY_ROLE.sql` y `db/tests/0005_master_admin_readonly_role.sql`.
+- SQL de snapshots: una consulta SELECT, `health_state AS reported_health_state`, `ORDER BY` estable y `LIMIT 500`. La conexión exige el rol `geelark_master_reader`, transacciones read-only, `statement_timeout`, `lock_timeout` y TLS verificado para PostgreSQL remoto. El script de creación y la prueba de grants están en `packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql` y `packages/cluster-master-admin/sql/verify_readonly_role.sql`.
 - Tamaño máximo de respuesta 1 MiB. Se omiten tareas, secretos, payloads y logs libres.
 
 ## Límites y pendientes
