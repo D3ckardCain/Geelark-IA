@@ -31,6 +31,15 @@ class FakeHTTPSClient:
         self.timeout_seconds = timeout_seconds
 
 
+def metrics():
+    return {
+        "cpu_load_percent": 12.5,
+        "memory_total_bytes": 1000,
+        "memory_available_bytes": 400,
+        "storage_available_bytes": 5000,
+    }
+
+
 def test_factory_wires_tls_runtime_receipt_lifecycle_and_supervisor_without_starting(monkeypatch):
     monkeypatch.setattr(bootstrap, "AgentHTTPSClient", FakeHTTPSClient)
     provider = FakeCredentialProvider()
@@ -42,13 +51,17 @@ def test_factory_wires_tls_runtime_receipt_lifecycle_and_supervisor_without_star
         credential_provider=provider,
         journal=FakeJournal(),
         local_node_id=node_id,
-        heartbeat_payload=lambda: {"health_state": "healthy"},
-        capabilities_payload=lambda: {"capabilities_version": 1, "capabilities": []},
+        agent_version="0.1.0",
+        capabilities=["heartbeat", "status"],
         request_timeout_seconds=2,
         receipt_batch_size=7,
-        heartbeat_interval_seconds=0.5,
+        heartbeat_interval_seconds=1.5,
+        capabilities_interval_seconds=2.0,
+        status_interval_seconds=3.0,
+        metrics_provider=metrics,
         reconcile_inventory=lambda: [],
         on_reconciliation=lambda _response: None,
+        reconciliation_retry_interval_seconds=30,
     )
 
     assert provider.calls == 1
@@ -60,10 +73,10 @@ def test_factory_wires_tls_runtime_receipt_lifecycle_and_supervisor_without_star
     assert components.receipt_lifecycle.runtime is components.runtime
     assert components.receipt_lifecycle.batch_size == 7
     assert components.supervisor.runtime is components.runtime
-    assert components.supervisor.receipt_lifecycle is components.receipt_lifecycle
+    assert components.supervisor.receipt_sync is components.receipt_lifecycle
+    assert components.supervisor._thread is None
     assert components.supervisor.reconcile_inventory is not None
-    assert components.supervisor.on_reconciliation is not None
-    assert not components.supervisor.running
+    assert components.supervisor.reconciliation_retry_interval_seconds == 30
     assert not components.receipt_lifecycle.running
 
 
@@ -77,8 +90,8 @@ def test_factory_rejects_invalid_bearer_token_without_logging_it(monkeypatch):
             credential_provider=provider,
             journal=FakeJournal(),
             local_node_id=uuid4(),
-            heartbeat_payload=lambda: {},
-            capabilities_payload=lambda: {},
+            agent_version="0.1.0",
+            capabilities=["heartbeat"],
         )
     assert provider.calls == 1
 
@@ -92,6 +105,6 @@ def test_factory_requires_credential_provider_contract(monkeypatch):
             credential_provider=object(),
             journal=FakeJournal(),
             local_node_id=uuid4(),
-            heartbeat_payload=lambda: {},
-            capabilities_payload=lambda: {},
+            agent_version="0.1.0",
+            capabilities=["heartbeat"],
         )
