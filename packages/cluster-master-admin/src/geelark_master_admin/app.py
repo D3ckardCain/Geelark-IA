@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -85,6 +86,11 @@ def create_admin_app(
     limiter = rate_limiter or LoginRateLimiter()
     app = FastAPI(title="GeeLark-IA Master Admin API", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(RequireHTTPSMiddleware)
+
+    @app.exception_handler(RequestValidationError)
+    async def safe_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+        # No devolver el contenido recibido: puede incluir la contraseña de login.
+        return _security_headers(JSONResponse({"error": {"code": "INVALID_REQUEST"}}, status_code=400))
 
     @app.exception_handler(Exception)
     async def safe_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
