@@ -42,7 +42,7 @@ def _database_connector():
     if not dsn: raise RuntimeError("Falta GEELARK_ADMIN_DATABASE_URL; no se usa una base de datos por defecto.")
     try: details = conninfo_to_dict(dsn)
     except Exception as exc: raise RuntimeError("GEELARK_ADMIN_DATABASE_URL no es un DSN PostgreSQL válido.") from exc
-    host = details.get("host", "")
+    host = details.get("host") or ""
     hosts = host.split(",") if host else [""]
     remote = [h for h in hosts if h and h not in {"localhost", "127.0.0.1", "::1"} and not h.startswith("/")]
     if remote and details.get("sslmode") not in {"verify-full", "verify-ca"}: raise RuntimeError("PostgreSQL remoto exige sslmode=verify-full o verify-ca.")
