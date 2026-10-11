@@ -76,10 +76,11 @@ Necesitas OpenSSL instalado (herramienta gratuita) y certificado con SAN para `l
 
 ```sh
 openssl req -x509 -newkey rsa:3072 -sha256 -nodes -days 365 \
-  -keyout master-local.key -out master-local.crt \
+  -keyout "$HOME/.config/geelark/master-admin/master-local.key" \
+  -out "$HOME/.config/geelark/master-admin/master-local.crt" \
   -subj "/CN=localhost" \
   -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
-chmod 600 master-local.key
+chmod 600 "$HOME/.config/geelark/master-admin/master-local.key"
 ```
 
 Guarda ambos archivos fuera de Git y protege la clave privada. Para evitar avisos del navegador, instala el certificado local como certificado de confianza en el equipo operador. No desactives la validación TLS. No uses este certificado autofirmado para publicar el servicio en Internet ni en una LAN.
@@ -137,7 +138,7 @@ Abre `https://localhost:8765/`, acepta el certificado solo después de instalar/
 5. La consulta solo lee `geelark_control.nodes` y el rol no puede actualizar filas.
 6. El panel muestra errores y no inventa datos reales cuando PostgreSQL está inaccesible.
 
-No se recomienda exponerlo a la LAN. Para hacerlo, primero se requiere certificado con SAN para el hostname/IP real, firewall restringido, revisión de CSRF/Origin y pruebas de seguridad; no cambies el bind host por comodidad.
+No se recomienda exponerlo a la LAN. El arranque rechaza un bind no-loopback salvo que se configure explícitamente `GEELARK_ADMIN_ALLOW_REMOTE=1`; no configures esa variable para el uso local. Para acceso remoto se requiere certificado con SAN para el hostname/IP real, firewall restringido, revisión de CSRF/Origin y pruebas de seguridad.
 
 ## CI y coste
 
