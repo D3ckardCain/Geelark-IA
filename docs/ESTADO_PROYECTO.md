@@ -843,3 +843,8 @@ En `AgentJournal.initialize()` de #38, la rama `version == 2` ejecuta `ALTER TAB
 - PR #60 solo modifica documentación de decisiones/POC del host y no tiene ejecución de CI para el HEAD `85ca3bdaf988e08a22bc0208a9559ad78370b1a8`; no se etiqueta como CI aprobada. Su propio cuerpo prohíbe instalaciones, cambios BIOS/UEFI o discos sin autorización explícita.
 
 Se continúa revisión estática mientras no se confirme la cuota de Actions; no se lanzan workflows manuales ni se hacen commits de código que disparen CI sin esa verificación.
+
+
+### Hallazgo de mínimo privilegio en verificación del rol PC-MASTER — 2026-10-11
+
+La revisión estática de `packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql` y `verify_readonly_role.sql` detectó que ambos limitan las comprobaciones a `geelark_control`. La verificación no recorre todos los esquemas no sistémicos para detectar grants directos o efectivos vía `PUBLIC` sobre otras tablas/secuencias ni `EXECUTE` sobre funciones. En una base preexistente, eso no demuestra que `geelark_master_reader` carezca de permisos fuera del esquema esperado. Hallazgo registrado en [PR #76](https://github.com/D3ckardCain/Geelark-IA/pull/76#issuecomment-6114296576). Antes de usar el rol en PC-MASTER, ampliar la verificación global o limitar explícitamente el alcance del script y exigir un rol nuevo/dedicado; no ejecutar contra la base real sin autorización. La PR permanece draft y su workflow manual-only no se ejecutó.
