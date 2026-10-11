@@ -1,13 +1,15 @@
-"""Adaptadores PostgreSQL para telemetría, bandeja de tareas y resultados tipados.
+"""Adaptadores PostgreSQL para telemetría, inventario y bandeja durable del agente.
 
-No ejecuta motores Android ni shell/ADB. Toda transición valida nodo, epoch y lease.
+Las operaciones de tareas validan propiedad, epoch y leases bajo bloqueo de filas;
+la reconciliación se mantiene de solo lectura y no resuelve estados inciertos.
 """
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
+import re
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -16,6 +18,114 @@ from fastapi import HTTPException
 from psycopg.types.json import Jsonb
 
 from .policy import AgentPrincipal, Operation
+from .module_registry import MODULE_REPORT_STALE_AFTER, SUPPORTED_MODULE_IDS
+
+
+HEARTBEAT_STALE_AFTER = timedelta(seconds=90)
+
+
+def _validate_result_summary(value: Any) -> dict[str, Any]:
+    """Exige JSON compacto y rechaza campos que puedan contener secretos."""
+    if not isinstance(value, dict):
+        raise HTTPException(status_code=422, detail={"code": "INVALID_RESULT_SUMMARY"})
+    forbidden = ("token", "password", "secret", "authorization", "cookie", "credential", "apikey", "privatekey", "accesskey")
+
+    def inspect(item: Any) -> None:
+        if isinstance(item, dict):
+            for key, nested in item.items():
+                if not isinstance(key, str):
+                    raise HTTPException(status_code=422, detail={"code": "INVALID_RESULT_SUMMARY"})
+                # Normalizar snake_case, kebab-case y camelCase por igual.
+                normalized = "".join(character for character in key.casefold() if character.isalnum())
+                if any(term in normalized for term in forbidden):
+                    raise HTTPException(status_code=422, detail={"code": "SENSITIVE_RESULT_FIELD"})
+                inspect(nested)
+        elif isinstance(item, list):
+            for nested in item:
+                inspect(nested)
+
+    inspect(value)
+    try:
+        encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail={"code": "INVALID_RESULT_SUMMARY"}) from None
+    if len(encoded) > 1_000_000:
+        raise HTTPException(status_code=413, detail={"code": "RESULT_SUMMARY_TOO_LARGE"})
+    return value
+
+
+def _derive_module_reports(reports: list[dict[str, Any]], last_seen_at: datetime | None, *, now: datetime | None = None) -> list[dict[str, Any]]:
+    """Sanea filas persistidas y degrada a unknown datos obsoletos o incoherentes."""
+    current_time = now or datetime.now(timezone.utc)
+    node_stale = last_seen_at is None or last_seen_at <= current_time - HEARTBEAT_STALE_AFTER
+    allowed_states = {"operational", "degraded", "not-installed", "unknown"}
+    error_code_pattern = re.compile(r"^[A-Z0-9_]{1,64}$")
+    result: list[dict[str, Any]] = []
+    source_reports = reports[:32] if isinstance(reports, list) else []
+
+    for item in source_reports:
+        if not isinstance(item, dict):
+            continue
+        module_id = item.get("module_id")
+        # No se reenvían identificadores arbitrarios desde una fila persistida.
+        if not isinstance(module_id, str) or module_id not in SUPPORTED_MODULE_IDS:
+            continue
+
+        raw_checked_at = item.get("checked_at")
+        try:
+            checked_at = (
+                datetime.fromisoformat(raw_checked_at.replace("Z", "+00:00"))
+                if isinstance(raw_checked_at, str) else None
+            )
+            if checked_at is not None and (checked_at.tzinfo is None or checked_at.utcoffset() is None):
+                checked_at = None
+            elif checked_at is not None:
+                checked_at = checked_at.astimezone(timezone.utc)
+        except (ValueError, TypeError):
+            checked_at = None
+
+        state = item.get("state")
+        source = item.get("source")
+        error_code = item.get("error_code")
+        version = item.get("version")
+        if not isinstance(version, str) or not version.strip() or len(version) > 64:
+            version = None
+        if not isinstance(error_code, str) or not error_code_pattern.fullmatch(error_code):
+            error_code = None
+
+        if node_stale:
+            state, source, error_code = "unknown", "master-check", "NODE_STALE"
+        elif checked_at is None:
+            state, source, error_code = "unknown", "master-check", "REPORT_MISSING"
+        elif checked_at > current_time + timedelta(seconds=5):
+            state, source, error_code = "unknown", "master-check", "REPORT_TIME_SKEW"
+            checked_at = None
+        elif current_time - checked_at >= MODULE_REPORT_STALE_AFTER:
+            state, source, error_code = "unknown", "master-check", "REPORT_STALE"
+        elif (not isinstance(state, str) or state not in allowed_states
+              or not isinstance(source, str) or source != "agent-report"):
+            state, source, error_code = "unknown", "master-check", "INVALID_MODULE_REPORT"
+
+        result.append({
+            "module_id": module_id,
+            "state": state if isinstance(state, str) and state in allowed_states else "unknown",
+            "version": version,
+            "checked_at": checked_at.isoformat().replace("+00:00", "Z") if checked_at else None,
+            "source": source if isinstance(source, str) and source in {"agent-report", "master-check", "unknown"} else "unknown",
+            "error_code": error_code,
+        })
+    return result
+
+def _derive_health_state(reported_health_state: str, last_seen_at: datetime | None, *, now: datetime | None = None) -> str:
+    """Deriva salud usando el reloj del controlador, nunca solo el valor del agente."""
+    current_time = now or datetime.now(timezone.utc)
+    if last_seen_at is None or last_seen_at <= current_time - HEARTBEAT_STALE_AFTER:
+        return "offline"
+    if reported_health_state in {"degraded", "unhealthy"}:
+        return "degraded"
+    if reported_health_state == "healthy":
+        return "healthy"
+    return "unknown"
 
 
 def _assert_principal_current(conn: psycopg.Connection, principal: AgentPrincipal) -> None:
@@ -46,13 +156,18 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         row = conn.execute(
             """
             UPDATE geelark_control.nodes
-               SET agent_version = %s, health_state = %s,
+               SET agent_version = %s, reported_health_state = %s,
+                   health_state = CASE
+                       WHEN %s = 'healthy' THEN 'healthy'
+                       WHEN %s IN ('degraded', 'unhealthy') THEN 'degraded'
+                       ELSE 'unknown'
+                   END,
                    last_seen_at = now(), last_sequence = last_sequence + 1,
                    updated_at = now()
              WHERE node_id = %s AND admin_state IN ('pending', 'active') AND revoked_at IS NULL
-            RETURNING node_id, admin_state, health_state, last_seen_at, last_sequence
+            RETURNING node_id, admin_state, reported_health_state, health_state, last_seen_at, last_sequence
             """,
-            (payload["agent_version"], payload["health_state"], principal.node_id),
+            (payload["agent_version"], payload["health_state"], payload["health_state"], payload["health_state"], principal.node_id),
         ).fetchone()
         if row is None:
             raise HTTPException(status_code=403, detail={"code": "PERMISSION_DENIED"})
@@ -60,9 +175,10 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             "ok": True,
             "node_id": str(row[0]),
             "admin_state": row[1],
-            "health_state": row[2],
-            "last_seen_at": row[3].astimezone(timezone.utc).isoformat(),
-            "sequence": row[4],
+            "reported_health_state": row[2],
+            "health_state": row[3],
+            "last_seen_at": row[4].astimezone(timezone.utc).isoformat(),
+            "sequence": row[5],
         }
 
     def capabilities(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
@@ -87,13 +203,36 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             "capability_count": len(payload["capabilities"]),
         }
 
+    def modules(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
+        """Persiste inventario; el UPDATE solo permite nodos active."""
+        _assert_principal_current(conn, principal)
+        received_at = datetime.now(timezone.utc)
+        normalized = [
+            {"module_id": item["module_id"], "state": item["state"], "version": item.get("version"),
+             "checked_at": received_at.isoformat(), "source": "agent-report", "error_code": item.get("error_code")}
+            for item in payload["modules"]
+        ]
+        row = conn.execute(
+            """
+            UPDATE geelark_control.nodes
+               SET module_reports = %s, updated_at = now()
+             WHERE node_id = %s AND admin_state = 'active' AND revoked_at IS NULL
+            RETURNING node_id, admin_state
+            """,
+            (Jsonb(normalized), principal.node_id),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=403, detail={"code": "PERMISSION_DENIED"})
+        return {"ok": True, "node_id": str(row[0]), "admin_state": row[1],
+                "module_count": len(normalized), "received_at": received_at.isoformat()}
+
     def status(*, principal: AgentPrincipal, payload: Any = None) -> dict[str, Any]:
         with connect() as conn:
             _assert_principal_current(conn, principal)
             row = conn.execute(
                 """
-                SELECT node_id, display_name, admin_state, health_state, agent_version,
-                       protocol_version, last_seen_at, last_sequence, capabilities
+                SELECT node_id, display_name, admin_state, reported_health_state, agent_version,
+                       protocol_version, last_seen_at, last_sequence, capabilities, module_reports
                   FROM geelark_control.nodes
                  WHERE node_id = %s
                 """,
@@ -105,12 +244,14 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 "node_id": str(row[0]),
                 "display_name": row[1],
                 "admin_state": row[2],
-                "health_state": row[3],
+                "reported_health_state": row[3],
+                "health_state": _derive_health_state(row[3], row[6]),
                 "agent_version": row[4],
                 "protocol_version": row[5],
                 "last_seen_at": row[6].astimezone(timezone.utc).isoformat() if row[6] else None,
                 "sequence": row[7],
                 "capabilities": row[8],
+                "modules": _derive_module_reports(row[9], row[6]),
             }
 
     def _locked_task(conn: psycopg.Connection, principal: AgentPrincipal, task_id: UUID):
@@ -153,7 +294,9 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
               FROM geelark_control.agent_tasks AS t
               JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
               JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
+              JOIN geelark_control.nodes AS n ON n.node_id = t.node_id
              WHERE t.node_id = %s
+               AND n.admin_state = 'active' AND n.health_state = 'healthy' AND n.revoked_at IS NULL
                AND t.status IN ('queued', 'delivered')
                AND (t.status = 'queued' OR t.delivery_lease_until IS NULL
                     OR t.delivery_lease_until <= now())
@@ -214,7 +357,6 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             """
             UPDATE geelark_control.agent_tasks
                SET status = 'accepted', accepted_at = COALESCE(accepted_at, now()),
-                   delivery_lease_until = now() + interval '60 seconds',
                    updated_at = now()
              WHERE task_id = %s
             """,
@@ -234,13 +376,11 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         if row[0] not in {"accepted", "running"}:
             raise HTTPException(status_code=409, detail={"code": "TASK_STATE_CONFLICT"})
         state = payload["state"]
-        details = payload.get("details", {})
+        details = _validate_result_summary(payload.get("details", {}))
         conn.execute(
             """
             UPDATE geelark_control.agent_tasks
-               SET status = %s, result_summary = %s,
-                   delivery_lease_until = now() + interval '60 seconds',
-                   updated_at = now()
+               SET status = %s, result_summary = %s, updated_at = now()
              WHERE task_id = %s
             """,
             (state, Jsonb(details), task_id),
@@ -266,7 +406,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             raise HTTPException(status_code=422, detail={"code": "INVALID_TASK_ID"}) from None
         row = _locked_task(conn, principal, task_id)
         old_status, old_summary = row[0], dict(row[4] or {})
-        details = payload.get("details", {})
+        details = _validate_result_summary(payload.get("details", {}))
         if old_status in {"succeeded", "rejected", "failed", "unknown"}:
             if old_status == state and old_summary == details:
                 return {"ok": True, "task_id": str(task_id), "state": state, "duplicate": True}
@@ -278,12 +418,11 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             """
             UPDATE geelark_control.agent_tasks
                SET status = %s, result_summary = %s,
-                   delivery_lease_until = CASE WHEN %s THEN NULL ELSE now() + interval '60 seconds' END,
                    completed_at = CASE WHEN %s THEN now() ELSE NULL END,
                    updated_at = now()
              WHERE task_id = %s
             """,
-            (state, Jsonb(details), terminal, terminal, task_id),
+            (state, Jsonb(details), terminal, task_id),
         )
         conn.execute(
             """
@@ -298,6 +437,88 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         return {"ok": True, "task_id": str(task_id), "state": state, "duplicate": False}
 
     def reconcile(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
+        """Compara el inventario informado con la autoridad central sin mutar estados."""
+        _assert_principal_current(conn, principal)
+        items = payload.get("assignments", [])
+        if not isinstance(items, list) or len(items) > 500:
+            raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_BATCH"})
+        comparisons = []
+        now = datetime.now(timezone.utc)
+        for item in items:
+            try:
+                task_id = UUID(item["task_id"])
+                operation_id = UUID(item["operation_id"])
+                instance_id = UUID(item["instance_id"])
+                epoch = item["assignment_epoch"]
+                observed_state = item["observed_state"]
+                observed_summary = item.get("result_summary", {})
+            except (KeyError, TypeError, ValueError):
+                raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_ITEM"}) from None
+            if isinstance(epoch, bool) or not isinstance(epoch, int) or epoch < 1:
+                raise HTTPException(status_code=422, detail={"code": "INVALID_ASSIGNMENT_EPOCH"})
+            observed_summary = _validate_result_summary(observed_summary)
+            row = conn.execute(
+                """
+                SELECT t.status, t.result_summary, t.node_id, t.instance_id,
+                       t.operation_id, t.assignment_epoch,
+                       i.owner_node_id, i.assignment_epoch, i.lease_expires_at,
+                       o.status
+                  FROM geelark_control.agent_tasks AS t
+                  JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
+                  JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
+                 WHERE t.task_id = %s AND t.node_id = %s
+                   AND t.operation_id = %s AND t.instance_id = %s
+                   AND t.assignment_epoch = %s
+                """,
+                (task_id, principal.node_id, operation_id, instance_id, epoch),
+            ).fetchone()
+            if row is None:
+                comparisons.append({
+                    "task_id": str(task_id),
+                    "status": "not_found_or_not_owned",
+                    "action": "do_not_execute",
+                })
+                continue
+            server_state, server_summary = row[0], dict(row[1] or {})
+            owner_node, current_epoch, lease_expires_at = row[6], row[7], row[8]
+            if (
+                owner_node is None or str(owner_node) != principal.node_id
+                or current_epoch != epoch or lease_expires_at is None or lease_expires_at <= now
+            ):
+                comparisons.append({
+                    "task_id": str(task_id),
+                    "status": "stale_assignment",
+                    "server_state": server_state,
+                    "observed_state": observed_state,
+                    "action": "operator_review_required",
+                })
+                continue
+            if server_state in {"succeeded", "rejected", "failed"}:
+                if server_state == observed_state and server_summary == observed_summary:
+                    result_state = "in_sync"
+                else:
+                    result_state = "terminal_conflict"
+            elif server_state == observed_state and server_summary == observed_summary:
+                result_state = "in_sync"
+            elif server_state == "unknown" or observed_state == "unknown":
+                result_state = "uncertain_review_required"
+            else:
+                result_state = "review_required"
+            comparisons.append({
+                "task_id": str(task_id),
+                "status": result_state,
+                "server_state": server_state,
+                "observed_state": observed_state,
+                "action": "none" if result_state == "in_sync" else "operator_review_required",
+            })
+        return {
+            "schema_version": 1,
+            "read_only": True,
+            "mutations_applied": 0,
+            "items": comparisons,
+        }
+
+    def reconcile_inventory(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
         """Compara inventario y epochs sin convertir estados inciertos automáticamente."""
         _assert_principal_current(conn, principal)
         if (principal.admin_state, principal.credential_status) != ("active", "active"):
@@ -482,13 +703,16 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             "mutations_applied": False,
         }
 
+
     return {
         Operation.HEARTBEAT: heartbeat,
         Operation.CAPABILITIES: capabilities,
+        Operation.MODULES_REPORT: modules,
         Operation.STATUS_READ: status,
         Operation.TASK_FETCH: claim_task,
         Operation.TASK_ACCEPT: accept_task,
         Operation.TASK_PROGRESS: progress_task,
         Operation.TASK_RESULT: result_task,
         Operation.RECONCILE: reconcile,
+        Operation.RECONCILE_INVENTORY: reconcile_inventory,
     }
