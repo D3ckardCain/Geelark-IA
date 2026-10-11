@@ -19,6 +19,11 @@ on:
 permissions:
   contents: read
 
+# Keep only the newest validation for a given PR/ref; stale runs waste minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   transport-tests:
     name: Python 3.11 — transporte y seguridad del agente
