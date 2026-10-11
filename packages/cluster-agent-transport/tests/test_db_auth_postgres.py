@@ -60,3 +60,52 @@ def test_database_authenticator_allows_pending_limited_principal_then_active_and
             conn.execute("DELETE FROM geelark_control.agent_request_nonces WHERE node_id = %s", (node_id,))
             conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
             conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))
+
+def test_database_authenticator_rejects_expired_revoked_and_mismatched_credentials():
+    connect = lambda: psycopg.connect(DATABASE_URL)
+    authenticate = make_database_authenticator(connect)
+    now = datetime.now(timezone.utc)
+    cases = (
+        # name, admin state, credential status, expiry offset, revoked_at
+        ("expired", "active", "active", timedelta(seconds=-1), None),
+        ("revoked-credential", "active", "revoked", timedelta(hours=1), None),
+        ("active-pending-credential", "active", "pending", timedelta(hours=1), None),
+        ("pending-active-credential", "pending", "active", timedelta(hours=1), None),
+        ("revoked-node", "active", "active", timedelta(hours=1), now),
+    )
+    records = []
+    try:
+        with connect() as conn:
+            for name, admin_state, credential_status, expiry_offset, revoked_at in cases:
+                node_id, credential_id = uuid4(), uuid4()
+                token = secrets.token_hex(32)
+                records.append((node_id, token))
+                conn.execute(
+                    """
+                    INSERT INTO geelark_control.nodes
+                        (node_id, display_name, admin_state, revoked_at)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (node_id, "test-auth-" + name + "-" + str(node_id), admin_state, revoked_at),
+                )
+                conn.execute(
+                    """
+                    INSERT INTO geelark_control.node_credentials
+                        (credential_id, node_id, token_sha256, status, expires_at)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """,
+                    (
+                        credential_id, node_id,
+                        hashlib.sha256(token.encode("ascii")).hexdigest(),
+                        credential_status, now + expiry_offset,
+                    ),
+                )
+        for _, token in records:
+            with pytest.raises(InvalidAgentCredential):
+                authenticate(token)
+    finally:
+        with connect() as conn:
+            for node_id, _ in records:
+                conn.execute("DELETE FROM geelark_control.agent_request_nonces WHERE node_id = %s", (node_id,))
+                conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
+                conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))
