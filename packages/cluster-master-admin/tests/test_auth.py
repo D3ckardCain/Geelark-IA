@@ -55,3 +55,65 @@ def test_session_database_permissions_are_restricted(tmp_path: Path) -> None:
     assert path.exists()
     if os.name == "posix":
         assert path.stat().st_mode & 0o077 == 0
+
+
+@pytest.mark.parametrize(
+    ("directory", "expected_grant"),
+    [
+        (False, r"PC-MASTER\operator:F"),
+        (True, r"PC-MASTER\operator:(OI)(CI)F"),
+    ],
+)
+def test_windows_acl_resets_old_explicit_entries_before_grant(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, directory: bool, expected_grant: str
+) -> None:
+    import subprocess
+    from types import SimpleNamespace
+
+    from geelark_master_admin import auth as auth_module
+
+    calls: list[list[str]] = []
+
+    def fake_is_file(path: Path) -> bool:
+        return path.name.lower() in {"whoami.exe", "icacls.exe"}
+
+    def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
+        calls.append(command)
+        if command[0].lower().endswith("whoami.exe"):
+            return SimpleNamespace(stdout="PC-MASTER\\operator\\n")
+        return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+    monkeypatch.setattr(Path, "is_file", fake_is_file)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    target = tmp_path / ("sessions" if directory else "sessions.sqlite3")
+
+    auth_module._restrict_windows_acl(target, directory=directory)
+
+    assert len(calls) == 2
+    assert calls[0][0].lower().endswith("whoami.exe")
+    acl_call = calls[1]
+    assert acl_call[0].lower().endswith("icacls.exe")
+    assert acl_call[2:] == ["/reset", "/inheritance:r", "/grant:r", expected_grant]
+
+
+def test_windows_acl_failure_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess
+    from types import SimpleNamespace
+
+    from geelark_master_admin import auth as auth_module
+
+    def fake_is_file(path: Path) -> bool:
+        return path.name.lower() in {"whoami.exe", "icacls.exe"}
+
+    def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
+        if command[0].lower().endswith("whoami.exe"):
+            return SimpleNamespace(stdout="PC-MASTER\\operator\\n")
+        raise subprocess.CalledProcessError(1, command)
+
+    monkeypatch.setattr(Path, "is_file", fake_is_file)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(PermissionError, match="ACL NTFS"):
+        auth_module._restrict_windows_acl(tmp_path / "sessions.sqlite3", directory=False)
