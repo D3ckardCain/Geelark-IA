@@ -80,8 +80,8 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
     def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
         calls.append(command)
         if command[0].lower().endswith("whoami.exe"):
-            return SimpleNamespace(stdout="PC-MASTER\\operator\\n")
-        return SimpleNamespace(stdout="", stderr="", returncode=0)
+            return SimpleNamespace(stdout=r"PC-MASTER\operator")
+            return SimpleNamespace(stdout=r"PC-MASTER\operator")
 
     monkeypatch.setattr(Path, "is_file", fake_is_file)
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -109,7 +109,7 @@ def test_windows_acl_failure_fails_closed(
 
     def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
         if command[0].lower().endswith("whoami.exe"):
-            return SimpleNamespace(stdout="PC-MASTER\\operator\\n")
+            return SimpleNamespace(stdout=r"PC-MASTER\operator")
         raise subprocess.CalledProcessError(1, command)
 
     monkeypatch.setattr(Path, "is_file", fake_is_file)
