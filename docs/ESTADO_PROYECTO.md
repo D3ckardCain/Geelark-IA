@@ -834,3 +834,12 @@ Comparación actual: #32 HEAD `ce19821a2e0814b9cae2b76a82309089da83c664`; #34 HE
 ### Riesgo de interrupción en migración SQLite v2→v3 — 2026-10-11
 
 En `AgentJournal.initialize()` de #38, la rama `version == 2` ejecuta `ALTER TABLE operation_receipts ADD COLUMN task_id TEXT` y después registra la versión 3 en `schema_migrations`, con `isolation_level=None` y sin una transacción explícita que agrupe ambas sentencias. Una interrupción entre ellas puede dejar la columna creada pero la versión en 2; el siguiente inicio reintenta el `ALTER TABLE` y puede fallar por columna duplicada. El test actual valida v1→v3, pero no v2→v3 ni recuperación desde ese estado parcial. Bloqueo registrado en [PR #38](https://github.com/D3ckardCain/Geelark-IA/pull/38#issuecomment-6114289744). Corrección requerida antes de declarar el journal migrable: hacer v2→v3 transaccional o detectar columna existente de forma segura, y probar migración v2, preservación de `synced_receipts`, reapertura e interrupción simulada. No se modificó código ni se disparó CI adicional debido a la restricción de coste $0 y falta de acceso a Billing.
+
+
+### Verificación de ramas de contratos y autenticación; PR documental del SO — 2026-10-11
+
+- PR #30 está correctamente apilada sobre el HEAD de #16: comparación `ahead 4 / behind 0`, merge-base igual al HEAD de #16. CI de contratos para #30 (`8be0020316dd627d5f2c88e9a9bd287904e3c1ca`) terminó success en [run #38006188257](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38006188257); #16 también pasó su suite en [run #38000986766](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38000986766). Esto valida los contratos y sus pruebas, no la integración con persistencia/agentes.
+- PR #44 está correctamente apilada sobre #42: comparación `ahead 21 / behind 0`, merge-base igual al HEAD de #42. CI del servicio de autenticación para #44 terminó success en [run #38012174016](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38012174016); #42 tiene CI verde de esquema/persistencia (#38010243600 y #38010243545). Queda pendiente seguridad operativa y despliegue.
+- PR #60 solo modifica documentación de decisiones/POC del host y no tiene ejecución de CI para el HEAD `85ca3bdaf988e08a22bc0208a9559ad78370b1a8`; no se etiqueta como CI aprobada. Su propio cuerpo prohíbe instalaciones, cambios BIOS/UEFI o discos sin autorización explícita.
+
+Se continúa revisión estática mientras no se confirme la cuota de Actions; no se lanzan workflows manuales ni se hacen commits de código que disparen CI sin esa verificación.
