@@ -417,3 +417,15 @@ Una consulta posterior sí devolvió ejecuciones completas en verde asociadas al
 - Se actualizaron los criterios de aceptación en [PR #38](https://github.com/D3ckardCain/Geelark-IA/pull/38) y se añadió evidencia en [comentario de seguimiento](https://github.com/D3ckardCain/Geelark-IA/pull/38#issuecomment-6104234181).
 
 **Estado exacto:** la prueba del journal y el workflow están implementados y CI está verde en el HEAD consultado. No significa que la PR esté integrada ni que el módulo esté validado en operación real. Permanecen pendientes cobertura explícita de migración v1/v2, comprobación de la pila completa y validación operativa; la PR sigue abierta y en borrador.
+
+
+### Contrato de autorización: incompatibilidad concreta entre #47 y #48 — 2026-10-10
+
+La inspección de código confirma que la duplicación de policy no se puede resolver con un simple import:
+- Módulo canónico de #47: `AgentOperation` usa `PUBLISH_CAPABILITIES`, `READ_OWN_STATUS`, `ACCEPT_TASK`, `REPORT_PROGRESS`, `REPORT_RESULT`; `AgentAuthorizationContext` requiere `credential_expires_at` y valida expiración/revocación.
+- Policy local de #48: enum `Operation` usa `CAPABILITIES`, `STATUS_READ`, `TASK_ACCEPT`, `TASK_PROGRESS`, `TASK_RESULT`; `AgentPrincipal` no incluye expiración de credencial.
+- Se registró el hallazgo en [PR #47](https://github.com/D3ckardCain/Geelark-IA/pull/47#issuecomment-6104236633) y [PR #48](https://github.com/D3ckardCain/Geelark-IA/pull/48#issuecomment-6104236868).
+
+**Decisión:** no borrar todavía la policy del transporte ni cambiar imports hasta hacer explícita la dependencia apilada de #47, crear un adaptador que mapee todas las operaciones y pase la expiración real, instalar el paquete local en CI y probar los casos pending/active/revoked/expired. Esto evita introducir una autorización incompleta por una refactorización prematura.
+
+**Estado actualizado de #38:** CI verde en el HEAD `e37e5aaef72837c19837eb5b648c29f05ae9b3c3`: [schema #38102140362](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38102140362) y [persistence/guard #38102140404](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38102140404). La PR continúa abierta y en draft; CI no equivale a integración ni a validación operativa.
