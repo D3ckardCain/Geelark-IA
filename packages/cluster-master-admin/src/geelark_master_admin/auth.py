@@ -66,12 +66,17 @@ class LoginRateLimiter:
 def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
     """Restringe ACL NTFS al usuario actual; falla cerrado si icacls no funciona."""
     try:
+        system_root = Path(os.environ.get("SystemRoot", r"C:\\Windows"))
+        whoami = system_root / "System32" / "whoami.exe"
+        icacls = system_root / "System32" / "icacls.exe"
+        if not whoami.is_file() or not icacls.is_file():
+            raise FileNotFoundError("No se encontraron las herramientas del sistema Windows.")
         identity = subprocess.run(
-            ["whoami"], check=True, capture_output=True, text=True, timeout=3
+            [str(whoami)], check=True, capture_output=True, text=True, timeout=3
         ).stdout.strip()
         grant = f"{identity}:(OI)(CI)F" if directory else f"{identity}:F"
         subprocess.run(
-            ["icacls", str(path), "/inheritance:r", "/grant:r", grant],
+            [str(icacls), str(path), "/inheritance:r", "/grant:r", grant],
             check=True, capture_output=True, text=True, timeout=5,
         )
     except (OSError, subprocess.SubprocessError) as exc:
