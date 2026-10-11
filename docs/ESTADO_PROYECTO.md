@@ -664,3 +664,8 @@ Se añadió un `BodyLimitMiddleware` con límite de 16 KiB para la API administr
 ### PR #74: consulta de snapshot con nombre de columna incorrecto — 2026-10-11
 
 El HEAD actual `a8ce049458e94ae2587caeb8a42269a0b094b09a` de #74 consulta `reported_health_state` como columna física de `geelark_control.nodes`; el esquema real expone `health_state`. La corrección `health_state AS reported_health_state` existe en la rama descendiente #76, pero no en #74. Se registró en [comentario de #74](https://github.com/D3ckardCain/Geelark-IA/pull/74#issuecomment-6113572496). No se modificó #74 para no disparar workflows automáticos hasta verificar la cuota de Actions; no integrar el proveedor de forma independiente hasta portar el alias y probar la consulta real.
+
+
+### Colisión de numeración ADR en PR #40/#70/#76 — 2026-10-11
+
+La carpeta `docs/decisiones` en `main` contiene ADR-001 a ADR-004. Tres ramas abiertas proponen independientemente ADR-005 para decisiones diferentes: autenticación de agentes (#40), lectura de estado del clúster (#70) y autenticación local PC-MASTER (#76). Se registró en los tres PRs la propuesta de reservar ADR-005 para #40, renumerar #70 a ADR-006 y #76 a ADR-007, actualizando referencias. No se renombraron archivos todavía para no disparar workflows automáticos de documentación sin verificar cuota de Actions. Comentarios: [#40](https://github.com/D3ckardCain/Geelark-IA/pull/40#issuecomment-6113583351), [#70](https://github.com/D3ckardCain/Geelark-IA/pull/70#issuecomment-6113583636), [#76](https://github.com/D3ckardCain/Geelark-IA/pull/76#issuecomment-6113583939).
