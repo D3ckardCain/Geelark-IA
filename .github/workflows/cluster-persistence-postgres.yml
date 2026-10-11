@@ -15,6 +15,11 @@ on:
 permissions:
   contents: read
 
+# Keep only the newest schema validation for a given PR/ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   postgres-schema:
     name: PostgreSQL 16 — migration and invariants
