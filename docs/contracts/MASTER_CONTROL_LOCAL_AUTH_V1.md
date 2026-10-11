@@ -1,6 +1,6 @@
 # Contrato de autenticación local y API Master Admin v1
 
-**Estado:** implementación inicial de la fábrica ASGI; integración y despliegue siguen pendientes.
+**Estado:** API, formulario de acceso, panel en mismo origen y arranque TLS implementados en rama de propuesta. No instalados en PC-MASTER real; grants PostgreSQL y validación de la última revisión pendientes.
 
 ## Decisión confirmada
 
@@ -8,7 +8,7 @@ La autenticación del panel es local y gestionada por PC-MASTER. No depende de S
 
 ## API
 
-- `GET /admin/v1/session`: 200 con `{"authenticated": true|false}`.
+- `GET /`: sirve el panel local empaquetado con CSP restringida y sin caché.\n- `GET /admin/v1/session`: 200 con `{"authenticated": true|false}`.
 - `POST /admin/v1/login`: acepta únicamente `{"password": "..."}`; exige HTTPS y `Origin` del mismo origen. Responde 200 y emite cookie o 401/403/429.
 - `POST /admin/v1/logout`: revoca sesión local y borra cookie; exige HTTPS y mismo origen.
 - `GET /admin/v1/status/snapshots`: requiere sesión vigente y devuelve `schema_version`, `generated_at` y máximo 500 snapshots. Respuestas de error no se reemplazan por datos ficticios.
@@ -19,7 +19,7 @@ La autenticación del panel es local y gestionada por PC-MASTER. No depende de S
 - Token de sesión aleatorio opaco; SQLite guarda solo su SHA-256. Expira en 8 horas y logout revoca la sesión.
 - Cookie HttpOnly, Secure por defecto, SameSite=Strict y prefijo `__Host-`.
 - HTTPS obligatorio, Origin estricto para operaciones POST, limitador de intentos fallidos, headers anti-cache y errores genéricos.
-- SQL de snapshots: una consulta SELECT, ORDER BY estable, LIMIT 500. La conexión debe usar timeouts y un rol de PostgreSQL solo lectura.
+- SQL de snapshots: una consulta SELECT, `health_state AS reported_health_state`, `ORDER BY` estable y `LIMIT 500`. La conexión exige el rol `geelark_master_reader`, transacciones read-only, `statement_timeout`, `lock_timeout` y TLS verificado para PostgreSQL remoto. El script de creación y la prueba de grants están en `db/admin/MASTER_ADMIN_READONLY_ROLE.sql` y `db/tests/0005_master_admin_readonly_role.sql`.
 - Tamaño máximo de respuesta 1 MiB. Se omiten tareas, secretos, payloads y logs libres.
 
 ## Límites y pendientes
