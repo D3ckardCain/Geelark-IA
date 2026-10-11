@@ -55,7 +55,7 @@ def _security_headers(response: Response) -> Response:
 def _panel_csp(panel_path: Path) -> str:
     """Permite únicamente los bloques JS inline exactos incluidos en el panel versionado."""
     source = panel_path.read_text(encoding="utf-8")
-    scripts = re.findall(r"<script\\b[^>]*>(.*?)</script\\s*>", source, flags=re.IGNORECASE | re.DOTALL)
+    scripts = re.findall(r"<script\b[^>]*>(.*?)</script\s*>", source, flags=re.IGNORECASE | re.DOTALL)
     hashes = []
     for script in scripts:
         digest = base64.b64encode(hashlib.sha256(script.encode("utf-8")).digest()).decode("ascii")
