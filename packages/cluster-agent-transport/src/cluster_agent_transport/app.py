@@ -93,22 +93,6 @@ class TaskClaimPayload(BaseModel):
     schema_version: int = Field(ge=1, le=1)
 
 
-class ReconcileAssignment(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    task_id: UUID
-    operation_id: UUID
-    instance_id: UUID
-    assignment_epoch: int = Field(ge=1, le=2**31 - 1)
-    observed_state: str = Field(pattern="^(queued|delivered|accepted|running|succeeded|failed|unknown)$")
-    result_summary: dict[str, Any] = Field(default_factory=dict)
-
-
-class ReconcilePayload(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    schema_version: int = Field(ge=1, le=1)
-    assignments: list[ReconcileAssignment] = Field(max_length=128)
-
-
 class ReconcileItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
     task_id: UUID
