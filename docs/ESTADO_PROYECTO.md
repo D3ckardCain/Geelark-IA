@@ -287,3 +287,11 @@ El PR borrador #16 ahora incluye validación de coherencia entre `status` y `obs
 ### Persistencia de asignaciones documentada (2026-10-09)
 
 Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md). Define transacciones, restricciones para un único propietario, idempotencia durable, outbox y pruebas de caída/concurrencia. No hay DDL, migraciones ni código de persistencia implementados; PostgreSQL local sigue siendo una propuesta pendiente de validar.
+
+
+### Portación del ciclo de vida a la bandeja canónica (2026-10-11)
+
+- Se porta `AgentReceiptSyncLifecycle`, las pruebas unitarias y la prueba SQLite→HTTPS/TLS→PostgreSQL sobre la rama canónica `feat/agent-task-inbox-v2` (PR #52), evitando la variante histórica que usa `0004_agent_task_inbox.sql`.
+- La migración de la bandeja permanece como `0005_agent_task_inbox.sql` para no colisionar con `0004_worker_module_inventory.sql`.
+- El runtime no debe reescribir un recibo local al sincronizarlo: el ACK de HTTP 2xx marca la versión actual como sincronizada; un nuevo resultado local vuelve a encolarse. El reintento no cambia el resultado persistido y conserva la idempotencia.
+- PR #57 pasó CI en HEAD `650f8c4de4339268f8872d7fab034483f4fb9370` (run 38124585608, 85 pruebas). PR #67 pasó CI en HEAD `879f57fbd4d546002d65bdcfd21f234d2e873da5` (run 38124601844, 131 pruebas); una revalidación final queda pendiente si cambia la base. No hay instalación ni pruebas en PCs físicas; no activar ADB/shell ni ejecución de tareas.
