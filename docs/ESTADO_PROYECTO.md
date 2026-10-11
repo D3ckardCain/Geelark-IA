@@ -407,3 +407,13 @@ Se publicaron comentarios de auditoría en las conversaciones de GitHub:
 - Commit más reciente de la rama de #38: [e37e5aaef72837c19837eb5b648c29f05ae9b3c3](https://github.com/D3ckardCain/Geelark-IA/commit/e37e5aaef72837c19837eb5b648c29f05ae9b3c3). Incluye la corrección de expectativa v1→v3 anterior y el ajuste del workflow.
 - En la consulta posterior, tanto los status checks como los workflow runs visibles para ese SHA siguen vacíos. Aunque el workflow tiene trigger `pull_request` y filtros de paths que incluyen `packages/cluster-agent-guard/**`, no hay evidencia para declarar CI iniciada o aprobada. Investigar el motivo sin lanzar reintentos redundantes.
 - PR #38 sigue abierta y en draft. No se cerró por falta de evidencia; CI, integración de ramas y validación operativa permanecen como estados separados.
+
+
+### Evidencia CI corregida para el journal offline (#38) — 2026-10-10
+
+Una consulta posterior sí devolvió ejecuciones completas en verde asociadas al HEAD consultado `e37e5aaef72837c19837eb5b648c29f05ae9b3c3`; se corrige la nota anterior que decía que no había runs visibles:
+- [Cluster persistence schema #38102140362](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38102140362): job de migraciones PostgreSQL y pruebas de esquema/invariantes, completed/success.
+- [Cluster persistence service #38102140404](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38102140404): job de persistencia/concurrencia, agent guard y `pip check`, completed/success.
+- Se actualizaron los criterios de aceptación en [PR #38](https://github.com/D3ckardCain/Geelark-IA/pull/38) y se añadió evidencia en [comentario de seguimiento](https://github.com/D3ckardCain/Geelark-IA/pull/38#issuecomment-6104234181).
+
+**Estado exacto:** la prueba del journal y el workflow están implementados y CI está verde en el HEAD consultado. No significa que la PR esté integrada ni que el módulo esté validado en operación real. Permanecen pendientes cobertura explícita de migración v1/v2, comprobación de la pila completa y validación operativa; la PR sigue abierta y en borrador.
