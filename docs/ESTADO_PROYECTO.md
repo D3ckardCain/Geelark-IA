@@ -639,3 +639,8 @@ Corrección de la nota anterior de coste: transporte #38172963463 terminó `comp
 ### PR #76: alcance de revocación/verificación de grants — 2026-10-11
 
 Se identificó un límite adicional del rol lector: el script de preparación y `verify_readonly_role.sql` revisan privilegios sobre `geelark_control`, pero no detectan grants explícitos preexistentes del rol en otros esquemas de usuario. La API ejecuta una consulta fija sobre `geelark_control.nodes`, por lo que no se ha demostrado una ruta de explotación directa; aun así, el rol no puede declararse estrictamente de privilegio mínimo hasta ampliar preparación/verificación a otros esquemas o usar un rol nuevo en una base dedicada. Registrado en [comentario de PR #76](https://github.com/D3ckardCain/Geelark-IA/pull/76#issuecomment-6113533519). No se ejecutó SQL contra una base real.
+
+
+### CI de descendientes tras actualizar la base #52 — 2026-10-11
+
+La base de PR #57 apunta a `feat/agent-task-inbox-v2` (#52), cuyo HEAD avanzó a `3d54bab99b4b5acdba8f6c0a1c821a0ba31e143a` después de su CI anterior. El run verde de #57 [#38157876743](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38157876743) corresponde a la ejecución asociada a su HEAD `3bbd65d6c49884408086219a364f251ddbd8c9b7`, pero no acredita que el merge result use la base actualizada. Lo mismo aplica a descendientes #59/#67/#61. Antes de integrar, deben revalidarse los merge results actuales y revisarse conflictos de migraciones/contratos. Hallazgo registrado en [comentario de #57](https://github.com/D3ckardCain/Geelark-IA/pull/57#issuecomment-6113535586).
