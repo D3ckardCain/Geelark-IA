@@ -4,6 +4,7 @@ from pathlib import Path
 from uuid import UUID
 
 import pytest
+from jsonschema import Draft202012Validator, FormatChecker
 
 from geelark_cluster_persistence.status_snapshot import (
     PostgresStatusSnapshotProvider,
@@ -217,3 +218,22 @@ def test_stale_module_report_cannot_remain_operational():
     assert module["state"] == "unknown"
     assert module["source"] == "master-check"
     assert module["error_code"] == "REPORT_STALE"
+
+
+def test_generated_snapshot_validates_against_full_json_schema():
+    root = Path(__file__).resolve().parents[3]
+    schema = json.loads((root / "docs/contracts/master-worker-status-v1.schema.json").read_text())
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+
+    valid_snapshot = build_status_snapshot(make_row(), now=NOW)
+    errors = list(validator.iter_errors(valid_snapshot))
+    assert not errors, "\\n".join(error.message for error in errors)
+
+    stale_snapshot = build_status_snapshot(
+        make_row(last_seen=NOW - timedelta(seconds=91)),
+        now=NOW,
+    )
+    stale_snapshot["node"]["health_state"] = "healthy"
+    assert list(validator.iter_errors(stale_snapshot)), (
+        "The schema must reject healthy status when the heartbeat is stale"
+    )
