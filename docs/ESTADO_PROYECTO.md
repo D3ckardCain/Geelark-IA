@@ -541,3 +541,8 @@ La divergencia de schema entre #70 y #74 quedó resuelta al actualizar el esquem
 ### CI del contrato v1 unificado — 2026-10-11
 
 El HEAD `195cd0012806d539304c1d0ec27d9a616e6f5081` de [PR #70](https://github.com/D3ckardCain/Geelark-IA/pull/70) pasó [Master control prototype checks #38157662672](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38157662672): regresión Python, renderizado HTML real con Chrome/Chromium y sintaxis JavaScript completados en success. El esquema v1 ahora coincide con #74 (blob `d7f5975aebf3ac605e1afa5bee75d1674636fb62`), y el ejemplo también es idéntico. Quedan accesibilidad manual e integración con estado real. Evidencia en [comentario de #70](https://github.com/D3ckardCain/Geelark-IA/pull/70#issuecomment-6111439985).
+
+
+### Sincronización del ciclo de recibos con la bandeja canónica — 2026-10-11
+
+PR #57 se sincronizó con el HEAD validado de #52 mediante [`3bbd65d6c49884408086219a364f251ddbd8c9b7`](https://github.com/D3ckardCain/Geelark-IA/commit/3bbd65d6c49884408086219a364f251ddbd8c9b7). GitHub informa `mergeable=true`, `ahead 6 / behind 0`. La rama conserva `0004_worker_module_inventory.sql`, `0005_agent_task_inbox.sql`, auth canónica/expiración y agrega el lifecycle SQLite de recibos; README/manual documentan la instalación conjunta de paquetes. Workflow transporte [#38157876743](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38157876743) en cola; revisar la integración TLS loopback/PostgreSQL antes de validar.
