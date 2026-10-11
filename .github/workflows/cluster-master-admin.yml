@@ -1,18 +1,15 @@
 name: Cluster Master Admin API
 
+# Manual only: evitar consumo automático de minutos de Actions en un repositorio privado.
+# Ejecutar únicamente tras revisar la cuota disponible y confirmar que no habrá cargos.
 on:
-  pull_request:
-    paths:
-      - "packages/cluster-master-admin/**"
-      - "packages/cluster-persistence/**"
-      - ".github/workflows/cluster-master-admin.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
