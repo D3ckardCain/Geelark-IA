@@ -669,3 +669,8 @@ El HEAD actual `a8ce049458e94ae2587caeb8a42269a0b094b09a` de #74 consulta `repor
 ### Colisión de numeración ADR en PR #40/#70/#76 — 2026-10-11
 
 La carpeta `docs/decisiones` en `main` contiene ADR-001 a ADR-004. Tres ramas abiertas proponen independientemente ADR-005 para decisiones diferentes: autenticación de agentes (#40), lectura de estado del clúster (#70) y autenticación local PC-MASTER (#76). Se registró en los tres PRs la propuesta de reservar ADR-005 para #40, renumerar #70 a ADR-006 y #76 a ADR-007, actualizando referencias. No se renombraron archivos todavía para no disparar workflows automáticos de documentación sin verificar cuota de Actions. Comentarios: [#40](https://github.com/D3ckardCain/Geelark-IA/pull/40#issuecomment-6113583351), [#70](https://github.com/D3ckardCain/Geelark-IA/pull/70#issuecomment-6113583636), [#76](https://github.com/D3ckardCain/Geelark-IA/pull/76#issuecomment-6113583939).
+
+
+### Corrección de estado PR #59/#67 — 2026-10-11
+
+La comparación inicial que describía #59 y #67 como ramas complementarias quedó obsoleta: la rama actual #67 (`3b1c21610e7de8d608a967f68daabc7abc5bda30`) incorpora `credentials.py`, `SystemdCredentialProvider`, `bootstrap.py`, CLI/configuración, `AgentNodeSupervisor` y monitor netlink. PR #59 está cerrada como sustituida por #67 (comentario de cierre #6107033798). El HEAD actual de #67 tiene CI [#38158083417](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38158083417) `completed/success`, con 129 pruebas, un warning deprecatorio y `pip check` correcto. Se corrigió la nota en [comentario de #67](https://github.com/D3ckardCain/Geelark-IA/pull/67#issuecomment-6113593229). No hay merge ni despliegue.
