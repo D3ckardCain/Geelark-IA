@@ -99,7 +99,7 @@ def test_pending_is_denied_all_task_and_reconciliation_routes_without_handler_ca
         client.post(f"/agent/v1/tasks/{uuid4()}/accept", headers=headers(), json=payload),
         client.post(f"/agent/v1/tasks/{uuid4()}/progress", headers=headers(), json=payload),
         client.post(f"/agent/v1/tasks/{uuid4()}/result", headers=headers(), json=payload),
-        client.post("/agent/v1/reconcile", headers=headers(), json=payload),
+        client.post("/agent/v1/reconcile", headers=headers(), json={"schema_version": 1, "assignments": []}),
     ]
     assert [response.status_code for response in responses] == [403, 403, 403, 403]
     assert calls == []
@@ -112,7 +112,7 @@ def test_active_node_with_unconfigured_task_handlers_gets_503_without_mutation()
         client.post(f"/agent/v1/tasks/{uuid4()}/accept", headers=headers(), json=payload),
         client.post(f"/agent/v1/tasks/{uuid4()}/progress", headers=headers(), json=payload),
         client.post(f"/agent/v1/tasks/{uuid4()}/result", headers=headers(), json=payload),
-        client.post("/agent/v1/reconcile", headers=headers(), json=payload),
+        client.post("/agent/v1/reconcile", headers=headers(), json={"schema_version": 1, "assignments": []}),
     ]
     assert [response.status_code for response in responses] == [503, 503, 503, 503]
     assert calls == []

@@ -93,6 +93,22 @@ class TaskClaimPayload(BaseModel):
     schema_version: int = Field(ge=1, le=1)
 
 
+class ReconcileAssignment(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    task_id: UUID
+    operation_id: UUID
+    instance_id: UUID
+    assignment_epoch: int = Field(ge=1, le=2**31 - 1)
+    observed_state: str = Field(pattern="^(queued|delivered|accepted|running|succeeded|failed|unknown)$")
+    result_summary: dict[str, Any] = Field(default_factory=dict)
+
+
+class ReconcilePayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: int = Field(ge=1, le=1)
+    assignments: list[ReconcileAssignment] = Field(max_length=128)
+
+
 class ReconcileItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
     task_id: UUID
@@ -358,7 +374,7 @@ def create_agent_app(
 
     @app.post("/agent/v1/reconcile")
     def reconcile(
-        payload: TaskMessage,
+        payload: ReconcilePayload,
         authorization: str | None = Header(default=None),
         x_agent_nonce: str | None = Header(default=None),
         x_agent_timestamp: str | None = Header(default=None),
@@ -366,6 +382,6 @@ def create_agent_app(
         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     ) -> Any:
         principal = authorize(Operation.RECONCILE, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
-        return invoke_write(Operation.RECONCILE, principal, payload.model_dump(), idempotency_key)
+        return invoke_write(Operation.RECONCILE, principal, payload.model_dump(mode="json"), idempotency_key)
 
     return app
