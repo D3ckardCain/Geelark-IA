@@ -126,3 +126,28 @@ def test_plain_http_is_rejected_before_authentication():
     client, _ = make_client(PENDING, base_url="http://testserver")
     response = client.get("/agent/v1/status", headers={"Authorization": "Bearer " + "a" * 64})
     assert response.status_code == 426
+
+def test_inconsistent_revoked_and_expired_principal_states_never_reach_handlers():
+    denied = (
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "active", "revoked"),
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "pending", "revoked"),
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "revoked", "active"),
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "revoked", "revoked"),
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "active", "expired"),
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "pending", "expired"),
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "unknown", "active"),
+    )
+    for principal in denied:
+        client, calls = make_client(principal)
+        response = client.post(
+            "/agent/v1/heartbeat",
+            headers=headers(),
+            json={
+                "schema_version": 1, "agent_version": "0.1.0",
+                "health_state": "healthy", "cpu_load_percent": 10,
+                "memory_total_bytes": 100, "memory_available_bytes": 50,
+                "storage_available_bytes": 200,
+            },
+        )
+        assert response.status_code == 403
+        assert calls == []
