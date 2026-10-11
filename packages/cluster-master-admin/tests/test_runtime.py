@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from geelark_master_admin.runtime import _database_connector
+from geelark_master_admin.runtime import _database_connector, main
 
 
 def test_database_connector_requires_dedicated_reader_role(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -23,3 +23,10 @@ def test_database_connector_accepts_remote_verified_tls_without_connecting(monke
     monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "postgresql://geelark_master_reader:secret@db.example.test:5432/geelark?sslmode=verify-full")
     connector = _database_connector()
     assert callable(connector)
+
+
+def test_remote_bind_is_rejected_without_explicit_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GEELARK_ADMIN_BIND_HOST", "0.0.0.0")
+    monkeypatch.delenv("GEELARK_ADMIN_ALLOW_REMOTE", raising=False)
+    with pytest.raises(RuntimeError, match="bind remoto está bloqueado"):
+        main()
