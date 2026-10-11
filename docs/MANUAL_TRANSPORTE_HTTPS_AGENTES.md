@@ -189,3 +189,19 @@ runtime = AgentTransportRuntime(
 - Heartbeat, capacidades y consulta de estado requieren conectividad; no se encolan localmente.
 - La entrega de tareas y la reconciliación del lado controlador permanecen deshabilitadas hasta integrar/revisar servicio transaccional y outbox.
 - No se ejecuta Android, ADB ni shell remoto; no desplegar en nodos reales hasta completar el bucle de agente, la entrega de tareas y la revisión de outbox.
+
+
+## Inventario versionado de módulos — fase de revisión
+
+La API añade `PUT /agent/v1/modules` con `schema_version: 1` y hasta 32 módulos sin duplicados. Los IDs se validan contra el registro cerrado del paquete: `agent-supervisor`, `agent-transport`, `agent-guard`, `task-journal` y `android-engine`. Cada elemento declara solo `module_id`, `state`, `version` y `error_code`; el servidor añade `checked_at` (hora del Master) y `source`. No se aceptan logs ni mensajes libres.
+
+**Autorización:** solo nodos `active` pueden publicar el inventario. Un nodo `pending` no obtiene permisos nuevos y recibe 403. Los módulos no alteran la autorización ni habilitan tareas.
+
+**Frescura:** si no hay heartbeat reciente (90 s) o el reporte supera 5 min, el estado se convierte en `unknown`, con origen `master-check` y código `NODE_STALE` o `REPORT_STALE`. La ausencia de un módulo nunca se interpreta como `operational`. Los datos recuperados de PostgreSQL también se sanean al responder: IDs fuera del registro se omiten, estados/orígenes/campos inesperados no se reenvían y un timestamp futuro se convierte en `unknown` (`REPORT_TIME_SKEW`).
+
+La migración `db/migrations/0004_worker_module_inventory.sql` crea la columna JSONB acotada. Esta rama se apila sobre la PR #48; no se ha fusionado, desplegado ni probado en hardware físico.
+
+
+### Contrato del payload
+
+El esquema JSON formal y el ejemplo están en [worker-module-inventory-v1.schema.json](contracts/worker-module-inventory-v1.schema.json) y [worker-module-inventory-v1.example.json](contracts/examples/worker-module-inventory-v1.example.json). La lista cerrada del esquema se prueba contra el registro del código para evitar divergencias. El timestamp `checked_at` y `source` son generados por el Master; el Worker no puede falsificarlos. La lectura de estado propio no equivale todavía a un snapshot administrativo para PC-MASTER.
