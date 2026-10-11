@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -7,8 +7,9 @@ from cluster_agent_transport.app import create_agent_app
 from cluster_agent_transport.policy import AgentPrincipal, Operation
 
 
-PENDING = AgentPrincipal("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "pending", "pending")
-ACTIVE = AgentPrincipal("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "active", "active")
+EXPIRY = datetime.now(timezone.utc) + timedelta(hours=1)
+PENDING = AgentPrincipal("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "pending", "pending", EXPIRY)
+ACTIVE = AgentPrincipal("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "active", "active", EXPIRY)
 
 
 def make_client(principal, *, base_url="https://testserver", configure_task_handlers=True):
@@ -129,13 +130,13 @@ def test_plain_http_is_rejected_before_authentication():
 
 def test_inconsistent_revoked_and_expired_principal_states_never_reach_handlers():
     denied = (
-        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "active", "revoked"),
-        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "pending", "revoked"),
-        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "revoked", "active"),
-        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "revoked", "revoked"),
-        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "active", "expired"),
-        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "pending", "expired"),
-        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "unknown", "active"),
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "active", "revoked", EXPIRY),
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "pending", "revoked", EXPIRY),
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "revoked", "active", EXPIRY),
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "revoked", "revoked", EXPIRY),
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "active", "expired", EXPIRY),
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "pending", "expired", EXPIRY),
+        AgentPrincipal(PENDING.node_id, PENDING.credential_id, "unknown", "active", EXPIRY),
     )
     for principal in denied:
         client, calls = make_client(principal)
