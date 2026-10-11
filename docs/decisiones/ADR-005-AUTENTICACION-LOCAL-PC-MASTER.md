@@ -28,6 +28,6 @@ El panel de operaciones necesita consultar snapshots reales sin abrir operacione
 
 - El acceso a snapshots requiere que PostgreSQL esté disponible; una base remota requiere Internet y TLS verificado. Para autonomía máxima, preferir PostgreSQL local.
 - Deben configurarse certificados y secretos fuera de Git.
-- Debe ejecutarse `db/tests/0005_master_admin_readonly_role.sql` conectado como lector para verificar grants reales.
+- Debe ejecutarse `packages/cluster-master-admin/sql/verify_readonly_role.sql` conectado como lector para verificar grants reales.
 - El último conjunto de cambios requiere una nueva ejecución de pruebas; no ejecutar Actions sin revisar la cuota.
 - No considerar operativo hasta probar el flujo en el PC-MASTER real y completar revisión de seguridad.
