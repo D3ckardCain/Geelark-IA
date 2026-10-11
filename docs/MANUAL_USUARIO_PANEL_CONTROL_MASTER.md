@@ -1,0 +1,82 @@
+# Manual de usuario — Panel de control PC-MASTER
+
+**Estado:** integración de panel y autenticación implementadas en la rama de propuesta. No están instaladas ni ejecutándose en el PC-MASTER real. La validación de CI del último conjunto de cambios está pendiente.
+
+## 1. Acceso inicial
+
+1. Instala el paquete local y configura TLS, hash de operador, directorio privado y DSN PostgreSQL siguiendo [la guía de instalación](../packages/cluster-master-admin/README.md).
+2. Inicia manualmente `python -m geelark_master_admin.runtime`.
+3. Abre `https://localhost:8765/` en el mismo PC-MASTER. No abras el HTML como archivo local para acceder a datos reales.
+4. Verifica que el certificado corresponda a `localhost` y esté confiado por el sistema. No ignores advertencias TLS sin verificar la huella y procedencia del certificado.
+5. Escribe la contraseña local del operador. No hay cuenta externa ni recuperación remota; conserva la contraseña de forma segura.
+6. Al entrar, el panel consulta snapshots por GET y solo muestra datos que devuelve el servicio.
+
+## 2. Cerrar sesión
+
+Pulsa **Cerrar sesión** en la cabecera. El servidor revoca la sesión en SQLite y elimina la cookie. Si no se recibe confirmación, el panel no afirma que la sesión se haya cerrado; comprueba la conexión e inténtalo de nuevo. La sesión también caduca tras ocho horas.
+
+## 3. Navegación
+
+- **Resumen:** contadores y últimos snapshots.
+- **Nodos Worker:** búsqueda por nombre o identificador, estado de autorización, salud, heartbeat, versión y capacidades.
+- **Módulos:** estado de los módulos reportados y frescura del reporte.
+- **Auditoría y CI:** enlaces a las ejecuciones de GitHub. Consultar GitHub requiere Internet.
+
+## 4. Estados
+
+- **Saludable:** estado derivado por el Master con evidencia fresca.
+- **Degradado:** el reporte de salud indica degradación o problema.
+- **Desconectado:** el heartbeat está obsoleto.
+- **Pendiente:** el nodo no está autorizado para aceptar tareas.
+- **Revocado:** autorización revocada.
+- **Desconocido:** evidencia ausente, obsoleta o inconsistente.
+- **Fresco / obsoleto / ausente:** frescura del heartbeat, no salud por sí sola.
+
+Autorización y salud son señales distintas. La API no ejecuta tareas ni modifica nodos.
+
+## 5. Ejemplo ficticio
+
+El botón **Ver ejemplo ficticio** permite probar navegación sin iniciar sesión. Los datos son generados localmente y no representan equipos reales. El ejemplo no crea una sesión ni concede acceso al backend. Para volver a datos reales, el panel exige comprobar la sesión local.
+
+## 6. Errores y solución
+
+- **No se puede iniciar sesión:** revisa la contraseña local; tras cinco intentos fallidos en 15 minutos se limita el acceso.
+- **401:** inicia sesión; la sesión no existe, expiró o fue revocada.
+- **403:** el origen de la solicitud no coincide con el origen del panel.
+- **429:** espera a que pase la ventana del limitador.
+- **503:** servicio o base de datos no disponible, o respuesta demasiado grande. Revisa logs locales sin registrar contraseñas, cookies, DSN ni tokens.
+- **No hay nodos:** puede ser una tabla vacía o ausencia de snapshots; no se interpreta como clúster saludable.
+- **Error de certificado:** confirma el certificado y su SAN; no desactives TLS.
+
+## 7. Seguridad
+
+- Autenticación local gestionada por PC-MASTER; no se envían contraseñas a proveedores externos.
+- Cookie HttpOnly, Secure, SameSite=Strict y Path=/; el navegador no puede leerla desde JavaScript.
+- La API exige HTTPS y comprueba Origin para login/logout.
+- El backend usa el rol PostgreSQL `geelark_master_reader`, con transacciones read-only, timeouts y una consulta SELECT limitada.
+- No hay controles de mutación, ejecución shell, ADB, tareas, ni reconciliación.
+- No se persisten credenciales ni snapshots en almacenamiento del navegador.
+- La interfaz sirve desde el mismo origen que la API, evitando tener que habilitar CORS.
+- El servidor escucha en loopback por defecto; no lo expongas a la LAN sin revisión de seguridad específica.
+
+## 8. Funciones offline
+
+| Función | ¿Funciona sin conexión? |
+|---|---|
+| Abrir la página empaquetada en el servidor local | Sí, mientras PC-MASTER esté ejecutándose |
+| Navegar por la interfaz | Sí |
+| Ejemplo ficticio | Sí |
+| Iniciar sesión | Requiere el servicio local |
+| Consultar snapshots | Requiere PostgreSQL disponible |
+| Consultar GitHub Actions | Requiere Internet |
+| Ejecutar operaciones en Workers | No implementado |
+
+Si PostgreSQL está alojado remotamente, consultar datos reales requiere Internet y depende de la disponibilidad/límites del proveedor. Para mayor autonomía y coste controlado, PostgreSQL local es preferible.
+
+## 9. Limitaciones conocidas
+
+- Una sola instancia de servidor; el limitador de login es en memoria.
+- La sesión se guarda en SQLite local y expira en ocho horas.
+- Los permisos efectivos del rol PostgreSQL deben verificarse ejecutando `db/tests/0005_master_admin_readonly_role.sql` como el usuario lector.
+- CI aprobada no sustituye la validación con una instancia PostgreSQL real ni la revisión manual de seguridad.
+- No se ha ejecutado en hardware real ni se ha desplegado. No debe considerarse operativo hasta completar la lista de aceptación de la PR #76.
