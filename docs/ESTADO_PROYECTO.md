@@ -324,3 +324,54 @@ Esta sección distingue explícitamente el trabajo que existe en ramas/PR de lo 
 - Añadir pruebas pendientes de expiración, rotación concurrente, recuperación y backup/restauración.
 - Revisar permisos mínimos, HTTPS con CA local, redacción de secretos y límites antes de cualquier transporte real.
 - Conservar el coste operativo obligatorio de 0 USD y no instalar/desplegar nada en las PCs físicas sin autorización explícita.
+
+
+## Auditoría de continuidad del repositorio — 2026-10-11
+
+Corte de auditoría: 2026-10-11 UTC. Esta revisión es de solo lectura sobre GitHub; no se fusionó, desplegó, instaló ni ejecutó código en PCs físicas y no se modificó ninguna base de datos del usuario.
+
+### Inventario y estado integrado
+
+- Repositorio privado; rama predeterminada `main`, HEAD observado `f62fd1163fcb45e338978b6d8f777135dc87584b`.
+- GitHub reporta la rama `main` sin protección. El árbol de `main` no contiene `.github/workflows/` ni archivos de automatización de seguridad; los workflows que se observan viven en ramas/PR y no equivalen a CI integrada en `main`.
+- Se observaron **29 PR abiertos, los 29 en draft**, y **40 Issues abiertas**. Ningún PR se fusionó durante esta auditoría.
+- Las PRs abiertas de módulos no representan funcionalidades integradas: el panel de PC-MASTER sigue siendo una maqueta; el proveedor de snapshots aún no tiene endpoint administrativo ni conexión con el panel; el inventario de módulos solo existe en una rama apilada.
+
+### CI verificada en HEADs actuales
+
+- PR #70, HEAD `ba22e44a67d4253f08cc7a2bad79acdabca7f465`: check de prototipo **success**. Esto acredita el workflow del prototipo, no validación física ni accesibilidad completa.
+- PR #73, HEAD `23675a4f8970ce9a827014ebc3c2652897bbdd92`: **3 checks success** (transporte, persistencia y migraciones/invariantes).
+- PR #74, HEAD `80e7f17865fc34f6f64832180ae4ad81d71a2042`: la API de check-runs muestra **1 check success** (servicio de persistencia). La descripción de la PR afirma también checks Guard y Autenticación para ese mismo HEAD, pero no aparecen asociados a ese SHA en la consulta actual; no dar esos dos checks por confirmados hasta aportar sus ejecuciones exactas.
+- PR #48, HEAD `2c58c3edf732de265235dae3dc683aa958e4208d`: **3 checks success**.
+- PR #54, HEAD `9533e9b14e815b86771d21e62d10f03b4f3e5bdd`: **3 checks success**.
+- PR #68, HEAD `db09da25ac37b612489931408156f04d9c89079e`: **3 checks success**.
+- PR #38, HEAD `b41a2e6ce44e881f7f3e03c18e3fe586f1cdb584`: **1 check success y 1 failure**. Falló `test_v1_journal_migrates_to_v2_and_preserves_synced_ack` en `packages/cluster-agent-guard/tests/test_journal.py:363`: la prueba esperaba versión 2 y observó 3. No se reintentó para evitar consumo innecesario de minutos; corregir prueba/migración y ejecutar de nuevo cuando el cambio esté listo.
+- Los HEADs de PRs documentales #21, #23, #25, #26, #40, #45 y #60 no muestran check-runs; se consideran **CI no aplicable/no confirmada**, no CI aprobada.
+- No se hallaron revisiones formales ni hilos inline en las PRs clave #38, #48, #54, #68, #70, #73 y #74; tampoco hay revisores solicitados en la lista de PRs abiertas consultada.
+
+### Dependencias, deriva y posibles duplicados
+
+- Cadena reciente del control: #48 (transporte HTTPS) → #73 (inventario versionado de módulos) → #74 (proveedor interno de snapshots). #73 y #74 siguen en draft.
+- #74 copia el esquema/ejemplo del contrato que vive en la PR #70 no fusionada. Riesgo de divergencia del contrato; antes de integrar, establecer una fuente única versionada o validar automáticamente los hashes/contenidos contra el contrato canónico.
+- #47 introduce `cluster_agent_auth.authorization`; #48 mantiene otra matriz de operaciones/estados en `cluster_agent_transport.policy`. Ambas contienen listas de operaciones permitidas para nodos pending/active. La Issue #65 prohíbe duplicar esta lógica: decidir un único dueño de política y hacer que el transporte lo adapte, o documentar/testear formalmente la separación.
+- #52 y #54 implementan la bandeja de tareas sobre el mismo transporte. #54 es la rama “clean” para el núcleo del claim, pero #52 además contiene contrato/manuales, pruebas adicionales y trabajo de reconciliación/runtime que no se demuestra cubierto íntegramente por #54. **No cerrar #52 todavía**: mapear lo restante a #61/#57 y conservar o portar los entregables exclusivos antes de declarar supersesión completa.
+- #59 y #67 son variantes que se solapan en supervisor/heartbeat. #67 agrega monitor de conectividad y endurecimiento de credenciales, mientras #59 contiene piezas de bootstrap/proveedor de credenciales; la cobertura no es idéntica. No cerrar ninguna hasta comparar y decidir explícitamente la variante canónica.
+- Las comparaciones de ramas indican deriva con respecto a sus bases actuales: #52 y #54 van 8 commits detrás de `feat/agent-https-transport`; #68 también 8; #59 va 7 detrás de `feat/agent-lifecycle-sync-inbox`; #34 va 7 detrás de `feat/cluster-persistence-schema`; #36 va 3 detrás de `feat/cluster-assignment-service`; #38 va 5 detrás de `feat/cluster-outbox-dispatcher`. Los compares reportan ramas divergentes. Antes de integrar, actualizar cada pila en orden y volver a validar el merge result/HEAD combinado.
+- La Issue #20 mantiene pendientes autenticación real, dispatcher, recuperación y backup/restauración; no se cierra por las pruebas parciales de PostgreSQL desechable.
+
+### Seguridad, coste y operación
+
+- Riesgo de gobernanza alto: `main` no está protegida y no tiene workflows integrados. Recomendación: después de integrar y validar workflows de coste bajo, habilitar protección/PR review y checks requeridos sin permitir auto-merge.
+- Los workflows inspeccionados declaran `permissions: contents: read` y usan PostgreSQL desechable, lo que limita privilegios. Sin embargo, algunos usan `actions/checkout@v4` y `actions/setup-python@v5`; Actions ha emitido advertencia por Node.js 20/deprecación. Actualizar versiones soportadas y, para mayor garantía de cadena de suministro, considerar pinning a SHA completo. Los paquetes declaran rangos de dependencias en `pyproject.toml`; no se encontró lockfile en la rama de transporte inspeccionada.
+- La CI privada genera ejecuciones repetidas en PRs apilados. La Issue #63 sigue abierta; no se dispararon re-runs manuales. Mantener `concurrency`, filtros `paths` y evitar triggers duplicados. El gasto mensual real de Actions no fue accesible desde este corte y no se afirma que el consumo total sea cero.
+- Se conserva el objetivo obligatorio de coste operativo de **0 USD**: no se incorporaron servicios de pago, trials ni requisitos de tarjeta. Se mantienen procedimientos offline donde son viables; el proveedor PostgreSQL de snapshots requiere conectividad local y no tiene caché offline.
+- No se cerraron PRs ni Issues en este corte: las coincidencias encontradas aún no prueban supersesión completa, y varias tareas tienen puertas de seguridad/recuperación pendientes.
+
+### Próximos pasos ordenados
+
+1. Corregir el fallo de migración del journal en #38 y obtener CI verde del HEAD exacto.
+2. Resolver la política duplicada #47/#48 y confirmar pruebas negativas de pending/revoked/expired en el stack completo (#65).
+3. Re-sincronizar las pilas #32→#34→#36→#38 y #48→#54→#57→#59/#67→#61; resolver explícitamente #52 frente a #54 antes de cerrar cualquier rama.
+4. Verificar las ejecuciones Guard/Auth del HEAD exacto de #74; mantener el proveedor como solo lectura, sin endpoint ni UI hasta autenticar/autorizAR al operador.
+5. Mantener #70/#73/#74 en draft hasta revisión humana, contrato único, pruebas de accesibilidad/seguridad y validación de integración.
+6. Tratar CI, integración de PR, validación operativa en LAN y prueba en hardware como cuatro estados distintos. No instalar agentes, ejecutar ADB/shell ni tocar bases del usuario sin autorización explícita.
