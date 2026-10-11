@@ -1,8 +1,11 @@
+from datetime import datetime, timedelta, timezone
+
 from cluster_agent_transport.policy import AgentPrincipal, Operation, PermissionDenied, authorize_operation
 
 
-def principal(admin_state="pending", credential_status="pending"):
-    return AgentPrincipal("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", admin_state, credential_status)
+def principal(admin_state="pending", credential_status="pending", expires_at=None):
+    expiry = expires_at or (datetime.now(timezone.utc) + timedelta(hours=1))
+    return AgentPrincipal("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", admin_state, credential_status, expiry)
 
 
 def test_pending_can_only_send_telemetry_and_read_status():
@@ -57,3 +60,12 @@ def test_all_revoked_expired_unknown_and_inconsistent_pairs_fail_closed():
                 f"Estado no autorizado {p.admin_state}/{p.credential_status} "
                 f"permitió {operation.value}"
             )
+
+
+def test_expired_credential_timestamp_fails_closed_even_if_status_is_active():
+    expired = principal("active", "active", datetime.now(timezone.utc) - timedelta(seconds=1))
+    try:
+        authorize_operation(expired, Operation.HEARTBEAT)
+    except PermissionDenied:
+        return
+    raise AssertionError("Una credencial vencida debe ser rechazada por la política canónica")
