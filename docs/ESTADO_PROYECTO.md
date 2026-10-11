@@ -757,3 +757,15 @@ La PR #76 mantiene workflow manual-only para evitar consumo/cargos de Actions. E
 
 ### Límites de coste y acciones
 No hay acceso a la facturación real de Actions desde el conector; no afirmar coste real de $0 solo por CI verde. No se fusionó ni desplegó ninguna PR en esta revalidación. Los cierres preexistentes #54/#59 se registran como cierres documentados por supersesión, no como merge.
+
+
+### Revalidación de la cadena de persistencia #32 → #34 → #36 → #38 → #42 — 2026-10-11
+
+Se compararon los HEAD actuales (no solo los títulos ni las bases declaradas):
+
+- **#32 → #34:** `diverged`; #34 tiene 29 commits exclusivos y está 7 detrás de #32; merge-base `54e35fa42d335e0f0e91c099de72e86a49df3cf2`. Cambios incluyen workflow y migración `0001_cluster_control.sql`, además del servicio.
+- **#34 → #36:** `diverged`; #36 tiene 12 commits exclusivos y está 3 detrás de #34; merge-base `ef56529f943394d3c3b6fb7c185876760e173945`.
+- **#36 → #38:** `diverged`; #38 tiene 33 commits exclusivos y está 5 detrás de #36; merge-base `208c5a29e8eb0790ba7f3ef70e68dd3caf08412b`. #38 aporta el journal SQLite v3, `task_id` y fencing/deduplicación.
+- **#38 → #42:** `diverged`; #42 tiene 3 commits exclusivos y está 13 detrás de #38; merge-base `707e9b643f9ffee07c34b3106173d92f99d163b6`. #42 añade migración `0002_agent_auth.sql` y pruebas de humo.
+
+Los workflows de cada HEAD listado terminaron success en sus propios SHAs, pero no existe evidencia de CI de la pila consolidada. Se añadieron comentarios con los conteos y pasos requeridos en [#34](https://github.com/D3ckardCain/Geelark-IA/pull/34#issuecomment-6114248845), [#36](https://github.com/D3ckardCain/Geelark-IA/pull/36#issuecomment-6114249187), [#38](https://github.com/D3ckardCain/Geelark-IA/pull/38#issuecomment-6114249529) y [#42](https://github.com/D3ckardCain/Geelark-IA/pull/42#issuecomment-6114249887). No se cambió ninguna base ni se disparó CI adicional: el orden seguro es reconciliar cada rama, revisar migraciones/contratos y ejecutar las pruebas en el HEAD combinado, sin cierres automáticos.
