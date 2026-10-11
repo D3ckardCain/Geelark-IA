@@ -7,6 +7,7 @@ on:
       - "packages/cluster-persistence/**"
       - "packages/cluster-agent-guard/**"
       - "packages/cluster-agent-auth/**"
+      - ".github/workflows/cluster-persistence-service.yml"
   push:
     branches: [main]
     paths:
@@ -19,6 +20,12 @@ on:
 
 permissions:
   contents: read
+
+# Evita gastar minutos en ejecuciones obsoletas del mismo PR/ref.
+# Las suites de workflows distintos mantienen grupos independientes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   integration:
@@ -81,7 +88,7 @@ jobs:
         run: python -m pip install -e "packages/cluster-agent-auth[test]"
 
       - name: Run agent auth service tests when present
-        if: hashFiles('packages/cluster-agent-auth/pyproject.toml') != ''
+        if: hashFiles('packages/cluster-agent-auth/pyproject.yml') != ''
         run: python -m pytest packages/cluster-agent-auth/tests -q
 
       - name: Check dependency consistency
