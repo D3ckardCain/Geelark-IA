@@ -313,7 +313,7 @@ def test_rejected_is_terminal_and_can_be_acknowledged(tmp_path):
         )
 
 
-def test_v1_journal_migrates_to_v2_and_preserves_synced_ack(tmp_path):
+def test_v1_journal_migrates_to_v3_and_preserves_synced_ack(tmp_path):
     path = tmp_path / "legacy-v1.sqlite3"
     operation_id = "66666666-6666-4666-8666-666666666661"
     instance_id = str(INSTANCE)
@@ -360,7 +360,8 @@ def test_v1_journal_migrates_to_v2_and_preserves_synced_ack(tmp_path):
     ).fetchone()[0]
     synced_count = conn.execute("SELECT COUNT(*) FROM synced_receipts").fetchone()[0]
     conn.close()
-    assert version == 2
+    assert version == 3
     assert "'rejected'" in receipt_sql
+    assert "task_id TEXT" in receipt_sql
     assert synced_count == 1
     assert journal.get_receipt(UUID(operation_id)).status == "succeeded"
