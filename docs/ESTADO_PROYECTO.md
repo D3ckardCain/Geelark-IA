@@ -717,3 +717,16 @@ Estas diferencias no prueban por sí solas que falte cada cambio funcional (algu
 ### Rama inicial de contratos #16 desactualizada respecto de main — 2026-10-11
 
 La comparación de `main` actual (`f62fd1163fcb45e338978b6d8f777135dc87584b`) con HEAD #16 (`6fa17c579b7743e75a205bfb09619dd28b337307`) devuelve `diverged`: 20 commits propios de #16 y 12 commits recientes de `main` ausentes. El diff visible se concentra en `.github/workflows/cluster-contracts.yml`, `packages/cluster-contracts/{README.md,pyproject.toml}`, modelos, máquina de estados y tests. #28 y #30 dependen de este HEAD, así que una sincronización debe hacerse primero en #16 y luego validar sus descendientes. No se modificó la base para evitar disparar CI sin verificar cuota. Hallazgo: [comentario #16](https://github.com/D3ckardCain/Geelark-IA/pull/16#issuecomment-6114103278).
+
+### Corte de auditoría del repositorio — 2026-10-11
+
+Consulta de GitHub al corte: **27 PR abiertas** y **40 Issues abiertas** (incluye PR en draft; Issues no incluyen PRs). Este conteo es una instantánea, no una métrica permanente.
+
+Bloqueos prioritarios confirmados:
+1. Sincronizar la cadena #32 → #34 → #36 → #38 → #42 en orden, revisando árbol y migraciones, porque cada comparación sucesiva devuelve `diverged`.
+2. Portar a #38 las garantías exclusivas del journal #49 (filtro de estados y ACK validado por epoch) antes de decidir supersesión.
+3. Sincronizar #57 con el HEAD vigente de #52 antes de validar la integración de ciclo de vida.
+4. Validar la seguridad ACL de #76 con pruebas propias de `cluster-master-admin` y DACL efectiva Windows; el workflow de persistencia no cubre esas pruebas.
+5. Mantener el control de coste: no hay acceso a facturación real de Actions desde el conector; no afirmar $0 facturado sin comprobar Billing.
+
+En esta auditoría no se fusionó ni cerró ninguna PR/Issue, no se desplegó ningún servicio y no se tocó hardware ni base de datos del usuario. La única ejecución automática incidental observada en el trabajo ACL (#38177200860) terminó `success`, pero no validó el paquete de administración.
