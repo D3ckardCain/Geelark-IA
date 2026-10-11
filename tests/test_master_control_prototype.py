@@ -43,7 +43,7 @@ class MasterControlPrototypeTests(unittest.TestCase):
         self.assertIn('const API_PATH="/admin/v1/status/snapshots"', self.html)
         self.assertIn("Esperando al servicio de control", self.html)
         self.assertIn("No se muestran datos de muestra automáticamente", self.html)
-        self.assertIn('state.snapshots=[]', self.html)
+        self.assertIn("state.snapshots=[]", self.html)
         self.assertIn('id="demo-toggle"', self.html)
 
     def test_read_only_request_is_same_origin_and_not_cached(self):
@@ -59,7 +59,7 @@ class MasterControlPrototypeTests(unittest.TestCase):
     def test_endpoint_contract_and_live_api_limits_are_visible(self):
         self.assertIn("schema_version", self.html)
         self.assertIn("snapshots", self.html)
-        self.assertIn("state.snapshots.length>500", self.html)
+        self.assertIn("data.snapshots.length>500", self.html)
         self.assertIn("Autenticación/autorización requerida", self.html)
         self.assertIn("No se inventan nodos ni estados", self.html)
 
@@ -68,8 +68,8 @@ class MasterControlPrototypeTests(unittest.TestCase):
 
     def test_javascript_dom_references_exist(self):
         ids = set(self.parser.ids)
-        refs = re.findall(r'getElementById\(["\']([^"\']+)["\']\)', self.html)
-        self.assertTrue(refs, "Expected getElementById references")
+        refs = re.findall(r'el\(["\']([^"\']+)["\']\)', self.html)
+        self.assertTrue(refs, "Expected el(id) DOM references")
         self.assertEqual(sorted(set(refs) - ids), [])
 
     def test_navigation_exposes_current_page_accessibly(self):
@@ -85,9 +85,9 @@ class MasterControlPrototypeTests(unittest.TestCase):
         self.assertIn('aria-live="polite"', self.html)
 
     def test_remote_values_are_escaped_before_insertion(self):
-        self.assertIn('function esc(value)', self.html)
-        for expression in ("esc(n.display_name)", "esc(n.node_id)", "esc(s.freshness.age_seconds)",
-                           "esc(m.module_id)", "esc(m.version)", "esc(m.source||\"unknown\")"):
+        self.assertIn("function esc(value)", self.html)
+        for expression in ('esc(n.display_name)', 'esc(n.node_id)', 'esc(text(s.freshness.age_seconds))',
+                           'esc(m.module_id)', 'esc(text(m.version))', 'esc(m.source||"unknown")'):
             with self.subTest(expression=expression):
                 self.assertIn(expression, self.html)
 
@@ -97,11 +97,11 @@ class MasterControlPrototypeTests(unittest.TestCase):
 
     def test_demo_is_explicit_and_separate_from_live_data(self):
         self.assertIn("Ver ejemplo ficticio", self.html)
-        self.assertIn('if(state.demo)return', self.html)
+        self.assertIn("if(state.busy||state.demo)return", self.html)
         self.assertIn("Ejemplo ficticio activado", self.html)
 
     def test_only_read_only_admin_endpoint_is_called(self):
-        endpoints = re.findall(r'fetch\(([^)]*)\)', self.html)
+        endpoints = re.findall(r'fetch\(([^,)]*)', self.html)
         self.assertEqual(endpoints, ["API_PATH"])
         self.assertIn('const API_PATH="/admin/v1/status/snapshots"', self.html)
         self.assertNotIn("/admin/v1/reconcile", self.html)
