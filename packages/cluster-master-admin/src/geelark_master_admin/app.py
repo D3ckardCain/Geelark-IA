@@ -7,11 +7,12 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from geelark_cluster_persistence.status_snapshot import build_status_snapshot
@@ -78,6 +79,7 @@ def create_admin_app(
     session_db_path: str,
     secure_cookie: bool = True,
     rate_limiter: LoginRateLimiter | None = None,
+    panel_path: str | Path | None = None,
 ) -> FastAPI:
     """Crea rutas admin con autenticación local; no inicia listener ni hace deploy."""
     if not isinstance(operator_password_hash, str) or not operator_password_hash.startswith("pbkdf2_sha256$"):
@@ -95,6 +97,21 @@ def create_admin_app(
     @app.exception_handler(Exception)
     async def safe_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
         return _security_headers(JSONResponse({"error": {"code": "SERVICE_UNAVAILABLE"}}, status_code=503))
+
+    @app.get("/", include_in_schema=False)
+    async def panel() -> Response:
+        if panel_path is None or not Path(panel_path).is_file():
+            return _security_headers(JSONResponse({"error": {"code": "PANEL_NOT_CONFIGURED"}}, status_code=503))
+        return FileResponse(
+            path=Path(panel_path),
+            media_type="text/html; charset=utf-8",
+            headers={
+                "Cache-Control": "no-store, max-age=0",
+                "X-Content-Type-Options": "nosniff",
+                "Referrer-Policy": "no-referrer",
+                "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+            },
+        )
 
     @app.get("/admin/v1/session")
     async def session_status(request: Request) -> Response:
