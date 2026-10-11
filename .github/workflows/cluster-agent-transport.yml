@@ -19,7 +19,7 @@ on:
 permissions:
   contents: read
 
-# Cancel stale validation for the same pull request/ref to reduce redundant minutes.
+# Keep only the newest validation for a given PR/ref; stale runs waste minutes.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -54,7 +54,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: D3ckardCain/Geelark-IA
-          ref: 4b537f453a27591a0a92e9bea9840c6d686466c9
+          ref: e37e5aaef72837c19837eb5b648c29f05ae9b3c3
           path: guard-source
 
       - name: Set up Python
