@@ -289,7 +289,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         row = conn.execute(
             """
             SELECT t.task_id, t.operation_id, t.instance_id, t.assignment_epoch,
-                   t.payload, t.delivery_attempts
+                   t.payload, t.delivery_attempts, i.lease_expires_at
               FROM geelark_control.agent_tasks AS t
               JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
               JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
