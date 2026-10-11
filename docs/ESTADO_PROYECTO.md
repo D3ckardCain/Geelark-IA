@@ -375,3 +375,17 @@ Corte de auditoría: 2026-10-11 UTC. Esta revisión es de solo lectura sobre Git
 4. Verificar las ejecuciones Guard/Auth del HEAD exacto de #74; mantener el proveedor como solo lectura, sin endpoint ni UI hasta autenticar/autorizAR al operador.
 5. Mantener #70/#73/#74 en draft hasta revisión humana, contrato único, pruebas de accesibilidad/seguridad y validación de integración.
 6. Tratar CI, integración de PR, validación operativa en LAN y prueba en hardware como cuatro estados distintos. No instalar agentes, ejecutar ADB/shell ni tocar bases del usuario sin autorización explícita.
+
+
+### Seguimiento de auditoría y acciones registradas — 2026-10-10
+
+Se publicaron comentarios de auditoría en las conversaciones de GitHub:
+- [PR #38 — journal offline](https://github.com/D3ckardCain/Geelark-IA/pull/38#issuecomment-6104209742): fallo de migración/esquema; corregir según contrato y validar el HEAD nuevo.
+- [PR #48 — transporte HTTPS](https://github.com/D3ckardCain/Geelark-IA/pull/48#issuecomment-6104209949): política de autorización duplicada frente a #47.
+- [PR #54 — bandeja durable](https://github.com/D3ckardCain/Geelark-IA/pull/54#issuecomment-6104210222): solapamiento con #52; conservar entregables exclusivos hasta demostrar supersesión.
+- [PR #59 — supervisor](https://github.com/D3ckardCain/Geelark-IA/pull/59#issuecomment-6104210458) y [PR #67 — supervisor/heartbeat](https://github.com/D3ckardCain/Geelark-IA/pull/67#issuecomment-6104210726): comparar cobertura y decidir variante canónica sin cerrar prematuramente.
+- [PR #70 — contrato Master/Worker](https://github.com/D3ckardCain/Geelark-IA/pull/70#issuecomment-6104210916): evitar copia divergente del esquema v1; establecer fuente canónica y verificación.
+- [PR #74 — snapshots](https://github.com/D3ckardCain/Geelark-IA/pull/74#issuecomment-6104211090): reconciliar evidencia CI con SHA/jobs exactos; separar CI de autorización real e integración.
+- [Issue #63 — coste de CI](https://github.com/D3ckardCain/Geelark-IA/issues/63#issuecomment-6104211309): mantener 0 USD, reducir ejecuciones redundantes y no afirmar coste real cero sin datos de uso.
+
+**Estado de resolución:** los comentarios y decisiones quedaron registrados, pero las correcciones de código y la validación combinada siguen pendientes. No se fusionó ninguna PR, no se cerraron elementos, no se desplegó, no se tocaron PCs físicas ni bases de datos del usuario. El fallo #38 no se debe declarar corregido hasta obtener evidencia verde sobre el nuevo HEAD.
