@@ -253,7 +253,13 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 "modules": _derive_module_reports(row[9], row[6]),
             }
 
-    def _locked_task(conn: psycopg.Connection, principal: AgentPrincipal, task_id: UUID):
+    def _locked_task(
+        conn: psycopg.Connection,
+        principal: AgentPrincipal,
+        task_id: UUID,
+        *,
+        allow_terminal_replay: bool = False,
+    ):
         row = conn.execute(
             """
             SELECT t.status, t.node_id, t.instance_id, t.assignment_epoch,
@@ -271,12 +277,23 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             raise HTTPException(status_code=404, detail={"code": "TASK_NOT_FOUND"})
         if str(row[1]) != principal.node_id:
             raise HTTPException(status_code=403, detail={"code": "TASK_NOT_OWNED_BY_NODE"})
+        # Un reintento terminal idéntico puede recibir ACK aunque venza la lease,
+        # pero solo si el mismo nodo conserva la propiedad y el mismo assignment_epoch.
+        terminal_replay = allow_terminal_replay and row[0] in {
+            "succeeded", "rejected", "failed", "unknown"
+        }
         if (
             row[5] is None or str(row[5]) != principal.node_id
-            or row[6] != row[3] or row[7] is None or row[7] <= datetime.now(timezone.utc)
+            or row[6] != row[3]
             or (
-                row[0] in {"delivered", "accepted", "running"}
-                and (row[9] is None or row[9] <= datetime.now(timezone.utc))
+                not terminal_replay
+                and (
+                    row[7] is None or row[7] <= datetime.now(timezone.utc)
+                    or (
+                        row[0] in {"delivered", "accepted", "running"}
+                        and (row[9] is None or row[9] <= datetime.now(timezone.utc))
+                    )
+                )
             )
         ):
             raise HTTPException(status_code=409, detail={"code": "STALE_ASSIGNMENT"})
@@ -403,7 +420,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             task_id = UUID(payload["task_id"])
         except (KeyError, ValueError, TypeError):
             raise HTTPException(status_code=422, detail={"code": "INVALID_TASK_ID"}) from None
-        row = _locked_task(conn, principal, task_id)
+        row = _locked_task(conn, principal, task_id, allow_terminal_replay=True)
         old_status, old_summary = row[0], dict(row[4] or {})
         details = _validate_result_summary(payload.get("details", {}))
         if old_status in {"succeeded", "rejected", "failed", "unknown"}:
