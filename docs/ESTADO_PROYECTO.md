@@ -649,3 +649,8 @@ La base de PR #57 apunta a `feat/agent-task-inbox-v2` (#52), cuyo HEAD avanzó a
 ### PR #49 frente al journal v3 actual — 2026-10-11
 
 La rama #38 está en esquema v3 (`task_id`, estado `rejected`, tabla `synced_receipts` y migración v1→v3); la PR #49 sigue en v2 con `controller_ack_at`, sin `task_id` ni `rejected`, y su test afirma `version == 2`. Su CI [#38015505670](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38015505670) pasó en su propio HEAD `936857a0cded51079b94769f09c641751113fb13`, pero no acredita compatibilidad con la base actual. La mejora exclusiva de #49 es validar nodo y `assignment_epoch` al marcar ACK, además de filtrar estados pendientes; #38 ya tiene ACK durable, pero `mark_receipt_synced()` no recibe epoch. No cerrar ni fusionar #49 hasta portar esas salvaguardas al esquema v3, adaptar migraciones/pruebas y validar la pila. Hallazgo registrado en [comentario de #49](https://github.com/D3ckardCain/Geelark-IA/pull/49#issuecomment-6113543879). No se modificó esa rama para no disparar Actions adicionales sin verificar cuota.
+
+
+### Seguimiento de Issues #50 y #72 — 2026-10-11
+
+Se actualizó [Issue #50](https://github.com/D3ckardCain/Geelark-IA/issues/50#issuecomment-6113553786) con el HEAD de #52, CI verde, prueba de replay terminal con ambas leases vencidas, cierres supersedidos #54/#68 y puertas pendientes para la pila descendiente. Se actualizó [Issue #72](https://github.com/D3ckardCain/Geelark-IA/issues/72#issuecomment-6113554628) con el estado del inventario (#73), proveedor (#74) y panel autenticado (#76), manteniendo la salvedad de CI exacta para el HEAD de #74 y de grants/ACL aún no verificados en operación real.
