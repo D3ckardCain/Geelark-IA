@@ -25,6 +25,18 @@ Paquete experimental independiente del dominio y sin listener automático.
 - Las respuestas no incluyen tokens, SQL ni excepciones internas.
 - Los handlers de dominio no configurados responden 503; el paquete no ejecuta shell/ADB ni comandos Android.
 
+## Instalación local del monorepo
+
+El transporte delega la decisión de permisos en `packages/cluster-agent-auth`; por eso deben instalarse ambos paquetes desde este repositorio (no instalar solo el paquete de transporte):
+
+```sh
+python -m pip install -e "packages/cluster-agent-auth[test]"
+python -m pip install -e "packages/cluster-agent-transport[test]"
+python -m pip check
+```
+
+El paquete de autorización valida también `credential_expires_at` en cada petición. La consulta PostgreSQL de autenticación filtra además credenciales vencidas y devuelve su timestamp real al principal autenticado.
+
 ## Integración
 
 Para el primer tramo de telemetría, usar:
