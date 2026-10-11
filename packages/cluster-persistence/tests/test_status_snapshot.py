@@ -182,3 +182,38 @@ def test_snapshot_output_fields_stay_aligned_with_versioned_json_schema():
     assert snapshot["node"]["health_state"] in node_schema["properties"]["health_state"]["enum"]
     assert snapshot["node"]["authorization_state"] in node_schema["properties"]["authorization_state"]["enum"]
     assert snapshot["freshness"]["state"] in freshness_schema["properties"]["state"]["enum"]
+
+
+def test_future_module_timestamp_is_rejected_and_not_returned():
+    reports = [{
+        "module_id": "agent-supervisor",
+        "state": "operational",
+        "version": "0.1.0",
+        "checked_at": (NOW + timedelta(minutes=1)).isoformat(),
+        "source": "agent-report",
+        "error_code": None,
+    }]
+    snapshot = build_status_snapshot(make_row(modules=reports), now=NOW)
+    module = snapshot["node"]["modules"][0]
+
+    assert module["state"] == "unknown"
+    assert module["source"] == "master-check"
+    assert module["error_code"] == "REPORT_TIME_SKEW"
+    assert module["checked_at"] is None
+
+
+def test_stale_module_report_cannot_remain_operational():
+    reports = [{
+        "module_id": "agent-supervisor",
+        "state": "operational",
+        "version": "0.1.0",
+        "checked_at": (NOW - timedelta(minutes=6)).isoformat(),
+        "source": "agent-report",
+        "error_code": None,
+    }]
+    snapshot = build_status_snapshot(make_row(modules=reports), now=NOW)
+    module = snapshot["node"]["modules"][0]
+
+    assert module["state"] == "unknown"
+    assert module["source"] == "master-check"
+    assert module["error_code"] == "REPORT_STALE"
