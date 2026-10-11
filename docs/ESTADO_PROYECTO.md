@@ -287,3 +287,13 @@ El PR borrador #16 ahora incluye validación de coherencia entre `status` y `obs
 ### Persistencia de asignaciones documentada (2026-10-09)
 
 Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md). Define transacciones, restricciones para un único propietario, idempotencia durable, outbox y pruebas de caída/concurrencia. No hay DDL, migraciones ni código de persistencia implementados; PostgreSQL local sigue siendo una propuesta pendiente de validar.
+
+
+## Registro de continuidad — 2026-10-11: panel PC-MASTER
+
+- Decisión ADR-005: autenticación local gestionada por PC-MASTER, sin proveedor externo.
+- PR #76 añade API de snapshots protegida, login/logout local, sesiones SQLite, panel HTML en el mismo origen, arranque TLS explícito y rol PostgreSQL lector.
+- El endpoint usa una consulta acotada de solo lectura; no hay rutas de mutación, tareas, ADB, shell ni reconciliación.
+- Se añadieron `db/admin/MASTER_ADMIN_READONLY_ROLE.sql` y `db/tests/0005_master_admin_readonly_role.sql` para preparar y verificar el rol dedicado.
+- CI para este paquete está configurada manualmente para reducir consumo de Actions. La última ejecución verde corresponde a un commit anterior a la integración de panel, runtime y nuevos tests; volver a ejecutar solo después de revisar cuota y coste.
+- No se ha instalado ni iniciado en PC-MASTER, no se han verificado los grants en la base real y no se ha desplegado. Esas validaciones siguen pendientes; no declarar la pantalla operativa hasta completarlas.
