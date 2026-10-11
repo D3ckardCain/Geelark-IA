@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -52,4 +53,5 @@ def test_session_database_permissions_are_restricted(tmp_path: Path) -> None:
     path = tmp_path / "private" / "sessions.sqlite3"
     SessionStore(path)
     assert path.exists()
-    assert path.stat().st_mode & 0o077 == 0
+    if os.name == "posix":
+        assert path.stat().st_mode & 0o077 == 0
