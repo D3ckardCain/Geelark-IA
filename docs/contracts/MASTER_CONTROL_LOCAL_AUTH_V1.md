@@ -8,7 +8,8 @@ La autenticación del panel es local y gestionada por PC-MASTER. No depende de S
 
 ## API
 
-- `GET /`: sirve el panel local empaquetado con CSP restringida y sin caché.\n- `GET /admin/v1/session`: 200 con `{"authenticated": true|false}`.
+- `GET /`: sirve el panel local empaquetado con CSP restringida y sin caché.
+- `GET /admin/v1/session`: 200 con `{"authenticated": true|false}`.
 - `POST /admin/v1/login`: acepta únicamente `{"password": "..."}`; exige HTTPS y `Origin` del mismo origen. Responde 200 y emite cookie o 401/403/429.
 - `POST /admin/v1/logout`: revoca sesión local y borra cookie; exige HTTPS y mismo origen.
 - `GET /admin/v1/status/snapshots`: requiere sesión vigente y devuelve `schema_version`, `generated_at` y máximo 500 snapshots. Respuestas de error no se reemplazan por datos ficticios.
