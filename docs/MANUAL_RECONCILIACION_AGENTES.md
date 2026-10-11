@@ -65,3 +65,8 @@ La reconciliación necesita conexión HTTPS con el controlador. Mientras no hay 
 - [ ] Integración con el supervisor y proveedor de inventario real del journal.
 - [ ] Manual técnico y estados revisados por seguridad.
 - [ ] Aprobación antes de cualquier prueba en hardware físico.
+
+
+## Separación de reconciliaciones (actualizado 11-oct-2026)
+
+El endpoint `POST /agent/v1/reconcile` conserva la comparación read-only de asignaciones (`assignments`) de la bandeja durable. El reporte de inventario local usa el endpoint independiente `POST /agent/v1/reconcile/inventory` (`inventory`), con operación de transporte `RECONCILE_INVENTORY` y autorización canónica `RECONCILE`. No deben mezclarse ambos payloads. Ninguno aplica mutaciones automáticas; `unknown`, epochs obsoletos y conflictos terminales requieren revisión explícita.
