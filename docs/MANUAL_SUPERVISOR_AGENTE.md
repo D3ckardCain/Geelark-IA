@@ -68,4 +68,4 @@ La fábrica `build_agent_components()` permite inyectar cualquier `CredentialPro
 
 ## Evidencia de CI en la pila canónica
 
-La validación combinada previa del supervisor sobre la bandeja #52 y el sincronizador #57 pasó en GitHub Actions run 38124601844: 131 pruebas aprobadas, 1 advertencia deprecatoria Starlette/httpx y `pip check` correcto. Ese run corresponde al HEAD `879f57fbd4d546002d65bdcfd21f234d2e873da5`; el rebase documental actual requiere revalidar el HEAD nuevo. La CI no prueba instalación ni funcionamiento en equipos físicos.
+La validación combinada del supervisor sobre la bandeja #52 y el sincronizador #57 pasó en GitHub Actions run 38124797722 en HEAD `4aa8363f06737ebaca85adfb8740dc846e7bfa6a`: 131 pruebas aprobadas, 1 advertencia deprecatoria Starlette/httpx y `pip check` correcto. Esta evidencia cubre el código del supervisor y su integración en la pila canónica; la CI no prueba instalación ni funcionamiento en equipos físicos.

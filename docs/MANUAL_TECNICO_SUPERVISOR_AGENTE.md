@@ -93,4 +93,4 @@ CI de la rama combinada debe verificarse en el HEAD exacto antes de integrar; la
 
 ## Evidencia de validación en la pila canónica
 
-El HEAD `879f57fbd4d546002d65bdcfd21f234d2e873da5` pasó GitHub Actions run 38124601844: 131 pruebas, una advertencia deprecatoria Starlette/httpx y `pip check` correcto. El supervisor se ejecuta sobre PR #57 → #52 y mantiene el API de bandeja canónico. La actualización de documentación/base requiere validar el nuevo HEAD antes de integrar. No se han realizado pruebas en PCs físicas.
+El HEAD `4aa8363f06737ebaca85adfb8740dc846e7bfa6a` pasó GitHub Actions run 38124797722: 131 pruebas, una advertencia deprecatoria Starlette/httpx y `pip check` correcto. El supervisor se ejecuta sobre PR #57 → #52 y mantiene el API de bandeja canónico. No se han realizado pruebas en PCs físicas.

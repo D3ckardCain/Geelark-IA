@@ -294,12 +294,11 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 - Se porta `AgentReceiptSyncLifecycle`, las pruebas unitarias y la prueba SQLite→HTTPS/TLS→PostgreSQL sobre la rama canónica `feat/agent-task-inbox-v2` (PR #52), evitando la variante histórica que usa `0004_agent_task_inbox.sql`.
 - La migración de la bandeja permanece como `0005_agent_task_inbox.sql` para no colisionar con `0004_worker_module_inventory.sql`.
 - El runtime no debe reescribir un recibo local al sincronizarlo: el ACK de HTTP 2xx marca la versión actual como sincronizada; un nuevo resultado local vuelve a encolarse. El reintento no cambia el resultado persistido y conserva la idempotencia.
-- PR #57 pasó CI en HEAD `650f8c4de4339268f8872d7fab034483f4fb9370` (run 38124585608, 85 pruebas). PR #67 pasó CI en HEAD `879f57fbd4d546002d65bdcfd21f234d2e873da5` (run 38124601844, 131 pruebas); una revalidación final queda pendiente si cambia la base. No hay instalación ni pruebas en PCs físicas; no activar ADB/shell ni ejecución de tareas.
+- PR #57 pasó CI en HEAD `ead30bd427a67e0247f8efdb365161d60f02632e` (run 38124748912, 85 pruebas). PR #67 pasó CI en HEAD `4aa8363f06737ebaca85adfb8740dc846e7bfa6a` (run 38124797722, 131 pruebas). No hay instalación ni pruebas en PCs físicas; no activar ADB/shell ni ejecución de tareas.
 
 
 ### Supervisor sobre pila canónica (2026-10-11, actualización)
 
 - PR #67 está apilada sobre PR #57 → #52, con una sola línea de migraciones 0001–0005.
-- La última validación combinada antes de esta actualización documental pasó en run 38124601844 (131 pruebas, pip check correcto), HEAD `879f57fbd4d546002d65bdcfd21f234d2e873da5`.
-- Este rebase sincroniza la documentación de la rama base; la validación del nuevo HEAD se vuelve a ejecutar antes de integrar.
+- La validación combinada en HEAD `4aa8363f06737ebaca85adfb8740dc846e7bfa6a` pasó en run 38124797722 (131 pruebas, `pip check` correcto). La documentación se actualiza sobre ese código y no cambia el comportamiento ejecutable.
 - No hay despliegue físico ni ejecución Android/ADB/shell.
