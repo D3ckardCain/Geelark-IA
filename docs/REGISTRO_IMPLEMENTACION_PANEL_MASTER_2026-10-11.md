@@ -56,3 +56,10 @@ La rama de PR #76 añade controles fail-closed para `has_function_privilege()` y
 Se creó la rama `feat/master-control-readonly-api-local-auth-clean` desde la base actual `feat/master-status-snapshot-provider-v1` porque la PR #76 quedó `mergeable=false` tras divergir su historial apilado. Se copiaron los archivos específicos del módulo, workflow y prueba de regresión del proveedor sin duplicar la fuente `status_snapshot.py`, que ya existe en la base. El objetivo es obtener CI completo de API Python y verificador SQL en una rama mergeable, sin fusionar ni desplegar.
 
 El SQL coincide exactamente con el verificado por [CI #38193499261](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38193499261). La CI completa de esta rama aún está pendiente. Windows real sigue pendiente por issue #77.
+
+
+## Verificación de ACL NTFS — 2026-10-12
+
+`_restrict_windows_acl()` ahora vuelve a leer la salida de `icacls` tras cambiar permisos. Falla cerrado si la ACL resultante no contiene exactamente una ACE para la identidad actual de `whoami` con control total, o si queda otra identidad/denegación. Se añadió una prueba unitaria negativa con `BUILTIN\Users` residual.
+
+Commits: `a01045d` y `3e61852`. La CI del HEAD que incluye esta prueba está en curso: [run #38194202202](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194202202). Aunque la prueba mock pase, no sustituye la verificación real de ACL NTFS, certificado y bind loopback en PC-MASTER Windows (issue #77).
