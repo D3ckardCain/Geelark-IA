@@ -214,3 +214,19 @@ Fuentes:
 - https://www.geelark.com/es/blog-es/automatizacion-de-apps-android-y-navegador-geelark-rpa/
 
 Estos detalles amplían la especificación de RPA, pero no cierran la auditoría exhaustiva de bloques. La documentación pública no demuestra todos los módulos, parámetros ni errores de la versión actual.
+
+
+### Bloques RPA adicionales identificados (2026-10-12)
+
+| Bloque | Evidencia publicada | Adaptación local / pruebas pendientes |
+|---|---|---|
+| Open app | Package name y URI opcional | Validar app instalada, URI permitida y resultado |
+| Waiting time | Valor fijo o intervalo aleatorio | Límites, unidades, cancelación y registro de valor aplicado |
+| Scroll Page / Page back | Distancia, tiempo, coordenadas, dirección; regreso a pantalla anterior | Probar resoluciones, límites de pantalla, máximo de back y resultados observables |
+| Upload File | Selección múltiple; orden por flujo, por entorno o aleatorio | Rutas aprobadas, tamaño/hash, fallos parciales y resultado por archivo |
+| IF Condition | Exists/Does Not Exist, comparadores, Include/Not Include y porcentaje aleatorio | Tipado, variables ausentes, evaluación reproducible y pruebas de cada rama |
+| For Loop Times / Elements / Data | Repetición por cantidad, elementos visibles o datos; Exit Loop | Límite de iteraciones, colección cambiante, cancelación y contrato de For Loop Data pendiente |
+| End Task / Exception handling | Parada inmediata; Skip o Interrupt ante error | Verificar estados terminales, no ejecutar pasos posteriores y registro de causa |
+| Task Settings / Schedule / Logs | Variables String, Batch Text, Boolean, Number, File; perfiles destino y horarios; cancelación/edición de publicación | Persistencia, zona horaria, idempotencia, reintentos y cancelación segura |
+
+Fuentes: guías oficiales RPA 2, 3 y 6 enlazadas en el catálogo, sección 32.7. La matriz sigue en estado de investigación; no se declara el motor implementado ni equivalente.
