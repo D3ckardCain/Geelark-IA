@@ -19,7 +19,7 @@ Los scopes desconocidos se conservan para que una operación futura no herede ac
 ## Límites y riesgos
 
 - El payload de inventario tiene un máximo de 100 elementos.
-- La API usa un limitador de 60 solicitudes por minuto por nodo cuando se configura PostgresRateLimiter; el limitador en memoria es solo por proceso. No se debe afirmar un límite global hasta confirmar el ensamblado de producción.
+- Para una API respaldada por PostgreSQL, usa `create_postgres_agent_app(connect)`: ensambla autenticación, nonces, idempotencia, handlers PostgreSQL y `PostgresRateLimiter`, con 60 solicitudes por minuto por nodo compartidas entre workers. `create_agent_app` usa el limitador en memoria por defecto. La fábrica devuelve la app ASGI, pero no abre sockets ni configura TLS; el runtime de producción debe usarla detrás de HTTPS. No hay listener/servicio desplegado en este momento.
 - El límite de 10.000 aplica a informes seguros por nodo. La evidencia incierta/conflictiva puede crecer más allá de ese límite si no se exporta y archiva manualmente; se conserva deliberadamente para no borrar evidencia. Supervisar el tamaño de PostgreSQL y realizar archivado revisado.
 - La garantía de replay de idempotencia es de 24 horas para telemetría y 90 días para operaciones/tareas/reconciliación. Pasado ese plazo, la clave ya no garantiza el mismo snapshot; el estado durable de tarea/operación sigue siendo la fuente de verdad.
 - No hay cron, servicio externo ni API de pago. La limpieza es manual y local.
