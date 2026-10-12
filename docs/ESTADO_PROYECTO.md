@@ -304,6 +304,13 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 - No hay despliegue físico ni ejecución Android/ADB/shell.
 
 
+### Reconciliación de inventario separada de reconciliación de tareas — 2026-10-11
+
+La integración con el supervisor actual conserva `POST /agent/v1/reconcile` para comparar asignaciones (`assignments`) y añade `POST /agent/v1/reconcile/inventory` para informes de inventario local (`inventory`). El transporte usa `Operation.RECONCILE_INVENTORY`, mapeada a la autorización canónica `AgentOperation.RECONCILE`; ambas rutas son solo lectura y no resuelven `unknown`, conflictos terminales ni epochs obsoletos automáticamente.
+
+La migración de informes se renombró a `db/migrations/0006_agent_reconciliation_reports.sql`, porque esta pila ya contiene `0004_worker_module_inventory.sql` y `0005_agent_task_inbox.sql`. El supervisor mantiene un worker separado para reconciliación, UUID/snapshot estable en reintentos, renovación tras reconexión y errores genéricos; el proveedor de inventario es opcional, por lo que la CLI no ejecuta reconciliación sin un proveedor explícito. Pendiente CI del HEAD combinado y revisión de seguridad.
+
+
 ## Revalidación del ciclo offline del agente — 2026-10-12
 
 - La sincronización durable exige ACK de versión exacta: `mark_receipt_synced(operation_id, expected_status, expected_result)` compara el estado y resultado actuales dentro de una transacción SQLite. ACK tardío de un progreso anterior no marca como sincronizado un recibo más nuevo.
