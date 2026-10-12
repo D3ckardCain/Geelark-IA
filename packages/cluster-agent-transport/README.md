@@ -100,3 +100,8 @@ No activar listeners ni desplegar en nodos físicos hasta que la pila completa e
 - Heartbeat, capacidades y consulta de estado siguen requiriendo conectividad y no se encolan en esta capa.
 - Este coordinador no reclama ni ejecuta tareas, no abre listeners y no activa ADB/shell.
 - La prueba de integración crea TLS de loopback, SQLite y PostgreSQL desechable; no sustituye pruebas en hardware físico.
+
+
+## Estado de integración de la pila — 2026-10-12
+
+La PR #57 se encuentra en `3bbd65d6c49884408086219a364f251ddbd8c9b7` y su base PR #52 avanzó a `20e618aaeadc1866457f637522b755540f795dfa`. La comparación está divergida (6 commits propios y 7 commits de la base ausentes); el CI histórico no sustituye la validación del merge result actualizado. Se mantiene draft hasta que transporte, persistencia/asignación y migraciones PostgreSQL terminen correctamente sobre la combinación actual. No se ha desplegado ni probado en PCs físicas.
