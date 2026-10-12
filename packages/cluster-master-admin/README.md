@@ -26,7 +26,7 @@ No existen rutas administrativas de mutación.
 - El verificador SQL también rechaza privilegios efectivos sobre otras tablas/secuencias, grants a nivel de columna, `CREATE` fuera del alcance permitido y propiedad de objetos/esquemas. La CI incluye pruebas negativas para SELECT por columna en una tabla ajena y UPDATE por columna en `geelark_control.nodes`.
 - El verificador también rechaza `EXECUTE` efectivo sobre rutinas de esquemas de aplicación (incluidas funciones expuestas por `PUBLIC`); la allowlist de rutinas está vacía hasta revisión explícita. La prueba negativa crea una función `SECURITY DEFINER` ficticia y exige su rechazo. Estas ampliaciones están validadas en la CI de la PR #84: [ejecución #38272945485](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38272945485), con 30 pruebas Master Admin, 33 de persistencia/snapshot, 12 de guardia, 54 de autorización, probes negativos del rol lector y `pip check` correcto. La CI usa PostgreSQL desechable; no sustituye la validación física de Windows.
 - PostgreSQL remoto exige `host=` explícito y `sslmode=verify-full`, verifica la cadena de confianza y el nombre del servidor, y detecta destinos remotos indicados mediante `hostaddr`; no se aceptan perfiles `service=` porque pueden ocultar la configuración efectiva.
-- La migración `0005_reported_health_state.sql` separa el reporte enviado por Worker del estado derivado por el Master; los valores previos se conservan como reporte y el estado derivado se recalcula conservadoramente con la frescura del heartbeat. La API lee ambos conceptos por separado; los módulos se leen de `module_reports`.
+- La migración existente `0003_agent_rate_limit.sql` añade `reported_health_state` y separa la declaración del Worker de `health_state`, que deriva el controlador. La API lee ambos conceptos por separado; los módulos se leen de `module_reports`.
 - La UI no almacena contraseña, token ni snapshots en localStorage/sessionStorage. El ejemplo ficticio es explícito y no concede sesión.
 - El arranque por defecto escucha únicamente en `127.0.0.1:8765`. TLS y el hash de operador son obligatorios.
 
@@ -99,7 +99,7 @@ Si usas una base PostgreSQL local nueva, primero aplica las migraciones en orden
 
 Linux/macOS, desde la raíz del repositorio:
 ```sh
-for migration in db/migrations/0001_cluster_control.sql db/migrations/0002_agent_auth.sql db/migrations/0003_agent_rate_limit.sql db/migrations/0004_worker_module_inventory.sql db/migrations/0005_reported_health_state.sql; do
+for migration in db/migrations/0001_cluster_control.sql db/migrations/0002_agent_auth.sql db/migrations/0003_agent_rate_limit.sql db/migrations/0004_worker_module_inventory.sql; do
   psql "$ADMIN_DSN" -v ON_ERROR_STOP=1 -f "$migration" || exit 1
 done
 ```
@@ -110,8 +110,7 @@ $Migrations = @(
   "db/migrations/0001_cluster_control.sql",
   "db/migrations/0002_agent_auth.sql",
   "db/migrations/0003_agent_rate_limit.sql",
-  "db/migrations/0004_worker_module_inventory.sql",
-  "db/migrations/0005_reported_health_state.sql"
+  "db/migrations/0004_worker_module_inventory.sql"
 )
 foreach ($Migration in $Migrations) {
   psql $env:ADMIN_DSN -v ON_ERROR_STOP=1 -f $Migration
