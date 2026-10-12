@@ -214,7 +214,7 @@ def test_running_progress_ack_is_persisted_and_does_not_block_later_receipts():
     runtime = make_runtime(FakeClient(), journal, node_id)
     confirmed, attempted = runtime.sync_pending_receipts(limit=2)
     assert (confirmed, attempted) == (2, 2)
-    assert journal.synced == [operation_id, journal.pending[1].operation_id]
+    assert [item[0] for item in journal.synced] == [operation_id, journal.pending[1].operation_id]
 
 def test_runtime_uses_fenced_journal_ack_api_when_available():
     class FencedJournal(FakeJournal):
