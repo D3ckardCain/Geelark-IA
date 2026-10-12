@@ -107,3 +107,8 @@ No activar listeners ni desplegar en nodos físicos hasta que la pila completa e
 `AgentNodeSupervisor` coordina heartbeat, capacidades y consulta de estado con ciclos separados y límites explícitos; la sincronización durable usa `AgentReceiptSyncLifecycle` en un hilo independiente. La fábrica `build_agent_components()` construye el cliente TLS, runtime, journal/sincronizador y supervisor sin arrancar hilos automáticamente.
 
 El CLI `geelark-agent --config /ruta/agente.toml` requiere configuración explícita y mantiene `credential_provider = "file"` por defecto; Linux/systemd puede usar `credential_provider = "systemd"` cuando el servicio monte una credencial mediante `LoadCredential`. No se incluye unit file ni instalador de producción. No se ejecutan tareas, ADB ni shell.
+
+
+## Retención y mantenimiento manual
+
+La política de vencimiento y la rutina manual de preview/poda se documentan en [Manual de retención de agentes](../../docs/MANUAL_RETENCION_AGENTES.md). No hay limpieza automática ni cron. Los scopes desconocidos no se vencen; los informes inciertos/conflictivos solo pueden borrarse tras exportación revisada, antigüedad >365 días y doble confirmación.
