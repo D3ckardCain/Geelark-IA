@@ -244,7 +244,7 @@ def test_reconcile_payload_rejects_duplicate_tasks_and_oversized_result_summary(
 
     # El contrato debe rechazar claves sensibles incluso en variantes camelCase
     # y cuando aparecen anidadas dentro del resumen de reconciliación.
-    for sensitive_key in ("access_token", "apiKey", "password", "cookie", "privateKey"):
+    for sensitive_key in ("access_token", "apiKey", "password", "cookie", "privateKey", "authorization", "credential_id", "SECRET", "access-key", "API_KEY"):
         sensitive = {
             **item,
             "task_id": str(uuid4()),
