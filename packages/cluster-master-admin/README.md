@@ -188,7 +188,7 @@ No se recomienda exponerlo a la LAN. El arranque rechaza un bind no-loopback sal
 
 ## CI y coste
 
-Las pruebas del paquete administrativo se integran en `.github/workflows/cluster-persistence-service.yml`, que ejecuta los tests de la API y verifica los grants efectivos en una base PostgreSQL desechable cuando el paquete está presente. La ejecución más reciente debe revisarse antes de declarar validado el HEAD. El repositorio es público y usa un runner estándar de GitHub Actions; no se agregan servicios de pago ni runners especiales. Objetivo operativo obligatorio: $0 USD.
+Las pruebas del paquete administrativo se integran en `.github/workflows/cluster-persistence-service.yml`. En el HEAD `8e0b47c564a0c4db287c01b62878f810f7f2ade4`, la [ejecución CI 38186772500](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38186772500) terminó correctamente: 33 pruebas de persistencia, 12 de guardia, 54 de autenticación de agentes y 20 de API administrativa; además verificó los grants efectivos en PostgreSQL desechable y `pip check`. Hay una advertencia no bloqueante de deprecación de `httpx` en `starlette.testclient`, pendiente de resolver en una actualización futura. El repositorio es público y usa un runner estándar de GitHub Actions; no se agregan servicios de pago ni runners especiales. Objetivo operativo obligatorio: $0 USD.
 
 ## Límites conocidos
 
