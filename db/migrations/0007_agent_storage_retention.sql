@@ -1,5 +1,6 @@
 -- Retención conservadora para nonces, snapshots idempotentes e informes de reconciliación.
--- La función solo borra al confirmar exportación explícita; no elimina evidencia incierta/conflictiva.
+-- Preview por defecto. La poda requiere confirmación explícita de exportación; evidencia
+-- unknown/conflictiva solo se elimina con una segunda confirmación y antigüedad >365 días.
 BEGIN;
 
 -- Backfill de snapshots existentes. Scopes desconocidos quedan sin vencimiento y no se podan.
@@ -29,15 +30,18 @@ CREATE INDEX IF NOT EXISTS agent_reconciliation_reports_created_idx
     ON geelark_control.agent_reconciliation_reports(created_at, report_id);
 
 CREATE OR REPLACE FUNCTION geelark_control.prune_agent_storage(
-    p_confirmed_export boolean DEFAULT false
+    p_confirmed_export boolean DEFAULT false,
+    p_confirmed_review_evidence_export boolean DEFAULT false
 )
 RETURNS TABLE (
     eligible_nonces bigint,
     deleted_nonces bigint,
     eligible_idempotency_records bigint,
     deleted_idempotency_records bigint,
-    eligible_reconciliation_reports bigint,
-    deleted_reconciliation_reports bigint
+    eligible_safe_reports bigint,
+    deleted_safe_reports bigint,
+    eligible_review_reports bigint,
+    deleted_review_reports bigint
 )
 LANGUAGE plpgsql
 AS $function$
@@ -46,8 +50,10 @@ DECLARE
     v_deleted_nonces bigint := 0;
     v_eligible_idempotency bigint := 0;
     v_deleted_idempotency bigint := 0;
-    v_eligible_reports bigint := 0;
-    v_deleted_reports bigint := 0;
+    v_eligible_safe_reports bigint := 0;
+    v_deleted_safe_reports bigint := 0;
+    v_eligible_review_reports bigint := 0;
+    v_deleted_review_reports bigint := 0;
 BEGIN
     SELECT count(*) INTO v_eligible_nonces
       FROM geelark_control.agent_request_nonces
@@ -55,7 +61,14 @@ BEGIN
 
     SELECT count(*) INTO v_eligible_idempotency
       FROM geelark_control.idempotency_records
-     WHERE expires_at IS NOT NULL AND expires_at <= now();
+     WHERE expires_at IS NOT NULL
+       AND expires_at <= now()
+       AND split_part(scope, ':', 1) = 'agent'
+       AND split_part(scope, ':', 3) IN (
+           'heartbeat', 'capabilities', 'modules_report', 'status_read',
+           'task_fetch', 'task_accept', 'task_progress', 'task_result',
+           'reconcile', 'reconcile_inventory'
+       );
 
     WITH safe_reports AS (
         SELECT r.report_id, r.node_id, r.created_at,
@@ -77,7 +90,17 @@ BEGIN
          WHERE created_at <= now() - interval '90 days'
             OR safe_rank > 10000
     )
-    SELECT count(*) INTO v_eligible_reports FROM eligible_reports;
+    SELECT count(*) INTO v_eligible_safe_reports FROM eligible_reports;
+
+    SELECT count(*) INTO v_eligible_review_reports
+      FROM geelark_control.agent_reconciliation_reports AS r
+     WHERE r.created_at <= now() - interval '365 days'
+       AND EXISTS (
+           SELECT 1
+             FROM jsonb_array_elements(r.decisions) AS decision_item(value)
+            WHERE coalesce(decision_item.value ->> 'decision', '')
+                  NOT IN ('ALREADY_CONFIRMED', 'CONTINUE_SAME_EPOCH')
+       );
 
     -- Preview por defecto: ninguna fila se borra sin confirmación explícita de exportación.
     IF p_confirmed_export THEN
@@ -86,7 +109,14 @@ BEGIN
         GET DIAGNOSTICS v_deleted_nonces = ROW_COUNT;
 
         DELETE FROM geelark_control.idempotency_records
-         WHERE expires_at IS NOT NULL AND expires_at <= now();
+         WHERE expires_at IS NOT NULL
+           AND expires_at <= now()
+           AND split_part(scope, ':', 1) = 'agent'
+           AND split_part(scope, ':', 3) IN (
+               'heartbeat', 'capabilities', 'modules_report', 'status_read',
+               'task_fetch', 'task_accept', 'task_progress', 'task_result',
+               'reconcile', 'reconcile_inventory'
+           );
         GET DIAGNOSTICS v_deleted_idempotency = ROW_COUNT;
 
         WITH safe_reports AS (
@@ -112,27 +142,42 @@ BEGIN
         DELETE FROM geelark_control.agent_reconciliation_reports AS report
          USING eligible_reports AS eligible
          WHERE report.report_id = eligible.report_id;
-        GET DIAGNOSTICS v_deleted_reports = ROW_COUNT;
+        GET DIAGNOSTICS v_deleted_safe_reports = ROW_COUNT;
+
+        -- Evidencia unknown/conflictiva nunca se poda por la confirmación genérica.
+        -- Hace falta una segunda confirmación explícita y que el informe tenga >365 días.
+        IF p_confirmed_review_evidence_export THEN
+            DELETE FROM geelark_control.agent_reconciliation_reports AS report
+             WHERE report.created_at <= now() - interval '365 days'
+               AND EXISTS (
+                   SELECT 1
+                     FROM jsonb_array_elements(report.decisions) AS decision_item(value)
+                    WHERE coalesce(decision_item.value ->> 'decision', '')
+                          NOT IN ('ALREADY_CONFIRMED', 'CONTINUE_SAME_EPOCH')
+               );
+            GET DIAGNOSTICS v_deleted_review_reports = ROW_COUNT;
+        END IF;
     END IF;
 
     RETURN QUERY SELECT
         v_eligible_nonces, v_deleted_nonces,
         v_eligible_idempotency, v_deleted_idempotency,
-        v_eligible_reports, v_deleted_reports;
+        v_eligible_safe_reports, v_deleted_safe_reports,
+        v_eligible_review_reports, v_deleted_review_reports;
 END
 $function$;
 
 -- No exponer la rutina de mantenimiento al rol lector ni a PUBLIC.
-REVOKE ALL ON FUNCTION geelark_control.prune_agent_storage(boolean) FROM PUBLIC;
+REVOKE ALL ON FUNCTION geelark_control.prune_agent_storage(boolean, boolean) FROM PUBLIC;
 DO $revoke_reader$
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'geelark_master_reader') THEN
-        EXECUTE 'REVOKE ALL ON FUNCTION geelark_control.prune_agent_storage(boolean) FROM geelark_master_reader';
+        EXECUTE 'REVOKE ALL ON FUNCTION geelark_control.prune_agent_storage(boolean, boolean) FROM geelark_master_reader';
     END IF;
 END
 $revoke_reader$;
 
-COMMENT ON FUNCTION geelark_control.prune_agent_storage(boolean) IS
-    'Preview por defecto. Con true borra nonces expirados con 1h de gracia, snapshots idempotentes vencidos y solo informes seguros (90d/10k por nodo); exige exportación previa. Nunca poda unknown/conflictos/decisiones no reconocidas.';
+COMMENT ON FUNCTION geelark_control.prune_agent_storage(boolean, boolean) IS
+    'Preview por defecto. Con confirmed_export=true borra nonces con 1h de gracia, snapshots vencidos y reportes seguros (>90d o fuera de los últimos 10.000 por nodo). Los informes unknown/conflictivos (>365d) solo se borran con confirmed_export=true y confirmed_review_evidence_export=true tras exportación verificada. Scopes idempotentes desconocidos no se podan.';
 
 COMMIT;
