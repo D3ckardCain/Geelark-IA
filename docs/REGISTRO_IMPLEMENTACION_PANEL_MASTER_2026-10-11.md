@@ -78,3 +78,8 @@ La prueba unitaria de ACL NTFS confirma que el código falla cerrado ante una AC
 - CI completo [#38194417945](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194417945): 28 pruebas Master Admin, suites de persistencia/guard/autenticación, probes negativos de privilegios efectivos y `pip check` limpio; la advertencia Starlette/httpx se eliminó usando `httpx2`.
 - Las PR #76 y #78 se cerraron como supersedidas, no fusionadas, porque #76 estaba divergida y #79 incorpora la corrección SQL de #78.
 - No se ha instalado el panel, abierto puertos ni conectado una base real. La aceptación física continúa bloqueada por issue #77.
+
+
+## Revalidación de credenciales PostgreSQL — 2026-10-12
+
+Se endureció `_database_connector()` para rechazar cualquier contraseña presente en `GEELARK_ADMIN_DATABASE_URL`; el mensaje indica usar `PGPASSFILE` protegido y no refleja el secreto. CI [#38268284293](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38268284293) pasó con 29 pruebas Master Admin, 33 persistencia, 12 guard, 54 autorización y `pip check` limpio. La validación continúa siendo desechable; Windows real sigue pendiente en issue #77.
