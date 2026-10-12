@@ -62,6 +62,12 @@ def test_pending_telemetry_persists_and_status_is_scoped_to_own_node():
         assert hb["health_state"] == "healthy"
         assert state["reported_health_state"] == "healthy"
         assert state["health_state"] == "healthy"
+        with connect() as conn:
+            persisted_health = conn.execute(
+                "SELECT reported_health_state, health_state FROM geelark_control.nodes WHERE node_id = %s",
+                (node_id,),
+            ).fetchone()
+        assert persisted_health == ("healthy", "healthy")
         assert state["capabilities"] == {"version": 1, "items": ["heartbeat", "status"]}
 
         # A stale report must not remain authoritative just because the Worker
