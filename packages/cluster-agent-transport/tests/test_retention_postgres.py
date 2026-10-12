@@ -117,6 +117,16 @@ def test_prune_agent_storage_preview_and_explicit_export_confirmation():
             assert preview[4] == baseline[4] + 2  # informe de 100d + el seguro que supera 10.000
             assert preview[6] == baseline[6] + 1  # evidencia UNKNOWN_TASK >365d
             assert preview[1] == preview[3] == preview[5] == preview[7] == 0
+            preview_audit = conn.execute(
+                """
+                SELECT confirmed_export, confirmed_review_evidence_export,
+                       deleted_nonces, deleted_idempotency_records,
+                       deleted_safe_reports, deleted_review_reports
+                  FROM geelark_control.agent_storage_maintenance_runs
+                 ORDER BY started_at DESC, run_id DESC LIMIT 1
+                """
+            ).fetchone()
+            assert preview_audit == (False, False, 0, 0, 0, 0)
 
         # La confirmación genérica poda expirados y reportes seguros, pero conserva evidencia de revisión.
         with connect() as conn:
@@ -127,6 +137,16 @@ def test_prune_agent_storage_preview_and_explicit_export_confirmation():
             assert confirmed[3] == confirmed[2]
             assert confirmed[5] == confirmed[4]
             assert confirmed[7] == 0
+            confirmed_audit = conn.execute(
+                """
+                SELECT confirmed_export, confirmed_review_evidence_export,
+                       deleted_nonces, deleted_idempotency_records,
+                       deleted_safe_reports, deleted_review_reports
+                  FROM geelark_control.agent_storage_maintenance_runs
+                 ORDER BY started_at DESC, run_id DESC LIMIT 1
+                """
+            ).fetchone()
+            assert confirmed_audit == (True, False, confirmed[1], confirmed[3], confirmed[5], 0)
             assert conn.execute(
                 "SELECT count(*) FROM geelark_control.agent_request_nonces WHERE node_id = %s AND nonce = %s",
                 (node_id, old_nonce),
@@ -154,6 +174,15 @@ def test_prune_agent_storage_preview_and_explicit_export_confirmation():
                 "SELECT * FROM geelark_control.prune_agent_storage(true, true)"
             ).fetchone()
             assert review_confirmed[7] == review_confirmed[6]
+            review_audit = conn.execute(
+                """
+                SELECT confirmed_export, confirmed_review_evidence_export,
+                       deleted_review_reports
+                  FROM geelark_control.agent_storage_maintenance_runs
+                 ORDER BY started_at DESC, run_id DESC LIMIT 1
+                """
+            ).fetchone()
+            assert review_audit == (True, True, review_confirmed[7])
             assert conn.execute(
                 "SELECT count(*) FROM geelark_control.agent_reconciliation_reports WHERE report_id = %s",
                 (old_review_report,),
