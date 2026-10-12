@@ -37,3 +37,15 @@ No se incorporan APIs de pago ni autenticación SaaS. Los tests administrativos 
 - El inicializador de credenciales restringe ACL NTFS del directorio y del archivo en Windows; si no puede aplicar la ACL al archivo, lo elimina y falla cerrado.
 - El script de prueba de grants es `packages/cluster-master-admin/sql/verify_readonly_role.sql` (no ejecutar como administrador: debe ejecutarse como el rol lector).
 - La última CI del código actual finalizó correctamente en `38190571137`. Cualquier cambio posterior en código debe volver a validarse; esta actualización documental no altera la ejecución ya verificada.
+
+
+## Auditoría estática adicional de privilegios PostgreSQL — 2026-10-12
+
+La revisión del rol `geelark_master_reader` encontró dos huecos que no estaban cubiertos por la comprobación inicial:
+
+1. El verificador comprobaba propiedad de funciones, pero no `EXECUTE` efectivo en rutinas de esquemas de aplicación. Una función `SECURITY DEFINER` con permiso heredado de `PUBLIC` podría ampliar la capacidad del rol aunque no tuviera grants de tabla.
+2. `has_table_privilege()` por sí sola no demuestra ausencia de grants a nivel de columna. Podían pasar inadvertidos `SELECT(column)` sobre tablas ajenas o `UPDATE(column)` en `geelark_control.nodes`.
+
+La rama de PR #76 añade controles fail-closed para `has_function_privilege()` y `has_any_column_privilege()`, junto con pruebas negativas PostgreSQL desechables para una función `SECURITY DEFINER`, SELECT por columna en tabla ajena y UPDATE por columna en `nodes`. La documentación del módulo refleja el alcance ampliado.
+
+**Estado:** cambios escritos en la rama `feat/master-control-readonly-api-local-auth`; CI del HEAD actualizado no está confirmada. La PR sigue en borrador y actualmente GitHub indica `mergeable=false` frente a su base apilada; no fusionar ni desplegar. Reconciliar la rama y obtener CI verde antes de declarar validado el verificador. No se han conectado grants reales ni restaurado Supabase.
