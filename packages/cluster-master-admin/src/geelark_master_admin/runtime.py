@@ -75,15 +75,33 @@ def _database_connector():
             "GEELARK_ADMIN_DATABASE_URL no es un DSN PostgreSQL válido."
         ) from exc
 
-    host = details.get("host") or ""
-    hosts = host.split(",") if host else [""]
-    remote_hosts = [
-        item for item in hosts
-        if item and item not in {"localhost", "127.0.0.1", "::1"} and not item.startswith("/")
-    ]
-    if remote_hosts and details.get("sslmode") not in {"verify-full", "verify-ca"}:
+    # No se admiten perfiles libpq externos: podrían ocultar host/SSL reales
+    # en un archivo de servicio y eludir la validación de este runtime.
+    if details.get("service"):
         raise RuntimeError(
-            "PostgreSQL remoto exige sslmode=verify-full o verify-ca."
+            "No se admiten DSN PostgreSQL con service=; configura host y TLS explícitos."
+        )
+
+    host = details.get("host") or ""
+    hosts = [item.strip() for item in host.split(",") if item.strip()]
+    hostaddrs = [item.strip() for item in (details.get("hostaddr") or "").split(",") if item.strip()]
+    remote = any(
+        item not in {"localhost", "127.0.0.1", "::1"}
+        and not item.startswith("/")
+        for item in hosts
+    )
+    for address in hostaddrs:
+        try:
+            is_loopback = ipaddress.ip_address(address).is_loopback
+        except ValueError:
+            remote = True
+        else:
+            if not is_loopback:
+                remote = True
+
+    if remote and details.get("sslmode") != "verify-full":
+        raise RuntimeError(
+            "PostgreSQL remoto exige sslmode=verify-full y verificación del nombre del servidor."
         )
     if details.get("user", "") != "geelark_master_reader":
         raise RuntimeError(
