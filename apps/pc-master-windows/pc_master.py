@@ -147,8 +147,8 @@ class PcMasterApp(tk.Tk):
             ttk.Label(form, text=label, style="Panel.TLabel").grid(row=row, column=0, sticky="w", padx=(0, 12), pady=5)
             var = tk.StringVar(value=self.settings.get(key, ""))
             self.vars[key] = var
-            show = "•" if key == "tls_key" else ""
-            ttk.Entry(form, textvariable=var, show=show, width=68).grid(row=row, column=1, sticky="ew", pady=5)
+            # Se muestra la ruta de la clave, nunca su contenido.
+            ttk.Entry(form, textvariable=var, width=68).grid(row=row, column=1, sticky="ew", pady=5)
             if browse:
                 ttk.Button(form, text="Examinar…", command=lambda k=key: self._browse(k)).grid(row=row, column=2, padx=(8, 0), pady=5)
         form.columnconfigure(1, weight=1)
