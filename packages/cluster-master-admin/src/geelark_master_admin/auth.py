@@ -85,6 +85,34 @@ def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
             [str(icacls), str(path), "/reset", "/inheritance:r", "/grant:r", grant],
             check=True, capture_output=True, text=True, timeout=5,
         )
+        verification = subprocess.run(
+            [str(icacls), str(path)],
+            check=True, capture_output=True, text=True, timeout=5,
+        ).stdout
+        entries: list[tuple[str, str]] = []
+        target_text = str(path)
+        for line in verification.splitlines():
+            if ":(" not in line:
+                continue
+            entry = line.strip()
+            if entry.casefold().startswith(target_text.casefold()):
+                entry = entry[len(target_text):].strip()
+                if entry.startswith(":"):
+                    entry = entry[1:].strip()
+            ace_identity = entry.split(":(", 1)[0].strip()
+            if ace_identity:
+                entries.append((ace_identity, line))
+        if (
+            len(entries) != 1
+            or entries[0][0].casefold() != identity.casefold()
+            or "(F)" not in entries[0][1].upper()
+            or "DENY" in entries[0][1].upper()
+        ):
+            raise PermissionError(
+                "La ACL NTFS resultante no quedó limitada al usuario actual con control total."
+            )
+    except PermissionError:
+        raise
     except (OSError, subprocess.SubprocessError) as exc:
         raise PermissionError("No se pudieron restringir las ACL NTFS del almacén de sesiones.") from exc
 
