@@ -470,19 +470,40 @@ class AgentJournal:
         finally:
             conn.close()
 
-    def mark_receipt_synced(self, operation_id: UUID) -> None:
-        """Marca progreso/resultado como sincronizado tras ACK 2xx del controlador."""
+    def mark_receipt_synced(
+        self,
+        operation_id: UUID,
+        *,
+        expected_status: str,
+        expected_result: dict[str, Any],
+    ) -> bool:
+        """Confirma solo la versión exacta del recibo que recibió ACK HTTP 2xx.
+
+        Si el resultado local cambió mientras la petición estaba en vuelo, devuelve
+        False y no marca el recibo actual como sincronizado. Así un ACK tardío de una
+        versión anterior no puede ocultar progreso/resultado más reciente.
+        """
+        if not isinstance(operation_id, UUID):
+            raise InvalidAgentCommand("operation_id debe ser UUID")
+        if not isinstance(expected_status, str) or expected_status not in self._TERMINAL_STATUSES | {"running"}:
+            raise InvalidAgentCommand("expected_status no es un estado sincronizable")
+        if not isinstance(expected_result, dict):
+            raise InvalidAgentCommand("expected_result debe ser un objeto JSON")
+        expected_json = self._canonical_json(expected_result)
         conn = self._connect()
         try:
             conn.execute("BEGIN IMMEDIATE")
             row = conn.execute(
-                "SELECT node_id, status FROM operation_receipts WHERE operation_id = ?",
+                "SELECT node_id, status, result_json FROM operation_receipts WHERE operation_id = ?",
                 (str(operation_id),),
             ).fetchone()
             if row is None or row["node_id"] != str(self.local_node_id):
                 raise UnknownOperation("El recibo no existe en este nodo")
             if row["status"] not in self._TERMINAL_STATUSES | {"running"}:
                 raise InvalidAgentCommand("Solo progreso o resultado puede marcarse sincronizado")
+            if row["status"] != expected_status or row["result_json"] != expected_json:
+                conn.commit()
+                return False
             conn.execute(
                 """
                 INSERT INTO synced_receipts(operation_id, synced_at)
@@ -492,6 +513,7 @@ class AgentJournal:
                 (str(operation_id), self._now()),
             )
             conn.commit()
+            return True
         except Exception:
             conn.rollback()
             raise
