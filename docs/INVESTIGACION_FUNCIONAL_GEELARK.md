@@ -295,3 +295,10 @@ Fuentes:
 ### Límite de evidencia del portal API (2026-10-12)
 
 La página comercial oficial enlaza https://open.geelark.com/api, pero el portal no expuso contenido textual legible en esta revisión. Solo se registran las categorías anunciadas por la página comercial; no se infieren endpoints, esquemas, firma de solicitudes, códigos de error ni requisitos de autenticación. Para completar la matriz API se necesita una fuente oficial legible o una exportación pública verificable.
+
+
+### Acciones de interfaz RPA (guía 4, 2026-10-12)
+
+La guía documenta clic y pulsación prolongada sobre elemento o coordenadas, ingreso de contenido, operación de teclado y espera de elemento. Los selectores observados son `fullId`, texto, `desc` y `className`; se puede usar Equals/Contains, índice fijo o intervalo, timeout, opción de elementos no visibles, resultado booleano y notas. Los atributos pueden estar vacíos o repetirse, y algunos elementos están anidados. Para coordenadas, la guía advierte que la resolución y la versión Android pueden cambiar la posición; recomienda preferir selectores semánticos y probar en varios sistemas.
+
+Esta evidencia se convirtió en requisitos de detección de ambigüedad, timeout obligatorio, resultado verificable y advertencia de fragilidad de coordenadas. No se declara que el motor local pueda inspeccionar todos los árboles UI; esa capacidad dependerá del motor Android elegido y debe probarse.
