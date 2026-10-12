@@ -29,6 +29,25 @@ UPDATE geelark_control.idempotency_records
 CREATE INDEX IF NOT EXISTS agent_reconciliation_reports_created_idx
     ON geelark_control.agent_reconciliation_reports(created_at, report_id);
 
+CREATE TABLE IF NOT EXISTS geelark_control.agent_storage_maintenance_runs (
+    run_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    requested_by name NOT NULL DEFAULT current_user,
+    started_at timestamptz NOT NULL DEFAULT now(),
+    confirmed_export boolean NOT NULL,
+    confirmed_review_evidence_export boolean NOT NULL,
+    eligible_nonces bigint NOT NULL,
+    deleted_nonces bigint NOT NULL,
+    eligible_idempotency_records bigint NOT NULL,
+    deleted_idempotency_records bigint NOT NULL,
+    eligible_safe_reports bigint NOT NULL,
+    deleted_safe_reports bigint NOT NULL,
+    eligible_review_reports bigint NOT NULL,
+    deleted_review_reports bigint NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS agent_storage_maintenance_runs_started_idx
+    ON geelark_control.agent_storage_maintenance_runs(started_at DESC);
+
 CREATE OR REPLACE FUNCTION geelark_control.prune_agent_storage(
     p_confirmed_export boolean DEFAULT false,
     p_confirmed_review_evidence_export boolean DEFAULT false
@@ -159,6 +178,20 @@ BEGIN
         END IF;
     END IF;
 
+    INSERT INTO geelark_control.agent_storage_maintenance_runs (
+        requested_by, confirmed_export, confirmed_review_evidence_export,
+        eligible_nonces, deleted_nonces,
+        eligible_idempotency_records, deleted_idempotency_records,
+        eligible_safe_reports, deleted_safe_reports,
+        eligible_review_reports, deleted_review_reports
+    ) VALUES (
+        current_user, p_confirmed_export, p_confirmed_review_evidence_export,
+        v_eligible_nonces, v_deleted_nonces,
+        v_eligible_idempotency, v_deleted_idempotency,
+        v_eligible_safe_reports, v_deleted_safe_reports,
+        v_eligible_review_reports, v_deleted_review_reports
+    );
+
     RETURN QUERY SELECT
         v_eligible_nonces, v_deleted_nonces,
         v_eligible_idempotency, v_deleted_idempotency,
@@ -176,6 +209,9 @@ BEGIN
     END IF;
 END
 $revoke_reader$;
+
+COMMENT ON TABLE geelark_control.agent_storage_maintenance_runs IS
+    'Auditoría append-only de previews y podas manuales de almacenamiento de agentes.';
 
 COMMENT ON FUNCTION geelark_control.prune_agent_storage(boolean, boolean) IS
     'Preview por defecto. Con confirmed_export=true borra nonces con 1h de gracia, snapshots vencidos y reportes seguros (>90d o fuera de los últimos 10.000 por nodo). Los informes unknown/conflictivos (>365d) solo se borran con confirmed_export=true y confirmed_review_evidence_export=true tras exportación verificada. Scopes idempotentes desconocidos no se podan.';
