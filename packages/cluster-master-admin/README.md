@@ -188,7 +188,7 @@ No se recomienda exponerlo a la LAN. El arranque rechaza un bind no-loopback sal
 
 ## CI y coste
 
-El workflow `.github/workflows/cluster-master-admin.yml` se ejecuta manualmente para evitar consumo automático de minutos en un repositorio privado. La última ejecución de este paquete validó 10 pruebas en el commit anterior a los cambios recientes; los nuevos tests aún requieren validación. Una ejecución del workflow general de esquema falló porque la prueba específica de grants se encontraba temporalmente en `db/tests` y se ejecutó como superusuario; se movió a `packages/cluster-master-admin/sql/verify_readonly_role.sql`, fuera del filtro de CI general. Ese fallo no verifica los grants reales y no debe interpretarse como prueba de producción. No ejecutar Actions sin comprobar la cuota disponible y confirmar que no se producirán cargos. Objetivo operativo obligatorio: $0 USD.
+Las pruebas del paquete administrativo se integran en `.github/workflows/cluster-persistence-service.yml`, que ejecuta los tests de la API y verifica los grants efectivos en una base PostgreSQL desechable cuando el paquete está presente. La ejecución más reciente debe revisarse antes de declarar validado el HEAD. El repositorio es público y usa un runner estándar de GitHub Actions; no se agregan servicios de pago ni runners especiales. Objetivo operativo obligatorio: $0 USD.
 
 ## Límites conocidos
 
