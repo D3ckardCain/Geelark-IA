@@ -897,3 +897,26 @@ La guía en español confirma acciones adicionales y parámetros comunes:
 **Reglas para Geelark-IA:** dar prioridad a selectores semánticos y combinaciones de atributos; advertir si el selector coincide con varios elementos; hacer explícita la selección por índice; registrar la resolución y versión Android cuando se usan coordenadas; y devolver `success=false` más un error estable si el elemento no aparece dentro del timeout. Nunca asumir que un ID, texto o coordenada es universal entre apps/versiones.
 
 Fuente: https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
+
+
+### 32.9 Inventario API a partir del CLI oficial (2026-10-12)
+
+El repositorio público del CLI oficial se presenta con licencia MIT y afirma cobertura de las interfaces API de GeeLark. Esto describe la licencia del cliente, **no** una API cloud gratuita: el README requiere un token obtenido en el cliente GeeLark y enumera respuestas de “solo usuarios de pago”, saldo insuficiente y límites de cuenta. Geelark-IA no dependerá de ese servicio ni del CLI para funcionar.
+
+El README del CLI organiza capacidades en estas áreas:
+
+- **Cloud phone:** listar, crear, iniciar/detener, eliminar, actualizar, clonar, consultar estado, captura, GPS, reset, root, SMS, transferir y contactos.
+- **Automatización:** consultar historial/estado, cancelar/reiniciar tareas, crear tareas personalizadas y lanzar automatizaciones de plataforma.
+- **Aplicaciones/equipo:** consultar catálogo, instalar/desinstalar/iniciar/detener, cargar APK, consultar estado de carga y operaciones por lote.
+- **Archivos/Library:** carga temporal, carga al teléfono, estado de carga, materiales y etiquetas.
+- **ADB/shell:** obtener datos de conexión, habilitar/deshabilitar ADB y ejecutar comandos remotos.
+- **Webhooks/OEM/analítica:** gestionar URL de callback, configuración de marca y cuentas/datos analíticos.
+- **Navegador:** listar/crear/editar/iniciar/detener/eliminar y automatización.
+- **Proxy/grupos/tags:** listar y crear/actualizar/eliminar; proxy también permite comprobación/detección.
+- **Facturación:** consultar saldo, transacciones, planes, renovaciones y paquetes de tiempo.
+
+El README del CLI publica límites de 200 solicitudes por minuto y 24.000 por hora, y 10 solicitudes por minuto para balance; indica una restricción de dos horas tras exceder límites. Son límites publicados por el cliente oficial, no garantías de SLA ni límites transferibles a Geelark-IA. También enumera códigos como parámetros inválidos, rate limit, solo pago, saldo insuficiente, teléfono no encontrado/no iniciado, tarea activa y límite de perfiles.
+
+**Límite de evidencia:** el inventario del CLI no reemplaza los contratos de cada endpoint. El portal de documentación API no expuso contenido textual legible en esta revisión, por lo que no se infieren payloads, autenticación completa, callbacks ni todos los errores.
+
+Fuente: https://github.com/GeeLark/geelark-cli (README y licencia del repositorio oficial).
