@@ -16,6 +16,7 @@ on:
       - "packages/cluster-persistence/**"
       - "packages/cluster-agent-guard/**"
       - "packages/cluster-agent-auth/**"
+      - "packages/cluster-master-admin/**"
       - ".github/workflows/cluster-persistence-service.yml"
   workflow_dispatch:
 
@@ -106,6 +107,8 @@ jobs:
           set -euo pipefail
           container_id="$(docker ps --filter 'ancestor=postgres:16-alpine' --format '{{.ID}}' | head -n 1)"
           test -n "$container_id"
+          # Exercise migration of an existing role whose LOGIN attribute is disabled.
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "CREATE ROLE geelark_master_reader NOLOGIN"
           docker exec -i "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 < packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql
           docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "ALTER ROLE geelark_master_reader PASSWORD 'test-only-password'"
           PGPASSWORD=test-only-password psql "postgresql://geelark_master_reader:test-only-password@127.0.0.1:5432/geelark_test" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql
