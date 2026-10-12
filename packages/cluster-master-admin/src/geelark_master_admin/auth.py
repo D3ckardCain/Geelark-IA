@@ -1,4 +1,4 @@
-"""Autenticación local de operador con PBKDF2 y sesiones revocables."""
+""""Autenticación local de operador con PBKDF2 y sesiones revocables."""
 from __future__ import annotations
 
 import hashlib
@@ -68,23 +68,37 @@ class LoginRateLimiter:
 def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
     """Restringe ACL NTFS al usuario actual; falla cerrado si icacls no funciona."""
     try:
-        system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
+        system_root = Path(os.environ.get("SystemRoot", r"C:\\Windows"))
         whoami = system_root / "System32" / "whoami.exe"
         icacls = system_root / "System32" / "icacls.exe"
         if not whoami.is_file() or not icacls.is_file():
             raise FileNotFoundError("No se encontraron las herramientas del sistema Windows.")
+        # Las herramientas nativas pueden emitir texto según la página de códigos
+        # de Windows. errors='replace' evita que una salida localizada impida
+        # capturar el error original; no cambia el código de salida ni lo ignora.
+        output_options = {
+            "capture_output": True,
+            "text": True,
+            "encoding": "utf-8",
+            "errors": "replace",
+        }
         identity = subprocess.run(
-            [str(whoami)], check=True, capture_output=True, text=True, timeout=3
+            [str(whoami)], check=True, timeout=3, **output_options
         ).stdout.strip()
+        if not identity:
+            raise OSError("whoami no devolvió una identidad de usuario válida.")
         grant = f"{identity}:(OI)(CI)F" if directory else f"{identity}:F"
-        # /grant:r solo reemplaza las ACE de la identidad indicada; no elimina
-        # permisos explícitos de otras identidades. /reset elimina esas ACE
-        # preexistentes restaurando primero la ACL heredada; después se corta
-        # la herencia y se concede acceso únicamente al usuario actual.
-        subprocess.run(
-            [str(icacls), str(path), "/reset", "/inheritance:r", "/grant:r", grant],
-            check=True, capture_output=True, text=True, timeout=5,
-        )
+        # icacls devuelve ERROR_INVALID_PARAMETER (87) si se combinan estas
+        # opciones en una única invocación. Ejecutarlas secuencialmente permite
+        # comprobar cada paso. Cualquier fallo aborta la inicialización (fail-closed).
+        for option in ("/reset", "/inheritance:r", "/grant:r", grant):
+            subprocess.run(
+                [str(icacls), str(path), option] if option != grant
+                else [str(icacls), str(path), "/grant:r", grant],
+                check=True,
+                timeout=5,
+                **output_options,
+            )
     except (OSError, subprocess.SubprocessError) as exc:
         raise PermissionError("No se pudieron restringir las ACL NTFS del almacén de sesiones.") from exc
 
