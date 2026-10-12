@@ -16,7 +16,7 @@ No existen rutas administrativas de mutación.
 
 ## Seguridad implementada
 
-- PBKDF2-HMAC-SHA256 con salt aleatorio y 600.000 iteraciones.
+- PBKDF2-HMAC-SHA256 con salt aleatorio y 600.000 iteraciones. Se rechazan hashes con coste superior a 2.000.000 iteraciones para evitar bloqueos por configuración manipulada.
 - Token aleatorio opaco; SQLite almacena únicamente SHA-256 del token. Expiración en 8 horas y revocación en logout.
 - Cookie `__Host-geelark_master_session`: HttpOnly, Secure, SameSite=Strict, Path=/.
 - HTTPS obligatorio en Uvicorn; sin confiar en cabeceras de proxy.
