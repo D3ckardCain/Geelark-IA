@@ -17,6 +17,7 @@ dependencies = [
 geelark-agent = "cluster_agent_transport.supervisor:main"
 
 [project.optional-dependencies]
+# Starlette TestClient: httpx2 avoids the deprecated httpx adapter.
 test = ["pytest>=8,<9", "httpx2>=2,<3"]
 
 [tool.setuptools.packages.find]
