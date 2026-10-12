@@ -156,10 +156,12 @@ def test_sync_pending_receipts_marks_terminal_ack_and_stops_when_offline():
 
 def test_runtime_syncs_real_sqlite_journal_and_persists_terminal_ack(tmp_path):
     guard = pytest.importorskip("geelark_cluster_agent_guard")
-    if not callable(getattr(guard.AgentJournal, "list_pending_receipts", None)) or not callable(
-        getattr(guard.AgentJournal, "mark_receipt_synced", None)
-    ):
-        pytest.skip("la rama base aún no incluye la API de recibos del PR #38")
+    assert callable(getattr(guard.AgentJournal, "list_pending_receipts", None)), (
+        "La integración requiere el journal durable del PR #38; no se permite omitir esta prueba."
+    )
+    assert callable(getattr(guard.AgentJournal, "mark_receipt_synced", None)), (
+        "La integración requiere ACK versionado del journal; no se permite omitir esta prueba."
+    )
     node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
     journal = guard.AgentJournal(tmp_path / "journal.sqlite3", node_id)
     journal.initialize()
