@@ -140,6 +140,7 @@ def test_postgres_provider_executes_select_only_and_returns_none_for_missing_nod
 
     assert result["node"]["node_id"] == str(NODE_ID)
     assert connection.sql.lstrip().upper().startswith("SELECT")
+    assert "health_state AS reported_health_state" in connection.sql
     assert not any(word in connection.sql.upper() for word in ("INSERT ", "UPDATE ", "DELETE "))
     assert connection.params == (NODE_ID,)
 
