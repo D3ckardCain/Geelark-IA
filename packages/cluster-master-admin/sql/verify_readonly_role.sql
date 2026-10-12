@@ -89,7 +89,7 @@ BEGIN
         SELECT 1
           FROM pg_proc p
           JOIN pg_namespace n ON n.oid = p.pronamespace
-         WHERE n.nspname NOT LIKE 'pg\\_%' ESCAPE '\\'
+         WHERE n.nspname NOT LIKE 'pg\_%' ESCAPE '\'
            AND n.nspname <> 'information_schema'
            AND has_function_privilege(current_user, p.oid, 'EXECUTE')
     ) THEN
