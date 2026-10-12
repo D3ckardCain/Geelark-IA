@@ -1,0 +1,58 @@
+name: Cluster persistence schema
+
+on:
+  pull_request:
+    paths:
+      - "db/**"
+      - ".github/workflows/cluster-persistence-postgres.yml"
+  push:
+    branches: [main]
+    paths:
+      - "db/**"
+      - ".github/workflows/cluster-persistence-postgres.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-schema:
+    name: PostgreSQL 16 — migration and invariants
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: geelark_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d geelark_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Apply all schema migrations to disposable database
+        shell: bash
+        run: |
+          container_id="$(docker ps --filter 'ancestor=postgres:16-alpine' --format '{{.ID}}' | head -n 1)"
+          test -n "$container_id"
+          for migration in db/migrations/*.sql; do
+            test -f "$migration" || continue
+            docker exec -i "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 < "$migration"
+          done
+
+      - name: Run all schema smoke tests and constraints
+        shell: bash
+        run: |
+          container_id="$(docker ps --filter 'ancestor=postgres:16-alpine' --format '{{.ID}}' | head -n 1)"
+          test -n "$container_id"
+          for test_file in db/tests/*.sql; do
+            test -f "$test_file" || continue
+            docker exec -i "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 < "$test_file"
+          done
