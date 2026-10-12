@@ -211,3 +211,8 @@ Se amplió el catálogo de RPA con selectores por texto/atributos/coordenadas, o
 ### Próximo trabajo de auditoría RPA (2026-10-12)
 
 Las guías oficiales 2, 3 y 6 permiten especificar bloques Open app, Waiting time, Scroll Page, Page back, Upload File, IF Condition, For Loop Times/Elements/Data, Exit Loop, End Task, variables configurables, programación y logs. La especificación RPA ahora incorpora contratos y pruebas por bloque. Sigue pendiente revisar el manual completo de RPA, completar los módulos no descritos (incluido For Loop Data) y validar parámetros/errores en una versión observable antes de cerrar la issue #6.
+
+
+### Inventario API actualizado — 2026-10-12
+
+Se incorporó al catálogo el inventario de categorías del CLI oficial: cloud phones, automatización, apps, archivos/Library, ADB/shell, webhooks, OEM, analítica, navegador, proxy, grupos, tags y facturación. El cliente es MIT, pero requiere token y servicio GeeLark, con funciones que pueden requerir pago/saldo; no se usará como dependencia. Los límites publicados por el CLI quedan como evidencia provisional hasta contrastarlos con documentación API legible. El inventario exacto por endpoint y su contrato siguen pendientes.
