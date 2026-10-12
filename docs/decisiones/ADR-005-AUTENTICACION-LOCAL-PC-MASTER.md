@@ -1,6 +1,6 @@
 # ADR-005 — Autenticación local del panel PC-MASTER
 
-**Estado:** decisión aceptada; implementación en PR #76, todavía draft y sin despliegue.  
+**Estado:** decisión aceptada; implementación en PR #79, todavía draft y sin despliegue. La PR #76 quedó supersedida y cerrada sin merge.  
 **Fecha:** 2026-10-11.
 
 ## Contexto
