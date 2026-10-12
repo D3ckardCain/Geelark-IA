@@ -300,3 +300,12 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 - No se ha instalado ni iniciado en PC-MASTER, no se han verificado los grants en la base real y no se ha desplegado. Esas validaciones siguen pendientes; no declarar la pantalla operativa hasta completarlas.
 
 - Comprobación de infraestructura (solo lectura, 2026-10-11): la organización Supabase vinculada figura en plan Free, pero el proyecto de base de datos está `INACTIVE`. No se restauró ni modificó para no arriesgar un coste; por tanto, no se verificó la base real. La integración queda bloqueada hasta que el usuario decida reactivarlo tras confirmar $0 o usar PostgreSQL local.
+
+
+## Panel PC-MASTER: revalidación del rol lector — 2026-10-12
+
+- La auditoría del rol `geelark_master_reader` detectó y corrigió dos huecos de verificación: `EXECUTE` efectivo sobre rutinas de aplicación y grants a nivel de columna.
+- Los blobs de `MASTER_ADMIN_READONLY_ROLE.sql`, `verify_readonly_role.sql` y `.github/workflows/cluster-persistence-service.yml` son idénticos en PR #76 y en la PR de validación #78.
+- CI [#38193499261](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38193499261) terminó success: 32 pruebas de persistencia, 12 de guard, 54 de autorización; verificador SQL PostgreSQL 16 y pruebas negativas de tabla, función `SECURITY DEFINER`, SELECT por columna, UPDATE por columna y esquema; `pip check` correcto. Las pruebas Python del paquete Master Admin se omitieron en #78 porque esa PR solo incluye scripts SQL.
+- PR #76 continúa draft y `mergeable=false`; PR #78 continúa draft y mergeable. No se fusionó ni desplegó nada.
+- Pendientes para declarar operativo: reconciliar la pila de PR #76, ejecutar CI completo del paquete Master Admin tras integrar, validar ACL NTFS/certificado/bind loopback en Windows real según issue #77 y mantener la base PostgreSQL local/remota sin costes obligatorios.
