@@ -8,7 +8,7 @@ from geelark_master_admin.runtime import _database_connector, main
 
 
 def test_database_connector_requires_dedicated_reader_role(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "postgresql://postgres:secret@localhost:5432/geelark")
+    monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "postgresql://postgres@localhost:5432/geelark")
     with pytest.raises(RuntimeError, match="geelark_master_reader"):
         _database_connector()
 
@@ -26,7 +26,7 @@ def test_database_connector_rejects_password_in_dsn_without_echoing_secret(monke
 
 
 def test_database_connector_requires_tls_verification_for_remote_db(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "postgresql://geelark_master_reader:secret@db.example.test:5432/geelark")
+    monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "postgresql://geelark_master_reader@db.example.test:5432/geelark")
     with pytest.raises(RuntimeError, match="sslmode"):
         _database_connector()
 
