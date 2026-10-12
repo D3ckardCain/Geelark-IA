@@ -175,8 +175,8 @@ def test_reconcile_expired_instance_lease_holds_without_mutation():
         cleanup(connect, node, instance, operation, credential)
 
 
-def test_reconcile_expired_delivery_lease_holds_without_mutation():
-    connect, node, credential, instance, operation, task = seed_task("running")
+def test_reconcile_expired_delivery_lease_holds_unaccepted_delivery_without_mutation():
+    connect, node, credential, instance, operation, task = seed_task("delivered")
     try:
         with connect() as conn:
             conn.execute(
@@ -188,6 +188,29 @@ def test_reconcile_expired_delivery_lease_holds_without_mutation():
             [item(task, operation, instance, state="running")],
         )
         assert result["decisions"][0]["decision"] == "DELIVERY_LEASE_EXPIRED_HOLD"
+        with connect() as conn:
+            status = conn.execute(
+                "SELECT status FROM geelark_control.agent_tasks WHERE task_id = %s", (task,)
+            ).fetchone()[0]
+        assert status == "delivered"
+        assert result["mutations_applied"] is False
+    finally:
+        cleanup(connect, node, instance, operation, credential)
+
+
+def test_reconcile_running_task_ignores_expired_delivery_lease_after_acceptance():
+    connect, node, credential, instance, operation, task = seed_task("running")
+    try:
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.agent_tasks SET delivery_lease_until = %s WHERE task_id = %s",
+                (datetime.now(timezone.utc) - timedelta(minutes=1), task),
+            )
+        result = run_reconcile(
+            connect, node, credential,
+            [item(task, operation, instance, state="running")],
+        )
+        assert result["decisions"][0]["decision"] == "CONTINUE_SAME_EPOCH"
         with connect() as conn:
             status = conn.execute(
                 "SELECT status FROM geelark_control.agent_tasks WHERE task_id = %s", (task,)
