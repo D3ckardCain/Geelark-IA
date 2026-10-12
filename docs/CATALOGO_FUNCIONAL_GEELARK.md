@@ -1,6 +1,6 @@
 # Catálogo funcional detallado de GeeLark — avance de auditoría
 
-**Fecha de actualización:** 2026-10-09  
+**Fecha de actualización:** 2026-10-12  
 **Versión del catálogo:** 0.1  
 **Estado:** parcial; basado en documentación pública oficial y notas de versión. No equivale a inspección exhaustiva del cliente ni a pruebas prácticas.  
 **Idioma:** español.
@@ -760,3 +760,50 @@ Fuente: https://help.geelark.com/connect-real-device
 8. Verificación de que la inspección no ejecuta comandos de escritura en el origen.
 
 No se afirma compatibilidad universal a partir de esta guía: cada fabricante/versión se validará progresivamente.
+
+
+## 32. Revalidación de fuentes oficiales — 2026-10-12
+
+Esta sección registra una nueva lectura de páginas públicas oficiales. No significa que GeeLark-IA ya implemente estas funciones; sirve para precisar la referencia y evitar copiar restricciones comerciales al diseño local.
+
+### 32.1 Creación y gestión de perfiles
+
+La guía oficial de creación de perfiles documenta tres modalidades: creación individual, rápida y por lotes. La misma página señala que Quick Create y Batch Create son exclusivas de Pro. En creación individual se seleccionan grupo, sistema operativo, proxy y método de facturación; la guía describe proxies estáticos y rotativos, selección de proxies guardados, asociación con perfiles, emparejamiento aleatorio con preferencia por proxies menos usados y comprobación de conexión/ubicación. No se permiten proxies expirados. El uso del cloud phone se factura por minuto salvo que el usuario tenga un paquete de tiempo o alquiler mensual.
+
+La guía de gestión añade filtros por grupo/categoría, edición solo cuando el perfil está cerrado, transferencia irreversible a otro usuario y administración de grupos (crear, renombrar, eliminar, fusionar y mover perfiles).
+
+**Adaptación local:** mantener creación individual como ruta base y añadir creación por lotes local solo con validación por fila, vista previa, límites basados en recursos del anfitrión, idempotencia y recuperación de fallos parciales. No replicar facturación cloud, suscripciones ni restricciones Pro como dependencias del producto local. La transferencia irreversible se sustituye por operaciones locales explícitas con confirmación, auditoría y posibilidad de recuperación cuando sea viable.
+
+Fuentes:
+- https://help.geelark.com/Profile-e60c92ba743748a697c07551f59812b8
+- https://help.geelark.com/Profile-management-c91b6291bb954a69a5d231781a03d0e1
+
+### 32.2 Synchronizer
+
+La guía consultada indica que Synchronizer es una función de suscripción Pro. Para teléfonos cloud, las acciones realizadas en un teléfono principal se replican a los otros teléfonos seleccionados; la guía pide seleccionar teléfonos apagados y recomienda usar el mismo tipo/modelo para reducir diferencias de interfaz. La lista publicada enumera Android 9 a Android 15. La sincronización de perfiles de navegador se documenta como disponible solo en Windows, con versión macOS en desarrollo.
+
+**Adaptación local:** el alcance de Geelark-IA es Android local, por lo que la sincronización de perfiles de navegador queda fuera de alcance. Antes de replicar eventos se debe comprobar que todas las instancias están en un estado compatible, registrar por destino el resultado y error, permitir pausar/detener y manejar resoluciones o layouts diferentes. No asumir que todas las acciones de interfaz se pueden reproducir de forma determinista.
+
+Fuente: https://help.geelark.com/Synchronizer-82c1c9a8f62d489ca81b1f753d2a7bfa
+
+### 32.3 Library
+
+La guía oficial indica que Library solo está disponible en Pro, centraliza fotos y vídeos para teléfonos cloud y flujos de automatización, permite carga manual e importación desde Google Drive u otros servicios compatibles, y describe un límite de 100 GB con eliminación del contenido 30 días después de la carga. Ese límite es una política del servicio cloud de GeeLark, no un requisito para la biblioteca local.
+
+**Adaptación local:** priorizar archivos locales persistentes, etiquetas, búsqueda, hashes, control de duplicados, límites configurables por disco, backup/restauración y eliminación solo con política explícita. Las integraciones cloud serán opcionales y nunca obligatorias; no se incorporará Google Drive como dependencia crítica.
+
+Fuente: https://help.geelark.com/Library-1c20be7d9e41800a8535ea943b930bd4
+
+### 32.4 API y ADB
+
+La página pública de API enumera operaciones de gestión del ciclo de vida de cloud phones, automatización, apps y contenido, archivos, Library, ADB y webhooks. La guía ADB consultada enumera compatibilidad con Android 11–16 y describe habilitar ADB en el perfil, iniciar el teléfono cloud y usar dirección/puerto y código de conexión. Esta lista no debe confundirse con la compatibilidad de Synchronizer, que publica Android 9–15.
+
+**Adaptación local:** diseñar una API propia versionada con autenticación local revocable, permisos mínimos, errores tipados, idempotencia y eventos durables. En local, ADB se mantendrá en loopback o red interna aislada; no se expondrá ADB público ni se convertirá shell en una ruta remota administrativa por defecto. La compatibilidad se validará por motor e imagen Android.
+
+Fuentes:
+- https://www.geelark.com/features/api/
+- https://help.geelark.com/ADB-1600be7d9e418006b80cf649bcdc80ad
+
+### 32.5 Conclusión de esta revalidación
+
+Las páginas consultadas confirman que GeeLark combina gestión de perfiles, proxies, automatización, sincronización, recursos multimedia y APIs sobre una infraestructura cloud con funciones sujetas a plan y facturación. La paridad local debe replicar el objetivo funcional donde sea viable, no los cargos, la retención temporal de Library ni las restricciones Pro. Las diferencias de versiones Android entre funciones se mantienen como una incertidumbre que requiere pruebas por motor.
