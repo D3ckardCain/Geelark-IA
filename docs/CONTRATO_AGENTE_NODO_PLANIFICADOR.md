@@ -199,3 +199,18 @@ La elección de un controlador secundario y failover automático se pospone hast
 11. Manual de instalación, alta, mantenimiento, diagnóstico y retirada en español.
 
 **No hay código ni pruebas ejecutadas por la creación de este documento.**
+
+## 13. Puerta de ejecución para nodos pendientes (requisito obligatorio)
+
+El estado `pending_enrollment` significa **solo observación y solicitud de alta; no es un nodo ejecutor**. Mientras el administrador no lo autorice explícitamente y el controlador no registre el alta como aprobada:
+
+- Permitido: enviar heartbeat, publicar capacidades/inventario no sensible y consultar el estado propio de la inscripción.
+- Prohibido: recibir, reservar, aceptar, reclamar o ejecutar tareas; iniciar, detener o modificar instancias; ejecutar comandos o scripts; acceder a ADB; recibir secretos de perfiles; solicitar elevación de privilegios o cambiar configuración del host.
+- El controlador debe rechazar la asignación en el servidor, aunque el agente cliente intente solicitarla. No basta con ocultar botones en la interfaz ni confiar únicamente en el agente.
+- El endpoint/cola de tareas debe verificar en cada solicitud el estado de inscripción, autorización vigente, revocación, compatibilidad de versión y permisos. Denegar por defecto ante estado ausente, desconocido o inconsistente.
+- La transición a `online` requiere aprobación administrativa registrada o un token de inscripción de un solo uso, con caducidad y alcance limitado. El token no debe habilitar por sí solo operaciones no permitidas.
+- Tras reinicio, pérdida de conexión o cambio de credenciales, no se debe elevar automáticamente un nodo pendiente a ejecutor. Se vuelve a autenticar y reconciliar el estado con el controlador.
+- Prueba negativa obligatoria: intentar enviar una tarea desde un nodo pendiente y verificar que el controlador la rechaza sin efectos secundarios; comprobar además que no se crea ni inicia ninguna instancia.
+- La auditoría debe registrar aprobación/rechazo, identidad del administrador, nodo, fecha, motivo y versión del contrato, sin guardar tokens ni secretos.
+
+Esta puerta complementa los filtros del planificador: un nodo puede estar técnicamente disponible y aun así no estar autorizado. **La autorización es una condición eliminatoria, nunca una puntuación de preferencia.**
