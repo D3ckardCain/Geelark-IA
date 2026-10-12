@@ -202,7 +202,7 @@ runtime = AgentTransportRuntime(
 - El guardián SQLite conserva fencing, recibos pendientes y ACK terminales sin red.
 - El adaptador puede sincronizar lotes acotados con `sync_pending_receipts()`, pero el bucle principal del agente todavía debe invocarlo al iniciar y cuando detecte reconexión.
 - Heartbeat, capacidades y consulta de estado requieren conectividad; no se encolan localmente.
-- La bandeja durable y `POST /agent/v1/tasks/claim` están implementados en la PR draft #52 con entrega pull, idempotencia y leases separadas; no están fusionados ni desplegados. Solo nodos `active/active` saludables pueden reclamar. La reconciliación es de solo lectura y no ejecuta tareas.
+- La bandeja durable y `POST /agent/v1/tasks/claim` están implementados en la pila draft #52/#67/#81 con entrega pull, idempotencia y leases separadas; no están fusionados ni desplegados. Solo nodos `active/active` con `reported_health_state=healthy`, `health_state=healthy` y heartbeat recibido en los últimos 90 segundos pueden reclamar. El SQL comprueba frescura en la misma consulta de reclamación; un valor almacenado `healthy` no permite reclamar si el heartbeat está obsoleto. La reconciliación compara evidencia y no ejecuta tareas ni resuelve `unknown` automáticamente.
 - No se ejecuta Android, ADB ni shell remoto; no desplegar en nodos reales hasta completar el bucle de agente, la entrega de tareas y la revisión de outbox.
 
 
