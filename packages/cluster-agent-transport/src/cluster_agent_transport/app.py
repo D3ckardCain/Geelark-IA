@@ -14,7 +14,7 @@ from uuid import UUID
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, field_validator
 
-from .limits import InMemoryRateLimiter
+from .limits import InMemoryRateLimiter, PostgresRateLimiter
 from .module_registry import SUPPORTED_MODULE_IDS
 from .policy import AgentPrincipal, Operation, PermissionDenied, authorize_operation
 from .replay import ReplayRejected
@@ -225,10 +225,13 @@ def create_agent_app(
     consume_nonce: Callable[..., None],
     handlers: dict[Operation, Callable[..., Any]],
     idempotency_runner: Callable[..., Any] | None = None,
-    rate_limiter: InMemoryRateLimiter | None = None,
+    rate_limiter: InMemoryRateLimiter | PostgresRateLimiter | None = None,
     max_body_bytes: int = 1_048_576,
 ) -> FastAPI:
-    """Crea la API sin listener; las acciones de dominio requieren callbacks."""
+    """Crea la API sin listener; el limitador predeterminado es solo por proceso.
+
+    Para el ensamblado respaldado por PostgreSQL, usa create_postgres_agent_app.
+    """
     limiter = rate_limiter or InMemoryRateLimiter()
     app = FastAPI(title="GeeLark-IA Agent API", version="0.1.0", docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(BodyLimitMiddleware, max_bytes=max_body_bytes)
@@ -417,3 +420,28 @@ def create_agent_app(
         return invoke_write(Operation.RECONCILE_INVENTORY, principal, payload.model_dump(mode="json"), idempotency_key)
 
     return app
+
+
+def create_postgres_agent_app(
+    connect: Callable[[], Any],
+    *,
+    max_body_bytes: int = 1_048_576,
+) -> FastAPI:
+    """Construye la API con autenticación, nonces, idempotencia y rate limit PostgreSQL.
+
+    No abre sockets ni configura TLS/listener: el runtime debe servir esta app
+    únicamente por HTTPS y configurar el DSN/PGPASSFILE de forma segura.
+    """
+    from .db_auth import make_database_authenticator
+    from .domain_handlers import make_postgres_agent_handlers
+    from .idempotency import make_database_idempotency_runner
+    from .replay import make_database_nonce_consumer
+
+    return create_agent_app(
+        authenticate=make_database_authenticator(connect),
+        consume_nonce=make_database_nonce_consumer(connect),
+        handlers=make_postgres_agent_handlers(connect),
+        idempotency_runner=make_database_idempotency_runner(connect),
+        rate_limiter=PostgresRateLimiter(connect),
+        max_body_bytes=max_body_bytes,
+    )
