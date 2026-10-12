@@ -20,6 +20,7 @@ from cluster_agent_auth.authorization import (
 class Operation(str, Enum):
     HEARTBEAT = "heartbeat"
     CAPABILITIES = "capabilities"
+    MODULES_REPORT = "modules_report"
     STATUS_READ = "status_read"
     TASK_ACCEPT = "task_accept"
     TASK_PROGRESS = "task_progress"
@@ -43,6 +44,7 @@ class PermissionDenied(Exception):
 _OPERATION_MAP = {
     Operation.HEARTBEAT: AgentOperation.HEARTBEAT,
     Operation.CAPABILITIES: AgentOperation.PUBLISH_CAPABILITIES,
+    Operation.MODULES_REPORT: AgentOperation.REPORT_MODULES,
     Operation.STATUS_READ: AgentOperation.READ_OWN_STATUS,
     Operation.TASK_ACCEPT: AgentOperation.ACCEPT_TASK,
     Operation.TASK_PROGRESS: AgentOperation.REPORT_PROGRESS,
