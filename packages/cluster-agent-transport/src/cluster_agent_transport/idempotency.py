@@ -15,6 +15,28 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 
+# Garantía de replay por tipo de operación. Scopes desconocidos quedan sin expiración.
+_IDEMPOTENCY_TTL_SECONDS = {
+    "heartbeat": 24 * 60 * 60,
+    "capabilities": 24 * 60 * 60,
+    "modules_report": 24 * 60 * 60,
+    "status_read": 24 * 60 * 60,
+    "task_fetch": 90 * 24 * 60 * 60,
+    "task_accept": 90 * 24 * 60 * 60,
+    "task_progress": 90 * 24 * 60 * 60,
+    "task_result": 90 * 24 * 60 * 60,
+    "reconcile": 90 * 24 * 60 * 60,
+    "reconcile_inventory": 90 * 24 * 60 * 60,
+}
+
+
+def _idempotency_ttl_seconds(scope: str) -> int | None:
+    if not scope.startswith("agent:"):
+        return None
+    operation = scope.rsplit(":", 1)[-1]
+    return _IDEMPOTENCY_TTL_SECONDS.get(operation)
+
+
 class IdempotencyConflict(Exception):
     """La clave ya existe asociada a otro payload."""
 
@@ -50,12 +72,17 @@ def execute_idempotent(
         inserted = conn.execute(
             """
             INSERT INTO geelark_control.idempotency_records
-                (scope, idempotency_key, payload_sha256, response_snapshot)
-            VALUES (%s, %s, %s, NULL)
+                (scope, idempotency_key, payload_sha256, response_snapshot, expires_at)
+            VALUES (
+                %s, %s, %s, NULL,
+                CASE WHEN %s IS NULL THEN NULL
+                     ELSE now() + (%s * interval '1 second')
+                END
+            )
             ON CONFLICT (scope, idempotency_key) DO NOTHING
             RETURNING scope
             """,
-            (scope, key, digest),
+            (scope, key, digest, _idempotency_ttl_seconds(scope), _idempotency_ttl_seconds(scope)),
         ).fetchone()
         row = conn.execute(
             """
