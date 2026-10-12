@@ -139,6 +139,33 @@ def test_windows_acl_verification_rejects_unexpected_identity(
         auth_module._restrict_windows_acl(target, directory=False)
 
 
+def test_windows_acl_verification_rejects_empty_acl(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess
+    from types import SimpleNamespace
+
+    from geelark_master_admin import auth as auth_module
+
+    target = tmp_path / "sessions.sqlite3"
+
+    def fake_is_file(path: Path) -> bool:
+        return path.name.lower() in {"whoami.exe", "icacls.exe"}
+
+    def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
+        if command[0].lower().endswith("whoami.exe"):
+            return SimpleNamespace(stdout=r"PC-MASTER\operator")
+        if "/reset" in command:
+            return SimpleNamespace(stdout="")
+        return SimpleNamespace(stdout=f"{target}\n")
+
+    monkeypatch.setattr(Path, "is_file", fake_is_file)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(PermissionError, match="ACL NTFS resultante"):
+        auth_module._restrict_windows_acl(target, directory=False)
+
+
 def test_windows_acl_failure_fails_closed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
