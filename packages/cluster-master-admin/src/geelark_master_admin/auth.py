@@ -1,4 +1,4 @@
-""""Autenticación local de operador con PBKDF2 y sesiones revocables."""
+"""Autenticación local de operador con PBKDF2 y sesiones revocables."""
 from __future__ import annotations
 
 import hashlib
@@ -68,7 +68,7 @@ class LoginRateLimiter:
 def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
     """Restringe ACL NTFS al usuario actual; falla cerrado si icacls no funciona."""
     try:
-        system_root = Path(os.environ.get("SystemRoot", r"C:\\Windows"))
+        system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
         whoami = system_root / "System32" / "whoami.exe"
         icacls = system_root / "System32" / "icacls.exe"
         if not whoami.is_file() or not icacls.is_file():
