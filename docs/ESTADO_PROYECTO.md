@@ -288,18 +288,12 @@ El PR borrador #16 ahora incluye validación de coherencia entre `status` y `obs
 
 Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md). Define transacciones, restricciones para un único propietario, idempotencia durable, outbox y pruebas de caída/concurrencia. No hay DDL, migraciones ni código de persistencia implementados; PostgreSQL local sigue siendo una propuesta pendiente de validar.
 
+## Panel PC-MASTER — rama de solo lectura en revisión (2026-10-12)
 
-## Panel PC-MASTER — rama limpia de validación 2026-10-12
+La implementación administrativa actual está en la PR #84. Incluye login local, sesiones SQLite revocables, panel del mismo origen, TLS obligatorio, bind loopback por defecto, consulta autenticada de snapshots y rol PostgreSQL dedicado de solo lectura. No expone mutaciones, tareas, ADB ni shell.
 
-Se reconstruye el cambio del panel local de solo lectura sobre la base actual `feat/master-status-snapshot-provider-v1` para evitar los conflictos de historial de la PR #76. El paquete incluye API FastAPI, login local PC-MASTER, sesión SQLite, TLS obligatorio, panel HTML, rol PostgreSQL de lectura y manuales.
+La consulta del panel lee `reported_health_state` desde su columna separada; la salud derivada se calcula con frescura del heartbeat. El panel no debe declarar operativo un módulo ausente, obsoleto o incoherente.
 
-La verificación SQL del rol ya fue ejecutada contra PostgreSQL 16 desechable en [run #38193499261](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38193499261), con pruebas negativas de tablas, funciones `SECURITY DEFINER`, SELECT por columna, UPDATE por columna y esquema; éxito. Esta rama limpia todavía requiere su CI completo de Python + SQL. No se ha fusionado ni desplegado.
+CI de la rama #84: [transporte #38274719927](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38274719927) y [persistencia/admin #38274719942](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38274719942) pasaron antes de la última actualización de dependencia; nueva revalidación tras la sincronización de base está pendiente. No se ha instalado en Windows PC-MASTER ni conectado a una base real.
 
-Bloqueos antes de declarar operativo: CI verde de esta rama, revisión de seguridad final, y validación real de ACL NTFS, certificado TLS y bind loopback en Windows PC-MASTER conforme a issue #77. No se conecta Supabase ni una base real; el objetivo operativo sigue siendo $0 USD.
-
-
-## CI final del panel PC-MASTER — 2026-10-12
-
-La rama limpia `feat/master-control-readonly-api-local-auth-clean` pasó [CI #38194320022](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194320022): 33 pruebas de persistencia, 12 de guard, 54 de autorización y 28 pruebas del paquete Master Admin; el verificador SQL PostgreSQL 16 y `pip check` terminaron success. No aparecieron advertencias deprecatorias de Starlette ni de Node 20 tras actualizar `httpx2`, `actions/checkout@v5` y `actions/setup-python@v6`.
-
-La prueba unitaria de ACL NTFS confirma que el código falla cerrado ante una ACE adicional o una ACL vacía; esto no sustituye la validación real de Windows. PR #79 sigue draft y no fusionada; pasó CI completo en PostgreSQL 16 desechable en run #38268508665 (29 pruebas Master Admin, suites de persistencia/guard/autenticación, probes negativos del rol y `pip check`). El runtime ahora rechaza contraseñas incluidas en el DSN y tiene una prueba de no filtración del secreto. PR #76 y PR #78 se cerraron como supersedidas, sin merge. No se ha desplegado ni conectado una base real. El único bloqueo operativo externo sigue siendo issue #77: ACL NTFS efectiva, certificado/trust, bind loopback y login/logout en PC-MASTER Windows.
+Bloqueo operativo: issue #77, que exige comprobar ACL NTFS, certificado y confianza TLS, bind loopback, login/logout y permisos efectivos contra PostgreSQL local desechable. Mantener PR #84 en draft; no fusionar ni desplegar hasta esa validación. Coste operativo objetivo $0 USD; no restaurar Supabase ni habilitar facturación/runners propios.
