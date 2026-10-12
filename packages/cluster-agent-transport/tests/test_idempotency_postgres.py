@@ -49,8 +49,6 @@ def test_idempotency_expiry_is_set_for_known_scope_and_unknown_scope_stays_null(
     unknown_scope = f"agent:{node_id}:future_operation"
     heartbeat_key = "heartbeat-" + str(uuid4())
     unknown_key = "unknown-" + str(uuid4())
-    digest = __import__("hashlib").sha256(b"ttl-test").hexdigest()
-
     try:
         with psycopg.connect(DATABASE_URL) as conn:
             execute_idempotent(
