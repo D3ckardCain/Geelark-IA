@@ -211,7 +211,7 @@ END
 $revoke_reader$;
 
 COMMENT ON TABLE geelark_control.agent_storage_maintenance_runs IS
-    'Auditoría append-only de previews y podas manuales de almacenamiento de agentes.';
+    'Registro de previews y podas manuales; la integridad depende de los permisos de la cuenta de mantenimiento.';
 
 COMMENT ON FUNCTION geelark_control.prune_agent_storage(boolean, boolean) IS
     'Preview por defecto. Con confirmed_export=true borra nonces con 1h de gracia, snapshots vencidos y reportes seguros (>90d o fuera de los últimos 10.000 por nodo). Los informes unknown/conflictivos (>365d) solo se borran con confirmed_export=true y confirmed_review_evidence_export=true tras exportación verificada. Scopes idempotentes desconocidos no se podan.';
