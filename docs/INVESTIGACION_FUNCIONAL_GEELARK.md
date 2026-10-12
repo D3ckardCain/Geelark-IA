@@ -290,3 +290,8 @@ Fuentes:
 - https://www.geelark.com/blog/geelark-rpa-guide-2/
 - https://www.geelark.com/blog/geelark-rpa-guide-3/
 - https://www.geelark.com/blog/geelark-rpa-guide-6/
+
+
+### Límite de evidencia del portal API (2026-10-12)
+
+La página comercial oficial enlaza https://open.geelark.com/api, pero el portal no expuso contenido textual legible en esta revisión. Solo se registran las categorías anunciadas por la página comercial; no se infieren endpoints, esquemas, firma de solicitudes, códigos de error ni requisitos de autenticación. Para completar la matriz API se necesita una fuente oficial legible o una exportación pública verificable.
