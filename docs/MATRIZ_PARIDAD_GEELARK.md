@@ -230,3 +230,16 @@ Estos detalles amplían la especificación de RPA, pero no cierran la auditoría
 | Task Settings / Schedule / Logs | Variables String, Batch Text, Boolean, Number, File; perfiles destino y horarios; cancelación/edición de publicación | Persistencia, zona horaria, idempotencia, reintentos y cancelación segura |
 
 Fuentes: guías oficiales RPA 2, 3 y 6 enlazadas en el catálogo, sección 32.7. La matriz sigue en estado de investigación; no se declara el motor implementado ni equivalente.
+
+
+### Acciones UI: precisión adicional de la guía 4 (2026-10-12)
+
+| Acción | Campos observados | Riesgo / aceptación local |
+|---|---|---|
+| Clic/pulsación prolongada en elemento | fullId/text/desc/className, Equals/Contains, índice o rango, timeout, elementos invisibles, resultado booleano, nota | Probar selector vacío/ambiguo, jerarquía anidada y resultado false en timeout |
+| Clic/pulsación prolongada por coordenadas | X/Y; puede derivarse del centro de los límites del elemento | Marcar resolución de referencia; probar al menos dos resoluciones y detectar coordenadas fuera de pantalla |
+| Ingresar contenido | Selector, coincidencia, orden, timeout y texto/variable | No registrar contenido sensible; validar foco/campo y fallos de entrada |
+| Operación de teclado | Teclas como Enter/Delete | Lista permitida de teclas y resultado verificable |
+| Esperar elemento | Selector, condición, orden, timeout, elementos invisibles y resultado booleano | Timeout limitado, cancelación y no continuar silenciosamente cuando sea requisito crítico |
+
+Fuente: https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
