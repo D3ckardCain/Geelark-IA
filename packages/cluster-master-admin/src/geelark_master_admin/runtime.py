@@ -103,6 +103,10 @@ def _database_connector():
         raise RuntimeError(
             "PostgreSQL remoto exige sslmode=verify-full y verificación del nombre del servidor."
         )
+    if remote and not hosts:
+        raise RuntimeError(
+            "PostgreSQL remoto requiere host= explícito para verificar el nombre del servidor; hostaddr por sí solo no basta."
+        )
     if details.get("user", "") != "geelark_master_reader":
         raise RuntimeError(
             "GEELARK_ADMIN_DATABASE_URL debe usar exactamente el rol dedicado "
