@@ -296,3 +296,10 @@ Se reconstruye el cambio del panel local de solo lectura sobre la base actual `f
 La verificación SQL del rol ya fue ejecutada contra PostgreSQL 16 desechable en [run #38193499261](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38193499261), con pruebas negativas de tablas, funciones `SECURITY DEFINER`, SELECT por columna, UPDATE por columna y esquema; éxito. Esta rama limpia todavía requiere su CI completo de Python + SQL. No se ha fusionado ni desplegado.
 
 Bloqueos antes de declarar operativo: CI verde de esta rama, revisión de seguridad final, y validación real de ACL NTFS, certificado TLS y bind loopback en Windows PC-MASTER conforme a issue #77. No se conecta Supabase ni una base real; el objetivo operativo sigue siendo $0 USD.
+
+
+## CI final del panel PC-MASTER — 2026-10-12
+
+La rama limpia `feat/master-control-readonly-api-local-auth-clean` pasó [CI #38194320022](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194320022): 33 pruebas de persistencia, 12 de guard, 54 de autorización y 28 pruebas del paquete Master Admin; el verificador SQL PostgreSQL 16 y `pip check` terminaron success. No aparecieron advertencias deprecatorias de Starlette ni de Node 20 tras actualizar `httpx2`, `actions/checkout@v5` y `actions/setup-python@v6`.
+
+La prueba unitaria de ACL NTFS confirma que el código falla cerrado ante una ACE adicional o una ACL vacía; esto no sustituye la validación real de Windows. PR #79 sigue draft y no fusionada. PR #76 permanece abierta como historial. No se ha desplegado ni conectado una base real. El único bloqueo operativo externo sigue siendo issue #77: ACL NTFS efectiva, certificado/trust, bind loopback y login/logout en PC-MASTER Windows.
