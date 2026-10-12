@@ -15,7 +15,7 @@ END
 $$;
 
 ALTER ROLE geelark_master_reader
-    NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS;
+    LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS;
 ALTER ROLE geelark_master_reader SET default_transaction_read_only = on;
 ALTER ROLE geelark_master_reader SET statement_timeout = '1500ms';
 ALTER ROLE geelark_master_reader SET lock_timeout = '500ms';
