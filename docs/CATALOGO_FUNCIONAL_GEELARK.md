@@ -832,27 +832,6 @@ Fuentes:
 - https://www.geelark.com/es/blog-es/automatizacion-de-apps-android-y-navegador-geelark-rpa/
 
 
-### 32.6 RPA: selectores, variables y control de flujo
-
-La página pública de RPA describe un editor visual sin código para combinar acciones, lógica, bucles, variables, manejo de excepciones y ejecución/monitorización de tareas. La guía práctica de RPA detalla opciones concretas que conviene modelar en el catálogo local:
-
-- **Acciones observadas:** abrir aplicaciones, tocar/clicar elementos, pulsación prolongada, deslizar/desplazar, introducir texto, esperar, subir archivos y navegar por pantallas.
-- **Localización de elementos:** texto visible, atributos del elemento y coordenadas. La guía de principiantes menciona atributos como `fullId`, `desc` y `className`.
-- **Configuración de selector:** coincidencia exacta (`Equals`) o parcial (`Contains`), orden fijo o selección aleatoria dentro de un intervalo, tiempo máximo de espera en milisegundos y opción de buscar elementos no visibles.
-- **Resultado y diagnóstico:** la guía describe guardar el resultado de una acción en una variable booleana y añadir notas para explicar el propósito del paso.
-- **Variables documentadas:** texto/cadena, número, booleano y objeto (por ejemplo, una referencia a un elemento UI). La guía incluye extraer texto de un elemento, guardarlo y reutilizarlo en acciones posteriores.
-- **Control de flujo:** condiciones, bucles por cantidad/elementos/datos y reglas de excepción como omitir un paso o detener el flujo.
-- **Operación:** asignar el flujo a perfiles seleccionados, ejecutar o programar tareas y consultar estado/logs.
-
-**Adaptación local y seguridad:** cada bloque debe tener esquema versionado, tipos de entrada/salida, timeout, resultado booleano/estructurado, política de fallo, permisos, idempotencia y registro redactado. El motor local no ejecutará Python, JavaScript ni shell arbitrario como parte normal de un flujo. Los selectores por coordenadas son frágiles; deben marcarse como menos robustos que los selectores semánticos y validarse por resolución, idioma y versión Android. La selección aleatoria será explícita, acotada y auditable.
-
-Fuentes:
-- https://www.geelark.com/features/rpa/
-- https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
-- https://www.geelark.com/blog/geelark-rpa-guide-5/
-- https://www.geelark.com/es/blog-es/automatizacion-de-apps-android-y-navegador-geelark-rpa/
-
-
 ### 32.7 Bloques concretos documentados en las guías RPA (2026-10-12)
 
 Las guías de principiantes permiten concretar el inventario inicial de bloques. No son una lista exhaustiva del editor actual; las opciones deben verificarse cuando exista acceso práctico a una versión de referencia.
