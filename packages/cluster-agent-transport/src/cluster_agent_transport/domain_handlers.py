@@ -601,7 +601,13 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 decision = "STALE_ASSIGNMENT_EPOCH"
             elif row[5] == "unknown" or local_state == "unknown":
                 decision = "MANUAL_REVIEW_REQUIRED"
-            elif row[10] != row[5] or dict(row[11] or {}) != dict(row[6] or {}):
+            elif (
+                (
+                    row[10] != row[5]
+                    and not (row[5] == "delivered" and row[10] == "accepted")
+                )
+                or dict(row[11] or {}) != dict(row[6] or {})
+            ):
                 decision = "SERVER_TASK_OPERATION_STATE_MISMATCH"
             elif row[5] in {"succeeded", "rejected", "failed", "cancelled"}:
                 if row[5] == local_state and dict(row[6] or {}) == local_summary:
