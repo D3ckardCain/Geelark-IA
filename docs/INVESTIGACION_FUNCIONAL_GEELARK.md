@@ -1,6 +1,6 @@
 # Investigación funcional de GeeLark — registro inicial
 
-**Fecha de consulta:** 2026-10-09  
+**Fecha de consulta:** 2026-10-12  
 **Estado:** investigación documental inicial; no equivale a auditoría completa ni a pruebas directas dentro del cliente.  
 **Idioma de registro:** español.  
 **Alcance del proyecto:** replicar funciones de GeeLark aplicables a Android mediante entornos Android virtualizados/emulados en hardware anfitrión local, sin teléfonos físicos como requisito y sin servicios cloud obligatorios. iOS queda excluido.
@@ -231,3 +231,24 @@ No se selecciona todavía un motor. redroid parece especialmente relevante para 
 - 2026-10-09: primera investigación documental consolidada; se aclara que GeeLark es una plataforma integrada de cloud phones, gestión, automatización, sincronización, API y recursos, no solo un emulador.
 - 2026-10-09: se fija el alcance de nuestro proyecto en Android virtualizado/emulado localmente en hardware anfitrión; no se presupone el uso de teléfonos físicos.
 - 2026-10-09: se añade comparación preliminar de redroid, Android Emulator, Waydroid y Android-x86, sin seleccionar stack definitivo.
+
+
+## 11. Revalidación de fuentes oficiales (2026-10-12)
+
+La revisión adicional de páginas públicas del centro de ayuda y de producto confirmó estos detalles operativos que deben distinguirse de las funciones locales:
+
+- Perfiles: creación individual, rápida y por lotes; Quick Create y Batch Create se marcan como Pro. La guía de creación describe grupo, sistema operativo, proxy y método de facturación; los cloud phones se facturan por minuto salvo paquete de tiempo o alquiler mensual.
+- Gestión: filtros por grupo/categoría, edición cuando el perfil está cerrado, transferencia de perfil irreversible y operaciones de grupos como crear, renombrar, eliminar, fusionar y mover.
+- Synchronizer: disponible en Pro; replica acciones del teléfono principal a otros teléfonos seleccionados. La guía recomienda seleccionar teléfonos apagados y del mismo tipo. La lista de versiones de esta función es Android 9–15. La sincronización de perfiles de navegador se documenta solo para Windows.
+- Library: disponible en Pro; centraliza medios, permite carga local e importación desde servicios compatibles, y documenta 100 GB con borrado a los 30 días en el servicio cloud.
+- API/ADB: la página API enumera gestión de cloud phones, automatización, aplicaciones, archivos, Library, ADB y webhooks. La guía ADB consultada enumera Android 11–16.
+
+Las restricciones Pro, los cobros por minuto y la retención temporal de medios son características comerciales de GeeLark, no dependencias que debamos introducir en Geelark-IA. La alternativa local propuesta es gestión de perfiles/instancias, almacenamiento persistente de medios, API propia y ADB limitado a loopback/red interna. La lista de Android para Synchronizer no coincide con la de ADB, por lo que la matriz mantiene esa cuestión pendiente en lugar de generalizar compatibilidad.
+
+Fuentes:
+- Perfil: https://help.geelark.com/Profile-e60c92ba743748a697c07551f59812b8
+- Gestión de perfiles: https://help.geelark.com/Profile-management-c91b6291bb954a69a5d231781a03d0e1
+- Synchronizer: https://help.geelark.com/Synchronizer-82c1c9a8f62d489ca81b1f753d2a7bfa
+- Library: https://help.geelark.com/Library-1c20be7d9e41800a8535ea943b930bd4
+- API: https://www.geelark.com/features/api/
+- ADB: https://help.geelark.com/ADB-1600be7d9e418006b80cf649bcdc80ad
