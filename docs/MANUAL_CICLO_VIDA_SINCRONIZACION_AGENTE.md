@@ -17,7 +17,7 @@ El módulo `AgentReceiptSyncLifecycle` conecta el ciclo de vida del proceso agen
 ## Reintentos y durabilidad
 
 - Cada llamada procesa como máximo `batch_size` recibos (1–1000).
-- Un error o una respuesta HTTP no exitosa deja el recibo pendiente; el runtime solo guarda el ACK después de un HTTP 2xx.
+- Un error o una respuesta HTTP no exitosa deja el recibo pendiente. Tras HTTP 2xx, el runtime compara en una transacción SQLite el `status` y el `result` exactos que envió; solo marca sincronizada esa versión. Si el recibo cambió mientras la petición estaba en vuelo, el ACK tardío se rechaza y la versión más reciente permanece pendiente para el siguiente intento.
 - El backoff exponencial comienza en 1 segundo, crece hasta 60 segundos y aplica jitter multiplicativo para evitar sincronizaciones simultáneas de muchos nodos. Los valores son configurables.
 - Un lote completo confirmado se sigue inmediatamente con otro lote. Una cola vacía queda a la espera de la señal de reconexión; no genera sondeo continuo.
 - El callback de error recibe solo el código genérico `RECEIPT_SYNC_FAILED`, nunca el cuerpo HTTP, token ni excepción original.
@@ -29,6 +29,12 @@ El módulo `AgentReceiptSyncLifecycle` conecta el ciclo de vida del proceso agen
 - El sincronizador reintenta al iniciar y cuando recibe la notificación de reconexión.
 - Heartbeat, capacidades, consulta de estado, reclamación de tareas y cualquier operación remota requieren conectividad.
 - El sincronizador no crea recibos ni cambia el estado de la tarea local; únicamente transmite los recibos ya persistidos.
+
+## ACK versionado y estados inciertos
+
+- `mark_receipt_synced(operation_id, expected_status=..., expected_result=...)` confirma la versión exacta que recibió HTTP 2xx; las APIs antiguas sin estos parámetros fallan cerradas.
+- `unknown` se puede transmitir y confirmar como estado incierto. Confirmar la entrega no lo transforma en éxito ni fallo ni habilita reasignación automática.
+- La prueba `test_late_ack_does_not_mark_a_newer_receipt_version_synced` cubre el caso en que el progreso local cambia de 25 % a 50 % antes de que llegue el ACK del 25 %.
 
 ## Pruebas y estado
 
