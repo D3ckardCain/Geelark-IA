@@ -53,7 +53,7 @@ El botón **Ver ejemplo ficticio** permite probar navegación sin iniciar sesió
 - Autenticación local gestionada por PC-MASTER; no se envían contraseñas a proveedores externos.
 - Cookie HttpOnly, Secure, SameSite=Strict y Path=/; el navegador no puede leerla desde JavaScript.
 - La API exige HTTPS y comprueba Origin para login/logout.
-- El backend usa el rol PostgreSQL `geelark_master_reader`, con transacciones read-only, timeouts y una consulta SELECT limitada.
+- El backend usa el rol PostgreSQL `geelark_master_reader`, con transacciones read-only, timeouts y una consulta SELECT limitada. El runtime rechaza contraseñas embebidas en `GEELARK_ADMIN_DATABASE_URL`; usa un `PGPASSFILE` protegido.
 - No hay controles de mutación, ejecución shell, ADB, tareas, ni reconciliación.
 - No se persisten credenciales ni snapshots en almacenamiento del navegador.
 - La interfaz sirve desde el mismo origen que la API, evitando tener que habilitar CORS.
