@@ -113,6 +113,12 @@ def _database_connector():
             "geelark_master_reader."
         )
 
+    if details.get("password"):
+        raise RuntimeError(
+            "No incluyas la contraseña en GEELARK_ADMIN_DATABASE_URL; "
+            "usa un archivo PGPASSFILE protegido."
+        )
+
     def connect():
         return psycopg.connect(
             dsn,
