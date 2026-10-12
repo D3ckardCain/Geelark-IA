@@ -23,6 +23,7 @@ def seed_task(status="running", result_summary=None):
     now = datetime.now(timezone.utc)
     summary = result_summary or {}
     terminal = status in {"succeeded", "rejected", "failed", "cancelled"}
+    operation_status = "accepted" if status == "delivered" else status
     with connect() as conn:
         conn.execute(
             "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state, health_state) VALUES (%s, %s, 'active', 'healthy')",
@@ -55,7 +56,7 @@ def seed_task(status="running", result_summary=None):
             VALUES (%s, %s, %s, %s, 3, 'assign', %s, %s, %s)
             """,
             (
-                operation_id, uuid4(), instance_id, node_id, status,
+                operation_id, uuid4(), instance_id, node_id, operation_status,
                 Jsonb(summary), now if terminal else None,
             ),
         )
