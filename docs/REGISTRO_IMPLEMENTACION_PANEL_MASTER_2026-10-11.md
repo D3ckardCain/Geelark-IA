@@ -63,3 +63,10 @@ El SQL coincide exactamente con el verificado por [CI #38193499261](https://gith
 `_restrict_windows_acl()` ahora vuelve a leer la salida de `icacls` tras cambiar permisos. Falla cerrado si la ACL resultante no contiene exactamente una ACE para la identidad actual de `whoami` con control total, o si queda otra identidad/denegación. Se añadió una prueba unitaria negativa con `BUILTIN\Users` residual.
 
 Commits: `a01045d` y `3e61852`. La CI del HEAD que incluye esta prueba está en curso: [run #38194202202](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194202202). Aunque la prueba mock pase, no sustituye la verificación real de ACL NTFS, certificado y bind loopback en PC-MASTER Windows (issue #77).
+
+
+## CI final del panel PC-MASTER — 2026-10-12
+
+La rama limpia `feat/master-control-readonly-api-local-auth-clean` pasó [CI #38194320022](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194320022): 33 pruebas de persistencia, 12 de guard, 54 de autorización y 28 pruebas del paquete Master Admin; el verificador SQL PostgreSQL 16 y `pip check` terminaron success. No aparecieron advertencias deprecatorias de Starlette ni de Node 20 tras actualizar `httpx2`, `actions/checkout@v5` y `actions/setup-python@v6`.
+
+La prueba unitaria de ACL NTFS confirma que el código falla cerrado ante una ACE adicional o una ACL vacía; esto no sustituye la validación real de Windows. PR #79 sigue draft y no fusionada. PR #76 permanece abierta como historial. No se ha desplegado ni conectado una base real. El único bloqueo operativo externo sigue siendo issue #77: ACL NTFS efectiva, certificado/trust, bind loopback y login/logout en PC-MASTER Windows.
