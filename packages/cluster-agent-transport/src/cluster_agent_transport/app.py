@@ -124,6 +124,25 @@ class InventoryReconcileItem(BaseModel):
     @field_validator("result_summary")
     @classmethod
     def validate_inventory_result_summary(cls, value: dict[str, Any]) -> dict[str, Any]:
+        forbidden = (
+            "token", "password", "secret", "authorization", "cookie",
+            "credential", "apikey", "privatekey", "accesskey",
+        )
+
+        def inspect(item: Any) -> None:
+            if isinstance(item, dict):
+                for key, nested in item.items():
+                    if not isinstance(key, str):
+                        raise ValueError("result_summary debe usar claves de texto.")
+                    normalized = "".join(character for character in key.casefold() if character.isalnum())
+                    if any(term in normalized for term in forbidden):
+                        raise ValueError("result_summary contiene una clave sensible.")
+                    inspect(nested)
+            elif isinstance(item, list):
+                for nested in item:
+                    inspect(nested)
+
+        inspect(value)
         try:
             encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
         except (TypeError, ValueError):
