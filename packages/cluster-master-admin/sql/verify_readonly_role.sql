@@ -1,18 +1,20 @@
 -- Ejecutar conectado directamente como geelark_master_reader, tras aplicar
 -- packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql y establecer su contraseña.
--- La prueba falla si el rol tiene más privilegios de los permitidos.
+-- La prueba falla si el rol conserva privilegios fuera del único objeto permitido.
 BEGIN READ ONLY;
 
 DO $$
 DECLARE
-    forbidden_table text;
+    forbidden_object text;
+    role_oid oid;
 BEGIN
+    SELECT oid INTO role_oid FROM pg_roles WHERE rolname = current_user;
+
     IF current_setting('transaction_read_only') <> 'on' THEN
         RAISE EXCEPTION 'La transacción no está en modo read-only';
     END IF;
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_roles
-         WHERE rolname = current_user AND rolcanlogin
+    IF role_oid IS NULL OR NOT EXISTS (
+        SELECT 1 FROM pg_roles WHERE oid = role_oid AND rolcanlogin
     ) THEN
         RAISE EXCEPTION 'El rol lector no tiene LOGIN habilitado';
     END IF;
@@ -22,11 +24,30 @@ BEGIN
     IF has_database_privilege(current_user, current_database(), 'CREATE') THEN
         RAISE EXCEPTION 'El rol tiene CREATE sobre la base de datos actual';
     END IF;
+    IF EXISTS (
+        SELECT 1 FROM pg_database
+         WHERE datname = current_database() AND datdba = role_oid
+    ) THEN
+        RAISE EXCEPTION 'El rol no puede ser propietario de la base de datos';
+    END IF;
     IF NOT has_schema_privilege(current_user, 'geelark_control', 'USAGE') THEN
         RAISE EXCEPTION 'Falta USAGE sobre geelark_control';
     END IF;
-    IF has_schema_privilege(current_user, 'geelark_control', 'CREATE') THEN
-        RAISE EXCEPTION 'El rol tiene CREATE sobre geelark_control';
+    IF EXISTS (
+        SELECT 1 FROM pg_namespace n
+         WHERE n.nspname NOT LIKE 'pg\_%' ESCAPE '\'
+           AND n.nspname <> 'information_schema'
+           AND has_schema_privilege(current_user, n.oid, 'CREATE')
+    ) THEN
+        RAISE EXCEPTION 'El rol tiene CREATE sobre un esquema no permitido';
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM pg_namespace
+         WHERE nspowner = role_oid
+           AND nspname NOT LIKE 'pg\_%' ESCAPE '\'
+           AND nspname <> 'information_schema'
+    ) THEN
+        RAISE EXCEPTION 'El rol es propietario de un esquema no permitido';
     END IF;
     IF NOT has_table_privilege(current_user, 'geelark_control.nodes', 'SELECT') THEN
         RAISE EXCEPTION 'Falta SELECT sobre geelark_control.nodes';
@@ -40,34 +61,63 @@ BEGIN
         RAISE EXCEPTION 'El rol tiene privilegios de escritura o DDL sobre nodes';
     END IF;
 
-    FOR forbidden_table IN
-        SELECT tablename
-          FROM pg_tables
-         WHERE schemaname = 'geelark_control'
-           AND tablename <> 'nodes'
-    LOOP
-        IF has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'SELECT')
-           OR has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'INSERT')
-           OR has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'UPDATE')
-           OR has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'DELETE')
-           OR has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'TRUNCATE')
-           OR has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'REFERENCES')
-           OR has_table_privilege(current_user, 'geelark_control.' || forbidden_table, 'TRIGGER') THEN
-            RAISE EXCEPTION 'El rol tiene privilegios no permitidos sobre %', forbidden_table;
-        END IF;
-    END LOOP;
+    IF EXISTS (
+        SELECT 1
+          FROM pg_class c
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+         WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f')
+           AND n.nspname NOT LIKE 'pg\_%' ESCAPE '\'
+           AND n.nspname <> 'information_schema'
+           AND NOT (n.nspname = 'geelark_control' AND c.relname = 'nodes')
+           AND (
+             has_table_privilege(current_user, format('%I.%I', n.nspname, c.relname), 'SELECT')
+             OR has_table_privilege(current_user, format('%I.%I', n.nspname, c.relname), 'INSERT')
+             OR has_table_privilege(current_user, format('%I.%I', n.nspname, c.relname), 'UPDATE')
+             OR has_table_privilege(current_user, format('%I.%I', n.nspname, c.relname), 'DELETE')
+             OR has_table_privilege(current_user, format('%I.%I', n.nspname, c.relname), 'TRUNCATE')
+             OR has_table_privilege(current_user, format('%I.%I', n.nspname, c.relname), 'REFERENCES')
+             OR has_table_privilege(current_user, format('%I.%I', n.nspname, c.relname), 'TRIGGER')
+           )
+    ) THEN
+        RAISE EXCEPTION 'El rol tiene privilegios efectivos sobre un objeto distinto de geelark_control.nodes';
+    END IF;
 
     IF EXISTS (
         SELECT 1
-          FROM pg_sequences
-         WHERE schemaname = 'geelark_control'
+          FROM pg_sequences s
+         WHERE s.schemaname NOT LIKE 'pg\_%' ESCAPE '\'
+           AND s.schemaname <> 'information_schema'
            AND (
-             has_sequence_privilege(current_user, format('%I.%I', schemaname, sequencename), 'USAGE')
-             OR has_sequence_privilege(current_user, format('%I.%I', schemaname, sequencename), 'SELECT')
-             OR has_sequence_privilege(current_user, format('%I.%I', schemaname, sequencename), 'UPDATE')
+             has_sequence_privilege(current_user, format('%I.%I', s.schemaname, s.sequencename), 'USAGE')
+             OR has_sequence_privilege(current_user, format('%I.%I', s.schemaname, s.sequencename), 'SELECT')
+             OR has_sequence_privilege(current_user, format('%I.%I', s.schemaname, s.sequencename), 'UPDATE')
            )
     ) THEN
-        RAISE EXCEPTION 'El rol tiene privilegios sobre secuencias';
+        RAISE EXCEPTION 'El rol tiene privilegios sobre secuencias no permitidas';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM pg_class c
+         WHERE c.relowner = role_oid
+           AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
+           AND c.relnamespace IN (
+             SELECT n.oid FROM pg_namespace n
+              WHERE n.nspname NOT LIKE 'pg\_%' ESCAPE '\'
+                AND n.nspname <> 'information_schema'
+           )
+    ) THEN
+        RAISE EXCEPTION 'El rol es propietario de una relación no permitida';
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM pg_proc p
+         WHERE p.proowner = role_oid
+           AND p.pronamespace IN (
+             SELECT n.oid FROM pg_namespace n
+              WHERE n.nspname NOT LIKE 'pg\_%' ESCAPE '\'
+                AND n.nspname <> 'information_schema'
+           )
+    ) THEN
+        RAISE EXCEPTION 'El rol es propietario de una función no permitida';
     END IF;
 
     IF EXISTS (
@@ -80,7 +130,6 @@ BEGIN
 
     IF EXISTS (
         SELECT 1 FROM pg_auth_members m
-        JOIN pg_roles r ON r.oid = m.roleid
         JOIN pg_roles u ON u.oid = m.member
         WHERE u.rolname = current_user
     ) THEN
