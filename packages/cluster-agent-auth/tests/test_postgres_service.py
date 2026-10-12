@@ -270,3 +270,42 @@ def test_concurrent_enrollment_consumption_only_succeeds_once():
         assert sum(result is not None for result in results) == 1
     finally:
         cleanup([node_id], [enrollment.record_id])
+
+
+def test_rotation_is_blocked_after_node_is_revoked():
+    node_id = uuid4()
+    with connect() as conn:
+        enrollment = create_enrollment(conn, node_id, "test-admin")
+    try:
+        with connect() as conn:
+            original = consume_enrollment(conn, enrollment.secret, "auth-rotation-revoked-node")
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.nodes SET admin_state = 'active' WHERE node_id = %s",
+                (node_id,),
+            )
+            conn.execute(
+                "UPDATE geelark_control.node_credentials SET status = 'active', activated_at = now() WHERE credential_id = %s",
+                (original.record_id,),
+            )
+        with connect() as conn:
+            pending = begin_credential_rotation(conn, node_id)
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.nodes SET admin_state = 'revoked', revoked_at = now() WHERE node_id = %s",
+                (node_id,),
+            )
+        with connect() as conn:
+            with pytest.raises(AuthenticationError, match="nodo no está activo"):
+                rotate_credential(conn, node_id, pending.record_id)
+        with connect() as conn:
+            with pytest.raises(AuthenticationError, match="nodo no está activo"):
+                begin_credential_rotation(conn, node_id)
+        with connect() as conn:
+            states = conn.execute(
+                "SELECT credential_id, status FROM geelark_control.node_credentials WHERE node_id = %s ORDER BY credential_id",
+                (node_id,),
+            ).fetchall()
+        assert {str(row[1]) for row in states} == {"active", "pending"}
+    finally:
+        cleanup([node_id], [enrollment.record_id])
