@@ -201,3 +201,8 @@ La issue [#17 — persistencia transaccional de asignaciones y outbox](https://g
 ### Revalidación documental de GeeLark (2026-10-12)
 
 Se actualizó el catálogo y la matriz con fuentes oficiales de perfiles, gestión, Synchronizer, Library, API y ADB. Quedan explícitas las restricciones comerciales de GeeLark (funciones Pro, cobro cloud y retención temporal de Library) para no convertirlas en dependencias del sistema local. La discrepancia entre las versiones Android enumeradas por Synchronizer (9–15) y ADB (11–16) permanece abierta; no se selecciona motor ni se declara paridad sin pruebas en el anfitrión real. La investigación documental sigue en la issue #6.
+
+
+### Detalle de RPA añadido a la auditoría — 2026-10-12
+
+Se amplió el catálogo de RPA con selectores por texto/atributos/coordenadas, opciones Equals/Contains, timeout, variables tipadas, extracción de texto, bucles, condiciones y manejo de errores. La siguiente tarea de la issue #6 es completar el inventario bloque por bloque con todos sus parámetros/errores, y separar lo confirmado por documentación de lo que requiere inspección práctica. La especificación local ya define límites, cancelación, estados persistidos y prohibición de ejecutar scripts/shell arbitrarios por defecto; esta revalidación no declara el motor implementado.
