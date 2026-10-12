@@ -123,6 +123,15 @@ jobs:
           grep -q "privilegios efectivos sobre un objeto distinto" /tmp/geelark-admin-privilege-probe.log || { cat /tmp/geelark-admin-privilege-probe.log; exit 1; }
           docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "REVOKE SELECT ON public.geelark_admin_privilege_probe FROM geelark_master_reader; DROP TABLE public.geelark_admin_privilege_probe"
 
+          # Negative test: PUBLIC EXECUTE on a SECURITY DEFINER routine must be rejected.
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "CREATE FUNCTION public.geelark_admin_function_probe() RETURNS integer LANGUAGE sql SECURITY DEFINER AS 'SELECT 1'"
+          if PGPASSWORD=test-only-password psql "$reader_dsn" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql > /tmp/geelark-admin-function-probe.log 2>&1; then
+            echo "ERROR: el verificador aceptó EXECUTE sobre una rutina ajena"
+            exit 1
+          fi
+          grep -q "EXECUTE sobre una rutina no permitida" /tmp/geelark-admin-function-probe.log || { cat /tmp/geelark-admin-function-probe.log; exit 1; }
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "DROP FUNCTION public.geelark_admin_function_probe()"
+
           # Negative test: ownership/CREATE on an unrelated schema must be rejected.
           docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "CREATE SCHEMA geelark_admin_owner_probe AUTHORIZATION geelark_master_reader"
           if PGPASSWORD=test-only-password psql "$reader_dsn" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql > /tmp/geelark-admin-owner-probe.log 2>&1; then
