@@ -167,3 +167,14 @@ Esta sección no constituye una lista exhaustiva de los módulos que la página 
 - End Task durante un bloque de espera; comprobar que no se ejecutan pasos posteriores.
 - Skip frente a Interrupt, con logs redactados y estado final consistente.
 - Schedule con zona horaria, reintento tras reinicio y cancelación antes de comenzar.
+
+
+### 7.7 Contrato común de acciones UI
+
+Para acciones basadas en elemento, la configuración debe admitir selector `fullId`, texto, `desc` o `className`; condición Equals/Contains; índice fijo o intervalo; timeout en milisegundos; opción explícita de incluir elementos no visibles; variable booleana de resultado y nota del paso. Los atributos pueden estar vacíos o repetirse; el validador debe detectar ambigüedad y pedir que el flujo seleccione una combinación más específica.
+
+Acciones mínimas documentadas: clic en elemento, clic en coordenadas, pulsación prolongada por elemento/coordenadas, ingresar contenido, operación de teclado (por ejemplo Enter/Delete) y esperar a que aparezca un elemento. La inspección de UI debe permitir ver texto, clase, descripción, ID completo y límites, cuando el motor de ejecución exponga esa información.
+
+Para coordenadas, el editor debe indicar la resolución de referencia y advertir que el punto puede variar entre versiones/resoluciones. Si se usa el rectángulo `(left, top, right, bottom)`, puede calcularse un punto central como `x=(left+right)/2`, `y=(top+bottom)/2`; aun así, se debe probar en cada resolución objetivo. No se declarará robusto un flujo que dependa exclusivamente de coordenadas sin advertencia.
+
+Pruebas adicionales: selector sin coincidencias, selector ambiguo, atributo vacío, elemento anidado, elemento fuera de pantalla, timeout, variable booleana false en fallo, coordenadas fuera de pantalla y misma plantilla en dos resoluciones distintas.
