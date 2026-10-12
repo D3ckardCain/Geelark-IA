@@ -283,6 +283,49 @@ def test_active_node_claims_assignment_and_reports_fenced_result():
         )
         assert stale_result.status_code == 409
         assert stale_result.json()["detail"]["code"] == "STALE_ASSIGNMENT"
+
+        # unknown se puede volver a confirmar como unknown, pero no auto-resolverse.
+        unknown_summary = {"reason_code": "NETWORK_TIMEOUT"}
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.instances SET assignment_epoch = 1, lease_expires_at = now() + interval '5 minutes' WHERE instance_id = %s",
+                (instance_id,),
+            )
+            conn.execute(
+                "UPDATE geelark_control.agent_tasks SET status = 'unknown', result_summary = %s, completed_at = NULL WHERE task_id = %s",
+                (Jsonb(unknown_summary), task_id),
+            )
+            conn.execute(
+                "UPDATE geelark_control.operations SET status = 'unknown', result_summary = %s, completed_at = NULL WHERE operation_id = %s",
+                (Jsonb(unknown_summary), operation_id),
+            )
+
+        unknown_replay = client.post(
+            f"/agent/v1/tasks/{task_id}/result",
+            headers=headers("task-unknown-replay-" + str(uuid4())),
+            json={"schema_version": 1, "state": "unknown", "details": unknown_summary},
+        )
+        assert unknown_replay.status_code == 200
+        assert unknown_replay.json()["duplicate"] is True
+
+        attempted_auto_resolution = client.post(
+            f"/agent/v1/tasks/{task_id}/result",
+            headers=headers("task-unknown-auto-resolution-" + str(uuid4())),
+            json={"schema_version": 1, "state": "succeeded", "details": {"verified": True}},
+        )
+        assert attempted_auto_resolution.status_code == 409
+        assert attempted_auto_resolution.json()["detail"]["code"] == "TASK_TERMINAL_CONFLICT"
+        with connect() as conn:
+            task = conn.execute(
+                "SELECT status, result_summary, completed_at FROM geelark_control.agent_tasks WHERE task_id = %s",
+                (task_id,),
+            ).fetchone()
+            operation = conn.execute(
+                "SELECT status, result_summary, completed_at FROM geelark_control.operations WHERE operation_id = %s",
+                (operation_id,),
+            ).fetchone()
+            assert task[0] == "unknown" and task[1] == unknown_summary and task[2] is None
+            assert operation[0] == "unknown" and operation[1] == unknown_summary and operation[2] is None
     finally:
         with connect() as conn:
             conn.execute("DELETE FROM geelark_control.idempotency_records WHERE scope LIKE %s", (f"agent:{node_id}:%",))
