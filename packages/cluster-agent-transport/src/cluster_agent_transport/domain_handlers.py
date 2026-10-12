@@ -259,7 +259,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             """
             SELECT t.status, t.node_id, t.instance_id, t.assignment_epoch,
                    t.result_summary, i.owner_node_id, i.assignment_epoch,
-                   i.lease_expires_at, o.status, t.delivery_lease_until
+                   i.lease_expires_at, o.status, t.delivery_lease_until, now() AS database_now
               FROM geelark_control.agent_tasks AS t
               JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
               JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
@@ -274,10 +274,10 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             raise HTTPException(status_code=403, detail={"code": "TASK_NOT_OWNED_BY_NODE"})
         if (
             row[5] is None or str(row[5]) != principal.node_id
-            or row[6] != row[3] or row[7] is None or row[7] <= datetime.now(timezone.utc)
+            or row[6] != row[3] or row[7] is None or row[7] <= row[10]
             or (
                 row[0] == "delivered"
-                and (row[9] is None or row[9] <= datetime.now(timezone.utc))
+                and (row[9] is None or row[9] <= row[10])
             )
         ):
             raise HTTPException(status_code=409, detail={"code": "STALE_ASSIGNMENT"})
@@ -445,7 +445,6 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         if not isinstance(items, list) or len(items) > 500:
             raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_BATCH"})
         comparisons = []
-        now = datetime.now(timezone.utc)
         for item in items:
             try:
                 task_id = UUID(item["task_id"])
@@ -464,7 +463,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 SELECT t.status, t.result_summary, t.node_id, t.instance_id,
                        t.operation_id, t.assignment_epoch,
                        i.owner_node_id, i.assignment_epoch, i.lease_expires_at,
-                       o.status
+                       o.status, now() AS database_now
                   FROM geelark_control.agent_tasks AS t
                   JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
                   JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
@@ -485,7 +484,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             owner_node, current_epoch, lease_expires_at = row[6], row[7], row[8]
             if (
                 owner_node is None or str(owner_node) != principal.node_id
-                or current_epoch != epoch or lease_expires_at is None or lease_expires_at <= now
+                or current_epoch != epoch or lease_expires_at is None or lease_expires_at <= row[10]
             ):
                 comparisons.append({
                     "task_id": str(task_id),
@@ -539,7 +538,6 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
 
         decisions: list[dict[str, Any]] = []
         seen_task_ids: set[UUID] = set()
-        now = datetime.now(timezone.utc)
 
         for item in inventory:
             try:
@@ -568,7 +566,8 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                        t.assignment_epoch, t.status, t.result_summary,
                        i.owner_node_id, i.assignment_epoch, i.lease_expires_at,
                        o.status, o.result_summary, t.delivery_lease_until,
-                       o.node_id, o.instance_id, o.assignment_epoch
+                       o.node_id, o.instance_id, o.assignment_epoch,
+                       now() AS database_now
                   FROM geelark_control.agent_tasks AS t
                   JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
                   JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
@@ -614,11 +613,11 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                     decision = "ALREADY_CONFIRMED"
                 else:
                     decision = "TERMINAL_CONFLICT_MANUAL_REVIEW"
-            elif row[9] is None or row[9] <= now:
+            elif row[9] is None or row[9] <= row[16]:
                 decision = "INSTANCE_LEASE_EXPIRED_HOLD"
             elif (
                 row[5] == "delivered"
-                and (row[12] is None or row[12] <= now)
+                and (row[12] is None or row[12] <= row[16])
             ):
                 decision = "DELIVERY_LEASE_EXPIRED_HOLD"
             elif row[5] in {"accepted", "running"}:
