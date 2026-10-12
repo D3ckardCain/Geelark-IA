@@ -69,4 +69,12 @@ Commits: `a01045d` y `3e61852`. La CI del HEAD que incluye esta prueba está en 
 
 La rama limpia `feat/master-control-readonly-api-local-auth-clean` pasó [CI #38194320022](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194320022): 33 pruebas de persistencia, 12 de guard, 54 de autorización y 28 pruebas del paquete Master Admin; el verificador SQL PostgreSQL 16 y `pip check` terminaron success. No aparecieron advertencias deprecatorias de Starlette ni de Node 20 tras actualizar `httpx2`, `actions/checkout@v5` y `actions/setup-python@v6`.
 
-La prueba unitaria de ACL NTFS confirma que el código falla cerrado ante una ACE adicional o una ACL vacía; esto no sustituye la validación real de Windows. PR #79 sigue draft y no fusionada. PR #76 permanece abierta como historial. No se ha desplegado ni conectado una base real. El único bloqueo operativo externo sigue siendo issue #77: ACL NTFS efectiva, certificado/trust, bind loopback y login/logout en PC-MASTER Windows.
+La prueba unitaria de ACL NTFS confirma que el código falla cerrado ante una ACE adicional o una ACL vacía; esto no sustituye la validación real de Windows. PR #79 sigue draft y no fusionada. PR #76 y PR #78 se cerraron como supersedidas, sin merge. No se ha desplegado ni conectado una base real. El único bloqueo operativo externo sigue siendo issue #77: ACL NTFS efectiva, certificado/trust, bind loopback y login/logout en PC-MASTER Windows.
+
+
+## Revalidación final de la rama limpia — 2026-10-12
+
+- PR sucesora: [#79](https://github.com/D3ckardCain/Geelark-IA/pull/79), base `feat/master-status-snapshot-provider-v1`, estado draft y mergeable.
+- CI completo [#38194417945](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194417945): 28 pruebas Master Admin, suites de persistencia/guard/autenticación, probes negativos de privilegios efectivos y `pip check` limpio; la advertencia Starlette/httpx se eliminó usando `httpx2`.
+- Las PR #76 y #78 se cerraron como supersedidas, no fusionadas, porque #76 estaba divergida y #79 incorpora la corrección SQL de #78.
+- No se ha instalado el panel, abierto puertos ni conectado una base real. La aceptación física continúa bloqueada por issue #77.
