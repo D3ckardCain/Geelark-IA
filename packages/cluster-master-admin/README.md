@@ -24,6 +24,7 @@ No existen rutas administrativas de mutación.
 - Respuestas sin caché, errores genéricos y sin OpenAPI expuesto.
 - PostgreSQL exige el rol `geelark_master_reader`; transacciones read-only y límites de conexión, sentencia y bloqueo.
 - El verificador SQL también rechaza privilegios efectivos sobre otras tablas/secuencias, `CREATE` fuera del alcance permitido y propiedad de objetos/esquemas; CI incluye pruebas negativas con un grant adicional y un esquema propiedad del rol.
+- El verificador también rechaza `EXECUTE` efectivo sobre rutinas de esquemas de aplicación (incluidas funciones expuestas por `PUBLIC`); la allowlist de rutinas está vacía hasta revisión explícita. La prueba negativa crea una función `SECURITY DEFINER` ficticia y exige su rechazo. Esta ampliación está escrita en la rama, pero aún necesita CI verde.
 - PostgreSQL remoto exige `host=` explícito y `sslmode=verify-full`, verifica la cadena de confianza y el nombre del servidor, y detecta destinos remotos indicados mediante `hostaddr`; no se aceptan perfiles `service=` porque pueden ocultar la configuración efectiva.
 - La consulta usa `health_state AS reported_health_state`, que coincide con el esquema actual; módulos se leen de `module_reports`.
 - La UI no almacena contraseña, token ni snapshots en localStorage/sessionStorage. El ejemplo ficticio es explícito y no concede sesión.
