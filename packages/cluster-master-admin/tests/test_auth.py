@@ -66,8 +66,8 @@ def test_session_database_permissions_are_restricted(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("directory", "expected_grant"),
     [
-        (False, r"PC-MASTER\operator:F"),
-        (True, r"PC-MASTER\operator:(OI)(CI)F"),
+        (False, r"PC-MASTER\\operator:F"),
+        (True, r"PC-MASTER\\operator:(OI)(CI)F"),
     ],
 )
 def test_windows_acl_resets_old_explicit_entries_before_grant(
@@ -79,15 +79,17 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
     from geelark_master_admin import auth as auth_module
 
     calls: list[list[str]] = []
+    run_options: list[dict[str, object]] = []
 
     def fake_is_file(path: Path) -> bool:
         return path.name.lower() in {"whoami.exe", "icacls.exe"}
 
     def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
         calls.append(command)
+        run_options.append(kwargs)
         if command[0].lower().endswith("whoami.exe"):
-            return SimpleNamespace(stdout=r"PC-MASTER\operator")
-            return SimpleNamespace(stdout=r"PC-MASTER\operator")
+            return SimpleNamespace(stdout=r"PC-MASTER\\operator", stderr="")
+        return SimpleNamespace(stdout="", stderr="")
 
     monkeypatch.setattr(Path, "is_file", fake_is_file)
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -95,11 +97,17 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
 
     auth_module._restrict_windows_acl(target, directory=directory)
 
-    assert len(calls) == 2
+    assert len(calls) == 4
     assert calls[0][0].lower().endswith("whoami.exe")
-    acl_call = calls[1]
-    assert acl_call[0].lower().endswith("icacls.exe")
-    assert acl_call[2:] == ["/reset", "/inheritance:r", "/grant:r", expected_grant]
+    assert calls[1][0].lower().endswith("icacls.exe")
+    assert calls[1][2:] == ["/reset"]
+    assert calls[2][0].lower().endswith("icacls.exe")
+    assert calls[2][2:] == ["/inheritance:r"]
+    assert calls[3][0].lower().endswith("icacls.exe")
+    assert calls[3][2:] == ["/grant:r", expected_grant]
+    assert all(options["check"] is True for options in run_options)
+    assert all(options["encoding"] == "utf-8" for options in run_options)
+    assert all(options["errors"] == "replace" for options in run_options)
 
 
 def test_windows_acl_failure_fails_closed(
