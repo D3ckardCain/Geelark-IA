@@ -7,6 +7,7 @@ on:
       - "packages/cluster-persistence/**"
       - "packages/cluster-agent-guard/**"
       - "packages/cluster-agent-auth/**"
+      - ".github/workflows/cluster-persistence-service.yml"
   push:
     branches: [main]
     paths:
@@ -19,6 +20,11 @@ on:
 
 permissions:
   contents: read
+
+# Keep only the newest validation for a given PR/ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   integration:
