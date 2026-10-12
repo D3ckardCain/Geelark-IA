@@ -2,7 +2,7 @@
 
 ## Estado
 
-El endpoint de reconciliación está en revisión en la rama apilada feat/agent-reconciliation. No se debe considerar listo para producción hasta que CI y revisión de seguridad terminen. No se ha probado en PCs físicas.
+El endpoint de reconciliación está incluido en la [PR #81](https://github.com/D3ckardCain/Geelark-IA/pull/81), basada en la rama actual del supervisor. La CI de transporte, PostgreSQL 16 y persistencia pasó; sigue en draft y no se considera listo para producción hasta revisión humana y validación del runtime HTTPS. No se ha probado en PCs físicas ni conectado a una base real.
 
 ## Propósito
 
@@ -60,10 +60,11 @@ La reconciliación necesita conexión HTTPS con el controlador. Mientras no hay 
 
 ## Pendientes
 
-- [x] CI del commit ejecutable `eb5e71e8b4848f6761b4da15507d070bcc9dfded` aprobado: 110 pruebas, migraciones PostgreSQL y `pip check` correctos; queda una advertencia deprecatoria de Starlette/httpx.
-- [ ] Revisión de concurrencia e idempotencia del informe.
-- [ ] Integración con el supervisor y proveedor de inventario real del journal.
-- [ ] Manual técnico y estados revisados por seguridad.
+- [x] CI de la pila consolidada PR #81 aprobada: transporte #38196186577 (160 pruebas transporte + 18 pruebas journal/SQLite), esquema PostgreSQL 16 #38196186611 y persistencia/assignment #38196186614; `pip check` limpio y sin warning Starlette.
+- [x] Pruebas de concurrencia e idempotencia del informe en PostgreSQL desechable.
+- [x] Integración de la reconciliación con el supervisor y callback de inventario en la rama.
+- [x] Manual técnico y contratos actualizados para el flujo consolidado.
+- [ ] Revisión humana final y validación del runtime HTTPS.
 - [ ] Aprobación antes de cualquier prueba en hardware físico.
 
 
