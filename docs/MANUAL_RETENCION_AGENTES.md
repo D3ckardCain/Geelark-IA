@@ -1,6 +1,6 @@
 # Manual de retención y mantenimiento del almacenamiento de agentes
 
-**Estado:** implementación consolidada en la [PR #81](https://github.com/D3ckardCain/Geelark-IA/pull/81), aún draft. CI de transporte, migraciones PostgreSQL 16 y persistencia/assignment pasó en base desechable. No se ha ejecutado contra una base real. No ejecutar la poda en una base real sin exportación, revisión y aprobación del operador.
+**Estado:** implementación consolidada en la [PR #81](https://github.com/D3ckardCain/Geelark-IA/pull/81), aún draft. CI de transporte, migraciones PostgreSQL 16 y persistencia/assignment pasó en base desechable (HEAD actual: transporte #38267511998, esquema #38267512046 y persistencia #38267511986). La suite incluye ahora pruebas concurrentes del rate limiter PostgreSQL. No se ha ejecutado contra una base real. No ejecutar la poda en una base real sin exportación, revisión y aprobación del operador.
 
 ## Política por tipo de dato
 
