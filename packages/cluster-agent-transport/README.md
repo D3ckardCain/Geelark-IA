@@ -21,7 +21,7 @@ Paquete experimental independiente del dominio y sin listener automático.
 - `InMemoryRateLimiter` limita a 60 solicitudes/minuto/nodo por proceso y solo es apropiado para pruebas o un único worker.
 - `PostgresRateLimiter` usa un UPDATE atómico en la fila del nodo y aplica el límite global entre workers/procesos. Requiere la migración `db/migrations/0003_agent_rate_limit.sql`; el contador se satura para evitar desbordamiento.
 - El cliente `AgentHTTPSClient` usa la CA explícita, verifica cadena y hostname/IP, exige TLS 1.2+, no sigue redirects, rechaza path traversal y limita timeout, cuerpos y respuestas.
-- `AgentTransportRuntime` conecta el cliente con un journal compatible: persiste progreso/resultados antes de enviarlos y ofrece `sync_pending_receipts(limit=100)` para recorrer un lote acotado. El journal debe exponer `list_pending_receipts(limit=...)` y `mark_receipt_synced(operation_id)`; el ACK terminal solo se registra tras una respuesta HTTP 2xx. Los estados `accepted` no se envían como resultados. No ejecuta tareas ni inicia polling por sí solo.
+- `AgentTransportRuntime` conecta el cliente con un journal compatible: persiste progreso/resultados antes de enviarlos y ofrece `sync_pending_receipts(limit=100)` para recorrer un lote acotado. El journal debe exponer `list_pending_receipts(limit=...)` y `mark_receipt_synced(operation_id, expected_status=..., expected_result=...)`. Tras HTTP 2xx solo se confirma la versión exacta enviada; si el recibo cambió durante la petición, el ACK tardío se rechaza y la versión nueva permanece pendiente. Las APIs antiguas sin versión fallan cerradas. Los estados `accepted` no se envían como resultados. No ejecuta tareas ni inicia polling por sí solo.
 - Las respuestas no incluyen tokens, SQL ni excepciones internas.
 - Los handlers de dominio no configurados responden 503; el paquete no ejecuta shell/ADB ni comandos Android.
 
@@ -100,3 +100,18 @@ No activar listeners ni desplegar en nodos físicos hasta que la pila completa e
 - Heartbeat, capacidades y consulta de estado siguen requiriendo conectividad y no se encolan en esta capa.
 - Este coordinador no reclama ni ejecuta tareas, no abre listeners y no activa ADB/shell.
 - La prueba de integración crea TLS de loopback, SQLite y PostgreSQL desechable; no sustituye pruebas en hardware físico.
+
+
+## Supervisor de telemetría
+
+`AgentNodeSupervisor` coordina heartbeat, capacidades y consulta de estado con ciclos separados y límites explícitos; la sincronización durable usa `AgentReceiptSyncLifecycle` en un hilo independiente. La fábrica `build_agent_components()` construye el cliente TLS, runtime, journal/sincronizador y supervisor sin arrancar hilos automáticamente.
+
+El CLI `geelark-agent --config /ruta/agente.toml` requiere configuración explícita y mantiene `credential_provider = "file"` por defecto; Linux/systemd puede usar `credential_provider = "systemd"` cuando el servicio monte una credencial mediante `LoadCredential`. No se incluye unit file ni instalador de producción. No se ejecutan tareas, ADB ni shell.
+
+
+## Revalidación de ACK durable — 2026-10-12
+
+- Se integró en la rama del supervisor el journal versionado del PR #38, incluyendo migraciones v1→v3 y pruebas de recibos.
+- `mark_receipt_synced` compara estado y resultado canónicos bajo `BEGIN IMMEDIATE`; un ACK de versión obsoleta no oculta el recibo actual. `unknown` puede sincronizarse como incertidumbre sin convertirse en éxito/fallo.
+- El workflow fija el journal al commit `5815bc6e8f4146099e5fff028008fdf9f0ede5d6`, ejecuta primero la suite del journal y luego la suite del transporte. La prueba SQLite real ya no se omite por falta de API.
+- La modificación del código y la nueva prueba están pendientes de una ejecución CI que cubra el HEAD final; no declarar validación hasta que ambos workflows terminen en success.

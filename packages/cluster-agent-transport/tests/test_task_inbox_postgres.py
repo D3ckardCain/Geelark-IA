@@ -25,6 +25,7 @@ pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="requiere PostgreSQL de
 def test_active_node_claims_assignment_and_reports_fenced_result():
     node_id, credential_id, instance_id = uuid4(), uuid4(), uuid4()
     operation_id, task_id, request_id = uuid4(), uuid4(), uuid4()
+    stale_instance_id, stale_operation_id, stale_task_id, stale_request_id = uuid4(), uuid4(), uuid4(), uuid4()
     token = secrets.token_hex(32)
     token_hash = hashlib.sha256(token.encode("ascii")).hexdigest()
     connect = lambda: psycopg.connect(DATABASE_URL)
@@ -71,7 +72,7 @@ def test_active_node_claims_assignment_and_reports_fenced_result():
     try:
         with connect() as conn:
             conn.execute(
-                "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state, health_state) VALUES (%s, %s, 'active', 'healthy')",
+                "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state, health_state, reported_health_state, last_seen_at) VALUES (%s, %s, 'active', 'healthy', 'healthy', now())",
                 (node_id, "task-test-" + str(node_id)),
             )
             conn.execute(
@@ -283,12 +284,119 @@ def test_active_node_claims_assignment_and_reports_fenced_result():
         )
         assert stale_result.status_code == 409
         assert stale_result.json()["detail"]["code"] == "STALE_ASSIGNMENT"
+
+        # unknown se puede volver a confirmar como unknown, pero no auto-resolverse.
+        unknown_summary = {"reason_code": "NETWORK_TIMEOUT"}
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.instances SET assignment_epoch = 1, lease_expires_at = now() + interval '5 minutes' WHERE instance_id = %s",
+                (instance_id,),
+            )
+            conn.execute(
+                "UPDATE geelark_control.agent_tasks SET status = 'unknown', result_summary = %s, completed_at = NULL WHERE task_id = %s",
+                (Jsonb(unknown_summary), task_id),
+            )
+            conn.execute(
+                "UPDATE geelark_control.operations SET status = 'unknown', result_summary = %s, completed_at = NULL WHERE operation_id = %s",
+                (Jsonb(unknown_summary), operation_id),
+            )
+
+        unknown_replay = client.post(
+            f"/agent/v1/tasks/{task_id}/result",
+            headers=headers("task-unknown-replay-" + str(uuid4())),
+            json={"schema_version": 1, "state": "unknown", "details": unknown_summary},
+        )
+        assert unknown_replay.status_code == 200
+        assert unknown_replay.json()["duplicate"] is True
+
+        attempted_auto_resolution = client.post(
+            f"/agent/v1/tasks/{task_id}/result",
+            headers=headers("task-unknown-auto-resolution-" + str(uuid4())),
+            json={"schema_version": 1, "state": "succeeded", "details": {"verified": True}},
+        )
+        assert attempted_auto_resolution.status_code == 409
+        assert attempted_auto_resolution.json()["detail"]["code"] == "TASK_TERMINAL_CONFLICT"
+        with connect() as conn:
+            task = conn.execute(
+                "SELECT status, result_summary, completed_at FROM geelark_control.agent_tasks WHERE task_id = %s",
+                (task_id,),
+            ).fetchone()
+            operation = conn.execute(
+                "SELECT status, result_summary, completed_at FROM geelark_control.operations WHERE operation_id = %s",
+                (operation_id,),
+            ).fetchone()
+            assert task[0] == "unknown" and task[1] == unknown_summary and task[2] is None
+            assert operation[0] == "unknown" and operation[1] == unknown_summary and operation[2] is None
+        # Aunque el campo almacenado health_state siga siendo healthy, un heartbeat
+        # de hace más de 90 s debe impedir que el Worker reclame otra tarea.
+        stale_payload = {
+            **payload,
+            "operation_id": str(stale_operation_id),
+            "request_id": str(stale_request_id),
+            "instance_id": str(stale_instance_id),
+            "lease_expires_at": lease_expires_at.isoformat(),
+        }
+        with connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO geelark_control.instances
+                    (instance_id, desired_state, observed_state, owner_node_id,
+                     assignment_epoch, lease_expires_at, engine_name, engine_version,
+                     image_digest, android_api_level, android_abi)
+                VALUES (%s, 'running', 'reserved', %s, 1, %s, 'test-engine', '0.1',
+                        %s, 35, 'x86_64')
+                """,
+                (stale_instance_id, node_id, lease_expires_at, "sha256:" + "b" * 64),
+            )
+            conn.execute(
+                """
+                INSERT INTO geelark_control.operations
+                    (operation_id, request_id, instance_id, node_id, assignment_epoch,
+                     operation_type, status)
+                VALUES (%s, %s, %s, %s, 1, 'assign', 'accepted')
+                """,
+                (stale_operation_id, stale_request_id, stale_instance_id, node_id),
+            )
+            conn.execute(
+                """
+                INSERT INTO geelark_control.agent_tasks
+                    (task_id, operation_id, node_id, instance_id, assignment_epoch, payload)
+                VALUES (%s, %s, %s, %s, 1, %s)
+                """,
+                (stale_task_id, stale_operation_id, node_id, stale_instance_id, Jsonb(stale_payload)),
+            )
+            conn.execute(
+                """
+                UPDATE geelark_control.nodes
+                   SET last_seen_at = now() - interval '2 minutes',
+                       health_state = 'healthy',
+                       reported_health_state = 'healthy'
+                 WHERE node_id = %s
+                """,
+                (node_id,),
+            )
+        stale_claim = client.post(
+            "/agent/v1/tasks/claim",
+            headers=headers("task-claim-stale-" + str(uuid4())),
+            json={"schema_version": 1},
+        )
+        assert stale_claim.status_code == 200
+        assert stale_claim.json() == {"task": None}
+        with connect() as conn:
+            stale_status = conn.execute(
+                "SELECT status, delivery_lease_until FROM geelark_control.agent_tasks WHERE task_id = %s",
+                (stale_task_id,),
+            ).fetchone()
+            assert stale_status == ("queued", None)
+
     finally:
         with connect() as conn:
             conn.execute("DELETE FROM geelark_control.idempotency_records WHERE scope LIKE %s", (f"agent:{node_id}:%",))
             conn.execute("DELETE FROM geelark_control.agent_request_nonces WHERE node_id = %s", (node_id,))
             conn.execute("DELETE FROM geelark_control.agent_tasks WHERE node_id = %s", (node_id,))
             conn.execute("DELETE FROM geelark_control.operations WHERE operation_id = %s", (operation_id,))
+            conn.execute("DELETE FROM geelark_control.operations WHERE operation_id = %s", (stale_operation_id,))
             conn.execute("DELETE FROM geelark_control.instances WHERE instance_id = %s", (instance_id,))
+            conn.execute("DELETE FROM geelark_control.instances WHERE instance_id = %s", (stale_instance_id,))
             conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
             conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))

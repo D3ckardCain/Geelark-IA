@@ -129,21 +129,24 @@ print(response.status)
 
 El ejemplo ilustra la interfaz del cliente; no se ejecuta automáticamente ni constituye un agente completo. El runtime del agente todavía debe integrar esta llamada con el journal local y el flujo de reconciliación.
 
-## 7. Enrolamiento y estado pending
+## 7. Enrolamiento y estado pending (diseño, no operativo)
 
-1. Un administrador emite un token de enrolamiento de un solo uso con vencimiento corto.
+**Bloqueo actual:** la autenticación del servidor valida credenciales existentes, vencimiento y revocación, pero todavía no hay una API/UI administrativa aprobada para emitir, rotar o revocar credenciales. Los pasos siguientes describen el flujo requerido; **no son un procedimiento ejecutable ni deben aplicarse a nodos reales**.
+
+1. El futuro flujo administrativo deberá emitir un token de enrolamiento de un solo uso y vencimiento corto.
 2. Entregarlo una sola vez al nodo esperado; nunca incluirlo en logs, tickets ni commits.
-3. El nodo consume el token y recibe una credencial individual; nodo y credencial quedan en estado `pending`.
-4. En `pending`, solo se autorizan heartbeat, capacidades y consulta de estado. Aceptación/progreso/resultado de tareas y reconciliación quedan denegados.
-5. Aprobar manualmente el nodo después de verificar identidad, versión y capacidades.
-6. Rotar o revocar la credencial cuando haya sospecha de exposición o al retirar un nodo.
+3. El nodo consumirá el token y recibirá una credencial individual; nodo y credencial quedarán en estado `pending`.
+4. En `pending`, solo se autorizarán heartbeat, capacidades y consulta de estado. Aceptación/progreso/resultado de tareas y reconciliación con escritura seguirán denegados.
+5. Un operador deberá aprobar manualmente el nodo tras verificar identidad, versión y capacidades.
+6. La emisión, aprobación, rotación y revocación deberán dejar auditoría, actor, motivo, timestamps y resultado. No modificar tablas de credenciales manualmente mientras ese flujo no exista.
 
-## 8. Rotación y recuperación
+## 8. Rotación y recuperación (requisitos pendientes)
 
 - Renovar el certificado del servidor antes de su vencimiento; generar una clave nueva y firmar una nueva CSR.
 - Mantener una ventana de transición documentada si se cambia la CA, confiando temporalmente en la CA antigua y nueva solo durante el periodo necesario.
 - Si la clave CA se compromete, dejar de confiar en ella, generar CA nueva y volver a emitir certificados; renovar los certificados del servidor no basta.
 - La revocación de tokens de agente es independiente de la revocación de certificados TLS.
+- El proveedor `SystemdCredentialProvider` vuelve a leer el archivo en cada llamada, pero `LoadCredential`/`LoadCredentialEncrypted` monta credenciales para una invocación del servicio. Una rotación requerirá que exista el flujo administrativo, actualizar el origen de la credencial y reiniciar controladamente la unidad; hoy no hay unit file ni procedimiento aprobado.
 - Mantener copias de seguridad cifradas y pruebas periódicas de restauración de la CA offline; no respaldar claves privadas en el repositorio.
 
 ## 9. Diagnóstico sin filtrar secretos
@@ -224,3 +227,10 @@ El esquema JSON formal y el ejemplo están en [worker-module-inventory-v1.schema
 El agente debe ejecutar `AgentReceiptSyncLifecycle` como componente separado del supervisor de telemetría. Inícialo una sola vez durante el arranque, deja que sincronice lotes limitados y llama `notify_reconnected()` únicamente cuando el monitor de conectividad detecte una transición real a conectado. Al apagar, llama `stop(timeout=...)` y considera `False` como un timeout real; no declares que el hilo terminó si sigue vivo.
 
 La sincronización solo envía recibos ya persistidos en el journal. Un HTTP 2xx confirma la versión transmitida; los fallos de red o la pérdida del ACK mantienen el recibo pendiente y el reintento conserva la clave de idempotencia con un nonce nuevo. No registrar tokens, payloads ni cuerpos de respuesta. El worker no ejecuta operaciones Android ni reclama tareas.
+
+
+## Supervisor de telemetría y conectividad
+
+El entry point `geelark-agent --config` carga un TOML explícito, valida HTTPS/CA y credenciales, inicializa el journal SQLite y construye el supervisor. El supervisor envía heartbeat, capacidades y estado en ciclos independientes; la sincronización de recibos mantiene su propio hilo. El monitor Linux usa eventos netlink para notificar cambios de conectividad, no sondeo continuo ni comandos externos.
+
+La configuración usa `credential_provider = "file"` de forma predeterminada. `credential_provider = "systemd"` solo funciona si systemd monta la credencial configurada; todavía no hay unit file ni procedimiento de instalación/rotación aprobado. El supervisor no reclama ni ejecuta tareas Android y no abre listeners.

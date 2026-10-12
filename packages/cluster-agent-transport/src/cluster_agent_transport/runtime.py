@@ -189,8 +189,24 @@ class AgentTransportRuntime:
         # running/progress updates. The journal requeues it only after a new
         # local result version is recorded.
         mark_synced = getattr(self.journal, "mark_receipt_synced", None)
-        if callable(mark_synced):
-            mark_synced(operation_id)
+        if not callable(mark_synced):
+            raise AgentTransportError(
+                "El journal no admite confirmación durable por versión; el recibo sigue pendiente."
+            )
+        try:
+            acknowledged = mark_synced(
+                operation_id,
+                expected_status=state,
+                expected_result=result,
+            )
+        except TypeError:
+            raise AgentTransportError(
+                "La API del journal no admite confirmar una versión exacta; el recibo sigue pendiente."
+            ) from None
+        if acknowledged is not True:
+            raise AgentTransportError(
+                "El recibo local cambió durante la sincronización; la versión más reciente sigue pendiente."
+            )
         return response
 
     def _request(

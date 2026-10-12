@@ -54,7 +54,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: D3ckardCain/Geelark-IA
-          ref: e37e5aaef72837c19837eb5b648c29f05ae9b3c3
+          ref: 5815bc6e8f4146099e5fff028008fdf9f0ede5d6
           path: guard-source
 
       - name: Set up Python
@@ -78,7 +78,10 @@ jobs:
           python -m pip install -e "packages/cluster-agent-auth[test]"
           python -m pip install -e "packages/cluster-agent-transport[test]"
 
-      - name: Run transport security tests
+      - name: Run journal durability and migration tests
+        run: python -m pytest guard-source/packages/cluster-agent-guard/tests -q
+
+      - name: Run transport security and mandatory SQLite integration tests
         run: python -m pytest packages/cluster-agent-transport/tests -q
 
       - name: Check dependency consistency

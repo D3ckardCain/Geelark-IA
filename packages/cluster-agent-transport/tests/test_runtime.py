@@ -29,12 +29,14 @@ class FakeJournal:
         self.calls = []
         self.pending = []
         self.synced = []
+        self.ack_result = True
 
     def list_pending_receipts(self, *, limit=100):
         return self.pending[:limit]
 
-    def mark_receipt_synced(self, operation_id):
-        self.synced.append(operation_id)
+    def mark_receipt_synced(self, operation_id, *, expected_status, expected_result):
+        self.synced.append((operation_id, expected_status, expected_result))
+        return self.ack_result
 
     def record_result(self, **kwargs):
         self.events.append("journal")
@@ -76,7 +78,7 @@ def test_terminal_result_is_journaled_before_send_and_retry_key_is_stable():
     assert first_key == second_key
     assert client.requests[1][3]["X-Agent-Nonce"] != client.requests[0][3]["X-Agent-Nonce"]
     assert len(journal.calls) == 1
-    assert journal.synced.count(operation_id) == 2
+    assert sum(item[0] == operation_id for item in journal.synced) == 2
 
 
 def test_result_remains_durable_when_network_is_offline():
@@ -140,7 +142,7 @@ def test_sync_pending_receipts_marks_terminal_ack_and_stops_when_offline():
     runtime = make_runtime(client, journal, node_id)
     confirmed, attempted = runtime.sync_pending_receipts(limit=10)
     assert (confirmed, attempted) == (2, 2)
-    assert journal.synced == [operation_id, journal.pending[1].operation_id]
+    assert [item[0] for item in journal.synced] == [operation_id, journal.pending[1].operation_id]
 
     offline_journal = FakeJournal()
     offline_journal.pending = journal.pending
@@ -154,10 +156,12 @@ def test_sync_pending_receipts_marks_terminal_ack_and_stops_when_offline():
 
 def test_runtime_syncs_real_sqlite_journal_and_persists_terminal_ack(tmp_path):
     guard = pytest.importorskip("geelark_cluster_agent_guard")
-    if not callable(getattr(guard.AgentJournal, "list_pending_receipts", None)) or not callable(
-        getattr(guard.AgentJournal, "mark_receipt_synced", None)
-    ):
-        pytest.skip("la rama base aún no incluye la API de recibos del PR #38")
+    assert callable(getattr(guard.AgentJournal, "list_pending_receipts", None)), (
+        "La integración requiere el journal durable del PR #38; no se permite omitir esta prueba."
+    )
+    assert callable(getattr(guard.AgentJournal, "mark_receipt_synced", None)), (
+        "La integración requiere ACK versionado del journal; no se permite omitir esta prueba."
+    )
     node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
     journal = guard.AgentJournal(tmp_path / "journal.sqlite3", node_id)
     journal.initialize()
@@ -256,7 +260,24 @@ def test_syncing_running_receipt_does_not_rewrite_local_journal():
 
     assert response.status == 200
     assert journal.calls == []
-    assert journal.synced == [operation_id]
+    assert [item[0] for item in journal.synced] == [operation_id]
     method, path, payload, _headers = runtime.client.requests[0]
     assert (method, path) == ("POST", f"/agent/v1/tasks/{task_id}/progress")
     assert payload["details"] == {"progress_percent": 50}
+
+
+def test_stale_ack_keeps_newer_receipt_pending():
+    node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
+    journal = FakeJournal()
+    journal.ack_result = False
+    runtime = make_runtime(FakeClient(), journal, node_id)
+
+    with pytest.raises(AgentTransportError, match="versión más reciente sigue pendiente"):
+        runtime.report_progress(
+            operation_id=operation_id,
+            instance_id=instance_id,
+            assignment_epoch=1,
+            result={"progress_percent": 25},
+        )
+
+    assert journal.synced == [(operation_id, "running", {"progress_percent": 25})]
