@@ -241,3 +241,17 @@ def test_reconcile_payload_rejects_duplicate_tasks_and_oversized_result_summary(
     )
     assert invalid_schema.status_code == 422
     assert calls == []
+
+    # El contrato debe rechazar claves sensibles incluso en variantes camelCase
+    # y cuando aparecen anidadas dentro del resumen de reconciliación.
+    for sensitive_key in ("access_token", "apiKey", "password", "cookie", "privateKey"):
+        sensitive = {
+            **item,
+            "task_id": str(uuid4()),
+            "result_summary": {"nested": {sensitive_key: "must-not-be-accepted"}},
+        }
+        rejected = client.post(
+            "/agent/v1/reconcile/inventory", headers=headers(),
+            json={"schema_version": 1, "inventory": [sensitive]},
+        )
+        assert rejected.status_code == 422, sensitive_key
