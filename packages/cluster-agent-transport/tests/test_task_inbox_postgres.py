@@ -203,6 +203,20 @@ def test_active_node_claims_assignment_and_reports_fenced_result():
             json={"schema_version": 1, "state": "running", "details": {"progress_percent": 25}},
         )
         assert progress.status_code == 200
+
+        # La lease de entrega solo protege el ACK inicial; no debe cortar una tarea ya aceptada/en ejecución.
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.agent_tasks SET delivery_lease_until = now() - interval '1 second' WHERE task_id = %s",
+                (task_id,),
+            )
+        late_progress = client.post(
+            f"/agent/v1/tasks/{task_id}/progress",
+            headers=headers("task-progress-after-delivery-lease-" + str(uuid4())),
+            json={"schema_version": 1, "state": "running", "details": {"progress_percent": 50}},
+        )
+        assert late_progress.status_code == 200, late_progress.text
+
         result = client.post(
             f"/agent/v1/tasks/{task_id}/result",
             headers=headers("task-result-" + str(uuid4())),
