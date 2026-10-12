@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from datetime import timedelta
 from collections.abc import Callable
 from typing import Any
 
@@ -67,17 +68,19 @@ def execute_idempotent(
     if not isinstance(key, str) or not 16 <= len(key) <= 200 or not re.fullmatch(r"[A-Za-z0-9._:-]+", key):
         raise ValueError("Idempotency-Key debe tener 16-200 caracteres seguros.")
     digest = payload_digest(payload)
+    ttl_seconds = _idempotency_ttl_seconds(scope)
+    ttl_interval = timedelta(seconds=ttl_seconds) if ttl_seconds is not None else None
 
     with conn.transaction():
         inserted = conn.execute(
             """
             INSERT INTO geelark_control.idempotency_records
                 (scope, idempotency_key, payload_sha256, response_snapshot, expires_at)
-            VALUES (%s, %s, %s, NULL, now() + (%s * interval '1 second'))
+            VALUES (%s, %s, %s, NULL, now() + %s)
             ON CONFLICT (scope, idempotency_key) DO NOTHING
             RETURNING scope
             """,
-            (scope, key, digest, _idempotency_ttl_seconds(scope)),
+            (scope, key, digest, ttl_interval),
         ).fetchone()
         row = conn.execute(
             """
