@@ -66,8 +66,8 @@ BEGIN
           FROM geelark_control.agent_reconciliation_reports AS r
          WHERE NOT EXISTS (
              SELECT 1
-               FROM jsonb_array_elements(r.decisions) AS decision
-              WHERE coalesce(decision ->> 'decision', '')
+               FROM jsonb_array_elements(r.decisions) AS decision_item(value)
+              WHERE coalesce(decision_item.value ->> 'decision', '')
                     NOT IN ('ALREADY_CONFIRMED', 'CONTINUE_SAME_EPOCH')
          )
     ),
@@ -98,8 +98,8 @@ BEGIN
               FROM geelark_control.agent_reconciliation_reports AS r
              WHERE NOT EXISTS (
                  SELECT 1
-                   FROM jsonb_array_elements(r.decisions) AS decision
-                  WHERE coalesce(decision ->> 'decision', '')
+                   FROM jsonb_array_elements(r.decisions) AS decision_item(value)
+                  WHERE coalesce(decision_item.value ->> 'decision', '')
                         NOT IN ('ALREADY_CONFIRMED', 'CONTINUE_SAME_EPOCH')
              )
         ),
