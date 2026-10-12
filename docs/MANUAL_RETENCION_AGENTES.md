@@ -79,7 +79,7 @@ No ejecutes este paso automáticamente. Requiere exportación revisada, autoriza
 SELECT * FROM geelark_control.prune_agent_storage(true, true);
 ```
 
-Este segundo parámetro permite borrar únicamente informes de revisión de más de 365 días después de confirmar la exportación. Los registros de mantenimiento conservan quién ejecutó el procedimiento, qué confirmaciones dio y cuántas filas se borraron.
+Este segundo parámetro permite borrar únicamente informes de revisión de más de 365 días después de confirmar la exportación. Los registros de mantenimiento conservan el rol de PostgreSQL que ejecutó el procedimiento, qué confirmaciones dio y cuántas filas se borraron. No son un registro inmutable: una cuenta propietaria con permisos suficientes puede modificarlos.
 
 ## Recuperación y respuesta a errores
 
