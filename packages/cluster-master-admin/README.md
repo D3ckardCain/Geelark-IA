@@ -222,7 +222,13 @@ No se recomienda exponerlo a la LAN. El arranque rechaza un bind no-loopback sal
 
 ## CI y coste
 
-Las pruebas del paquete administrativo se integran en `.github/workflows/cluster-persistence-service.yml`. En el HEAD `8e0b47c564a0c4db287c01b62878f810f7f2ade4`, la [ejecución CI 38186772500](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38186772500) terminó correctamente: 33 pruebas de persistencia, 12 de guardia, 54 de autenticación de agentes y 20 de API administrativa; además verificó los grants efectivos en PostgreSQL desechable y `pip check`. Hay una advertencia no bloqueante de deprecación de `httpx` en `starlette.testclient`, pendiente de resolver en una actualización futura. El repositorio es público y usa un runner estándar de GitHub Actions; no se agregan servicios de pago ni runners especiales. Objetivo operativo obligatorio: $0 USD.
+- CI del código validado en el HEAD `cfbc8873b052b67dffbebedb5e526da58cd8c81a`: [ejecución #38190869235](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38190869235) terminó en success.
+- Pasaron 33 pruebas de persistencia, 12 de guardia, 54 de autenticación de agentes y 26 pruebas administrativas; la verificación del rol lector en PostgreSQL desechable, las pruebas negativas de privilegios y `pip check` también pasaron.
+- Las pruebas usan `httpx2` para el cliente Starlette; la advertencia deprecatoria anterior desapareció.
+- El repositorio es público y se usa el workflow de integración existente, sin crear un workflow paralelo. No se añadieron APIs de pago, SaaS ni runners especiales.
+- Los commits posteriores al HEAD validado actualizan únicamente documentación; no modifican el código cubierto por la ejecución indicada.
+- La CI desechable no valida las ACL NTFS/TLS del Windows real ni los grants de la base de datos objetivo. No se ha instalado ni ejecutado en PC-MASTER. La aceptación física está registrada en [issue #77](https://github.com/D3ckardCain/Geelark-IA/issues/77).
+- El objetivo operativo sigue siendo $0 USD; una base remota puede introducir límites o costes, por lo que se prefiere PostgreSQL local.
 
 ## Límites conocidos
 
