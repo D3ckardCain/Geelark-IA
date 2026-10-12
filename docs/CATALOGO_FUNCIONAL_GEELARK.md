@@ -849,3 +849,33 @@ Fuentes:
 - https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
 - https://www.geelark.com/blog/geelark-rpa-guide-5/
 - https://www.geelark.com/es/blog-es/automatizacion-de-apps-android-y-navegador-geelark-rpa/
+
+
+### 32.7 Bloques concretos documentados en las guías RPA (2026-10-12)
+
+Las guías de principiantes permiten concretar el inventario inicial de bloques. No son una lista exhaustiva del editor actual; las opciones deben verificarse cuando exista acceso práctico a una versión de referencia.
+
+| Bloque o grupo | Parámetros/semántica observados | Requisitos para la adaptación local |
+|---|---|---|
+| Open app | Nombre de paquete; URI opcional para abrir una pantalla/recurso concreto | Validar paquete instalado, URI permitido y resultado; no ejecutar comandos arbitrarios |
+| Waiting time | Valor fijo o intervalo aleatorio | Límites mínimos/máximos, unidades explícitas, semilla registrada cuando sea aleatorio |
+| Scroll Page | Distancia en píxeles, tiempo de desplazamiento, punto inicial X/Y y dirección arriba/abajo/izquierda/derecha | Validar límites de coordenadas y resolución; timeout y cancelación |
+| Page back | Regresar a la pantalla anterior; puede requerir más de una acción para volver al inicio | Resultado observable, límite de repetición y no asumir que una pulsación siempre vuelve al mismo destino |
+| Upload File | Uno o varios archivos; selección secuencial por flujo, por entorno o aleatoria | Solo rutas permitidas, vista previa, validación de tamaño/hash y resultado por archivo |
+| IF Condition | Existe/no existe; comparaciones menor/igual/distinto/mayor; incluye/no incluye; condición porcentual aleatoria | Tipos compatibles, reglas explícitas y registro de la rama seleccionada |
+| For Loop Times | Repetir acciones un número definido de veces | Máximo de iteraciones, cancelación y checkpoint seguro |
+| For Loop Elements | Iterar sobre elementos visibles que cumplen el selector; variables para elemento actual e índice (base 1) | Congelar/validar lista de elementos, limitar cantidad y detectar cambios de UI |
+| For Loop Data | La guía enumera el bloque, pero indica que la explicación detallada sigue en preparación | Mantener el contrato como pendiente; no inventar campos hasta obtener evidencia adicional |
+| Exit Loop / End Task | Salir del bucle antes de terminar o detener la tarea inmediatamente | Distinguir salida del bucle de cancelación global; registrar causa y estado terminal |
+| Task Settings / variables | Variables String, Batch Text, Boolean, Number y File; valores configurables antes de publicar. Las acciones de UI también pueden almacenar referencias de elementos como objetos | Tipos versionados, validación de valores por tarea y separación entre parámetros del usuario y variables temporales |
+| Exception handling | Skip (omitir paso fallido) o Interrupt (detener tarea) | Política por bloque y por flujo, error tipado y estado final visible |
+| Task scheduling/logs | Nombre y notas del plan, perfiles destino, horarios por perfil o comunes; logs con opción de cancelar ejecución o modificar hora de publicación | Cola persistente, zona horaria explícita, idempotencia, cancelación cooperativa e historial auditable |
+
+Fuentes oficiales:
+- Guía 2 — plantillas, asignación a perfiles, planificación y logs: https://www.geelark.com/blog/geelark-rpa-guide-2/
+- Guía 3 — Open app, Waiting time, Scroll Page, Page back y depuración: https://www.geelark.com/blog/geelark-rpa-guide-3/
+- Guía 4 — selectores, interacción y parámetros: https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
+- Guía 5 — variables y extracción de texto: https://www.geelark.com/blog/geelark-rpa-guide-5/
+- Guía 6 — carga de archivos, condiciones, bucles, salida y excepciones: https://www.geelark.com/blog/geelark-rpa-guide-6/
+
+**Pendiente:** el inventario no se considera exhaustivo; la propia guía deja For Loop Data para una explicación posterior y el marketing menciona más módulos que los descritos aquí. No se implementará un bloque solo por aparecer en una lista comercial sin especificar su contrato y pruebas.
