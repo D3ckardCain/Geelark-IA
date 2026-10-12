@@ -105,44 +105,6 @@ La documentación pública de GeeLark describe estas familias de funciones RPA: 
 Esta sección no constituye una lista exhaustiva de los más de 40 módulos que la página comercial anuncia. Cada bloque pendiente debe registrarse con parámetros, entradas/salidas, errores, permisos, límites y prueba de aceptación antes de implementarse.
 
 
-## 7. Requisitos derivados de la referencia funcional GeeLark (2026-10-12)
-
-La documentación pública de GeeLark describe estas familias de funciones RPA: acciones de interfaz, lógica/condiciones, bucles, variables, manejo de excepciones, ejecución/programación y revisión de estado/logs. Las guías de principiantes aportan opciones concretas para selectores y variables. Se documentan como referencia funcional, no como promesa de paridad exacta.
-
-### 7.1 Acciones y localización
-
-- Acciones iniciales a catalogar: abrir app, tocar/clicar elemento, pulsación prolongada, deslizar/desplazar, ingresar texto, esperar y cargar archivo aprobado.
-- Modos de selector observados: texto visible, atributos (`fullId`, `desc`, `className`) y coordenadas.
-- Condición del selector: coincidencia exacta o parcial.
-- Orden del elemento: índice fijo o selección aleatoria dentro de un intervalo.
-- Espera máxima configurable en milisegundos y opción explícita para localizar elementos no visibles.
-- Cada acción debe devolver resultado tipado, al menos éxito/fallo, y una causa estable. La configuración debe admitir notas descriptivas.
-
-### 7.2 Variables y flujo
-
-- Tipos observados: string, number, boolean y object (referencia a elemento UI).
-- Lectura de texto de un elemento, almacenamiento en variable y reutilización en acciones posteriores.
-- Bucles limitados por cantidad, conjunto de elementos o datos; condiciones con ramas; manejo de excepción configurable (omitir paso o detener flujo).
-- El diseño local debe detectar variables inexistentes, incompatibilidad de tipos, límites de iteración, timeout y cancelación. Todo bucle debe tener límite máximo y checkpoint cuando la recuperación sea segura.
-
-### 7.3 Seguridad, robustez y paridad
-
-- Preferir selectores semánticos sobre coordenadas; registrar la resolución, idioma y versión Android para diagnosticar diferencias.
-- No ejecutar Python, JavaScript ni shell arbitrario como mecanismo normal de automatización.
-- La selección aleatoria, si se ofrece, debe ser explícita, acotada y reproducible/auditable; no debe usarse para incumplir reglas de las plataformas.
-- La ejecución se asigna a una lista explícita de instancias; cada instancia necesita estado, progreso, resultado y error independiente.
-- Los logs y capturas deben redactar secretos y tener política de retención configurable.
-
-### 7.4 Fuentes de referencia
-
-- RPA de GeeLark: https://www.geelark.com/features/rpa/
-- Guía de selectores: https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
-- Variables: https://www.geelark.com/blog/geelark-rpa-guide-5/
-- Visión general de automatización: https://www.geelark.com/es/blog-es/automatizacion-de-apps-android-y-navegador-geelark-rpa/
-
-Esta sección no constituye una lista exhaustiva de los módulos que la página comercial anuncia. Cada bloque pendiente debe registrarse con parámetros, entradas/salidas, errores, permisos, límites y prueba de aceptación antes de implementarse.
-
-
 ### 7.5 Bloques iniciales derivados de la guía práctica
 
 - **Open app:** package name y URI opcional; validar instalación y destino.
