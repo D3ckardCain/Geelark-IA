@@ -196,6 +196,16 @@ def begin_credential_rotation(
     expires_at = datetime.now(timezone.utc) + ttl
     try:
         with conn.transaction():
+            node = conn.execute(
+                """
+                SELECT 1 FROM geelark_control.nodes
+                 WHERE node_id = %s AND admin_state = 'active' AND revoked_at IS NULL
+                 FOR UPDATE
+                """,
+                (node_id,),
+            ).fetchone()
+            if node is None:
+                raise AuthenticationError("El nodo no está activo o fue revocado.")
             old = conn.execute(
                 """
                 SELECT credential_id FROM geelark_control.node_credentials
@@ -225,6 +235,16 @@ def rotate_credential(conn: psycopg.Connection, node_id: UUID, new_credential_id
     """Activa una rotación de forma atómica, revocando primero la credencial anterior."""
     now = datetime.now(timezone.utc)
     with conn.transaction():
+        node = conn.execute(
+            """
+            SELECT 1 FROM geelark_control.nodes
+             WHERE node_id = %s AND admin_state = 'active' AND revoked_at IS NULL
+             FOR UPDATE
+            """,
+            (node_id,),
+        ).fetchone()
+        if node is None:
+            raise AuthenticationError("El nodo no está activo o fue revocado.")
         new = conn.execute(
             """
             SELECT replaces_credential_id FROM geelark_control.node_credentials
