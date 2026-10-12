@@ -18,13 +18,13 @@ from psycopg.types.json import Jsonb
 # Garantía de replay por tipo de operación. Scopes desconocidos quedan sin expiración.
 _IDEMPOTENCY_TTL_SECONDS = {
     "heartbeat": 24 * 60 * 60,
-    "publish_capabilities": 24 * 60 * 60,
-    "report_modules": 24 * 60 * 60,
-    "read_own_status": 24 * 60 * 60,
-    "claim_task": 90 * 24 * 60 * 60,
-    "accept_task": 90 * 24 * 60 * 60,
-    "report_progress": 90 * 24 * 60 * 60,
-    "report_result": 90 * 24 * 60 * 60,
+    "capabilities": 24 * 60 * 60,
+    "modules_report": 24 * 60 * 60,
+    "status_read": 24 * 60 * 60,
+    "task_fetch": 90 * 24 * 60 * 60,
+    "task_accept": 90 * 24 * 60 * 60,
+    "task_progress": 90 * 24 * 60 * 60,
+    "task_result": 90 * 24 * 60 * 60,
     "reconcile": 90 * 24 * 60 * 60,
     "reconcile_inventory": 90 * 24 * 60 * 60,
 }
