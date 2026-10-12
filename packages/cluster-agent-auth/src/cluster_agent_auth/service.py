@@ -108,26 +108,25 @@ def consume_enrollment(
         raise ValueError("display_name debe tener entre 1 y 128 caracteres.")
     _validate_credential_ttl(credential_ttl)
     token_hash = _secret_hash(enrollment_token)
-    now = datetime.now(timezone.utc)
     credential = _new_secret()
     credential_id = uuid4()
     node_id: UUID | None = None
-    expires_at = now + credential_ttl
     with conn.transaction():
         row = conn.execute(
             """
-            SELECT enrollment_id, expected_node_id
+            SELECT enrollment_id, expected_node_id, expires_at
               FROM geelark_control.node_enrollments
              WHERE token_sha256 = %s
                AND consumed_at IS NULL AND revoked_at IS NULL
-               AND expires_at > %s
              FOR UPDATE
             """,
-            (token_hash, now),
+            (token_hash,),
         ).fetchone()
-        if row is None:
+        now = datetime.now(timezone.utc)
+        if row is None or row[2] <= now:
             raise EnrollmentError("Token de enrolamiento inválido, vencido o ya consumido.")
-        _, node_id = row
+        enrollment_id, node_id, _ = row
+        expires_at = now + credential_ttl
         # El UUID esperado no puede registrarse dos veces.
         exists = conn.execute(
             "SELECT 1 FROM geelark_control.nodes WHERE node_id = %s FOR UPDATE",
@@ -151,10 +150,18 @@ def consume_enrollment(
             """,
             (credential_id, node_id, _secret_hash(credential), expires_at),
         )
-        conn.execute(
-            "UPDATE geelark_control.node_enrollments SET consumed_at = %s WHERE enrollment_id = %s",
-            (now, row[0]),
+        consumed = conn.execute(
+            """
+            UPDATE geelark_control.node_enrollments
+               SET consumed_at = clock_timestamp()
+             WHERE enrollment_id = %s
+               AND consumed_at IS NULL AND revoked_at IS NULL
+               AND expires_at > clock_timestamp()
+            """,
+            (enrollment_id,),
         )
+        if consumed.rowcount != 1:
+            raise EnrollmentError("Token de enrolamiento expirado o consumido durante la operación.")
     return IssuedSecret(credential, credential_id, expires_at)
 
 
@@ -162,26 +169,61 @@ def authenticate_bearer(conn: psycopg.Connection, secret: str) -> AuthenticatedN
     """Autentica solo credenciales activas y nodos aprobados administrativamente."""
     if not _valid_secret(secret):
         raise AuthenticationError("Credencial no válida.")
+    token_hash = _secret_hash(secret)
     with conn.transaction():
-        row = conn.execute(
+        candidate = conn.execute(
             """
-            SELECT n.node_id, c.credential_id, n.display_name, n.admin_state
-              FROM geelark_control.node_credentials AS c
-              JOIN geelark_control.nodes AS n ON n.node_id = c.node_id
-             WHERE c.token_sha256 = %s
-               AND c.status = 'active' AND c.expires_at > now()
-               AND n.admin_state = 'active' AND n.revoked_at IS NULL
-             FOR UPDATE OF c
+            SELECT credential_id, node_id
+              FROM geelark_control.node_credentials
+             WHERE token_sha256 = %s
             """,
-            (_secret_hash(secret),),
+            (token_hash,),
         ).fetchone()
-        if row is None:
+        if candidate is None:
             raise AuthenticationError("Credencial no válida o nodo no autorizado.")
-        conn.execute(
-            "UPDATE geelark_control.node_credentials SET last_used_at = now() WHERE credential_id = %s",
-            (row[1],),
+
+        # Bloquear primero el nodo y luego la credencial: mismo orden que la rotación.
+        node = conn.execute(
+            """
+            SELECT node_id, display_name, admin_state, revoked_at
+              FROM geelark_control.nodes
+             WHERE node_id = %s
+             FOR UPDATE
+            """,
+            (candidate[1],),
+        ).fetchone()
+        if node is None or node[2] != "active" or node[3] is not None:
+            raise AuthenticationError("Credencial no válida o nodo no autorizado.")
+
+        credential = conn.execute(
+            """
+            SELECT credential_id, status, expires_at
+              FROM geelark_control.node_credentials
+             WHERE credential_id = %s AND node_id = %s AND token_sha256 = %s
+             FOR UPDATE
+            """,
+            (candidate[0], candidate[1], token_hash),
+        ).fetchone()
+        if (
+            credential is None
+            or credential[1] != "active"
+            or credential[2] <= datetime.now(timezone.utc)
+        ):
+            raise AuthenticationError("Credencial no válida o nodo no autorizado.")
+
+        updated = conn.execute(
+            """
+            UPDATE geelark_control.node_credentials
+               SET last_used_at = clock_timestamp()
+             WHERE credential_id = %s
+               AND status = 'active'
+               AND expires_at > clock_timestamp()
+            """,
+            (credential[0],),
         )
-    return AuthenticatedNode(*row)
+        if updated.rowcount != 1:
+            raise AuthenticationError("Credencial no válida o nodo no autorizado.")
+    return AuthenticatedNode(node[0], credential[0], node[1], node[2])
 
 
 def begin_credential_rotation(
@@ -193,7 +235,6 @@ def begin_credential_rotation(
     _validate_credential_ttl(ttl)
     secret = _new_secret()
     credential_id = uuid4()
-    expires_at = datetime.now(timezone.utc) + ttl
     try:
         with conn.transaction():
             node = conn.execute(
@@ -208,14 +249,15 @@ def begin_credential_rotation(
                 raise AuthenticationError("El nodo no está activo o fue revocado.")
             old = conn.execute(
                 """
-                SELECT credential_id FROM geelark_control.node_credentials
-                 WHERE node_id = %s AND status = 'active' AND expires_at > now()
+                SELECT credential_id, expires_at FROM geelark_control.node_credentials
+                 WHERE node_id = %s AND status = 'active'
                  FOR UPDATE
                 """,
                 (node_id,),
             ).fetchone()
-            if old is None:
-                raise AuthenticationError("No existe una credencial activa para rotar.")
+            if old is None or old[1] <= datetime.now(timezone.utc):
+                raise AuthenticationError("No existe una credencial activa y vigente para rotar.")
+            expires_at = datetime.now(timezone.utc) + ttl
             conn.execute(
                 """
                 INSERT INTO geelark_control.node_credentials
@@ -233,7 +275,6 @@ def begin_credential_rotation(
 
 def rotate_credential(conn: psycopg.Connection, node_id: UUID, new_credential_id: UUID) -> None:
     """Activa una rotación de forma atómica, revocando primero la credencial anterior."""
-    now = datetime.now(timezone.utc)
     with conn.transaction():
         node = conn.execute(
             """
@@ -247,33 +288,35 @@ def rotate_credential(conn: psycopg.Connection, node_id: UUID, new_credential_id
             raise AuthenticationError("El nodo no está activo o fue revocado.")
         new = conn.execute(
             """
-            SELECT replaces_credential_id FROM geelark_control.node_credentials
-             WHERE credential_id = %s AND node_id = %s
-               AND status = 'pending' AND expires_at > %s
+            SELECT replaces_credential_id, expires_at FROM geelark_control.node_credentials
+             WHERE credential_id = %s AND node_id = %s AND status = 'pending'
              FOR UPDATE
             """,
-            (new_credential_id, node_id, now),
+            (new_credential_id, node_id),
         ).fetchone()
-        if new is None or new[0] is None:
+        now = datetime.now(timezone.utc)
+        if new is None or new[0] is None or new[1] <= now:
             raise AuthenticationError("Rotación pendiente inexistente o vencida.")
         old_id = new[0]
         revoked = conn.execute(
             """
             UPDATE geelark_control.node_credentials
-               SET status = 'revoked', revoked_at = %s
-             WHERE credential_id = %s AND node_id = %s AND status = 'active'
+               SET status = 'revoked', revoked_at = clock_timestamp()
+             WHERE credential_id = %s AND node_id = %s
+               AND status = 'active' AND expires_at > clock_timestamp()
             """,
-            (now, old_id, node_id),
+            (old_id, node_id),
         )
         if revoked.rowcount != 1:
             raise AuthenticationError("La credencial anterior ya no está activa.")
         updated = conn.execute(
             """
             UPDATE geelark_control.node_credentials
-               SET status = 'active', activated_at = %s
-             WHERE credential_id = %s AND node_id = %s AND status = 'pending' AND expires_at > %s
+               SET status = 'active', activated_at = clock_timestamp()
+             WHERE credential_id = %s AND node_id = %s
+               AND status = 'pending' AND expires_at > clock_timestamp()
             """,
-            (now, new_credential_id, node_id, now),
+            (new_credential_id, node_id),
         )
         if updated.rowcount != 1:
             raise AuthenticationError("No se pudo activar la nueva credencial.")
