@@ -141,3 +141,29 @@ La documentación pública de GeeLark describe estas familias de funciones RPA: 
 - Visión general de automatización: https://www.geelark.com/es/blog-es/automatizacion-de-apps-android-y-navegador-geelark-rpa/
 
 Esta sección no constituye una lista exhaustiva de los módulos que la página comercial anuncia. Cada bloque pendiente debe registrarse con parámetros, entradas/salidas, errores, permisos, límites y prueba de aceptación antes de implementarse.
+
+
+### 7.5 Bloques iniciales derivados de la guía práctica
+
+- **Open app:** package name y URI opcional; validar instalación y destino.
+- **Waiting time:** fijo o intervalo; límites y unidades obligatorios.
+- **Scroll Page:** distancia, duración, punto inicial y dirección; comprobar coordenadas contra la resolución.
+- **Page back:** navegación atrás con resultado verificable y máximo de intentos.
+- **Upload File:** uno o varios archivos con orden por flujo, por entorno o selección aleatoria; rutas aprobadas y resultado por archivo.
+- **IF Condition:** existencia/no existencia, comparaciones numéricas/textuales, inclusión/exclusión de texto y condición probabilística explícita.
+- **For Loop Times / Elements / Data:** repetición por cantidad, elementos visibles coincidentes o conjunto de datos. El contrato de For Loop Data sigue pendiente porque la guía pública no explica todos sus parámetros.
+- **Exit Loop / End Task:** salir de un bucle y detener la tarea son estados diferentes y deben tener resultados separados.
+- **Task Settings:** variables String, Batch Text, Boolean, Number y File configurables antes de publicar. Las referencias de elementos UI son variables temporales de otro tipo.
+- **Exception handling:** Skip continúa tras un paso fallido; Interrupt detiene el flujo. Ambas decisiones deben quedar registradas.
+- **Planificación y logs:** nombre/notas, perfiles destino, horario por perfil o común, cancelación y modificación de la hora de publicación.
+
+### 7.6 Pruebas adicionales obligatorias
+
+- Open app con paquete inexistente, URI inválida y aplicación que tarda en iniciar.
+- Scroll con resolución distinta, límites fuera de pantalla y cancelación durante la espera.
+- Upload File con ruta no permitida, archivo ausente, varios archivos, tamaño excesivo y fallo parcial.
+- IF con tipos incompatibles, variable ausente y límites de comparación.
+- For Loop Elements con cero, uno y muchos elementos; lista que cambia durante la ejecución; límite de iteraciones y Exit Loop.
+- End Task durante un bloque de espera; comprobar que no se ejecutan pasos posteriores.
+- Skip frente a Interrupt, con logs redactados y estado final consistente.
+- Schedule con zona horaria, reintento tras reinicio y cancelación antes de comenzar.
