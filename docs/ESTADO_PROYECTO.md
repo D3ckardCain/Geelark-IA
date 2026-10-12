@@ -328,3 +328,11 @@ CI revalidada en el HEAD actual de PR #81 tras añadir pruebas del rate limiter 
 - Evidencia CI para el código de ACK versionado: [transporte #38193374440](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38193374440) success (18 pruebas journal, 130 pruebas transporte y `pip check`); [persistencia #38193374433](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38193374433) success (32 persistencia, 18 guard, 54 autorización y `pip check`).
 - La validación integrada de no auto-resolución, reconciliación, retención y ensamblado PostgreSQL quedó cubierta por la CI verde de PR #81: transporte #38196186577, persistencia #38196186614 y esquema #38196186611. Esta CI es desechable; no valida un listener ni una base de producción.
 - Las pruebas anteriores son Linux/PostgreSQL desechable. El agente no se ha instalado en hardware real; el panel PC-MASTER en Windows sigue bloqueado por issue #77. PR #67 permanece draft, sin merge ni despliegue.
+
+
+## Revalidación de frescura antes de reclamar tareas — 2026-10-12
+
+- Hallazgo: la consulta de `POST /agent/v1/tasks/claim` comprobaba el campo almacenado `health_state='healthy'` pero no exigía heartbeat reciente; el valor podía quedar saludable después de perder conectividad.
+- Corrección en la rama de trabajo: la consulta ahora exige además `reported_health_state='healthy'` y `last_seen_at > now() - interval '90 seconds'` en PostgreSQL. El guard se aplica dentro de la misma consulta que reclama la tarea.
+- Se añadió una prueba de integración PostgreSQL: crea una tarea reclamable, fuerza un heartbeat de hace dos minutos conservando el campo almacenado como `healthy`, y verifica que el claim no devuelve tarea ni modifica su estado/lease.
+- CI pendiente para la rama reconstruida #85; no declarar el hallazgo cerrado hasta que pase. No se desplegó ni se conectó una base real.
