@@ -1,6 +1,6 @@
 # Plan de trabajo — Geelark-IA
 
-**Actualizado:** 2026-10-09  
+**Actualizado:** 2026-10-12  
 **Fase activa:** A — inventario funcional de GeeLark y viabilidad de Android virtualizado local.
 
 El plan maestro está en [PLAN_PARIDAD_GEELARK.md](PLAN_PARIDAD_GEELARK.md). La investigación documental está en [INVESTIGACION_FUNCIONAL_GEELARK.md](INVESTIGACION_FUNCIONAL_GEELARK.md), la matriz en [MATRIZ_PARIDAD_GEELARK.md](MATRIZ_PARIDAD_GEELARK.md) y la comparativa de motores en [COMPARATIVA_MOTORES_ANDROID.md](COMPARATIVA_MOTORES_ANDROID.md).
@@ -196,3 +196,8 @@ Se añadió [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSIST
 ### Próxima tarea técnica registrada
 
 La issue [#17 — persistencia transaccional de asignaciones y outbox](https://github.com/D3ckardCain/Geelark-IA/issues/17) queda preparada con criterios de aceptación para exclusión de doble propietario, idempotencia durable, epoch, reservas, outbox, recuperación y backups. No se empezará esa implementación hasta cerrar la revisión de contratos del PR #16.
+
+
+### Revalidación documental de GeeLark (2026-10-12)
+
+Se actualizó el catálogo y la matriz con fuentes oficiales de perfiles, gestión, Synchronizer, Library, API y ADB. Quedan explícitas las restricciones comerciales de GeeLark (funciones Pro, cobro cloud y retención temporal de Library) para no convertirlas en dependencias del sistema local. La discrepancia entre las versiones Android enumeradas por Synchronizer (9–15) y ADB (11–16) permanece abierta; no se selecciona motor ni se declara paridad sin pruebas en el anfitrión real. La investigación documental sigue en la issue #6.
