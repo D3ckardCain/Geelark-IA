@@ -2,7 +2,7 @@
 
 ## Estado
 
-El endpoint de reconciliación está incluido en la [PR #81](https://github.com/D3ckardCain/Geelark-IA/pull/81), basada en la rama actual del supervisor. La CI de transporte, PostgreSQL 16 y persistencia pasó; sigue en draft y no se considera listo para producción hasta revisión humana y validación del runtime HTTPS. No se ha probado en PCs físicas ni conectado a una base real.
+El endpoint de reconciliación está incluido en la [PR #85](https://github.com/D3ckardCain/Geelark-IA/pull/85), basada en la rama actual del supervisor. CI actual aprobada en transporte, migraciones PostgreSQL 16 y persistencia/assignment ([#38274253344](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38274253344), [#38274253515](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38274253515), [#38274253350](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38274253350)); sigue en draft y no se considera listo para producción hasta revisión humana y validación del runtime HTTPS. No se ha probado en PCs físicas ni conectado a una base real.
 
 ## Propósito
 
@@ -60,7 +60,7 @@ La reconciliación necesita conexión HTTPS con el controlador. Mientras no hay 
 
 ## Pendientes
 
-- [x] CI de la pila consolidada PR #81 aprobada: transporte #38196186577 (160 pruebas transporte + 18 pruebas journal/SQLite), esquema PostgreSQL 16 #38196186611 y persistencia/assignment #38196186614; `pip check` limpio y sin warning Starlette.
+- [x] CI de la pila consolidada PR #81 aprobada: transporte #38274253344 (160 pruebas transporte + 18 pruebas journal/SQLite), migraciones PostgreSQL 16 #38274253515 y persistencia/assignment #38274253350; `pip check` limpio y sin warning Starlette.
 - [x] Pruebas de concurrencia e idempotencia del informe en PostgreSQL desechable.
 - [x] Integración de la reconciliación con el supervisor y callback de inventario en la rama.
 - [x] Manual técnico y contratos actualizados para el flujo consolidado.
