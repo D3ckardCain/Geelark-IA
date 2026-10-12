@@ -302,3 +302,12 @@ La página comercial oficial enlaza https://open.geelark.com/api, pero el portal
 La guía documenta clic y pulsación prolongada sobre elemento o coordenadas, ingreso de contenido, operación de teclado y espera de elemento. Los selectores observados son `fullId`, texto, `desc` y `className`; se puede usar Equals/Contains, índice fijo o intervalo, timeout, opción de elementos no visibles, resultado booleano y notas. Los atributos pueden estar vacíos o repetirse, y algunos elementos están anidados. Para coordenadas, la guía advierte que la resolución y la versión Android pueden cambiar la posición; recomienda preferir selectores semánticos y probar en varios sistemas.
 
 Esta evidencia se convirtió en requisitos de detección de ambigüedad, timeout obligatorio, resultado verificable y advertencia de fragilidad de coordenadas. No se declara que el motor local pueda inspeccionar todos los árboles UI; esa capacidad dependerá del motor Android elegido y debe probarse.
+
+
+### Inventario API del CLI oficial (2026-10-12)
+
+El repositorio público GeeLark/geelark-cli se presenta bajo licencia MIT, pero requiere un token de la cuenta GeeLark y su README enumera funciones cloud que pueden requerir pago/saldo. Categorías: teléfonos cloud, tareas de automatización, apps/equipo, archivos/Library, ADB/shell, webhooks, OEM, analítica, navegador, proxies, grupos, tags y facturación. El README declara límites de 200 solicitudes/minuto y 24.000/hora, 10/minuto para balance y restricción de dos horas tras exceder límites. Estos valores deben confirmarse contra la documentación API vigente; no se consideran un SLA.
+
+La página API comercial enlaza el portal https://open.geelark.com/api, cuyo contenido no fue legible en esta revisión. Por eso no se inventan rutas, esquemas, autenticación completa ni códigos de error por endpoint. El CLI MIT no es una alternativa a costo cero al servicio cloud, y no se incorporará como dependencia de Geelark-IA.
+
+Fuente: https://github.com/GeeLark/geelark-cli
