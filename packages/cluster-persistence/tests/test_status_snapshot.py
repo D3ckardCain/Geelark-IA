@@ -140,7 +140,6 @@ def test_postgres_provider_executes_select_only_and_returns_none_for_missing_nod
 
     assert result["node"]["node_id"] == str(NODE_ID)
     assert connection.sql.lstrip().upper().startswith("SELECT")
-    assert "health_state AS reported_health_state" in connection.sql
     assert not any(word in connection.sql.upper() for word in ("INSERT ", "UPDATE ", "DELETE "))
     assert connection.params == (NODE_ID,)
 
@@ -241,6 +240,34 @@ def test_generated_snapshot_validates_against_full_json_schema():
     assert list(validator.iter_errors(stale_snapshot)), (
         "The schema must reject healthy status when the heartbeat is stale"
     )
+
+def test_postgres_provider_uses_health_column_from_schema_without_database():
+    class FakeCursor:
+        def __init__(self, owner):
+            self.owner = owner
+        def fetchone(self):
+            return None
+
+    class FakeConnection:
+        def __init__(self):
+            self.query = ""
+            self.params = ()
+        def __enter__(self):
+            return self
+        def __exit__(self, exc_type, exc, tb):
+            return False
+        def execute(self, query, params=()):
+            self.query = query
+            self.params = params
+            return FakeCursor(self)
+
+    connection = FakeConnection()
+    provider = PostgresStatusSnapshotProvider(lambda: connection)
+    assert provider.get_node_snapshot(NODE_ID) is None
+    assert "health_state AS reported_health_state" in connection.query
+    assert "WHERE node_id = %s" in connection.query
+    assert connection.params == (NODE_ID,)
+
 
 def test_postgres_read_role_can_select_but_cannot_mutate_when_database_is_available():
     """Comprueba privilegios reales en PostgreSQL; CI usa una BD desechable."""
