@@ -87,3 +87,5 @@ Este segundo parámetro permite borrar únicamente informes de revisión de más
 - Si se borran datos por error, detén nuevos intentos de limpieza. Restaura los CSV a una base de staging aislada y verifica integridad antes de decidir una recuperación. No reinsertes nonces ni snapshots idempotentes antiguos directamente en producción: podrían reabrir ventanas de replay o alterar el comportamiento de idempotencia.
 - Los informes de reconciliación pueden restaurarse primero en un esquema/base de archivo de solo lectura para consulta. Cualquier recuperación a producción requiere revisión manual de IDs, epochs y estados.
 - No se ha probado la restauración en una base real. La CI usa PostgreSQL 16 desechable.
+
+Después de cualquier poda, exporta también la tabla `agent_storage_maintenance_runs` otra vez: el archivo previo a la poda no puede incluir la fila que registra esa propia ejecución. Calcula y registra un segundo SHA-256 para el log posterior a la operación. El registro guarda el rol de PostgreSQL, flags y conteos, pero no es inmutable frente al propietario de la base.
