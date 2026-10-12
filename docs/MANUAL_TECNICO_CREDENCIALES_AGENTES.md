@@ -38,7 +38,9 @@
 2. El operador instala el nuevo secreto de forma segura y confirma que puede usarlo.
 3. `rotate_credential` revoca la anterior y activa la nueva dentro de la misma transacción.
 4. Si falla una condición, la transacción se revierte.
-5. Revocar una credencial no equivale a revocar administrativamente todo el nodo.
+5. Tanto el inicio como la confirmación de rotación exigen que el nodo esté activo y no tenga `revoked_at`; ambos bloquean primero la fila del nodo para serializar rotaciones del mismo nodo.
+6. La vigencia se vuelve a comprobar después de obtener los locks. Un token de enrolamiento o una credencial que expire mientras la solicitud espera una fila bloqueada se rechaza; las mutaciones críticas vuelven a validar la expiración en PostgreSQL.
+7. Revocar una credencial no equivale a revocar administrativamente todo el nodo.
 
 ## 5. Desarrollo y pruebas
 
@@ -49,7 +51,7 @@ python -m pip install -e "packages/cluster-agent-auth[test]"
 python -m pytest packages/cluster-agent-auth/tests -q
 ```
 
-La CI instala el paquete y ejecuta pruebas unitarias y de integración contra PostgreSQL desechable. La suite actual cubre consumo único y concurrente del enrolamiento, enrolamiento expirado, estado pendiente, aprobación manual en fixture, autenticación, credencial expirada, revocación de credencial, rechazo concurrente de autenticación para un nodo administrativamente revocado, rotación básica y dos solicitudes simultáneas de rotación (solo una puede dejar una rotación pendiente). La traducción del conflicto de índice único a error de dominio también está cubierta. Aún faltan pruebas de transporte TLS/replay/rate limiting; estas pertenecen a la siguiente fase y no deben darse por implementadas.
+La CI instala el paquete y ejecuta pruebas unitarias y de integración contra PostgreSQL desechable. La suite actual cubre consumo único y concurrente del enrolamiento, enrolamiento expirado, estado pendiente, aprobación manual en fixture, autenticación, credencial expirada, revocación de credencial, rechazo de rotación para nodos revocados, dos solicitudes simultáneas de rotación (solo una puede dejar una rotación pendiente) y pruebas PostgreSQL donde el token de alta o la credencial expira mientras la solicitud espera un lock. La traducción del conflicto de índice único a error de dominio también está cubierta. Aún faltan pruebas de transporte TLS/replay/rate limiting; estas pertenecen a la siguiente fase y no deben darse por implementadas.
 
 ## 6. Límites y próximos pasos
 
