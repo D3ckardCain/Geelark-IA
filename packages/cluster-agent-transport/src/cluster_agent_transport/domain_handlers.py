@@ -611,7 +611,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             elif row[9] is None or row[9] <= now:
                 decision = "INSTANCE_LEASE_EXPIRED_HOLD"
             elif (
-                row[5] in {"delivered", "accepted", "running"}
+                row[5] == "delivered"
                 and (row[12] is None or row[12] <= now)
             ):
                 decision = "DELIVERY_LEASE_EXPIRED_HOLD"
