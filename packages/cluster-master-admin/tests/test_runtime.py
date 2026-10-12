@@ -35,6 +35,11 @@ def test_database_connector_detects_remote_hostaddr_without_host(monkeypatch: py
     with pytest.raises(RuntimeError, match="verify-full"):
         _database_connector()
 
+def test_database_connector_requires_hostname_for_remote_hostaddr(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "postgresql:///geelark?user=geelark_master_reader&hostaddr=203.0.113.10&sslmode=verify-full")
+    with pytest.raises(RuntimeError, match="host="):
+        _database_connector()
+
 
 def test_database_connector_rejects_uninspectable_service_dsn(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "service=remote-db user=geelark_master_reader")
