@@ -91,10 +91,14 @@ def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
         # icacls devuelve ERROR_INVALID_PARAMETER (87) si se combinan estas
         # opciones en una única invocación. Ejecutarlas secuencialmente permite
         # comprobar cada paso. Cualquier fallo aborta la inicialización (fail-closed).
-        for option in ("/reset", "/inheritance:r", "/grant:r", grant):
+        commands = (
+            [str(icacls), str(path), "/reset"],
+            [str(icacls), str(path), "/inheritance:r"],
+            [str(icacls), str(path), "/grant:r", grant],
+        )
+        for command in commands:
             subprocess.run(
-                [str(icacls), str(path), option] if option != grant
-                else [str(icacls), str(path), "/grant:r", grant],
+                command,
                 check=True,
                 timeout=5,
                 **output_options,
