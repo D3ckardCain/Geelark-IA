@@ -153,7 +153,8 @@ python -m geelark_master_admin.runtime
 ```
 El archivo `pgpass` contiene una línea con formato `host:port:database:username:password`, por ejemplo los cuatro primeros campos deben coincidir con el DSN. No pongas la contraseña en el DSN ni en el repositorio.
 
-Equivalente en Windows PowerShell (usa un `PGPASSFILE` con ACL limitada al usuario actual):
+Equivalente en Windows PowerShell. El directorio `$StateDir` debe haberse creado y protegido en el paso 2. Este bloque crea `pgpass` sin sobrescribir uno existente, pide la contraseña sin mostrarla, no la incluye en argumentos ni logs y restringe la ACL antes de iniciar el servicio:
+
 ```powershell
 $StateDir = "$env:LOCALAPPDATA\GeeLark-IA\master-admin"
 $env:GEELARK_ADMIN_OPERATOR_AUTH_FILE = Join-Path $StateDir "operator-auth.json"
@@ -162,7 +163,39 @@ $env:GEELARK_ADMIN_DATABASE_URL = "postgresql://geelark_master_reader@localhost:
 $env:GEELARK_ADMIN_TLS_CERT = Join-Path $StateDir "master-local.crt"
 $env:GEELARK_ADMIN_TLS_KEY = Join-Path $StateDir "master-local.key"
 $env:PGPASSFILE = Join-Path $StateDir "pgpass"
+
+if (Test-Path -LiteralPath $env:PGPASSFILE) {
+  throw "PGPASSFILE ya existe; no se sobrescribirá. Revisa la configuración manualmente."
+}
+$credential = Get-Credential -UserName "geelark_master_reader" -Message "Introduce la contraseña del rol PostgreSQL; no se mostrará en pantalla."
+$bstr = [IntPtr]::Zero
+$file = $null
+try {
+  $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)
+  $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+  if ($plain.Contains("`r") -or $plain.Contains("`n")) {
+    throw "La contraseña no puede contener saltos de línea para el formato pgpass."
+  }
+  $escaped = $plain.Replace('\', '\\').Replace(':', '\:')
+  $line = "localhost:5432:geelark:geelark_master_reader:$escaped"
+  $bytes = [Text.UTF8Encoding]::new($false).GetBytes($line + "`n")
+  $file = [IO.File]::Open($env:PGPASSFILE, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+  $file.Write($bytes, 0, $bytes.Length)
+} finally {
+  if ($null -ne $file) { $file.Dispose() }
+  if ($bstr -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+  $plain = $null; $escaped = $null; $line = $null; $bytes = $null; $credential = $null
+}
+
 icacls $env:PGPASSFILE /inheritance:r /grant:r "$($env:USERDOMAIN)\$($env:USERNAME):F"
+if ($LASTEXITCODE -ne 0) {
+  Remove-Item -LiteralPath $env:PGPASSFILE -Force -ErrorAction SilentlyContinue
+  throw "No se pudo restringir la ACL de PGPASSFILE; no inicies el servicio."
+}
+$acl = icacls $env:PGPASSFILE
+if ($LASTEXITCODE -ne 0 -or ($acl -join "`n") -notmatch [regex]::Escape("$($env:USERDOMAIN)\$($env:USERNAME)")) {
+  throw "No se pudo verificar la ACL de PGPASSFILE; no inicies el servicio."
+}
 python -m geelark_master_admin.runtime
 ```
 
