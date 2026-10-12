@@ -287,3 +287,12 @@ El PR borrador #16 ahora incluye validación de coherencia entre `status` y `obs
 ### Persistencia de asignaciones documentada (2026-10-09)
 
 Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md). Define transacciones, restricciones para un único propietario, idempotencia durable, outbox y pruebas de caída/concurrencia. No hay DDL, migraciones ni código de persistencia implementados; PostgreSQL local sigue siendo una propuesta pendiente de validar.
+
+
+## Panel PC-MASTER — rama limpia de validación 2026-10-12
+
+Se reconstruye el cambio del panel local de solo lectura sobre la base actual `feat/master-status-snapshot-provider-v1` para evitar los conflictos de historial de la PR #76. El paquete incluye API FastAPI, login local PC-MASTER, sesión SQLite, TLS obligatorio, panel HTML, rol PostgreSQL de lectura y manuales.
+
+La verificación SQL del rol ya fue ejecutada contra PostgreSQL 16 desechable en [run #38193499261](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38193499261), con pruebas negativas de tablas, funciones `SECURITY DEFINER`, SELECT por columna, UPDATE por columna y esquema; éxito. Esta rama limpia todavía requiere su CI completo de Python + SQL. No se ha fusionado ni desplegado.
+
+Bloqueos antes de declarar operativo: CI verde de esta rama, revisión de seguridad final, y validación real de ACL NTFS, certificado TLS y bind loopback en Windows PC-MASTER conforme a issue #77. No se conecta Supabase ni una base real; el objetivo operativo sigue siendo $0 USD.
