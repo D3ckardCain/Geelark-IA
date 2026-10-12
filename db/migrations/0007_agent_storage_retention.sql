@@ -6,13 +6,13 @@ BEGIN;
 UPDATE geelark_control.idempotency_records
    SET expires_at = created_at + CASE split_part(scope, ':', 3)
        WHEN 'heartbeat' THEN interval '1 day'
-       WHEN 'capabilities' THEN interval '1 day'
-       WHEN 'modules_report' THEN interval '1 day'
-       WHEN 'status_read' THEN interval '1 day'
-       WHEN 'task_fetch' THEN interval '90 days'
-       WHEN 'task_accept' THEN interval '90 days'
-       WHEN 'task_progress' THEN interval '90 days'
-       WHEN 'task_result' THEN interval '90 days'
+       WHEN 'publish_capabilities' THEN interval '1 day'
+       WHEN 'report_modules' THEN interval '1 day'
+       WHEN 'read_own_status' THEN interval '1 day'
+       WHEN 'claim_task' THEN interval '90 days'
+       WHEN 'accept_task' THEN interval '90 days'
+       WHEN 'report_progress' THEN interval '90 days'
+       WHEN 'report_result' THEN interval '90 days'
        WHEN 'reconcile' THEN interval '90 days'
        WHEN 'reconcile_inventory' THEN interval '90 days'
        ELSE NULL
@@ -20,8 +20,8 @@ UPDATE geelark_control.idempotency_records
  WHERE expires_at IS NULL
    AND split_part(scope, ':', 1) = 'agent'
    AND split_part(scope, ':', 3) IN (
-       'heartbeat', 'capabilities', 'modules_report', 'status_read',
-       'task_fetch', 'task_accept', 'task_progress', 'task_result',
+       'heartbeat', 'publish_capabilities', 'report_modules', 'read_own_status',
+       'claim_task', 'accept_task', 'report_progress', 'report_result',
        'reconcile', 'reconcile_inventory'
    );
 
