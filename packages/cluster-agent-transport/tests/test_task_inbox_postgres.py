@@ -72,7 +72,7 @@ def test_active_node_claims_assignment_and_reports_fenced_result():
     try:
         with connect() as conn:
             conn.execute(
-                "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state, health_state) VALUES (%s, %s, 'active', 'healthy')",
+                "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state, health_state, reported_health_state, last_seen_at) VALUES (%s, %s, 'active', 'healthy', 'healthy', now())",
                 (node_id, "task-test-" + str(node_id)),
             )
             conn.execute(
