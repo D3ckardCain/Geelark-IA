@@ -161,9 +161,9 @@ class AgentTransportRuntime:
         response = self._request(
             "POST", f"/agent/v1/tasks/{operation_id}/{route}", payload, idempotency_key=key
         )
-        # Las versiones del journal han expuesto ambos nombres de API. Preferir
-        # mark_receipt_delivered(operation_id, epoch), que valida el fencing; admitir
-        # mark_receipt_synced(operation_id) solo para compatibilidad con el contrato anterior.
+        # El ACK debe corresponder al estado y resultado exactos enviados. Las APIs
+        # antiguas sin expected_status/expected_result fallan cerradas: aceptar su ACK
+        # podría ocultar una versión local más nueva que llegó mientras la petición volaba.
         mark_delivered = getattr(self.journal, "mark_receipt_delivered", None)
         mark_synced = getattr(self.journal, "mark_receipt_synced", None)
         marker = mark_delivered if callable(mark_delivered) else mark_synced
