@@ -6,6 +6,7 @@ no interpreta ninguna respuesta remota como una orden de ejecución.
 from __future__ import annotations
 
 import argparse
+import copy
 import logging
 import math
 import os
@@ -16,7 +17,7 @@ import time
 import tomllib
 from pathlib import Path
 from typing import Any, Callable
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from .client import AgentHTTPSClient, AgentTransportError
 from .credentials import SystemdCredentialProvider
@@ -80,6 +81,9 @@ class AgentNodeSupervisor:
         heartbeat_interval_seconds: float = 30.0,
         capabilities_interval_seconds: float = 300.0,
         status_interval_seconds: float = 60.0,
+        reconcile_inventory: Callable[[], list[dict[str, Any]]] | None = None,
+        on_reconciliation: Callable[[Any], None] | None = None,
+        reconciliation_retry_interval_seconds: float = 60.0,
         metrics_provider: Callable[[], dict[str, int | float]] | None = None,
         on_error: Callable[[str], None] | None = None,
         monotonic: Callable[[], float] = time.monotonic,
@@ -106,6 +110,19 @@ class AgentNodeSupervisor:
             raise ValueError("receipt_sync debe implementar start() y stop()")
         if metrics_provider is not None and not callable(metrics_provider):
             raise ValueError("metrics_provider debe ser callable")
+        if (
+            isinstance(reconciliation_retry_interval_seconds, bool)
+            or not isinstance(reconciliation_retry_interval_seconds, (int, float))
+            or not math.isfinite(reconciliation_retry_interval_seconds)
+            or not 1 <= reconciliation_retry_interval_seconds <= 3600
+        ):
+            raise ValueError("reconciliation_retry_interval_seconds debe estar entre 1 y 3600")
+        if reconcile_inventory is not None and not callable(reconcile_inventory):
+            raise ValueError("reconcile_inventory debe ser callable")
+        if on_reconciliation is not None and not callable(on_reconciliation):
+            raise ValueError("on_reconciliation debe ser callable")
+        if reconcile_inventory is not None and not callable(getattr(runtime, "reconcile_inventory", None)):
+            raise ValueError("runtime debe implementar reconcile_inventory(inventory)")
         if on_error is not None and not callable(on_error):
             raise ValueError("on_error debe ser callable")
 
@@ -118,33 +135,73 @@ class AgentNodeSupervisor:
         self.status_interval_seconds = float(status_interval_seconds)
         self.metrics_provider = metrics_provider or (lambda: linux_resource_snapshot("."))
         self.on_error = on_error or (lambda code: _LOGGER.warning("%s", code))
+        self.reconcile_inventory = reconcile_inventory
+        self.on_reconciliation = on_reconciliation
+        self.reconciliation_retry_interval_seconds = float(reconciliation_retry_interval_seconds)
         self._monotonic = monotonic
         self._stop = threading.Event()
         self._wake = threading.Event()
+        self._reconciliation_wake = threading.Event()
+        self._reconciliation_ready = threading.Event()
+        self._reconciliation_requested = threading.Event()
+        if reconcile_inventory is not None:
+            self._reconciliation_requested.set()
         self._thread: threading.Thread | None = None
+        self._reconciliation_thread: threading.Thread | None = None
         self._lock = threading.Lock()
+        self._offline = False
+        self._next_reconciliation_at = 0.0
+        self._reconciliation_id: UUID | None = None
+        self._reconciliation_inventory_snapshot: list[dict[str, Any]] | None = None
+        self._reconciliation_id_lock = threading.Lock()
 
     @property
     def running(self) -> bool:
-        return self._thread is not None and self._thread.is_alive() and not self._stop.is_set()
+        return any(
+            thread is not None and thread.is_alive() and not self._stop.is_set()
+            for thread in (self._thread, self._reconciliation_thread)
+        )
 
     def start(self) -> None:
-        """Inicia una sola vez el sincronizador y el hilo de telemetría."""
+        """Inicia telemetría, sincronización durable y reconciliación opcional."""
         with self._lock:
             if self._stop.is_set() or self._thread is not None:
                 raise RuntimeError("El supervisor ya se inició o se detuvo y no puede reiniciarse")
             self.receipt_sync.start()
-            self._thread = threading.Thread(target=self._run, name="geelark-agent-supervisor", daemon=True)
-            self._thread.start()
+            try:
+                if self.reconcile_inventory is not None:
+                    self._reconciliation_thread = threading.Thread(
+                        target=self._run_reconciliation,
+                        name="geelark-agent-reconciliation",
+                        daemon=True,
+                    )
+                    self._reconciliation_thread.start()
+                self._thread = threading.Thread(target=self._run, name="geelark-agent-supervisor", daemon=True)
+                self._thread.start()
+            except Exception:
+                self._stop.set()
+                self._wake.set()
+                self._reconciliation_wake.set()
+                if self._reconciliation_thread is not None:
+                    self._reconciliation_thread.join(timeout=1)
+                self.receipt_sync.stop(timeout=1)
+                raise
 
     def notify_reconnected(self) -> None:
-        """Notificación externa del monitor de red; no sondea conectividad por sí mismo."""
+        """Notifica reconexión y solicita reconciliación tras el siguiente heartbeat válido."""
         if self._stop.is_set():
             return
+        if self.reconcile_inventory is not None:
+            self._reconciliation_ready.clear()
+            self._reconciliation_requested.set()
+            self._next_reconciliation_at = 0.0
+            with self._reconciliation_id_lock:
+                self._reconciliation_id = None
+                self._reconciliation_inventory_snapshot = None
+            self._reconciliation_wake.set()
         try:
             self.receipt_sync.notify_reconnected()
         except Exception:
-            # A faulty receipt-sync wakeup must not suppress telemetry after reconnect.
             self._report("RECEIPT_SYNC_WAKE_FAILED")
         self._wake.set()
 
@@ -155,22 +212,19 @@ class AgentNodeSupervisor:
         deadline = time.monotonic() + float(timeout)
         self._stop.set()
         self._wake.set()
-        thread = self._thread
-        supervisor_stopped = True
-        if thread is not None:
-            # A callback may request shutdown from the supervisor thread itself.
-            # Joining the current thread raises RuntimeError; request shutdown and
-            # report False until the caller can observe that the thread has exited.
+        self._reconciliation_wake.set()
+        def join_until(thread: threading.Thread | None) -> bool:
+            if thread is None:
+                return True
             if thread is threading.current_thread():
-                supervisor_stopped = False
-            else:
-                thread.join(timeout=max(0.0, deadline - time.monotonic()))
-                supervisor_stopped = not thread.is_alive()
-        # Solicitar siempre el apagado del sincronizador aunque la telemetría agote
-        # su timeout; ambos hilos comparten un único presupuesto de espera.
+                return False
+            thread.join(timeout=max(0.0, deadline - time.monotonic()))
+            return not thread.is_alive()
+        supervisor_stopped = join_until(self._thread)
+        reconciliation_stopped = join_until(self._reconciliation_thread)
         remaining = max(0.0, deadline - time.monotonic())
         sync_stopped = bool(self.receipt_sync.stop(timeout=remaining))
-        return supervisor_stopped and sync_stopped
+        return supervisor_stopped and reconciliation_stopped and sync_stopped
 
     def _report(self, code: str) -> None:
         try:
@@ -213,13 +267,78 @@ class AgentNodeSupervisor:
             "health_state": "healthy",
             **metrics,
         }
-        self.runtime.send_heartbeat(payload)
+        was_offline = self._offline
+        try:
+            self.runtime.send_heartbeat(payload)
+        except Exception:
+            self._offline = True
+            raise
+        self._offline = False
+        if self.reconcile_inventory is not None:
+            was_ready = self._reconciliation_ready.is_set()
+            self._reconciliation_ready.set()
+            if self._reconciliation_requested.is_set() and (not was_ready or was_offline):
+                self._next_reconciliation_at = 0.0
+                self._reconciliation_wake.set()
 
     def _capabilities(self) -> None:
         self.runtime.publish_capabilities({
             "capabilities_version": 1,
             "capabilities": self.capabilities,
         })
+
+    def _run_reconciliation(self) -> None:
+        while not self._stop.is_set():
+            if not self._reconciliation_ready.is_set():
+                self._reconciliation_wake.wait()
+                if self._stop.is_set():
+                    break
+                self._reconciliation_wake.clear()
+                if not self._reconciliation_ready.is_set():
+                    continue
+            if self._reconciliation_requested.is_set():
+                delay = max(0.0, self._next_reconciliation_at - self._monotonic())
+                self._reconciliation_wake.wait(delay)
+            else:
+                self._reconciliation_wake.wait()
+            if self._stop.is_set():
+                break
+            self._reconciliation_wake.clear()
+            if not self._reconciliation_requested.is_set():
+                continue
+            if self._monotonic() < self._next_reconciliation_at:
+                continue
+            self._reconciliation_requested.clear()
+            with self._reconciliation_id_lock:
+                if self._reconciliation_id is None:
+                    self._reconciliation_id = uuid4()
+                    self._reconciliation_inventory_snapshot = None
+                attempt_id = self._reconciliation_id
+                inventory = self._reconciliation_inventory_snapshot
+            try:
+                if inventory is None:
+                    inventory = copy.deepcopy(self.reconcile_inventory())
+                    with self._reconciliation_id_lock:
+                        if self._reconciliation_id == attempt_id and self._reconciliation_inventory_snapshot is None:
+                            self._reconciliation_inventory_snapshot = inventory
+                response = self.runtime.reconcile_inventory(inventory, reconciliation_id=attempt_id)
+                if self.on_reconciliation is not None:
+                    self.on_reconciliation(response)
+            except Exception:
+                self._reconciliation_requested.set()
+                self._report("RECONCILIATION_FAILED")
+                if not self._reconciliation_wake.is_set():
+                    self._next_reconciliation_at = self._monotonic() + self.reconciliation_retry_interval_seconds
+                else:
+                    self._next_reconciliation_at = 0.0
+            else:
+                with self._reconciliation_id_lock:
+                    if self._reconciliation_id == attempt_id:
+                        self._reconciliation_id = None
+                        self._reconciliation_inventory_snapshot = None
+                self._next_reconciliation_at = 0.0
+                if self._reconciliation_requested.is_set():
+                    self._reconciliation_wake.set()
 
     def _run(self) -> None:
         now = self._monotonic()
