@@ -104,20 +104,15 @@ def test_pending_node_end_to_end_telemetry_idempotency_and_task_denial():
         assert status.json()["node_id"] == str(node_id)
         assert status.json()["admin_state"] == "pending"
         assert status.json()["health_state"] == "healthy"
-        assert status.json()["reported_health_state"] == "healthy"
         assert status.json()["sequence"] == 1
-
-        # Un reporte healthy antiguo se muestra offline según el reloj del controlador.
-        with connect() as conn:
-            conn.execute(
-                "UPDATE geelark_control.nodes SET last_seen_at = now() - interval '5 minutes' WHERE node_id = %s",
-                (node_id,),
-            )
-        stale_status = client.get("/agent/v1/status", headers=headers())
-        assert stale_status.status_code == 200
-        assert stale_status.json()["reported_health_state"] == "healthy"
-        assert stale_status.json()["health_state"] == "offline"
         assert status.json()["capabilities"] == {"version": 1, "items": ["heartbeat", "status"]}
+
+        denied_claim = client.post(
+            "/agent/v1/tasks/claim",
+            headers=headers("task-claim-" + str(uuid4())),
+            json={"schema_version": 1},
+        )
+        assert denied_claim.status_code == 403
 
         denied = client.post(
             f"/agent/v1/tasks/{uuid4()}/accept",

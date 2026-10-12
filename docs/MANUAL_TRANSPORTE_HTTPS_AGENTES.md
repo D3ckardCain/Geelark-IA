@@ -129,21 +129,24 @@ print(response.status)
 
 El ejemplo ilustra la interfaz del cliente; no se ejecuta automáticamente ni constituye un agente completo. El runtime del agente todavía debe integrar esta llamada con el journal local y el flujo de reconciliación.
 
-## 7. Enrolamiento y estado pending
+## 7. Enrolamiento y estado pending (diseño, no operativo)
 
-1. Un administrador emite un token de enrolamiento de un solo uso con vencimiento corto.
+**Bloqueo actual:** la autenticación del servidor valida credenciales existentes, vencimiento y revocación, pero todavía no hay una API/UI administrativa aprobada para emitir, rotar o revocar credenciales. Los pasos siguientes describen el flujo requerido; **no son un procedimiento ejecutable ni deben aplicarse a nodos reales**.
+
+1. El futuro flujo administrativo deberá emitir un token de enrolamiento de un solo uso y vencimiento corto.
 2. Entregarlo una sola vez al nodo esperado; nunca incluirlo en logs, tickets ni commits.
-3. El nodo consume el token y recibe una credencial individual; nodo y credencial quedan en estado `pending`.
-4. En `pending`, solo se autorizan heartbeat, capacidades y consulta de estado. Aceptación/progreso/resultado de tareas y reconciliación quedan denegados.
-5. Aprobar manualmente el nodo después de verificar identidad, versión y capacidades.
-6. Rotar o revocar la credencial cuando haya sospecha de exposición o al retirar un nodo.
+3. El nodo consumirá el token y recibirá una credencial individual; nodo y credencial quedarán en estado `pending`.
+4. En `pending`, solo se autorizarán heartbeat, capacidades y consulta de estado. Aceptación/progreso/resultado de tareas y reconciliación con escritura seguirán denegados.
+5. Un operador deberá aprobar manualmente el nodo tras verificar identidad, versión y capacidades.
+6. La emisión, aprobación, rotación y revocación deberán dejar auditoría, actor, motivo, timestamps y resultado. No modificar tablas de credenciales manualmente mientras ese flujo no exista.
 
-## 8. Rotación y recuperación
+## 8. Rotación y recuperación (requisitos pendientes)
 
 - Renovar el certificado del servidor antes de su vencimiento; generar una clave nueva y firmar una nueva CSR.
 - Mantener una ventana de transición documentada si se cambia la CA, confiando temporalmente en la CA antigua y nueva solo durante el periodo necesario.
 - Si la clave CA se compromete, dejar de confiar en ella, generar CA nueva y volver a emitir certificados; renovar los certificados del servidor no basta.
 - La revocación de tokens de agente es independiente de la revocación de certificados TLS.
+- El proveedor `SystemdCredentialProvider` vuelve a leer el archivo en cada llamada, pero `LoadCredential`/`LoadCredentialEncrypted` monta credenciales para una invocación del servicio. Una rotación requerirá que exista el flujo administrativo, actualizar el origen de la credencial y reiniciar controladamente la unidad; hoy no hay unit file ni procedimiento aprobado.
 - Mantener copias de seguridad cifradas y pruebas periódicas de restauración de la CA offline; no respaldar claves privadas en el repositorio.
 
 ## 9. Diagnóstico sin filtrar secretos
@@ -169,7 +172,7 @@ El paquete incluye `AgentTransportRuntime`, un puente entre `AgentHTTPSClient` y
 2. Antes de reportar progreso o resultado, el adaptador llama a `journal.record_result`. El resultado queda durable antes de intentar la red.
 3. Si el controlador responde 2xx, la entrega terminó. Si hay timeout, desconexión o error HTTP, el adaptador devuelve un error genérico y el recibo permanece en SQLite.
 4. Cuando vuelva la conexión, llamar a `runtime.sync_pending_receipts(limit=100)`. El adaptador pide al journal un lote acotado y ordenado de recibos aún no confirmados; se detiene ante el primer error de red para no agotar recursos sin conexión.
-5. Para progreso y resultados, el journal marca esa versión del recibo sincronizada solo después de recibir una respuesta HTTP 2xx. Una actualización posterior elimina el ACK anterior y vuelve a poner el recibo en la cola; así el progreso antiguo no bloquea resultados más recientes. El ACK se guarda en SQLite y sobrevive a un reinicio. Si el controlador recibió el resultado pero se perdió la respuesta, el agente lo reenvía con la misma clave idempotente y un nonce/request ID nuevos.
+5. Para resultados terminales, el journal marca el recibo sincronizado solo después de recibir una respuesta HTTP 2xx. El ACK se guarda en SQLite y sobrevive a un reinicio. Si el controlador recibió el resultado pero se perdió la respuesta, el agente lo reenvía con la misma clave idempotente y un nonce/request ID nuevos.
 6. No reenviar resultados de otra instancia, nodo o epoch: el journal local valida propietario y epoch antes de guardar el resultado.
 
 Ejemplo de construcción del adaptador (valores sensibles deben proceder del almacén protegido del sistema operativo, no del código):
@@ -199,7 +202,7 @@ runtime = AgentTransportRuntime(
 - El guardián SQLite conserva fencing, recibos pendientes y ACK terminales sin red.
 - El adaptador puede sincronizar lotes acotados con `sync_pending_receipts()`, pero el bucle principal del agente todavía debe invocarlo al iniciar y cuando detecte reconexión.
 - Heartbeat, capacidades y consulta de estado requieren conectividad; no se encolan localmente.
-- La entrega de tareas y la reconciliación del lado controlador permanecen deshabilitadas hasta integrar/revisar servicio transaccional y outbox.
+- La bandeja durable y `POST /agent/v1/tasks/claim` están implementados en la PR draft #52 con entrega pull, idempotencia y leases separadas; no están fusionados ni desplegados. Solo nodos `active/active` saludables pueden reclamar. La reconciliación es de solo lectura y no ejecuta tareas.
 - No se ejecuta Android, ADB ni shell remoto; no desplegar en nodos reales hasta completar el bucle de agente, la entrega de tareas y la revisión de outbox.
 
 
