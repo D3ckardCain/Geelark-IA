@@ -1,6 +1,8 @@
 """Pruebas reales contra PostgreSQL; CI proporciona TEST_DATABASE_URL."""
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 import os
+import time
 from uuid import uuid4
 
 import psycopg
@@ -23,6 +25,28 @@ pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="requiere TEST_DATABASE
 
 def connect():
     return psycopg.connect(DATABASE_URL)
+
+
+
+
+def wait_for_lock_wait(application_name: str, timeout: float = 6.0) -> bool:
+    deadline = time.monotonic() + timeout
+    with connect() as monitor:
+        while time.monotonic() < deadline:
+            row = monitor.execute(
+                """
+                SELECT wait_event_type
+                  FROM pg_stat_activity
+                 WHERE application_name = %s AND state = 'active'
+                 ORDER BY query_start DESC
+                 LIMIT 1
+                """,
+                (application_name,),
+            ).fetchone()
+            if row is not None and row[0] == "Lock":
+                return True
+            time.sleep(0.05)
+    return False
 
 
 def cleanup(node_ids, enrollment_ids):
@@ -309,3 +333,93 @@ def test_rotation_is_blocked_after_node_is_revoked():
         assert {str(row[1]) for row in states} == {"active", "pending"}
     finally:
         cleanup([node_id], [enrollment.record_id])
+
+
+def test_expired_enrollment_is_rejected_after_lock_wait():
+    node_id = uuid4()
+    with connect() as conn:
+        issued = create_enrollment(conn, node_id, "test-admin", ttl=timedelta(seconds=4))
+    app_name = "geelark-enroll-expiry-" + uuid4().hex[:8]
+    locker = connect()
+    try:
+        expires_at = locker.execute(
+            "SELECT expires_at FROM geelark_control.node_enrollments WHERE enrollment_id = %s FOR UPDATE",
+            (issued.record_id,),
+        ).fetchone()[0]
+
+        def consume():
+            with psycopg.connect(DATABASE_URL, application_name=app_name) as conn:
+                try:
+                    consume_enrollment(conn, issued.secret, "expired-enrollment-lock-test")
+                except EnrollmentError:
+                    return "rejected"
+                return "accepted"
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(consume)
+            try:
+                assert wait_for_lock_wait(app_name), "el consumo no llegó a esperar el lock del token"
+                remaining = (expires_at - datetime.now(timezone.utc)).total_seconds()
+                if remaining > 0:
+                    time.sleep(remaining + 0.1)
+            finally:
+                locker.commit()
+            assert future.result(timeout=5) == "rejected"
+    finally:
+        if not locker.closed:
+            locker.rollback()
+            locker.close()
+        cleanup([node_id], [issued.record_id])
+
+
+def test_authentication_rejects_credential_expired_after_lock_wait():
+    node_id = uuid4()
+    with connect() as conn:
+        issued = create_enrollment(conn, node_id, "test-admin")
+    locker = None
+    try:
+        with connect() as conn:
+            credential = consume_enrollment(
+                conn, issued.secret, "expired-credential-lock-test",
+                credential_ttl=timedelta(seconds=4),
+            )
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.nodes SET admin_state = 'active' WHERE node_id = %s",
+                (node_id,),
+            )
+            conn.execute(
+                "UPDATE geelark_control.node_credentials SET status = 'active', activated_at = now() WHERE credential_id = %s",
+                (credential.record_id,),
+            )
+
+        app_name = "geelark-auth-expiry-" + uuid4().hex[:8]
+        locker = connect()
+        expires_at = locker.execute(
+            "SELECT expires_at FROM geelark_control.node_credentials WHERE credential_id = %s FOR UPDATE",
+            (credential.record_id,),
+        ).fetchone()[0]
+
+        def authenticate():
+            with psycopg.connect(DATABASE_URL, application_name=app_name) as conn:
+                try:
+                    authenticate_bearer(conn, credential.secret)
+                except AuthenticationError:
+                    return "rejected"
+                return "accepted"
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(authenticate)
+            try:
+                assert wait_for_lock_wait(app_name), "la autenticación no llegó a esperar el lock de credencial"
+                remaining = (expires_at - datetime.now(timezone.utc)).total_seconds()
+                if remaining > 0:
+                    time.sleep(remaining + 0.1)
+            finally:
+                locker.commit()
+            assert future.result(timeout=5) == "rejected"
+    finally:
+        if locker is not None and not locker.closed:
+            locker.rollback()
+            locker.close()
+        cleanup([node_id], [issued.record_id])
