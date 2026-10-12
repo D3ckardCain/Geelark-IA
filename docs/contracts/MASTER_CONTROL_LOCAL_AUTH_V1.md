@@ -26,6 +26,6 @@ La autenticación del panel es local y gestionada por PC-MASTER. No depende de S
 ## Límites y pendientes
 
 - El limitador actual está en memoria y presupone un único proceso; debe sustituirse o hacerse compartido antes de ejecutar múltiples workers.
-- La API y el panel están empaquetados en la PR #76, pero todavía no se han instalado ni montado en el PC-MASTER real; no se ha abierto ningún puerto ni desplegado nada.
+- La API y el panel están en la PR limpia #79 (draft; CI aprobada), pero todavía no se han instalado ni montado en el PC-MASTER real; no se ha abierto ningún puerto ni desplegado nada. La PR #76 se cerró como supersedida, sin merge.
 - Pendiente verificar grants reales PostgreSQL, instalar/configurar certificados TLS, ejecutar las pruebas del HEAD actual sin incurrir en cargos de CI y probar el flujo completo en PC-MASTER.
 - No usar en producción hasta completar esas puertas. No fusionar automáticamente.
