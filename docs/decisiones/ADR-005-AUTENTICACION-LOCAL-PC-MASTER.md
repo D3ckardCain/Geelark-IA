@@ -15,7 +15,7 @@ El panel de operaciones necesita consultar snapshots reales sin abrir operacione
 4. Las sesiones usan tokens opacos; SQLite almacena solo SHA-256 del token, con expiración a 8 horas y revocación.
 5. PostgreSQL usa exclusivamente el rol `geelark_master_reader`, con lectura de `geelark_control.nodes`, transacciones read-only y timeouts.
 6. La interfaz solo consulta snapshots; no se añaden tareas, shell, ADB, reconciliación ni mutaciones.
-7. GitHub Actions para este paquete queda manual-only mientras se protege la cuota y se confirma que no habrá cargos.
+7. Las pruebas administrativas se integran en el workflow de persistencia existente cuando cambia el paquete, evitando un workflow paralelo.
 
 ## Alternativas descartadas
 
@@ -29,5 +29,5 @@ El panel de operaciones necesita consultar snapshots reales sin abrir operacione
 - El acceso a snapshots requiere que PostgreSQL esté disponible; una base remota requiere Internet y TLS verificado. Para autonomía máxima, preferir PostgreSQL local.
 - Deben configurarse certificados y secretos fuera de Git.
 - Debe ejecutarse `packages/cluster-master-admin/sql/verify_readonly_role.sql` conectado como lector para verificar grants reales.
-- El último conjunto de cambios requiere una nueva ejecución de pruebas; no ejecutar Actions sin revisar la cuota.
+- El último conjunto de cambios requiere comprobar la ejecución de CI correspondiente antes de aceptar la implementación.
 - No considerar operativo hasta probar el flujo en el PC-MASTER real y completar revisión de seguridad.
