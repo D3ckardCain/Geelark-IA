@@ -35,12 +35,12 @@ class FakeConnection(AbstractContextManager):
         return self.rows
 
 
-def make_row():
+def make_row(reported_health_state="healthy"):
     return (
         uuid4(),
         "WORKER-01",
         "active",
-        "healthy",
+        reported_health_state,
         "1.0.0",
         datetime.now(timezone.utc),
         {"items": ["heartbeat-v1", "self-status-v1"]},
@@ -142,11 +142,29 @@ def test_login_get_snapshots_and_logout_revoke_session(tmp_path: Path) -> None:
     assert len(body["snapshots"]) == 1
     assert body["snapshots"][0]["node"]["display_name"] == "WORKER-01"
     assert len(connections) == 1
-    assert connections[0].statements[0][0].lstrip().upper().startswith("SELECT")
+    query = connections[0].statements[0][0]
+    assert query.lstrip().upper().startswith("SELECT")
+    assert "reported_health_state" in query
+    assert "health_state AS reported_health_state" not in query
 
     logout = client.post("/admin/v1/logout", headers={"Origin": "https://master.test"})
     assert logout.status_code == 200
     assert client.get("/admin/v1/status/snapshots").status_code == 401
+
+
+def test_panel_preserves_reported_health_separately_from_derived_health(tmp_path: Path) -> None:
+    client, _ = make_client(tmp_path, rows=[make_row(reported_health_state="unhealthy")])
+    login = client.post(
+        "/admin/v1/login",
+        json={"password": "Correct Horse Battery 2030!"},
+        headers={"Origin": "https://master.test"},
+    )
+    assert login.status_code == 200
+    response = client.get("/admin/v1/status/snapshots")
+    assert response.status_code == 200
+    node = response.json()["snapshots"][0]["node"]
+    assert node["reported_health_state"] == "unhealthy"
+    assert node["health_state"] == "degraded"
 
 
 def test_validation_error_never_reflects_submitted_password(tmp_path: Path) -> None:
