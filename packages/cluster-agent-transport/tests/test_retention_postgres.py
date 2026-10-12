@@ -19,10 +19,11 @@ def test_prune_agent_storage_preview_and_explicit_export_confirmation():
     old_heartbeat_key = "heartbeat-" + str(uuid4())
     active_result_key = "task-result-" + str(uuid4())
     unknown_scope_key = "future-scope-" + str(uuid4())
-    old_safe_report, old_review_report = uuid4(), uuid4()
+    old_safe_report, old_review_report, old_conflict_report = uuid4(), uuid4(), uuid4()
     now = datetime.now(timezone.utc)
     safe_decisions = Jsonb([{"decision": "ALREADY_CONFIRMED"}])
     review_decisions = Jsonb([{"decision": "UNKNOWN_TASK"}])
+    conflict_decisions = Jsonb([{"decision": "TERMINAL_CONFLICT_MANUAL_REVIEW"}])
     token_hash = hashlib.sha256(credential_id.bytes).hexdigest()
 
     try:
@@ -89,11 +90,15 @@ def test_prune_agent_storage_preview_and_explicit_export_confirmation():
                 """
                 INSERT INTO geelark_control.agent_reconciliation_reports
                     (report_id, node_id, inventory_sha256, inventory_count, decisions, created_at)
-                VALUES (%s, %s, %s, 0, %s, %s), (%s, %s, %s, 0, %s, %s)
+                VALUES
+                    (%s, %s, %s, 0, %s, %s),
+                    (%s, %s, %s, 0, %s, %s),
+                    (%s, %s, %s, 0, %s, %s)
                 """,
                 (
                     old_safe_report, node_id, "a" * 64, safe_decisions, now - timedelta(days=100),
                     old_review_report, node_id, "c" * 64, review_decisions, now - timedelta(days=400),
+                    old_conflict_report, node_id, "d" * 64, conflict_decisions, now - timedelta(days=500),
                 ),
             )
             # 10,001 informes seguros recientes: se conserva el más nuevo por cada nodo hasta el límite 10.000.
@@ -115,7 +120,7 @@ def test_prune_agent_storage_preview_and_explicit_export_confirmation():
             assert preview[0] == baseline[0] + 1  # nonce vencido +1h de gracia
             assert preview[2] == baseline[2] + 1  # heartbeat vencido; scope futuro no se poda
             assert preview[4] == baseline[4] + 2  # informe de 100d + el seguro que supera 10.000
-            assert preview[6] == baseline[6] + 1  # evidencia UNKNOWN_TASK >365d
+            assert preview[6] == baseline[6] + 2  # UNKNOWN_TASK y conflicto terminal >365d
             assert preview[1] == preview[3] == preview[5] == preview[7] == 0
             preview_audit = conn.execute(
                 """
@@ -164,8 +169,16 @@ def test_prune_agent_storage_preview_and_explicit_export_confirmation():
                 (f"agent:{node_id}:future_operation", unknown_scope_key),
             ).fetchone()[0] == 1
             assert conn.execute(
+                "SELECT count(*) FROM geelark_control.idempotency_records WHERE scope = %s AND idempotency_key = %s",
+                (f"agent:{node_id}:task_result", active_result_key),
+            ).fetchone()[0] == 1  # snapshot no vencido, necesario para reintentos
+            assert conn.execute(
                 "SELECT count(*) FROM geelark_control.agent_reconciliation_reports WHERE report_id = %s",
                 (old_review_report,),
+            ).fetchone()[0] == 1
+            assert conn.execute(
+                "SELECT count(*) FROM geelark_control.agent_reconciliation_reports WHERE report_id = %s",
+                (old_conflict_report,),
             ).fetchone()[0] == 1
 
         # Solo la segunda confirmación permite eliminar evidencia de revisión exportada y >365 días.
@@ -186,6 +199,10 @@ def test_prune_agent_storage_preview_and_explicit_export_confirmation():
             assert conn.execute(
                 "SELECT count(*) FROM geelark_control.agent_reconciliation_reports WHERE report_id = %s",
                 (old_review_report,),
+            ).fetchone()[0] == 0
+            assert conn.execute(
+                "SELECT count(*) FROM geelark_control.agent_reconciliation_reports WHERE report_id = %s",
+                (old_conflict_report,),
             ).fetchone()[0] == 0
     finally:
         with connect() as conn:
