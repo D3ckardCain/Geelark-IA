@@ -297,6 +297,8 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
               JOIN geelark_control.nodes AS n ON n.node_id = t.node_id
              WHERE t.node_id = %s
                AND n.admin_state = 'active' AND n.health_state = 'healthy' AND n.revoked_at IS NULL
+               AND n.reported_health_state = 'healthy'
+               AND n.last_seen_at > now() - interval '90 seconds'
                AND t.status IN ('queued', 'delivered')
                AND (t.status = 'queued' OR t.delivery_lease_until IS NULL
                     OR t.delivery_lease_until <= now())
