@@ -12,14 +12,14 @@ Fecha: 2026-10-11. PR: #76 (borrador).
 - Añadidas pruebas para consulta SQL sin base de datos y para bloquear el bind remoto.
 
 ## Estado de validación
-- HEAD validado: `7ced1509474eb682092b4d3d837c652218ae6f8c`; [CI #38190571137](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38190571137) terminó en success.
-- 33 pruebas de persistencia, 12 de guardia, 54 de autenticación de agentes y 24 pruebas administrativas aprobadas; `pip check` correcto.
+- HEAD de código validado: `5182e177e4679876de4d7bf51a21cc4541654aa7`; [CI #38190719448](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38190719448) terminó en success.
+- 33 pruebas de persistencia, 12 de guardia, 54 de autenticación de agentes y 26 pruebas administrativas aprobadas; `pip check` correcto.
 - El workflow existente verifica el rol lector incluso cuando ya existía con `NOLOGIN`, y comprueba que falle si se le concede SELECT sobre una tabla ajena o CREATE/propiedad en otro esquema.
-- Se añadió límite PBKDF2 de 600.000–2.000.000 iteraciones; PostgreSQL remoto requiere `sslmode=verify-full`, detecta `hostaddr` remoto y rechaza DSN `service=`.
+- Se añadió límite PBKDF2 de 600.000–2.000.000 iteraciones; PostgreSQL remoto exige `host=` explícito y `sslmode=verify-full`, detecta `hostaddr` remoto y rechaza DSN `service=`.
 - Advertencia no bloqueante: deprecación del uso de `httpx` en `starlette.testclient`.
 - No se ejecutó en PC-MASTER, no se abrió ningún puerto, no se desplegó ni se fusionó.
 - No se han verificado grants en una base real. El proyecto Supabase vinculado aparece inactivo y no se reactivó ni modificó.
-- La CI desechable valida comportamiento automatizado, no las ACL NTFS/TLS de Windows ni la configuración heredada de una base real.
+- La CI desechable valida comportamiento automatizado, no las ACL NTFS/TLS de Windows ni la configuración heredada de una base real. La lista de aceptación en Windows está registrada en [issue #77](https://github.com/D3ckardCain/Geelark-IA/issues/77).
 
 ## Bloqueos antes de producción
 1. Confirmar una base de datos que permita operación real a $0; preferir PostgreSQL local para no depender de una instancia remota.
