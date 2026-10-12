@@ -243,3 +243,19 @@ Fuentes: guías oficiales RPA 2, 3 y 6 enlazadas en el catálogo, sección 32.7.
 | Esperar elemento | Selector, condición, orden, timeout, elementos invisibles y resultado booleano | Timeout limitado, cancelación y no continuar silenciosamente cuando sea requisito crítico |
 
 Fuente: https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
+
+
+### API: categorías y límites publicados por el CLI oficial (2026-10-12)
+
+| Categoría | Operaciones expuestas por el CLI | Relevancia local | Restricción/evidencia |
+|---|---|---|---|
+| Cloud phone | CRUD, start/stop, status, clone, screenshot, GPS, reset, root, SMS, contactos, transfer | Inventario de funciones de gestión a mapear contra módulos locales | Servicio cloud requiere token y puede requerir plan/saldo |
+| Automation | Consultar/cancelar/reiniciar tareas; crear tareas personalizadas y de plataforma | API local propia para colas, estado, cancelación e idempotencia | No integrar API de GeeLark como dependencia |
+| Apps/files/Library | Catálogo, instalar/desinstalar, carga APK/archivo, resultados de carga, materiales y tags | Gestor local de paquetes y medios con auditoría | Retención/capacidad cloud no se copia como requisito local |
+| ADB/shell | Datos de conexión, habilitar/deshabilitar ADB, ejecución de shell remoto | Solo control local autorizado y explícito | No exponer shell/ADB remoto en panel admin |
+| Browser/proxy/groups/tags | CRUD de perfiles de navegador, proxies, grupos y etiquetas | Comparar con alcance del producto; navegador queda separado de Android | La API cloud puede tener límites y cargos |
+| Webhook/OEM/analytics/billing | Callbacks, marca, cuentas/datos y saldo/planes/transacciones | Webhooks locales opcionales; facturación cloud fuera de alcance | CLI MIT no convierte el backend cloud en gratuito |
+
+El README del CLI oficial publica límites de 200 solicitudes/minuto y 24.000/hora, con 10/minuto para balance, y una restricción de dos horas tras exceder límites. Son valores declarados por el CLI, no un SLA; deben confirmarse contra la documentación API vigente antes de cualquier integración. El portal https://open.geelark.com/api no expuso texto legible en esta revisión.
+
+Fuente: https://github.com/GeeLark/geelark-cli
