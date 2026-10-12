@@ -206,3 +206,8 @@ Se actualizó el catálogo y la matriz con fuentes oficiales de perfiles, gesti�
 ### Detalle de RPA añadido a la auditoría — 2026-10-12
 
 Se amplió el catálogo de RPA con selectores por texto/atributos/coordenadas, opciones Equals/Contains, timeout, variables tipadas, extracción de texto, bucles, condiciones y manejo de errores. La siguiente tarea de la issue #6 es completar el inventario bloque por bloque con todos sus parámetros/errores, y separar lo confirmado por documentación de lo que requiere inspección práctica. La especificación local ya define límites, cancelación, estados persistidos y prohibición de ejecutar scripts/shell arbitrarios por defecto; esta revalidación no declara el motor implementado.
+
+
+### Próximo trabajo de auditoría RPA (2026-10-12)
+
+Las guías oficiales 2, 3 y 6 permiten especificar bloques Open app, Waiting time, Scroll Page, Page back, Upload File, IF Condition, For Loop Times/Elements/Data, Exit Loop, End Task, variables configurables, programación y logs. La especificación RPA ahora incorpora contratos y pruebas por bloque. Sigue pendiente revisar el manual completo de RPA, completar los módulos no descritos (incluido For Loop Data) y validar parámetros/errores en una versión observable antes de cerrar la issue #6.
