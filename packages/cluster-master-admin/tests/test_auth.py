@@ -83,23 +83,60 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
     def fake_is_file(path: Path) -> bool:
         return path.name.lower() in {"whoami.exe", "icacls.exe"}
 
+    target = tmp_path / ("sessions" if directory else "sessions.sqlite3")
+
     def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
         calls.append(command)
         if command[0].lower().endswith("whoami.exe"):
             return SimpleNamespace(stdout=r"PC-MASTER\operator")
-            return SimpleNamespace(stdout=r"PC-MASTER\operator")
+        if "/reset" in command:
+            return SimpleNamespace(stdout="")
+        flags = "(OI)(CI)(F)" if directory else "(F)"
+        return SimpleNamespace(stdout=f"{target} PC-MASTER\\operator:{flags}\n")
 
     monkeypatch.setattr(Path, "is_file", fake_is_file)
     monkeypatch.setattr(subprocess, "run", fake_run)
-    target = tmp_path / ("sessions" if directory else "sessions.sqlite3")
 
     auth_module._restrict_windows_acl(target, directory=directory)
 
-    assert len(calls) == 2
+    assert len(calls) == 3
     assert calls[0][0].lower().endswith("whoami.exe")
     acl_call = calls[1]
     assert acl_call[0].lower().endswith("icacls.exe")
     assert acl_call[2:] == ["/reset", "/inheritance:r", "/grant:r", expected_grant]
+    assert calls[2] == [acl_call[0], str(target)]
+
+
+def test_windows_acl_verification_rejects_unexpected_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess
+    from types import SimpleNamespace
+
+    from geelark_master_admin import auth as auth_module
+
+    target = tmp_path / "sessions.sqlite3"
+
+    def fake_is_file(path: Path) -> bool:
+        return path.name.lower() in {"whoami.exe", "icacls.exe"}
+
+    def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
+        if command[0].lower().endswith("whoami.exe"):
+            return SimpleNamespace(stdout=r"PC-MASTER\operator")
+        if "/reset" in command:
+            return SimpleNamespace(stdout="")
+        return SimpleNamespace(
+            stdout=(
+                f"{target} PC-MASTER\\operator:(F)\n"
+                "             BUILTIN\\Users:(R)\n"
+            )
+        )
+
+    monkeypatch.setattr(Path, "is_file", fake_is_file)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(PermissionError, match="ACL NTFS resultante"):
+        auth_module._restrict_windows_acl(target, directory=False)
 
 
 def test_windows_acl_failure_fails_closed(
