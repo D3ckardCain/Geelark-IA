@@ -8,8 +8,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from datetime import timedelta
 from collections.abc import Callable
+from datetime import timedelta
 from typing import Any
 
 import psycopg
