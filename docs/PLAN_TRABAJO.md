@@ -1,6 +1,6 @@
 # Plan de trabajo — Geelark-IA
 
-**Actualizado:** 2026-10-09  
+**Actualizado:** 2026-10-12  
 **Fase activa:** A — inventario funcional de GeeLark y viabilidad de Android virtualizado local.
 
 El plan maestro está en [PLAN_PARIDAD_GEELARK.md](PLAN_PARIDAD_GEELARK.md). La investigación documental está en [INVESTIGACION_FUNCIONAL_GEELARK.md](INVESTIGACION_FUNCIONAL_GEELARK.md), la matriz en [MATRIZ_PARIDAD_GEELARK.md](MATRIZ_PARIDAD_GEELARK.md) y la comparativa de motores en [COMPARATIVA_MOTORES_ANDROID.md](COMPARATIVA_MOTORES_ANDROID.md).
@@ -196,3 +196,23 @@ Se añadió [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSIST
 ### Próxima tarea técnica registrada
 
 La issue [#17 — persistencia transaccional de asignaciones y outbox](https://github.com/D3ckardCain/Geelark-IA/issues/17) queda preparada con criterios de aceptación para exclusión de doble propietario, idempotencia durable, epoch, reservas, outbox, recuperación y backups. No se empezará esa implementación hasta cerrar la revisión de contratos del PR #16.
+
+
+### Revalidación documental de GeeLark (2026-10-12)
+
+Se actualizó el catálogo y la matriz con fuentes oficiales de perfiles, gestión, Synchronizer, Library, API y ADB. Quedan explícitas las restricciones comerciales de GeeLark (funciones Pro, cobro cloud y retención temporal de Library) para no convertirlas en dependencias del sistema local. La discrepancia entre las versiones Android enumeradas por Synchronizer (9–15) y ADB (11–16) permanece abierta; no se selecciona motor ni se declara paridad sin pruebas en el anfitrión real. La investigación documental sigue en la issue #6.
+
+
+### Detalle de RPA añadido a la auditoría — 2026-10-12
+
+Se amplió el catálogo de RPA con selectores por texto/atributos/coordenadas, opciones Equals/Contains, timeout, variables tipadas, extracción de texto, bucles, condiciones y manejo de errores. La siguiente tarea de la issue #6 es completar el inventario bloque por bloque con todos sus parámetros/errores, y separar lo confirmado por documentación de lo que requiere inspección práctica. La especificación local ya define límites, cancelación, estados persistidos y prohibición de ejecutar scripts/shell arbitrarios por defecto; esta revalidación no declara el motor implementado.
+
+
+### Próximo trabajo de auditoría RPA (2026-10-12)
+
+Las guías oficiales 2, 3 y 6 permiten especificar bloques Open app, Waiting time, Scroll Page, Page back, Upload File, IF Condition, For Loop Times/Elements/Data, Exit Loop, End Task, variables configurables, programación y logs. La especificación RPA ahora incorpora contratos y pruebas por bloque. Sigue pendiente revisar el manual completo de RPA, completar los módulos no descritos (incluido For Loop Data) y validar parámetros/errores en una versión observable antes de cerrar la issue #6.
+
+
+### Inventario API actualizado — 2026-10-12
+
+Se incorporó al catálogo el inventario de categorías del CLI oficial: cloud phones, automatización, apps, archivos/Library, ADB/shell, webhooks, OEM, analítica, navegador, proxy, grupos, tags y facturación. El cliente es MIT, pero requiere token y servicio GeeLark, con funciones que pueden requerir pago/saldo; no se usará como dependencia. Los límites publicados por el CLI quedan como evidencia provisional hasta contrastarlos con documentación API legible. El inventario exacto por endpoint y su contrato siguen pendientes.

@@ -1,6 +1,6 @@
 # Investigación funcional de GeeLark — registro inicial
 
-**Fecha de consulta:** 2026-10-09  
+**Fecha de consulta:** 2026-10-12  
 **Estado:** investigación documental inicial; no equivale a auditoría completa ni a pruebas directas dentro del cliente.  
 **Idioma de registro:** español.  
 **Alcance del proyecto:** replicar funciones de GeeLark aplicables a Android mediante entornos Android virtualizados/emulados en hardware anfitrión local, sin teléfonos físicos como requisito y sin servicios cloud obligatorios. iOS queda excluido.
@@ -231,3 +231,70 @@ No se selecciona todavía un motor. redroid parece especialmente relevante para 
 - 2026-10-09: primera investigación documental consolidada; se aclara que GeeLark es una plataforma integrada de cloud phones, gestión, automatización, sincronización, API y recursos, no solo un emulador.
 - 2026-10-09: se fija el alcance de nuestro proyecto en Android virtualizado/emulado localmente en hardware anfitrión; no se presupone el uso de teléfonos físicos.
 - 2026-10-09: se añade comparación preliminar de redroid, Android Emulator, Waydroid y Android-x86, sin seleccionar stack definitivo.
+
+
+## 11. Revalidación de fuentes oficiales (2026-10-12)
+
+La revisión adicional de páginas públicas del centro de ayuda y de producto confirmó estos detalles operativos que deben distinguirse de las funciones locales:
+
+- Perfiles: creación individual, rápida y por lotes; Quick Create y Batch Create se marcan como Pro. La guía de creación describe grupo, sistema operativo, proxy y método de facturación; los cloud phones se facturan por minuto salvo paquete de tiempo o alquiler mensual.
+- Gestión: filtros por grupo/categoría, edición cuando el perfil está cerrado, transferencia de perfil irreversible y operaciones de grupos como crear, renombrar, eliminar, fusionar y mover.
+- Synchronizer: disponible en Pro; replica acciones del teléfono principal a otros teléfonos seleccionados. La guía recomienda seleccionar teléfonos apagados y del mismo tipo. La lista de versiones de esta función es Android 9–15. La sincronización de perfiles de navegador se documenta solo para Windows.
+- Library: disponible en Pro; centraliza medios, permite carga local e importación desde servicios compatibles, y documenta 100 GB con borrado a los 30 días en el servicio cloud.
+- API/ADB: la página API enumera gestión de cloud phones, automatización, aplicaciones, archivos, Library, ADB y webhooks. La guía ADB consultada enumera Android 11–16.
+
+Las restricciones Pro, los cobros por minuto y la retención temporal de medios son características comerciales de GeeLark, no dependencias que debamos introducir en Geelark-IA. La alternativa local propuesta es gestión de perfiles/instancias, almacenamiento persistente de medios, API propia y ADB limitado a loopback/red interna. La lista de Android para Synchronizer no coincide con la de ADB, por lo que la matriz mantiene esa cuestión pendiente en lugar de generalizar compatibilidad.
+
+Fuentes:
+- Perfil: https://help.geelark.com/Profile-e60c92ba743748a697c07551f59812b8
+- Gestión de perfiles: https://help.geelark.com/Profile-management-c91b6291bb954a69a5d231781a03d0e1
+- Synchronizer: https://help.geelark.com/Synchronizer-82c1c9a8f62d489ca81b1f753d2a7bfa
+- Library: https://help.geelark.com/Library-1c20be7d9e41800a8535ea943b930bd4
+- API: https://www.geelark.com/features/api/
+- ADB: https://help.geelark.com/ADB-1600be7d9e418006b80cf649bcdc80ad
+
+
+### RPA — detalle operativo confirmado (2026-10-12)
+
+La guía oficial para principiantes detalla selectores por texto, atributos y coordenadas; atributos citados: `fullId`, `desc`, `className`. También documenta igualdad/contiene, orden fijo o aleatorio, tiempo de espera, opción de elementos invisibles, resultado booleano, notas, variables de texto/número/booleano/objeto, extracción de texto, bucles, condiciones y excepciones de omitir/detener. La página de producto resume las familias como acciones, lógica, bucles, variables y manejo de excepciones, además de ejecución y logs.
+
+Para Geelark-IA se propone un motor local tipado y auditable: cada bloque declara permisos, entrada/salida, timeout, límites, política de error y si puede reintentarse sin duplicar efectos. Los selectores semánticos se prefieren a coordenadas. No se ejecutarán scripts o shell arbitrarios por defecto, ni se interpretarán funciones de aleatoriedad como mecanismo para evadir políticas de aplicaciones.
+
+Fuentes:
+- https://www.geelark.com/features/rpa/
+- https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
+- https://www.geelark.com/blog/geelark-rpa-guide-5/
+- https://www.geelark.com/es/blog-es/automatizacion-de-apps-android-y-navegador-geelark-rpa/
+
+
+### Bloques RPA concretos (2026-10-12)
+
+Las guías públicas 2, 3 y 6 describen el flujo de plantillas y planificación (perfiles destino, horarios y logs), además de los bloques Open app, Waiting time, Scroll Page, Page back, Upload File, IF Condition, For Loop Times/Elements/Data, Exit Loop, End Task y Exception handling (Skip/Interrupt). Task Settings documenta variables String, Batch Text, Boolean, Number y File; la guía de variables también describe objetos de elemento UI como referencias temporales. Las condiciones incluyen existencia, comparaciones, inclusión/exclusión y una condición probabilística. La guía indica que el detalle de For Loop Data aún está en preparación; por tanto, su contrato permanece desconocido.
+
+La especificación local transforma estos hallazgos en contratos tipados, límites, cancelación y pruebas de fallos parciales. La documentación pública no demuestra todos los módulos de la versión actual, así que el inventario sigue parcial.
+
+Fuentes:
+- https://www.geelark.com/blog/geelark-rpa-guide-2/
+- https://www.geelark.com/blog/geelark-rpa-guide-3/
+- https://www.geelark.com/blog/geelark-rpa-guide-6/
+
+
+### Límite de evidencia del portal API (2026-10-12)
+
+La página comercial oficial enlaza https://open.geelark.com/api, pero el portal no expuso contenido textual legible en esta revisión. Solo se registran las categorías anunciadas por la página comercial; no se infieren endpoints, esquemas, firma de solicitudes, códigos de error ni requisitos de autenticación. Para completar la matriz API se necesita una fuente oficial legible o una exportación pública verificable.
+
+
+### Acciones de interfaz RPA (guía 4, 2026-10-12)
+
+La guía documenta clic y pulsación prolongada sobre elemento o coordenadas, ingreso de contenido, operación de teclado y espera de elemento. Los selectores observados son `fullId`, texto, `desc` y `className`; se puede usar Equals/Contains, índice fijo o intervalo, timeout, opción de elementos no visibles, resultado booleano y notas. Los atributos pueden estar vacíos o repetirse, y algunos elementos están anidados. Para coordenadas, la guía advierte que la resolución y la versión Android pueden cambiar la posición; recomienda preferir selectores semánticos y probar en varios sistemas.
+
+Esta evidencia se convirtió en requisitos de detección de ambigüedad, timeout obligatorio, resultado verificable y advertencia de fragilidad de coordenadas. No se declara que el motor local pueda inspeccionar todos los árboles UI; esa capacidad dependerá del motor Android elegido y debe probarse.
+
+
+### Inventario API del CLI oficial (2026-10-12)
+
+El repositorio público GeeLark/geelark-cli se presenta bajo licencia MIT, pero requiere un token de la cuenta GeeLark y su README enumera funciones cloud que pueden requerir pago/saldo. Categorías: teléfonos cloud, tareas de automatización, apps/equipo, archivos/Library, ADB/shell, webhooks, OEM, analítica, navegador, proxies, grupos, tags y facturación. El README declara límites de 200 solicitudes/minuto y 24.000/hora, 10/minuto para balance y restricción de dos horas tras exceder límites. Estos valores deben confirmarse contra la documentación API vigente; no se consideran un SLA.
+
+La página API comercial enlaza el portal https://open.geelark.com/api, cuyo contenido no fue legible en esta revisión. Por eso no se inventan rutas, esquemas, autenticación completa ni códigos de error por endpoint. El CLI MIT no es una alternativa a costo cero al servicio cloud, y no se incorporará como dependencia de Geelark-IA.
+
+Fuente: https://github.com/GeeLark/geelark-cli

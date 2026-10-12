@@ -1,6 +1,6 @@
 # Catálogo funcional detallado de GeeLark — avance de auditoría
 
-**Fecha de actualización:** 2026-10-09  
+**Fecha de actualización:** 2026-10-12  
 **Versión del catálogo:** 0.1  
 **Estado:** parcial; basado en documentación pública oficial y notas de versión. No equivale a inspección exhaustiva del cliente ni a pruebas prácticas.  
 **Idioma:** español.
@@ -760,3 +760,142 @@ Fuente: https://help.geelark.com/connect-real-device
 8. Verificación de que la inspección no ejecuta comandos de escritura en el origen.
 
 No se afirma compatibilidad universal a partir de esta guía: cada fabricante/versión se validará progresivamente.
+
+
+## 32. Revalidación de fuentes oficiales — 2026-10-12
+
+Esta sección registra una nueva lectura de páginas públicas oficiales. No significa que GeeLark-IA ya implemente estas funciones; sirve para precisar la referencia y evitar copiar restricciones comerciales al diseño local.
+
+### 32.1 Creación y gestión de perfiles
+
+La guía oficial de creación de perfiles documenta tres modalidades: creación individual, rápida y por lotes. La misma página señala que Quick Create y Batch Create son exclusivas de Pro. En creación individual se seleccionan grupo, sistema operativo, proxy y método de facturación; la guía describe proxies estáticos y rotativos, selección de proxies guardados, asociación con perfiles, emparejamiento aleatorio con preferencia por proxies menos usados y comprobación de conexión/ubicación. No se permiten proxies expirados. El uso del cloud phone se factura por minuto salvo que el usuario tenga un paquete de tiempo o alquiler mensual.
+
+La guía de gestión añade filtros por grupo/categoría, edición solo cuando el perfil está cerrado, transferencia irreversible a otro usuario y administración de grupos (crear, renombrar, eliminar, fusionar y mover perfiles).
+
+**Adaptación local:** mantener creación individual como ruta base y añadir creación por lotes local solo con validación por fila, vista previa, límites basados en recursos del anfitrión, idempotencia y recuperación de fallos parciales. No replicar facturación cloud, suscripciones ni restricciones Pro como dependencias del producto local. La transferencia irreversible se sustituye por operaciones locales explícitas con confirmación, auditoría y posibilidad de recuperación cuando sea viable.
+
+Fuentes:
+- https://help.geelark.com/Profile-e60c92ba743748a697c07551f59812b8
+- https://help.geelark.com/Profile-management-c91b6291bb954a69a5d231781a03d0e1
+
+### 32.2 Synchronizer
+
+La guía consultada indica que Synchronizer es una función de suscripción Pro. Para teléfonos cloud, las acciones realizadas en un teléfono principal se replican a los otros teléfonos seleccionados; la guía pide seleccionar teléfonos apagados y recomienda usar el mismo tipo/modelo para reducir diferencias de interfaz. La lista publicada enumera Android 9 a Android 15. La sincronización de perfiles de navegador se documenta como disponible solo en Windows, con versión macOS en desarrollo.
+
+**Adaptación local:** el alcance de Geelark-IA es Android local, por lo que la sincronización de perfiles de navegador queda fuera de alcance. Antes de replicar eventos se debe comprobar que todas las instancias están en un estado compatible, registrar por destino el resultado y error, permitir pausar/detener y manejar resoluciones o layouts diferentes. No asumir que todas las acciones de interfaz se pueden reproducir de forma determinista.
+
+Fuente: https://help.geelark.com/Synchronizer-82c1c9a8f62d489ca81b1f753d2a7bfa
+
+### 32.3 Library
+
+La guía oficial indica que Library solo está disponible en Pro, centraliza fotos y vídeos para teléfonos cloud y flujos de automatización, permite carga manual e importación desde Google Drive u otros servicios compatibles, y describe un límite de 100 GB con eliminación del contenido 30 días después de la carga. Ese límite es una política del servicio cloud de GeeLark, no un requisito para la biblioteca local.
+
+**Adaptación local:** priorizar archivos locales persistentes, etiquetas, búsqueda, hashes, control de duplicados, límites configurables por disco, backup/restauración y eliminación solo con política explícita. Las integraciones cloud serán opcionales y nunca obligatorias; no se incorporará Google Drive como dependencia crítica.
+
+Fuente: https://help.geelark.com/Library-1c20be7d9e41800a8535ea943b930bd4
+
+### 32.4 API y ADB
+
+La página pública de API enumera operaciones de gestión del ciclo de vida de cloud phones, automatización, apps y contenido, archivos, Library, ADB y webhooks. La guía ADB consultada enumera compatibilidad con Android 11–16 y describe habilitar ADB en el perfil, iniciar el teléfono cloud y usar dirección/puerto y código de conexión. Esta lista no debe confundirse con la compatibilidad de Synchronizer, que publica Android 9–15.
+
+**Adaptación local:** diseñar una API propia versionada con autenticación local revocable, permisos mínimos, errores tipados, idempotencia y eventos durables. En local, ADB se mantendrá en loopback o red interna aislada; no se expondrá ADB público ni se convertirá shell en una ruta remota administrativa por defecto. La compatibilidad se validará por motor e imagen Android.
+
+Fuentes:
+- https://www.geelark.com/features/api/
+- https://help.geelark.com/ADB-1600be7d9e418006b80cf649bcdc80ad
+
+**Límite de evidencia de API:** la página comercial enlaza el portal oficial https://open.geelark.com/api, pero el contenido de ese portal no fue legible en la consulta documental actual. Por tanto, aquí solo se registran categorías anunciadas (cloud phones, automatización, apps/archivos, ADB, Library y webhooks); no se inventan rutas, esquemas JSON, firmas, errores ni requisitos de autenticación. El inventario de endpoints sigue pendiente de acceso a documentación textual o exportación pública verificable.
+
+### 32.5 Conclusión de esta revalidación
+
+Las páginas consultadas confirman que GeeLark combina gestión de perfiles, proxies, automatización, sincronización, recursos multimedia y APIs sobre una infraestructura cloud con funciones sujetas a plan y facturación. La paridad local debe replicar el objetivo funcional donde sea viable, no los cargos, la retención temporal de Library ni las restricciones Pro. Las diferencias de versiones Android entre funciones se mantienen como una incertidumbre que requiere pruebas por motor.
+
+
+### 32.6 RPA: selectores, variables y control de flujo
+
+La página pública de RPA describe un editor visual sin código para combinar acciones, lógica, bucles, variables, manejo de excepciones y ejecución/monitorización de tareas. La guía práctica de RPA detalla opciones concretas que conviene modelar en el catálogo local:
+
+- **Acciones observadas:** abrir aplicaciones, tocar/clicar elementos, pulsación prolongada, deslizar/desplazar, introducir texto, esperar, subir archivos y navegar por pantallas.
+- **Localización de elementos:** texto visible, atributos del elemento y coordenadas. La guía de principiantes menciona atributos como `fullId`, `desc` y `className`.
+- **Configuración de selector:** coincidencia exacta (`Equals`) o parcial (`Contains`), orden fijo o selección aleatoria dentro de un intervalo, tiempo máximo de espera en milisegundos y opción de buscar elementos no visibles.
+- **Resultado y diagnóstico:** la guía describe guardar el resultado de una acción en una variable booleana y añadir notas para explicar el propósito del paso.
+- **Variables documentadas:** texto/cadena, número, booleano y objeto (por ejemplo, una referencia a un elemento UI). La guía incluye extraer texto de un elemento, guardarlo y reutilizarlo en acciones posteriores.
+- **Control de flujo:** condiciones, bucles por cantidad/elementos/datos y reglas de excepción como omitir un paso o detener el flujo.
+- **Operación:** asignar el flujo a perfiles seleccionados, ejecutar o programar tareas y consultar estado/logs.
+
+**Adaptación local y seguridad:** cada bloque debe tener esquema versionado, tipos de entrada/salida, timeout, resultado booleano/estructurado, política de fallo, permisos, idempotencia y registro redactado. El motor local no ejecutará Python, JavaScript ni shell arbitrario como parte normal de un flujo. Los selectores por coordenadas son frágiles; deben marcarse como menos robustos que los selectores semánticos y validarse por resolución, idioma y versión Android. Las acciones aleatorias se modelarán como opción explícita y reproducible (semilla/registro), no como evasión de controles de plataformas.
+
+Fuentes:
+- https://www.geelark.com/features/rpa/
+- https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
+- https://www.geelark.com/blog/geelark-rpa-guide-5/
+- https://www.geelark.com/es/blog-es/automatizacion-de-apps-android-y-navegador-geelark-rpa/
+
+
+### 32.7 Bloques concretos documentados en las guías RPA (2026-10-12)
+
+Las guías de principiantes permiten concretar el inventario inicial de bloques. No son una lista exhaustiva del editor actual; las opciones deben verificarse cuando exista acceso práctico a una versión de referencia.
+
+| Bloque o grupo | Parámetros/semántica observados | Requisitos para la adaptación local |
+|---|---|---|
+| Open app | Nombre de paquete; URI opcional para abrir una pantalla/recurso concreto | Validar paquete instalado, URI permitido y resultado; no ejecutar comandos arbitrarios |
+| Waiting time | Valor fijo o intervalo aleatorio | Límites mínimos/máximos, unidades explícitas, semilla registrada cuando sea aleatorio |
+| Scroll Page | Distancia en píxeles, tiempo de desplazamiento, punto inicial X/Y y dirección arriba/abajo/izquierda/derecha | Validar límites de coordenadas y resolución; timeout y cancelación |
+| Page back | Regresar a la pantalla anterior; puede requerir más de una acción para volver al inicio | Resultado observable, límite de repetición y no asumir que una pulsación siempre vuelve al mismo destino |
+| Upload File | Uno o varios archivos; selección secuencial por flujo, por entorno o aleatoria | Solo rutas permitidas, vista previa, validación de tamaño/hash y resultado por archivo |
+| IF Condition | Existe/no existe; comparaciones menor/igual/distinto/mayor; incluye/no incluye; condición porcentual aleatoria | Tipos compatibles, reglas explícitas y registro de la rama seleccionada |
+| For Loop Times | Repetir acciones un número definido de veces | Máximo de iteraciones, cancelación y checkpoint seguro |
+| For Loop Elements | Iterar sobre elementos visibles que cumplen el selector; variables para elemento actual e índice (base 1) | Congelar/validar lista de elementos, limitar cantidad y detectar cambios de UI |
+| For Loop Data | La guía enumera el bloque, pero indica que la explicación detallada sigue en preparación | Mantener el contrato como pendiente; no inventar campos hasta obtener evidencia adicional |
+| Exit Loop / End Task | Salir del bucle antes de terminar o detener la tarea inmediatamente | Distinguir salida del bucle de cancelación global; registrar causa y estado terminal |
+| Task Settings / variables | Variables String, Batch Text, Boolean, Number y File; valores configurables antes de publicar. Las acciones de UI también pueden almacenar referencias de elementos como objetos | Tipos versionados, validación de valores por tarea y separación entre parámetros del usuario y variables temporales |
+| Exception handling | Skip (omitir paso fallido) o Interrupt (detener tarea) | Política por bloque y por flujo, error tipado y estado final visible |
+| Task scheduling/logs | Nombre y notas del plan, perfiles destino, horarios por perfil o comunes; logs con opción de cancelar ejecución o modificar hora de publicación | Cola persistente, zona horaria explícita, idempotencia, cancelación cooperativa e historial auditable |
+
+Fuentes oficiales:
+- Guía 2 — plantillas, asignación a perfiles, planificación y logs: https://www.geelark.com/blog/geelark-rpa-guide-2/
+- Guía 3 — Open app, Waiting time, Scroll Page, Page back y depuración: https://www.geelark.com/blog/geelark-rpa-guide-3/
+- Guía 4 — selectores, interacción y parámetros: https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
+- Guía 5 — variables y extracción de texto: https://www.geelark.com/blog/geelark-rpa-guide-5/
+- Guía 6 — carga de archivos, condiciones, bucles, salida y excepciones: https://www.geelark.com/blog/geelark-rpa-guide-6/
+
+**Pendiente:** el inventario no se considera exhaustivo; la propia guía deja For Loop Data para una explicación posterior y el marketing menciona más módulos que los descritos aquí. No se implementará un bloque solo por aparecer en una lista comercial sin especificar su contrato y pruebas.
+
+
+### 32.8 Acciones UI y campos de selector (guía 4)
+
+La guía en español confirma acciones adicionales y parámetros comunes:
+
+- **Haz clic en elemento / pulsación prolongada en elemento:** selector por `fullId`, texto, `desc` o `className`; Equals/Contains; posición fija o rango; timeout en ms; incluir o excluir elementos no visibles; variable booleana de resultado; notas.
+- **Clic en coordenadas / pulsación prolongada en coordenadas:** X/Y de pantalla. La guía explica calcular el centro de los límites del elemento y advierte que las mismas coordenadas pueden apuntar a otro control al cambiar la resolución o la versión Android.
+- **Ingresar contenido:** selecciona el campo mediante atributos, define coincidencia/orden/timeout y configura el contenido. La guía también muestra variables como fuente de texto.
+- **Operación con teclado:** teclas como Enter o Delete.
+- **Esperar a que aparezca un elemento:** selector por atributos/texto, condición, orden, timeout, opción de elementos invisibles y resultado booleano.
+- **Inspección de UI:** el flujo de referencia usa una herramienta de análisis de jerarquía/accesibilidad para inspeccionar clase, descripción, ID completo, texto y límites del elemento. No todos los elementos tienen `desc` o un `fullId` único; los controles pueden estar anidados.
+
+**Reglas para Geelark-IA:** dar prioridad a selectores semánticos y combinaciones de atributos; advertir si el selector coincide con varios elementos; hacer explícita la selección por índice; registrar la resolución y versión Android cuando se usan coordenadas; y devolver `success=false` más un error estable si el elemento no aparece dentro del timeout. Nunca asumir que un ID, texto o coordenada es universal entre apps/versiones.
+
+Fuente: https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
+
+
+### 32.9 Inventario API a partir del CLI oficial (2026-10-12)
+
+El repositorio público del CLI oficial se presenta con licencia MIT y afirma cobertura de las interfaces API de GeeLark. Esto describe la licencia del cliente, **no** una API cloud gratuita: el README requiere un token obtenido en el cliente GeeLark y enumera respuestas de “solo usuarios de pago”, saldo insuficiente y límites de cuenta. Geelark-IA no dependerá de ese servicio ni del CLI para funcionar.
+
+El README del CLI organiza capacidades en estas áreas:
+
+- **Cloud phone:** listar, crear, iniciar/detener, eliminar, actualizar, clonar, consultar estado, captura, GPS, reset, root, SMS, transferir y contactos.
+- **Automatización:** consultar historial/estado, cancelar/reiniciar tareas, crear tareas personalizadas y lanzar automatizaciones de plataforma.
+- **Aplicaciones/equipo:** consultar catálogo, instalar/desinstalar/iniciar/detener, cargar APK, consultar estado de carga y operaciones por lote.
+- **Archivos/Library:** carga temporal, carga al teléfono, estado de carga, materiales y etiquetas.
+- **ADB/shell:** obtener datos de conexión, habilitar/deshabilitar ADB y ejecutar comandos remotos.
+- **Webhooks/OEM/analítica:** gestionar URL de callback, configuración de marca y cuentas/datos analíticos.
+- **Navegador:** listar/crear/editar/iniciar/detener/eliminar y automatización.
+- **Proxy/grupos/tags:** listar y crear/actualizar/eliminar; proxy también permite comprobación/detección.
+- **Facturación:** consultar saldo, transacciones, planes, renovaciones y paquetes de tiempo.
+
+El README del CLI publica límites de 200 solicitudes por minuto y 24.000 por hora, y 10 solicitudes por minuto para balance; indica una restricción de dos horas tras exceder límites. Son límites publicados por el cliente oficial, no garantías de SLA ni límites transferibles a Geelark-IA. También enumera códigos como parámetros inválidos, rate limit, solo pago, saldo insuficiente, teléfono no encontrado/no iniciado, tarea activa y límite de perfiles.
+
+**Límite de evidencia:** el inventario del CLI no reemplaza los contratos de cada endpoint. El portal de documentación API no expuso contenido textual legible en esta revisión, por lo que no se infieren payloads, autenticación completa, callbacks ni todos los errores.
+
+Fuente: https://github.com/GeeLark/geelark-cli (README y licencia del repositorio oficial).

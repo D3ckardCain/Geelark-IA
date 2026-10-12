@@ -65,3 +65,78 @@ No sincronizar contraseñas, tokens o información privada sin selección explí
 - Confirmar que los logs no contienen secretos.
 - Exportar/importar un flujo validando esquema y versión.
 - Documentar cada bloque y sus limitaciones en el manual en español.
+
+
+## 7. Requisitos derivados de la referencia funcional GeeLark (2026-10-12)
+
+La documentación pública de GeeLark describe estas familias de funciones RPA: acciones de interfaz, lógica/condiciones, bucles, variables, manejo de excepciones, ejecución/programación y revisión de estado/logs. Las guías de principiantes aportan opciones concretas para selectores y variables. Se documentan como referencia funcional, no como promesa de paridad exacta.
+
+### 7.1 Acciones y localización
+
+- Acciones iniciales a catalogar: abrir app, tocar/clicar elemento, pulsación prolongada, deslizar/desplazar, ingresar texto, esperar y cargar archivo aprobado.
+- Modos de selector observados: texto visible, atributos (`fullId`, `desc`, `className`) y coordenadas.
+- Condición del selector: coincidencia exacta o parcial.
+- Orden del elemento: índice fijo o selección aleatoria dentro de un intervalo.
+- Espera máxima configurable en milisegundos y opción explícita para localizar elementos no visibles.
+- Cada acción debe devolver resultado tipado, al menos éxito/fallo, y una causa estable. La configuración debe admitir notas descriptivas.
+
+### 7.2 Variables y flujo
+
+- Tipos observados: string, number, boolean y object (referencia a elemento UI).
+- Lectura de texto de un elemento, almacenamiento en variable y reutilización en acciones posteriores.
+- Bucles limitados por cantidad, conjunto de elementos o datos; condiciones con ramas; manejo de excepción configurable (omitir paso o detener flujo).
+- El diseño local debe detectar variables inexistentes, incompatibilidad de tipos, límites de iteración, timeout y cancelación. Todo bucle debe tener límite máximo y checkpoint cuando la recuperación sea segura.
+
+### 7.3 Seguridad, robustez y paridad
+
+- Preferir selectores semánticos sobre coordenadas; registrar la resolución, idioma y versión Android para diagnosticar diferencias.
+- No ejecutar Python, JavaScript ni shell arbitrario como mecanismo normal de automatización.
+- Aleatoriedad, si se ofrece para selección de elementos, debe ser explícita, acotada y reproducible/auditable; no debe presentarse como mecanismo para evadir controles de plataformas.
+- La ejecución se asigna a una lista explícita de instancias; cada instancia necesita estado, progreso, resultado y error independiente.
+- Los logs y capturas deben redactar secretos y tener política de retención configurable.
+
+### 7.4 Fuentes de referencia
+
+- RPA de GeeLark: https://www.geelark.com/features/rpa/
+- Guía de selectores: https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
+- Variables: https://www.geelark.com/blog/geelark-rpa-guide-5/
+- Visión general de automatización: https://www.geelark.com/es/blog-es/automatizacion-de-apps-android-y-navegador-geelark-rpa/
+
+Esta sección no constituye una lista exhaustiva de los más de 40 módulos que la página comercial anuncia. Cada bloque pendiente debe registrarse con parámetros, entradas/salidas, errores, permisos, límites y prueba de aceptación antes de implementarse.
+
+
+### 7.5 Bloques iniciales derivados de la guía práctica
+
+- **Open app:** package name y URI opcional; validar instalación y destino.
+- **Waiting time:** fijo o intervalo; límites y unidades obligatorios.
+- **Scroll Page:** distancia, duración, punto inicial y dirección; comprobar coordenadas contra la resolución.
+- **Page back:** navegación atrás con resultado verificable y máximo de intentos.
+- **Upload File:** uno o varios archivos con orden por flujo, por entorno o selección aleatoria; rutas aprobadas y resultado por archivo.
+- **IF Condition:** existencia/no existencia, comparaciones numéricas/textuales, inclusión/exclusión de texto y condición probabilística explícita.
+- **For Loop Times / Elements / Data:** repetición por cantidad, elementos visibles coincidentes o conjunto de datos. El contrato de For Loop Data sigue pendiente porque la guía pública no explica todos sus parámetros.
+- **Exit Loop / End Task:** salir de un bucle y detener la tarea son estados diferentes y deben tener resultados separados.
+- **Task Settings:** variables String, Batch Text, Boolean, Number y File configurables antes de publicar. Las referencias de elementos UI son variables temporales de otro tipo.
+- **Exception handling:** Skip continúa tras un paso fallido; Interrupt detiene el flujo. Ambas decisiones deben quedar registradas.
+- **Planificación y logs:** nombre/notas, perfiles destino, horario por perfil o común, cancelación y modificación de la hora de publicación.
+
+### 7.6 Pruebas adicionales obligatorias
+
+- Open app con paquete inexistente, URI inválida y aplicación que tarda en iniciar.
+- Scroll con resolución distinta, límites fuera de pantalla y cancelación durante la espera.
+- Upload File con ruta no permitida, archivo ausente, varios archivos, tamaño excesivo y fallo parcial.
+- IF con tipos incompatibles, variable ausente y límites de comparación.
+- For Loop Elements con cero, uno y muchos elementos; lista que cambia durante la ejecución; límite de iteraciones y Exit Loop.
+- End Task durante un bloque de espera; comprobar que no se ejecutan pasos posteriores.
+- Skip frente a Interrupt, con logs redactados y estado final consistente.
+- Schedule con zona horaria, reintento tras reinicio y cancelación antes de comenzar.
+
+
+### 7.7 Contrato común de acciones UI
+
+Para acciones basadas en elemento, la configuración debe admitir selector `fullId`, texto, `desc` o `className`; condición Equals/Contains; índice fijo o intervalo; timeout en milisegundos; opción explícita de incluir elementos no visibles; variable booleana de resultado y nota del paso. Los atributos pueden estar vacíos o repetirse; el validador debe detectar ambigüedad y pedir que el flujo seleccione una combinación más específica.
+
+Acciones mínimas documentadas: clic en elemento, clic en coordenadas, pulsación prolongada por elemento/coordenadas, ingresar contenido, operación de teclado (por ejemplo Enter/Delete) y esperar a que aparezca un elemento. La inspección de UI debe permitir ver texto, clase, descripción, ID completo y límites, cuando el motor de ejecución exponga esa información.
+
+Para coordenadas, el editor debe indicar la resolución de referencia y advertir que el punto puede variar entre versiones/resoluciones. Si se usa el rectángulo `(left, top, right, bottom)`, puede calcularse un punto central como `x=(left+right)/2`, `y=(top+bottom)/2`; aun así, se debe probar en cada resolución objetivo. No se declarará robusto un flujo que dependa exclusivamente de coordenadas sin advertencia.
+
+Pruebas adicionales: selector sin coincidencias, selector ambiguo, atributo vacío, elemento anidado, elemento fuera de pantalla, timeout, variable booleana false en fallo, coordenadas fuera de pantalla y misma plantilla en dos resoluciones distintas.
