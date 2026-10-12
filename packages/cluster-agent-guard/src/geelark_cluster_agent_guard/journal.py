@@ -485,7 +485,7 @@ class AgentJournal:
         """
         if not isinstance(operation_id, UUID):
             raise InvalidAgentCommand("operation_id debe ser UUID")
-        if not isinstance(expected_status, str) or expected_status not in self._TERMINAL_STATUSES | {"running"}:
+        if not isinstance(expected_status, str) or expected_status not in (self._STATUSES - {"accepted"}):
             raise InvalidAgentCommand("expected_status no es un estado sincronizable")
         if not isinstance(expected_result, dict):
             raise InvalidAgentCommand("expected_result debe ser un objeto JSON")
@@ -499,7 +499,7 @@ class AgentJournal:
             ).fetchone()
             if row is None or row["node_id"] != str(self.local_node_id):
                 raise UnknownOperation("El recibo no existe en este nodo")
-            if row["status"] not in self._TERMINAL_STATUSES | {"running"}:
+            if row["status"] not in (self._STATUSES - {"accepted"}):
                 raise InvalidAgentCommand("Solo progreso o resultado puede marcarse sincronizado")
             if row["status"] != expected_status or row["result_json"] != expected_json:
                 conn.commit()
