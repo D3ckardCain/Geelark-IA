@@ -109,9 +109,19 @@ No activar listeners ni desplegar en nodos físicos hasta que la pila completa e
 El CLI `geelark-agent --config /ruta/agente.toml` requiere configuración explícita y mantiene `credential_provider = "file"` por defecto; Linux/systemd puede usar `credential_provider = "systemd"` cuando el servicio monte una credencial mediante `LoadCredential`. No se incluye unit file ni instalador de producción. No se ejecutan tareas, ADB ni shell.
 
 
+## Retención y mantenimiento manual
+
+La política de vencimiento y la rutina manual de preview/poda se documentan en [Manual de retención de agentes](../../docs/MANUAL_RETENCION_AGENTES.md). No hay limpieza automática ni cron. Los scopes desconocidos no se vencen; los informes inciertos/conflictivos solo pueden borrarse tras exportación revisada, antigüedad >365 días y doble confirmación.
+
+
+## Ensamblado recomendado para PostgreSQL
+
+Usa `create_postgres_agent_app(connect)` para cablear autenticación, nonces, idempotencia, handlers PostgreSQL y el limitador compartido de 60 solicitudes/minuto por nodo. El callback `connect` debe abrir conexiones con credenciales fuera del DSN y TLS verificado si PostgreSQL es remoto. La función solo construye la app ASGI: no inicia un listener ni configura TLS. El runtime debe servirla exclusivamente por HTTPS. El limitador en memoria de `create_agent_app` es para pruebas/desarrollo, no para límites globales multiworker.
+
+
 ## Revalidación de ACK durable — 2026-10-12
 
 - Se integró en la rama del supervisor el journal versionado del PR #38, incluyendo migraciones v1→v3 y pruebas de recibos.
 - `mark_receipt_synced` compara estado y resultado canónicos bajo `BEGIN IMMEDIATE`; un ACK de versión obsoleta no oculta el recibo actual. `unknown` puede sincronizarse como incertidumbre sin convertirse en éxito/fallo.
 - El workflow fija el journal al commit `5815bc6e8f4146099e5fff028008fdf9f0ede5d6`, ejecuta primero la suite del journal y luego la suite del transporte. La prueba SQLite real ya no se omite por falta de API.
-- La modificación del código y la nueva prueba están pendientes de una ejecución CI que cubra el HEAD final; no declarar validación hasta que ambos workflows terminen en success.
+- CI de la pila consolidada PR #81 aprobada en HEAD documental `e1c7c6869ca11aeb13452c50958abfbbcd8ac1fe`: transporte #38196186577 (160 pruebas transporte + 18 journal/SQLite), esquema #38196186611 y persistencia/assignment #38196186614; `pip check` limpio y sin warning Starlette. Esta evidencia no equivale a validación de instalación en Windows ni a despliegue real.
