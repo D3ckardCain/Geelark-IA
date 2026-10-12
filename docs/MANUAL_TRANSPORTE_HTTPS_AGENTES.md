@@ -231,3 +231,8 @@ La sincronización solo envía recibos ya persistidos en el journal. Un HTTP 2xx
 El entry point `geelark-agent --config` carga un TOML explícito, valida HTTPS/CA y credenciales, inicializa el journal SQLite y construye el supervisor. El supervisor envía heartbeat, capacidades y estado en ciclos independientes; la sincronización de recibos mantiene su propio hilo. El monitor Linux usa eventos netlink para notificar cambios de conectividad, no sondeo continuo ni comandos externos.
 
 La configuración usa `credential_provider = "file"` de forma predeterminada. `credential_provider = "systemd"` solo funciona si systemd monta la credencial configurada; todavía no hay unit file ni procedimiento de instalación/rotación aprobado. El supervisor no reclama ni ejecuta tareas Android y no abre listeners.
+
+
+## Retención de idempotencia y reportes
+
+La política de retención y el procedimiento manual de exportación, preview y poda están documentados en [Manual de retención de agentes](MANUAL_RETENCION_AGENTES.md). No ejecutes la función de poda contra producción hasta validar la CI y exportar la evidencia a almacenamiento local protegido.
