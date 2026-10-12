@@ -165,13 +165,34 @@ class AgentTransportRuntime:
         # mark_receipt_delivered(operation_id, epoch), que valida el fencing; admitir
         # mark_receipt_synced(operation_id) solo para compatibilidad con el contrato anterior.
         mark_delivered = getattr(self.journal, "mark_receipt_delivered", None)
-        if callable(mark_delivered):
-            mark_delivered(operation_id, assignment_epoch)
-        else:
-            mark_synced = getattr(self.journal, "mark_receipt_synced", None)
-            if not callable(mark_synced):
-                raise ValueError("journal debe implementar mark_receipt_delivered o mark_receipt_synced")
-            mark_synced(operation_id)
+        mark_synced = getattr(self.journal, "mark_receipt_synced", None)
+        marker = mark_delivered if callable(mark_delivered) else mark_synced
+        if not callable(marker):
+            raise AgentTransportError(
+                "El journal no admite confirmación durable por versión; el recibo sigue pendiente."
+            )
+        try:
+            if callable(mark_delivered):
+                acknowledged = marker(
+                    operation_id,
+                    assignment_epoch,
+                    expected_status=state,
+                    expected_result=result,
+                )
+            else:
+                acknowledged = marker(
+                    operation_id,
+                    expected_status=state,
+                    expected_result=result,
+                )
+        except TypeError:
+            raise AgentTransportError(
+                "La API del journal no admite confirmar una versión exacta; el recibo sigue pendiente."
+            ) from None
+        if acknowledged is not True:
+            raise AgentTransportError(
+                "El recibo local cambió durante la sincronización; la versión más reciente sigue pendiente."
+            )
         return response
 
     def _request(
