@@ -167,6 +167,21 @@ def test_panel_preserves_reported_health_separately_from_derived_health(tmp_path
     assert node["health_state"] == "degraded"
 
 
+def test_panel_preserves_reported_health_separately_from_derived_health(tmp_path: Path) -> None:
+    client, _ = make_client(tmp_path, rows=[make_row(reported_health_state="unhealthy")])
+    login = client.post(
+        "/admin/v1/login",
+        json={"password": "Correct Horse Battery 2030!"},
+        headers={"Origin": "https://master.test"},
+    )
+    assert login.status_code == 200
+    response = client.get("/admin/v1/status/snapshots")
+    assert response.status_code == 200
+    node = response.json()["snapshots"][0]["node"]
+    assert node["reported_health_state"] == "unhealthy"
+    assert node["health_state"] == "degraded"
+
+
 def test_validation_error_never_reflects_submitted_password(tmp_path: Path) -> None:
     client, _ = make_client(tmp_path)
     oversized_secret = "S" * 1025
