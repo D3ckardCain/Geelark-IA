@@ -10,8 +10,17 @@ BEGIN
     IF current_setting('transaction_read_only') <> 'on' THEN
         RAISE EXCEPTION 'La transacción no está en modo read-only';
     END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_roles
+         WHERE rolname = current_user AND rolcanlogin
+    ) THEN
+        RAISE EXCEPTION 'El rol lector no tiene LOGIN habilitado';
+    END IF;
     IF NOT has_database_privilege(current_user, current_database(), 'CONNECT') THEN
         RAISE EXCEPTION 'Falta CONNECT sobre la base de datos actual';
+    END IF;
+    IF has_database_privilege(current_user, current_database(), 'CREATE') THEN
+        RAISE EXCEPTION 'El rol tiene CREATE sobre la base de datos actual';
     END IF;
     IF NOT has_schema_privilege(current_user, 'geelark_control', 'USAGE') THEN
         RAISE EXCEPTION 'Falta USAGE sobre geelark_control';
