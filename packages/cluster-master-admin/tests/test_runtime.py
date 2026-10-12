@@ -57,3 +57,8 @@ def test_database_connector_allows_loopback_hostaddr_without_remote_tls(monkeypa
     monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "postgresql://geelark_master_reader@localhost:5432/geelark?hostaddr=127.0.0.1&sslmode=disable")
     connector = _database_connector()
     assert callable(connector)
+
+def test_database_connector_accepts_remote_hostaddr_with_explicit_hostname(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "postgresql://geelark_master_reader@db.example.test:5432/geelark?hostaddr=203.0.113.10&sslmode=verify-full")
+    connector = _database_connector()
+    assert callable(connector)
