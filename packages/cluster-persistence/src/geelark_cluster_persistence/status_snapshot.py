@@ -223,7 +223,7 @@ class PostgresStatusSnapshotProvider:
         with self._connect() as conn:
             row = conn.execute(
                 """
-                SELECT node_id, display_name, admin_state, reported_health_state,
+                SELECT node_id, display_name, admin_state, health_state AS reported_health_state,
                        agent_version, last_seen_at, capabilities, module_reports, revoked_at
                   FROM geelark_control.nodes
                  WHERE node_id = %s
