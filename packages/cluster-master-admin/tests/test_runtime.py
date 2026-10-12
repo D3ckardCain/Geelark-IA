@@ -47,3 +47,8 @@ def test_remote_bind_is_rejected_without_explicit_override(monkeypatch: pytest.M
     monkeypatch.delenv("GEELARK_ADMIN_ALLOW_REMOTE", raising=False)
     with pytest.raises(RuntimeError, match="bind remoto está bloqueado"):
         main()
+
+def test_database_connector_allows_loopback_hostaddr_without_remote_tls(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "postgresql://geelark_master_reader@localhost:5432/geelark?hostaddr=127.0.0.1&sslmode=disable")
+    connector = _database_connector()
+    assert callable(connector)
