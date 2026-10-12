@@ -309,3 +309,12 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 La integración con el supervisor actual conserva `POST /agent/v1/reconcile` para comparar asignaciones (`assignments`) y añade `POST /agent/v1/reconcile/inventory` para informes de inventario local (`inventory`). El transporte usa `Operation.RECONCILE_INVENTORY`, mapeada a la autorización canónica `AgentOperation.RECONCILE`; ambas rutas son solo lectura y no resuelven `unknown`, conflictos terminales ni epochs obsoletos automáticamente.
 
 La migración de informes se renombró a `db/migrations/0006_agent_reconciliation_reports.sql`, porque esta pila ya contiene `0004_worker_module_inventory.sql` y `0005_agent_task_inbox.sql`. El supervisor mantiene un worker separado para reconciliación, UUID/snapshot estable en reintentos, renovación tras reconexión y errores genéricos; el proveedor de inventario es opcional, por lo que la CLI no ejecuta reconciliación sin un proveedor explícito. Pendiente CI del HEAD combinado y revisión de seguridad.
+
+
+## Retención del almacenamiento de agentes — rama draft 2026-10-12
+
+Se añade `db/migrations/0007_agent_storage_retention.sql`, TTL por operación en `idempotency_records` y función manual `geelark_control.prune_agent_storage(false,false)`. El preview no borra; la confirmación genérica elimina nonces con una hora de gracia, snapshots conocidos vencidos y reportes seguros (>90 días o fuera de los últimos 10.000 por nodo). Scopes desconocidos quedan sin expiración. Informes con unknown/conflicto/decisión desconocida requieren más de 365 días y segunda confirmación explícita de exportación. Cada preview/poda registra actor, flags y conteos en `agent_storage_maintenance_runs`.
+
+Los límites propuestos son 24 h para telemetría, 90 días para operaciones/tareas/reconciliación y 100 elementos por inventario. El rate limiter global por nodo es 60 solicitudes/minuto solo cuando se configura `PostgresRateLimiter`; el limitador en memoria es por proceso. Los informes de revisión pueden crecer más allá de 10.000 si no se archivan; ese riesgo queda documentado porque la evidencia incierta no se borra automáticamente.
+
+Validación pendiente: CI PostgreSQL 16 desechable para la migración, TTL, preview, poda, export confirmation y preservación de unknown/conflictos. No se ejecutó contra una base real. La limpieza es manual, sin cron ni servicio externo; coste operativo objetivo $0 USD.
