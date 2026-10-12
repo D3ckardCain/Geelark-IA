@@ -8,6 +8,7 @@ import pytest
 from psycopg.types.json import Jsonb
 
 from cluster_agent_transport.domain_handlers import make_postgres_agent_handlers
+import cluster_agent_transport.domain_handlers as domain_handlers
 from cluster_agent_transport.policy import AgentPrincipal, Operation
 
 
@@ -110,6 +111,52 @@ def item(task_id, operation_id, instance_id, *, epoch=3, state="running", summar
         "local_state": state,
         "result_summary": summary or {},
     }
+
+
+def test_reconciliation_uses_database_clock_when_application_clock_is_behind(monkeypatch):
+    connect, node, credential, instance, operation, task = seed_task("running")
+    try:
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.instances SET lease_expires_at = %s WHERE instance_id = %s",
+                (datetime.now(timezone.utc) - timedelta(minutes=1), instance),
+            )
+
+        class ClockBehind(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime.now(tz) - timedelta(hours=1)
+
+        monkeypatch.setattr(domain_handlers, "datetime", ClockBehind)
+
+        inventory_result = run_reconcile(
+            connect, node, credential,
+            [item(task, operation, instance, state="running")],
+        )
+        assert inventory_result["decisions"][0]["decision"] == "INSTANCE_LEASE_EXPIRED_HOLD"
+
+        principal = AgentPrincipal(
+            str(node), str(credential), "active", "active",
+            datetime.now(timezone.utc) + timedelta(hours=1),
+        )
+        handler = make_postgres_agent_handlers(connect)[Operation.RECONCILE]
+        with connect() as conn:
+            with conn.transaction():
+                result = handler(
+                    conn=conn,
+                    principal=principal,
+                    payload={"assignments": [{
+                        "task_id": str(task),
+                        "operation_id": str(operation),
+                        "instance_id": str(instance),
+                        "assignment_epoch": 3,
+                        "observed_state": "running",
+                        "result_summary": {},
+                    }]},
+                )
+        assert result["items"][0]["status"] == "stale_assignment"
+    finally:
+        cleanup(connect, node, instance, operation, credential)
 
 
 def test_reconcile_matching_active_task_is_read_only_and_audited():
