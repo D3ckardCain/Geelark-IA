@@ -1,6 +1,6 @@
 # Estado del proyecto Geelark-IA
 
-**Actualizado:** 2026-10-09  
+**Actualizado:** 2026-10-12  
 **Fase:** A — inventario funcional de GeeLark y estudio de viabilidad de Android virtualizado local.  
 **Implementación:** no hay módulos declarados como terminados o verificados.
 
@@ -335,4 +335,4 @@ CI revalidada en el HEAD actual de PR #81 tras añadir pruebas del rate limiter 
 - Hallazgo: la consulta de `POST /agent/v1/tasks/claim` comprobaba el campo almacenado `health_state='healthy'` pero no exigía heartbeat reciente; el valor podía quedar saludable después de perder conectividad.
 - Corrección en la rama de trabajo: la consulta ahora exige además `reported_health_state='healthy'` y `last_seen_at > now() - interval '90 seconds'` en PostgreSQL. El guard se aplica dentro de la misma consulta que reclama la tarea.
 - Se añadió una prueba de integración PostgreSQL: crea una tarea reclamable, fuerza un heartbeat de hace dos minutos conservando el campo almacenado como `healthy`, y verifica que el claim no devuelve tarea ni modifica su estado/lease.
-- CI pendiente para la rama reconstruida #85; no declarar el hallazgo cerrado hasta que pase. No se desplegó ni se conectó una base real.
+- CI aprobada para PR #85 en [transporte #38274253344](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38274253344), [persistencia/assignment #38274253350](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38274253350) y [migraciones PostgreSQL #38274253515](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38274253515). No se desplegó ni se conectó una base real; la PR permanece draft.
