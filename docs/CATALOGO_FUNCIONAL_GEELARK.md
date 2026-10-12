@@ -804,6 +804,8 @@ Fuentes:
 - https://www.geelark.com/features/api/
 - https://help.geelark.com/ADB-1600be7d9e418006b80cf649bcdc80ad
 
+**Límite de evidencia de API:** la página comercial enlaza el portal oficial https://open.geelark.com/api, pero el contenido de ese portal no fue legible en la consulta documental actual. Por tanto, aquí solo se registran categorías anunciadas (cloud phones, automatización, apps/archivos, ADB, Library y webhooks); no se inventan rutas, esquemas JSON, firmas, errores ni requisitos de autenticación. El inventario de endpoints sigue pendiente de acceso a documentación textual o exportación pública verificable.
+
 ### 32.5 Conclusión de esta revalidación
 
 Las páginas consultadas confirman que GeeLark combina gestión de perfiles, proxies, automatización, sincronización, recursos multimedia y APIs sobre una infraestructura cloud con funciones sujetas a plan y facturación. La paridad local debe replicar el objetivo funcional donde sea viable, no los cargos, la retención temporal de Library ni las restricciones Pro. Las diferencias de versiones Android entre funciones se mantienen como una incertidumbre que requiere pruebas por motor.
