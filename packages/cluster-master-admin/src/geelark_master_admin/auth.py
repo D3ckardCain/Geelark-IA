@@ -12,7 +12,9 @@ from collections import defaultdict, deque
 from pathlib import Path
 from typing import Callable
 
-PBKDF2_ITERATIONS = 600_000
+PBKDF2_MIN_ITERATIONS = 600_000
+PBKDF2_MAX_ITERATIONS = 2_000_000
+PBKDF2_ITERATIONS = PBKDF2_MIN_ITERATIONS
 SESSION_TTL_SECONDS = 8 * 60 * 60
 LOGIN_WINDOW_SECONDS = 15 * 60
 LOGIN_MAX_ATTEMPTS = 5
@@ -22,8 +24,8 @@ def hash_operator_password(password: str, *, salt: bytes | None = None, iteratio
     """Devuelve hash PBKDF2 versionado; nunca persiste ni devuelve la contraseña."""
     if not isinstance(password, str) or len(password) < 12 or len(password) > 1024:
         raise ValueError("La contraseña debe tener entre 12 y 1024 caracteres.")
-    if iterations < 600_000:
-        raise ValueError("El coste PBKDF2 no puede ser inferior a 600000 iteraciones.")
+    if not PBKDF2_MIN_ITERATIONS <= iterations <= PBKDF2_MAX_ITERATIONS:
+        raise ValueError("El coste PBKDF2 debe estar entre 600000 y 2000000 iteraciones.")
     salt_value = salt or secrets.token_bytes(16)
     digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt_value, iterations)
     return "pbkdf2_sha256$" + str(iterations) + "$" + salt_value.hex() + "$" + digest.hex()
@@ -35,7 +37,7 @@ def verify_operator_password(password: str, encoded: str) -> bool:
         iterations = int(raw_iterations)
         salt = bytes.fromhex(salt_hex)
         expected = bytes.fromhex(digest_hex)
-        if algorithm != "pbkdf2_sha256" or iterations < 600_000 or len(salt) < 16 or len(expected) != 32:
+        if algorithm != "pbkdf2_sha256" or not PBKDF2_MIN_ITERATIONS <= iterations <= PBKDF2_MAX_ITERATIONS or len(salt) < 16 or len(expected) != 32:
             return False
         actual = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
         return hmac.compare_digest(actual, expected)
@@ -125,7 +127,7 @@ class SessionStore:
 
     @staticmethod
     def _token_hash(token: str) -> str:
-        return hashlib.sha256(token.encode("ascii")).hexdigest()
+        return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
     def create(self) -> str:
         now = int(self.clock())
