@@ -1,0 +1,125 @@
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+import pytest
+
+from geelark_master_admin.auth import (
+    SESSION_TTL_SECONDS,
+    SessionStore,
+    hash_operator_password,
+    verify_operator_password,
+)
+
+
+def test_password_hash_uses_random_salt_and_verifies() -> None:
+    password = "Correct Horse Battery 2030!"
+    first = hash_operator_password(password)
+    second = hash_operator_password(password)
+    assert first != second
+    assert verify_operator_password(password, first)
+    assert not verify_operator_password("wrong password", first)
+
+
+def test_password_policy_and_malformed_hash_fail_closed() -> None:
+    with pytest.raises(ValueError):
+        hash_operator_password("short")
+    with pytest.raises(ValueError):
+        hash_operator_password("long-enough-password", iterations=1000)
+    assert not verify_operator_password("password", "plaintext")
+    assert not verify_operator_password("password", "pbkdf2_sha256$1$00$00")
+    with pytest.raises(ValueError, match="entre 600000 y 2000000"):
+        hash_operator_password("long-enough-password", iterations=2_000_001)
+    oversized_cost_hash = "pbkdf2_sha256$2000001$" + ("00" * 16) + "$" + ("00" * 32)
+    assert not verify_operator_password("password", oversized_cost_hash)
+
+
+def test_sessions_are_hashed_revocable_and_expire(tmp_path: Path) -> None:
+    now = [1_000_000.0]
+    store = SessionStore(tmp_path / "private" / "sessions.sqlite3", clock=lambda: now[0])
+    token = store.create()
+    assert token
+    assert not store.valid("cookie-☃-no-ascii")
+    store.revoke("cookie-☃-no-ascii")
+    assert store.valid(token)
+    with store._connect() as conn:
+        row = conn.execute("SELECT token_hash FROM operator_sessions").fetchone()
+    assert row[0] != token
+    store.revoke(token)
+    assert not store.valid(token)
+
+    second = store.create()
+    assert store.valid(second)
+    now[0] += SESSION_TTL_SECONDS + 1
+    assert not store.valid(second)
+
+
+def test_session_database_permissions_are_restricted(tmp_path: Path) -> None:
+    path = tmp_path / "private" / "sessions.sqlite3"
+    SessionStore(path)
+    assert path.exists()
+    if os.name == "posix":
+        assert path.stat().st_mode & 0o077 == 0
+
+
+@pytest.mark.parametrize(
+    ("directory", "expected_grant"),
+    [
+        (False, r"PC-MASTER\operator:F"),
+        (True, r"PC-MASTER\operator:(OI)(CI)F"),
+    ],
+)
+def test_windows_acl_resets_old_explicit_entries_before_grant(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, directory: bool, expected_grant: str
+) -> None:
+    import subprocess
+    from types import SimpleNamespace
+
+    from geelark_master_admin import auth as auth_module
+
+    calls: list[list[str]] = []
+
+    def fake_is_file(path: Path) -> bool:
+        return path.name.lower() in {"whoami.exe", "icacls.exe"}
+
+    def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
+        calls.append(command)
+        if command[0].lower().endswith("whoami.exe"):
+            return SimpleNamespace(stdout=r"PC-MASTER\operator")
+            return SimpleNamespace(stdout=r"PC-MASTER\operator")
+
+    monkeypatch.setattr(Path, "is_file", fake_is_file)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    target = tmp_path / ("sessions" if directory else "sessions.sqlite3")
+
+    auth_module._restrict_windows_acl(target, directory=directory)
+
+    assert len(calls) == 2
+    assert calls[0][0].lower().endswith("whoami.exe")
+    acl_call = calls[1]
+    assert acl_call[0].lower().endswith("icacls.exe")
+    assert acl_call[2:] == ["/reset", "/inheritance:r", "/grant:r", expected_grant]
+
+
+def test_windows_acl_failure_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess
+    from types import SimpleNamespace
+
+    from geelark_master_admin import auth as auth_module
+
+    def fake_is_file(path: Path) -> bool:
+        return path.name.lower() in {"whoami.exe", "icacls.exe"}
+
+    def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
+        if command[0].lower().endswith("whoami.exe"):
+            return SimpleNamespace(stdout=r"PC-MASTER\operator")
+        raise subprocess.CalledProcessError(1, command)
+
+    monkeypatch.setattr(Path, "is_file", fake_is_file)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(PermissionError, match="ACL NTFS"):
+        auth_module._restrict_windows_acl(tmp_path / "sessions.sqlite3", directory=False)
