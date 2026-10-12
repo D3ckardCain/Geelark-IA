@@ -202,7 +202,7 @@ runtime = AgentTransportRuntime(
 - El guardián SQLite conserva fencing, recibos pendientes y ACK terminales sin red.
 - El adaptador puede sincronizar lotes acotados con `sync_pending_receipts()`, pero el bucle principal del agente todavía debe invocarlo al iniciar y cuando detecte reconexión.
 - Heartbeat, capacidades y consulta de estado requieren conectividad; no se encolan localmente.
-- La bandeja durable y `POST /agent/v1/tasks/claim` están implementados en la PR draft #52 con entrega pull, idempotencia y leases separadas; no están fusionados ni desplegados. Solo nodos `active/active` saludables pueden reclamar. La reconciliación es de solo lectura y no ejecuta tareas.
+- La bandeja durable y `POST /agent/v1/tasks/claim` están implementados en la pila draft #52/#67/#81 con entrega pull, idempotencia y leases separadas; no están fusionados ni desplegados. Solo nodos `active/active` con `reported_health_state=healthy`, `health_state=healthy` y heartbeat recibido en los últimos 90 segundos pueden reclamar. El SQL comprueba frescura en la misma consulta de reclamación; un valor almacenado `healthy` no permite reclamar si el heartbeat está obsoleto. La reconciliación compara evidencia y no ejecuta tareas ni resuelve `unknown` automáticamente.
 - No se ejecuta Android, ADB ni shell remoto; no desplegar en nodos reales hasta completar el bucle de agente, la entrega de tareas y la revisión de outbox.
 
 
@@ -234,3 +234,15 @@ La sincronización solo envía recibos ya persistidos en el journal. Un HTTP 2xx
 El entry point `geelark-agent --config` carga un TOML explícito, valida HTTPS/CA y credenciales, inicializa el journal SQLite y construye el supervisor. El supervisor envía heartbeat, capacidades y estado en ciclos independientes; la sincronización de recibos mantiene su propio hilo. El monitor Linux usa eventos netlink para notificar cambios de conectividad, no sondeo continuo ni comandos externos.
 
 La configuración usa `credential_provider = "file"` de forma predeterminada. `credential_provider = "systemd"` solo funciona si systemd monta la credencial configurada; todavía no hay unit file ni procedimiento de instalación/rotación aprobado. El supervisor no reclama ni ejecuta tareas Android y no abre listeners.
+
+
+## Retención de idempotencia y reportes
+
+La política de retención y el procedimiento manual de exportación, preview y poda están documentados en [Manual de retención de agentes](MANUAL_RETENCION_AGENTES.md). No ejecutes la función de poda contra producción hasta validar la CI y exportar la evidencia a almacenamiento local protegido.
+
+
+## Fábrica PostgreSQL para el servidor ASGI
+
+Para construir la API con todas las defensas persistentes usa `create_postgres_agent_app(connect)` (exportada desde `cluster_agent_transport`). Esta fábrica ensambla autenticación PostgreSQL, consumo de nonces, idempotencia, handlers de dominio y `PostgresRateLimiter` de 60 solicitudes por minuto por nodo. Proporciona un callback `connect` que abra conexiones PostgreSQL usando un DSN sin contraseña y un archivo de credenciales protegido; si la base es remota, configura TLS con verificación de nombre/certificado.
+
+La fábrica no abre un listener ni configura certificados TLS. El runtime que sirva la app debe usar HTTPS y no debe publicar el panel/API en HTTP. `create_agent_app` conserva un limitador en memoria para pruebas/desarrollo; no lo uses para garantizar límites globales entre workers.

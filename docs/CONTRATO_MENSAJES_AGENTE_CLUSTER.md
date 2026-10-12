@@ -239,3 +239,10 @@ La primera implementación es **de solo lectura**. El agente informa hasta 500 a
 - `not_found_or_not_owned`: la tarea no existe para el nodo autenticado.
 
 La respuesta declara `read_only=true` y `mutations_applied=0`. No se actualizan tareas, operaciones ni epochs durante esta comparación. La reconciliación mutante, el fencing externo y la decisión de reasignación requieren un flujo separado, auditado y probado; nunca se infiere que un proceso antiguo se detuvo por el mero vencimiento del lease.
+
+
+## Reconciliación de inventario local
+
+La reconciliación de asignaciones de tareas usa `POST /agent/v1/reconcile` con `assignments`. La reconciliación del inventario local usa `POST /agent/v1/reconcile/inventory` con `inventory`; ambos contratos son diferentes y no se intercambian.
+
+Cada informe de inventario incluye `schema_version`, IDs de tarea/operación/instancia, epoch, estado local y resumen de resultado JSON limitado. El cliente conserva el mismo UUID de reconciliación y el mismo snapshot durante los reintentos de una entrega no confirmada; tras una reconexión crea un intento nuevo. La respuesta es informativa/auditable y no autoriza ejecución ni resuelve automáticamente estados inciertos.

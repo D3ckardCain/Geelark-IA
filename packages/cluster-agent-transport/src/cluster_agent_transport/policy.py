@@ -27,6 +27,7 @@ class Operation(str, Enum):
     TASK_PROGRESS = "task_progress"
     TASK_RESULT = "task_result"
     RECONCILE = "reconcile"
+    RECONCILE_INVENTORY = "reconcile_inventory"
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,7 @@ _OPERATION_MAP = {
     Operation.TASK_PROGRESS: AgentOperation.REPORT_PROGRESS,
     Operation.TASK_RESULT: AgentOperation.REPORT_RESULT,
     Operation.RECONCILE: AgentOperation.RECONCILE,
+    Operation.RECONCILE_INVENTORY: AgentOperation.RECONCILE,
 }
 
 

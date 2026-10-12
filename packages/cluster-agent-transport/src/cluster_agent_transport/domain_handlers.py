@@ -7,10 +7,11 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
+import hashlib
 import json
 import re
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import psycopg
 from fastapi import HTTPException
@@ -258,7 +259,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             """
             SELECT t.status, t.node_id, t.instance_id, t.assignment_epoch,
                    t.result_summary, i.owner_node_id, i.assignment_epoch,
-                   i.lease_expires_at, o.status, t.delivery_lease_until
+                   i.lease_expires_at, o.status, t.delivery_lease_until, now() AS database_now
               FROM geelark_control.agent_tasks AS t
               JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
               JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
@@ -273,10 +274,10 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             raise HTTPException(status_code=403, detail={"code": "TASK_NOT_OWNED_BY_NODE"})
         if (
             row[5] is None or str(row[5]) != principal.node_id
-            or row[6] != row[3] or row[7] is None or row[7] <= datetime.now(timezone.utc)
+            or row[6] != row[3] or row[7] is None or row[7] <= row[10]
             or (
-                row[0] in {"delivered", "accepted", "running"}
-                and (row[9] is None or row[9] <= datetime.now(timezone.utc))
+                row[0] == "delivered"
+                and (row[9] is None or row[9] <= row[10])
             )
         ):
             raise HTTPException(status_code=409, detail={"code": "STALE_ASSIGNMENT"})
@@ -444,7 +445,6 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         if not isinstance(items, list) or len(items) > 500:
             raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_BATCH"})
         comparisons = []
-        now = datetime.now(timezone.utc)
         for item in items:
             try:
                 task_id = UUID(item["task_id"])
@@ -463,7 +463,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 SELECT t.status, t.result_summary, t.node_id, t.instance_id,
                        t.operation_id, t.assignment_epoch,
                        i.owner_node_id, i.assignment_epoch, i.lease_expires_at,
-                       o.status
+                       o.status, now() AS database_now
                   FROM geelark_control.agent_tasks AS t
                   JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
                   JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
@@ -484,7 +484,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             owner_node, current_epoch, lease_expires_at = row[6], row[7], row[8]
             if (
                 owner_node is None or str(owner_node) != principal.node_id
-                or current_epoch != epoch or lease_expires_at is None or lease_expires_at <= now
+                or current_epoch != epoch or lease_expires_at is None or lease_expires_at <= row[10]
             ):
                 comparisons.append({
                     "task_id": str(task_id),
@@ -519,6 +519,198 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             "items": comparisons,
         }
 
+    def reconcile_inventory(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
+        """Compara inventario y epochs sin convertir estados inciertos automáticamente."""
+        _assert_principal_current(conn, principal)
+        if (principal.admin_state, principal.credential_status) != ("active", "active"):
+            raise HTTPException(status_code=403, detail={"code": "PERMISSION_DENIED"})
+        inventory = payload.get("inventory")
+        if payload.get("schema_version") != 1 or not isinstance(inventory, list) or len(inventory) > 100:
+            raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_PAYLOAD"})
+
+        try:
+            canonical_inventory = json.dumps(
+                inventory, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+            )
+            inventory_hash = hashlib.sha256(canonical_inventory.encode("utf-8")).hexdigest()
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_PAYLOAD"}) from None
+
+        decisions: list[dict[str, Any]] = []
+        seen_task_ids: set[UUID] = set()
+
+        for item in inventory:
+            try:
+                task_id = UUID(item["task_id"])
+                operation_id = UUID(item["operation_id"])
+                instance_id = UUID(item["instance_id"])
+                epoch = item["assignment_epoch"]
+                local_state = item["local_state"]
+                local_summary = item.get("result_summary", {})
+                if (
+                    isinstance(epoch, bool) or not isinstance(epoch, int) or epoch < 1
+                    or local_state not in {"accepted", "running", "succeeded", "failed", "unknown"}
+                    or not isinstance(local_summary, dict)
+                ):
+                    raise ValueError
+            except (KeyError, TypeError, ValueError):
+                raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_ITEM"}) from None
+
+            if task_id in seen_task_ids:
+                raise HTTPException(status_code=422, detail={"code": "DUPLICATE_RECONCILIATION_TASK"})
+            seen_task_ids.add(task_id)
+
+            row = conn.execute(
+                """
+                SELECT t.task_id, t.operation_id, t.instance_id, t.node_id,
+                       t.assignment_epoch, t.status, t.result_summary,
+                       i.owner_node_id, i.assignment_epoch, i.lease_expires_at,
+                       o.status, o.result_summary, t.delivery_lease_until,
+                       o.node_id, o.instance_id, o.assignment_epoch,
+                       now() AS database_now
+                  FROM geelark_control.agent_tasks AS t
+                  JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
+                  JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
+                 WHERE t.task_id = %s AND t.node_id = %s
+                 FOR UPDATE OF t, i, o
+                """,
+                (task_id, principal.node_id),
+            ).fetchone()
+
+            decision = "MANUAL_REVIEW_REQUIRED"
+            if row is None:
+                decision = "UNKNOWN_TASK"
+            elif (
+                str(row[1]) != str(operation_id)
+                or str(row[2]) != str(instance_id)
+            ):
+                decision = "IDENTITY_MISMATCH"
+            elif str(row[3]) != principal.node_id:
+                decision = "TASK_NOT_OWNED_BY_NODE"
+            elif (
+                str(row[13]) != str(row[3])
+                or str(row[14]) != str(row[2])
+                or row[15] != row[4]
+            ):
+                decision = "SERVER_TASK_OPERATION_IDENTITY_MISMATCH"
+            elif (
+                row[7] is None or str(row[7]) != principal.node_id
+                or row[8] != row[4] or epoch != row[4]
+            ):
+                decision = "STALE_ASSIGNMENT_EPOCH"
+            elif row[5] == "unknown" or local_state == "unknown":
+                decision = "MANUAL_REVIEW_REQUIRED"
+            elif (
+                (
+                    row[10] != row[5]
+                    and not (row[5] == "delivered" and row[10] == "accepted")
+                )
+                or dict(row[11] or {}) != dict(row[6] or {})
+            ):
+                decision = "SERVER_TASK_OPERATION_STATE_MISMATCH"
+            elif row[5] in {"succeeded", "rejected", "failed", "cancelled"}:
+                if row[5] == local_state and dict(row[6] or {}) == local_summary:
+                    decision = "ALREADY_CONFIRMED"
+                else:
+                    decision = "TERMINAL_CONFLICT_MANUAL_REVIEW"
+            elif row[9] is None or row[9] <= row[16]:
+                decision = "INSTANCE_LEASE_EXPIRED_HOLD"
+            elif (
+                row[5] == "delivered"
+                and (row[12] is None or row[12] <= row[16])
+            ):
+                decision = "DELIVERY_LEASE_EXPIRED_HOLD"
+            elif row[5] in {"accepted", "running"}:
+                if local_state in {"succeeded", "failed"}:
+                    decision = "RESEND_TERMINAL_RESULT"
+                elif local_state == "running" and row[5] == "accepted":
+                    decision = "RESEND_PROGRESS"
+                elif local_state == "accepted" and row[5] == "running":
+                    decision = "SERVER_AHEAD_HOLD"
+                elif local_state == row[5] and local_summary == dict(row[6] or {}):
+                    decision = "CONTINUE_SAME_EPOCH"
+                else:
+                    decision = "RESULT_SUMMARY_MISMATCH_MANUAL_REVIEW"
+            else:
+                decision = "TASK_NOT_ACCEPTED_HOLD"
+
+            decisions.append({
+                "task_id": str(task_id),
+                "operation_id": str(operation_id),
+                "instance_id": str(instance_id),
+                "assignment_epoch": epoch,
+                "local_state": local_state,
+                "server_state": row[5] if row is not None else None,
+                "decision": decision,
+                "automatic_mutation": False,
+            })
+
+        # También reporta tareas activas del nodo que no aparecen en su inventario.
+        missing_rows = conn.execute(
+            """
+            SELECT t.task_id, t.operation_id, t.instance_id, t.assignment_epoch,
+                   t.status, o.status, o.result_summary, t.result_summary,
+                   o.node_id, o.instance_id, o.assignment_epoch
+              FROM geelark_control.agent_tasks AS t
+              JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
+              JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
+             WHERE t.node_id = %s
+               AND t.status IN ('accepted', 'running', 'unknown')
+               AND i.owner_node_id = t.node_id
+               AND i.assignment_epoch = t.assignment_epoch
+             ORDER BY t.created_at, t.task_id
+             FOR UPDATE OF t, i, o
+            """,
+            (principal.node_id,),
+        ).fetchall()
+        for row in missing_rows:
+            if row[0] in seen_task_ids:
+                continue
+            decisions.append({
+                "task_id": str(row[0]),
+                "operation_id": str(row[1]),
+                "instance_id": str(row[2]),
+                "assignment_epoch": row[3],
+                "local_state": None,
+                "server_state": row[4],
+                "decision": (
+                    "MANUAL_REVIEW_REQUIRED"
+                    if row[4] == "unknown"
+                    else (
+                        "SERVER_TASK_OPERATION_STATE_MISMATCH"
+                        if row[5] != row[4] or dict(row[6] or {}) != dict(row[7] or {})
+                        else (
+                            "SERVER_TASK_OPERATION_IDENTITY_MISMATCH"
+                            if str(row[8]) != str(principal.node_id)
+                            or str(row[9]) != str(row[2])
+                            or row[10] != row[3]
+                            else "SERVER_TASK_MISSING_FROM_LOCAL_INVENTORY"
+                        )
+                    )
+                ),
+                "automatic_mutation": False,
+            })
+
+        report_id = uuid4()
+        conn.execute(
+            """
+            INSERT INTO geelark_control.agent_reconciliation_reports
+                (report_id, node_id, inventory_sha256, inventory_count, decisions)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (report_id, UUID(principal.node_id), inventory_hash, len(inventory), Jsonb(decisions)),
+        )
+        return {
+            "ok": True,
+            "report_id": str(report_id),
+            "inventory_sha256": inventory_hash,
+            "inventory_count": len(inventory),
+            "decision_count": len(decisions),
+            "decisions": decisions,
+            "mutations_applied": False,
+        }
+
+
     return {
         Operation.HEARTBEAT: heartbeat,
         Operation.CAPABILITIES: capabilities,
@@ -529,4 +721,5 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         Operation.TASK_PROGRESS: progress_task,
         Operation.TASK_RESULT: result_task,
         Operation.RECONCILE: reconcile,
+        Operation.RECONCILE_INVENTORY: reconcile_inventory,
     }
