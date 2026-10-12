@@ -401,3 +401,26 @@ def test_late_ack_does_not_mark_a_newer_receipt_version_synced(tmp_path):
         cmd.operation_id, expected_status="running", expected_result={"progress": 50}
     ) is True
     assert journal.list_pending_receipts(limit=10) == []
+
+
+def test_unknown_receipt_can_be_acknowledged_without_resolving_uncertainty(tmp_path):
+    journal = AgentJournal(tmp_path / "journal.sqlite3", LOCAL_NODE)
+    journal.initialize()
+    cmd = command()
+    journal.accept_command(cmd)
+    journal.record_result(
+        operation_id=cmd.operation_id,
+        instance_id=cmd.instance_id,
+        node_id=cmd.node_id,
+        assignment_epoch=cmd.assignment_epoch,
+        status="unknown",
+        result={"reason_code": "NETWORK_TIMEOUT"},
+    )
+
+    assert journal.mark_receipt_synced(
+        cmd.operation_id,
+        expected_status="unknown",
+        expected_result={"reason_code": "NETWORK_TIMEOUT"},
+    ) is True
+    assert journal.list_pending_receipts(limit=10) == []
+    assert journal.get_receipt(cmd.operation_id).status == "unknown"
