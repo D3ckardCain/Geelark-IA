@@ -58,7 +58,7 @@ python -m pip install -e "packages/cluster-agent-transport[test]"
 python -m pip check
 ```
 
-La autenticación PostgreSQL devuelve `credential_expires_at`; la política canónica vuelve a validar ese timestamp en cada operación. Los nodos pending no pueden reclamar tareas ni reportar módulos.
+La autenticación PostgreSQL devuelve `credential_expires_at`; la política canónica vuelve a validar ese timestamp en cada operación.
 
 ## Pruebas locales
 
@@ -90,3 +90,18 @@ python -m pytest packages/cluster-agent-transport/tests -q
 - La prueba de integración PostgreSQL cubre doble claim concurrente, recuperación idempotente, lease de entrega, estados terminales, campos sensibles y epoch obsoleto. La integración con el bucle real del agente sigue pendiente.
 
 No activar listeners ni desplegar en nodos físicos hasta que la pila completa esté revisada y sus pruebas pasen sobre el HEAD actualizado.
+
+
+## Sincronización durable del agente
+
+`AgentReceiptSyncLifecycle` ejecuta `runtime.sync_pending_receipts(limit=...)` en un hilo independiente, con lotes acotados, reintentos con backoff/jitter y activación por reconexión. El ACK solo se persiste después de HTTP 2xx; si se pierde la respuesta, el mismo recibo se reintenta con la clave de idempotencia estable. El supervisor de telemetría debe permanecer independiente de este worker.
+
+- El journal SQLite es local y durable; sin conectividad conserva recibos para reintentar.
+- Heartbeat, capacidades y consulta de estado siguen requiriendo conectividad y no se encolan en esta capa.
+- Este coordinador no reclama ni ejecuta tareas, no abre listeners y no activa ADB/shell.
+- La prueba de integración crea TLS de loopback, SQLite y PostgreSQL desechable; no sustituye pruebas en hardware físico.
+
+
+## Estado de integración de la pila — 2026-10-12
+
+La PR #57 se encuentra en `3bbd65d6c49884408086219a364f251ddbd8c9b7` y su base PR #52 avanzó a `20e618aaeadc1866457f637522b755540f795dfa`. La comparación está divergida (6 commits propios y 7 commits de la base ausentes); el CI histórico no sustituye la validación del merge result actualizado. Se mantiene draft hasta que transporte, persistencia/asignación y migraciones PostgreSQL terminen correctamente sobre la combinación actual. No se ha desplegado ni probado en PCs físicas.

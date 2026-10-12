@@ -220,3 +220,10 @@ La migración `db/migrations/0004_worker_module_inventory.sql` crea la columna J
 ### Contrato del payload
 
 El esquema JSON formal y el ejemplo están en [worker-module-inventory-v1.schema.json](contracts/worker-module-inventory-v1.schema.json) y [worker-module-inventory-v1.example.json](contracts/examples/worker-module-inventory-v1.example.json). La lista cerrada del esquema se prueba contra el registro del código para evitar divergencias. El timestamp `checked_at` y `source` son generados por el Master; el Worker no puede falsificarlos. La lectura de estado propio no equivale todavía a un snapshot administrativo para PC-MASTER.
+
+
+## Ciclo de vida de recibos pendientes
+
+El agente debe ejecutar `AgentReceiptSyncLifecycle` como componente separado del supervisor de telemetría. Inícialo una sola vez durante el arranque, deja que sincronice lotes limitados y llama `notify_reconnected()` únicamente cuando el monitor de conectividad detecte una transición real a conectado. Al apagar, llama `stop(timeout=...)` y considera `False` como un timeout real; no declares que el hilo terminó si sigue vivo.
+
+La sincronización solo envía recibos ya persistidos en el journal. Un HTTP 2xx confirma la versión transmitida; los fallos de red o la pérdida del ACK mantienen el recibo pendiente y el reintento conserva la clave de idempotencia con un nonce nuevo. No registrar tokens, payloads ni cuerpos de respuesta. El worker no ejecuta operaciones Android ni reclama tareas.

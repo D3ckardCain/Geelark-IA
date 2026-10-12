@@ -1,6 +1,6 @@
 # Estado del proyecto Geelark-IA
 
-**Actualizado:** 2026-10-09  
+**Actualizado:** 2026-10-12  
 **Fase:** A — inventario funcional de GeeLark y estudio de viabilidad de Android virtualizado local.  
 **Implementación:** no hay módulos declarados como terminados o verificados.
 
@@ -287,3 +287,18 @@ El PR borrador #16 ahora incluye validación de coherencia entre `status` y `obs
 ### Persistencia de asignaciones documentada (2026-10-09)
 
 Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md). Define transacciones, restricciones para un único propietario, idempotencia durable, outbox y pruebas de caída/concurrencia. No hay DDL, migraciones ni código de persistencia implementados; PostgreSQL local sigue siendo una propuesta pendiente de validar.
+
+
+### Portación del ciclo de vida a la bandeja canónica (2026-10-11)
+
+- Se porta `AgentReceiptSyncLifecycle`, las pruebas unitarias y la prueba SQLite→HTTPS/TLS→PostgreSQL sobre la rama canónica `feat/agent-task-inbox-v2` (PR #52), evitando la variante histórica que usa `0004_agent_task_inbox.sql`.
+- La migración de la bandeja permanece como `0005_agent_task_inbox.sql` para no colisionar con `0004_worker_module_inventory.sql`.
+- El runtime no debe reescribir un recibo local al sincronizarlo: el ACK de HTTP 2xx marca la versión actual como sincronizada; un nuevo resultado local vuelve a encolarse. El reintento no cambia el resultado persistido y conserva la idempotencia.
+- PR #57 pasó CI en HEAD `650f8c4de4339268f8872d7fab034483f4fb9370` (run 38124585608, 85 pruebas). PR #67 pasó CI en HEAD `879f57fbd4d546002d65bdcfd21f234d2e873da5` (run 38124601844, 131 pruebas); una revalidación final queda pendiente si cambia la base. No hay instalación ni pruebas en PCs físicas; no activar ADB/shell ni ejecución de tareas.
+
+
+### Revalidación actual de la pila inbox/lifecycle — 2026-10-12
+
+- La PR #52 está en HEAD `20e618aaeadc1866457f637522b755540f795dfa`; la PR #57 está en HEAD `3bbd65d6c49884408086219a364f251ddbd8c9b7`.
+- La comparación de ramas devuelve `diverged` (6 commits exclusivos de #57 y 7 commits de #52 ausentes en #57; merge-base `2e0f9011e60850aa2d6fd13d140615d7f23921fc`). GitHub reporta la PR como mergeable, pero el CI histórico de #57 no valida por sí solo el merge result actualizado.
+- Revalidar transporte/seguridad, persistencia/asignación y migraciones PostgreSQL sobre el merge result actual. Mantener draft y preservar la integración de recibos SQLite→HTTPS→PostgreSQL, lifecycle, claim/lease, epoch e idempotencia. No fusionar ni desplegar ni ejecutar ADB/shell en equipos físicos.
