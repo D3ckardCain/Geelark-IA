@@ -278,3 +278,15 @@ Fuentes:
 - https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
 - https://www.geelark.com/blog/geelark-rpa-guide-5/
 - https://www.geelark.com/es/blog-es/automatizacion-de-apps-android-y-navegador-geelark-rpa/
+
+
+### Bloques RPA concretos (2026-10-12)
+
+Las guías públicas 2, 3 y 6 describen el flujo de plantillas y planificación (perfiles destino, horarios y logs), además de los bloques Open app, Waiting time, Scroll Page, Page back, Upload File, IF Condition, For Loop Times/Elements/Data, Exit Loop, End Task y Exception handling (Skip/Interrupt). Task Settings documenta variables String, Batch Text, Boolean, Number y File; la guía de variables también describe objetos de elemento UI como referencias temporales. Las condiciones incluyen existencia, comparaciones, inclusión/exclusión y una condición probabilística. La guía indica que el detalle de For Loop Data aún está en preparación; por tanto, su contrato permanece desconocido.
+
+La especificación local transforma estos hallazgos en contratos tipados, límites, cancelación y pruebas de fallos parciales. La documentación pública no demuestra todos los módulos de la versión actual, así que el inventario sigue parcial.
+
+Fuentes:
+- https://www.geelark.com/blog/geelark-rpa-guide-2/
+- https://www.geelark.com/blog/geelark-rpa-guide-3/
+- https://www.geelark.com/blog/geelark-rpa-guide-6/
