@@ -1,0 +1,48 @@
+name: Master control prototype checks
+
+on:
+  pull_request:
+    paths:
+      - "prototypes/master-control/**"
+      - "tests/test_master_control_prototype.py"
+      - "tests/test_master_worker_status_contract.py"
+      - "docs/**"
+      - "tests/smoke_master_control_browser.py"
+      - "docs/MANUAL_USUARIO_PANEL_CONTROL_MASTER.md"
+      - ".github/workflows/master-control-prototype.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: master-control-prototype-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    name: Static regression and JavaScript syntax
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Run Python standard-library regression tests
+        run: python3 -m unittest tests/test_master_control_prototype.py tests/test_master_worker_status_contract.py
+
+      - name: Render the actual HTML in installed Chrome/Chromium
+        run: python3 tests/smoke_master_control_browser.py
+
+      - name: Check embedded JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          source = Path("prototypes/master-control/index.html").read_text(encoding="utf-8")
+          match = re.search(r"<script>(.*?)</script>", source, re.IGNORECASE | re.DOTALL)
+          if match is None:
+              raise SystemExit("No se encontró el script embebido")
+          Path("/tmp/master-control-prototype.js").write_text(match.group(1), encoding="utf-8")
+          PY
+          node --check /tmp/master-control-prototype.js

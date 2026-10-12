@@ -1,0 +1,337 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:geelark-ia:contract:master-worker-status:1.0.0",
+  "title": "GeeLark-IA Master/Worker status snapshot v1",
+  "description": "Read-only status view produced by the Master. Contains no commands, credentials, arbitrary logs, or task payloads.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "generated_at",
+    "source",
+    "node",
+    "freshness"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "master-live",
+        "master-cache"
+      ]
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "display_name",
+        "authorization_state",
+        "health_state",
+        "last_heartbeat_at",
+        "agent_version",
+        "capabilities",
+        "modules",
+        "reported_health_state"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+        },
+        "authorization_state": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "active",
+            "revoked",
+            "unknown"
+          ],
+          "description": "Master-authoritative state; unknown never grants permission."
+        },
+        "health_state": {
+          "type": "string",
+          "enum": [
+            "healthy",
+            "degraded",
+            "offline",
+            "unknown"
+          ],
+          "description": "Master-derived health; unknown is not success or failure."
+        },
+        "last_heartbeat_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "agent_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        },
+        "capabilities": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "heartbeat-v1",
+              "self-status-v1",
+              "capability-report-v1",
+              "module-inventory-v1",
+              "resource-telemetry-v1"
+            ]
+          }
+        },
+        "modules": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "module_id",
+              "state",
+              "version",
+              "checked_at",
+              "source",
+              "error_code"
+            ],
+            "properties": {
+              "module_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+                "enum": [
+                  "agent-guard",
+                  "agent-supervisor",
+                  "agent-transport",
+                  "android-engine",
+                  "task-journal"
+                ]
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "operational",
+                  "degraded",
+                  "not-installed",
+                  "unknown"
+                ]
+              },
+              "version": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 64
+              },
+              "checked_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "agent-report",
+                  "master-check",
+                  "unknown"
+                ]
+              },
+              "error_code": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 64,
+                "pattern": "^[A-Z0-9_]{1,64}$"
+              }
+            }
+          }
+        },
+        "reported_health_state": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "healthy",
+            "degraded",
+            "unhealthy",
+            "unknown",
+            null
+          ],
+          "description": "Declaración del Worker, no autoritativa; el Master calcula health_state de forma independiente."
+        }
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "age_seconds",
+        "threshold_seconds",
+        "observed_at"
+      ],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "fresh",
+            "stale",
+            "missing",
+            "unknown"
+          ]
+        },
+        "age_seconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "threshold_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "observed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "Master-side observation time, not the Worker clock."
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "freshness"
+        ],
+        "properties": {
+          "freshness": {
+            "required": [
+              "state"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "stale",
+                  "missing",
+                  "unknown"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "node"
+        ],
+        "properties": {
+          "node": {
+            "required": [
+              "health_state"
+            ],
+            "properties": {
+              "health_state": {
+                "enum": [
+                  "degraded",
+                  "offline",
+                  "unknown"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "node"
+        ],
+        "properties": {
+          "node": {
+            "required": [
+              "last_heartbeat_at"
+            ],
+            "properties": {
+              "last_heartbeat_at": {
+                "const": null
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "node",
+          "freshness"
+        ],
+        "properties": {
+          "node": {
+            "required": [
+              "health_state"
+            ],
+            "properties": {
+              "health_state": {
+                "enum": [
+                  "offline",
+                  "unknown"
+                ]
+              }
+            }
+          },
+          "freshness": {
+            "required": [
+              "state"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "missing",
+                  "unknown",
+                  "stale"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
