@@ -73,16 +73,11 @@ def execute_idempotent(
             """
             INSERT INTO geelark_control.idempotency_records
                 (scope, idempotency_key, payload_sha256, response_snapshot, expires_at)
-            VALUES (
-                %s, %s, %s, NULL,
-                CASE WHEN %s IS NULL THEN NULL
-                     ELSE now() + (%s * interval '1 second')
-                END
-            )
+            VALUES (%s, %s, %s, NULL, now() + (%s * interval '1 second'))
             ON CONFLICT (scope, idempotency_key) DO NOTHING
             RETURNING scope
             """,
-            (scope, key, digest, _idempotency_ttl_seconds(scope), _idempotency_ttl_seconds(scope)),
+            (scope, key, digest, _idempotency_ttl_seconds(scope)),
         ).fetchone()
         row = conn.execute(
             """
