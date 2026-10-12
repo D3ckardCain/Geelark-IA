@@ -881,3 +881,19 @@ Fuentes oficiales:
 - Guía 6 — carga de archivos, condiciones, bucles, salida y excepciones: https://www.geelark.com/blog/geelark-rpa-guide-6/
 
 **Pendiente:** el inventario no se considera exhaustivo; la propia guía deja For Loop Data para una explicación posterior y el marketing menciona más módulos que los descritos aquí. No se implementará un bloque solo por aparecer en una lista comercial sin especificar su contrato y pruebas.
+
+
+### 32.8 Acciones UI y campos de selector (guía 4)
+
+La guía en español confirma acciones adicionales y parámetros comunes:
+
+- **Haz clic en elemento / pulsación prolongada en elemento:** selector por `fullId`, texto, `desc` o `className`; Equals/Contains; posición fija o rango; timeout en ms; incluir o excluir elementos no visibles; variable booleana de resultado; notas.
+- **Clic en coordenadas / pulsación prolongada en coordenadas:** X/Y de pantalla. La guía explica calcular el centro de los límites del elemento y advierte que las mismas coordenadas pueden apuntar a otro control al cambiar la resolución o la versión Android.
+- **Ingresar contenido:** selecciona el campo mediante atributos, define coincidencia/orden/timeout y configura el contenido. La guía también muestra variables como fuente de texto.
+- **Operación con teclado:** teclas como Enter o Delete.
+- **Esperar a que aparezca un elemento:** selector por atributos/texto, condición, orden, timeout, opción de elementos invisibles y resultado booleano.
+- **Inspección de UI:** el flujo de referencia usa una herramienta de análisis de jerarquía/accesibilidad para inspeccionar clase, descripción, ID completo, texto y límites del elemento. No todos los elementos tienen `desc` o un `fullId` único; los controles pueden estar anidados.
+
+**Reglas para Geelark-IA:** dar prioridad a selectores semánticos y combinaciones de atributos; advertir si el selector coincide con varios elementos; hacer explícita la selección por índice; registrar la resolución y versión Android cuando se usan coordenadas; y devolver `success=false` más un error estable si el elemento no aparece dentro del timeout. Nunca asumir que un ID, texto o coordenada es universal entre apps/versiones.
+
+Fuente: https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
