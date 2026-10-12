@@ -267,19 +267,6 @@ Fuentes:
 - https://www.geelark.com/es/blog-es/automatizacion-de-apps-android-y-navegador-geelark-rpa/
 
 
-### RPA — detalle operativo confirmado (2026-10-12)
-
-La guía oficial para principiantes detalla selectores por texto, atributos y coordenadas; atributos citados: `fullId`, `desc`, `className`. También documenta igualdad/contiene, orden fijo o aleatorio, tiempo de espera, opción de elementos invisibles, resultado booleano, notas, variables de texto/número/booleano/objeto, extracción de texto, bucles, condiciones y excepciones de omitir/detener. La página de producto resume las familias como acciones, lógica, bucles, variables y manejo de excepciones, además de ejecución y logs.
-
-Para Geelark-IA se propone un motor local tipado y auditable: cada bloque declara permisos, entrada/salida, timeout, límites, política de error y si puede reintentarse sin duplicar efectos. Los selectores semánticos se prefieren a coordenadas. No se ejecutarán scripts o shell arbitrarios por defecto.
-
-Fuentes:
-- https://www.geelark.com/features/rpa/
-- https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
-- https://www.geelark.com/blog/geelark-rpa-guide-5/
-- https://www.geelark.com/es/blog-es/automatizacion-de-apps-android-y-navegador-geelark-rpa/
-
-
 ### Bloques RPA concretos (2026-10-12)
 
 Las guías públicas 2, 3 y 6 describen el flujo de plantillas y planificación (perfiles destino, horarios y logs), además de los bloques Open app, Waiting time, Scroll Page, Page back, Upload File, IF Condition, For Loop Times/Elements/Data, Exit Loop, End Task y Exception handling (Skip/Interrupt). Task Settings documenta variables String, Batch Text, Boolean, Number y File; la guía de variables también describe objetos de elemento UI como referencias temporales. Las condiciones incluyen existencia, comparaciones, inclusión/exclusión y una condición probabilística. La guía indica que el detalle de For Loop Data aún está en preparación; por tanto, su contrato permanece desconocido.
