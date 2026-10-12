@@ -37,13 +37,16 @@ Para el primer tramo de telemetría, usar:
 
 Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fila antes de mutar; guardan heartbeat/capacidades y consultan únicamente el nodo autenticado. Los handlers de tareas/reconciliación están implementados en la rama de bandeja durable y se conectan solo al crear explícitamente `make_postgres_agent_handlers`; esta PR sigue draft y no habilita ningún listener ni despliegue. La reconciliación permanece de solo lectura; no se ejecuta Android, ADB ni shell.
 
-## Validación pendiente
+## Estado de validación y pendientes
 
-- CI de transporte #38015892590 pasó con **31 pruebas**, `pip check` correcto y una prueba cruzada omitida explícitamente porque la rama base aún no incluye la API de recibos del PR #38.
-- Los workflows de persistencia #38015892688 y esquema #38015892600 pasaron. La integración real SQLite→HTTPS se mantiene como dependencia pendiente; no se declara validada hasta apilar la API del journal.
-- La suite prueba handshake TLS real con CA local y rechaza una CA desconocida. Sigue pendiente integrar el cliente HTTPS en el bucle principal del agente y completar la reconciliación.
-- Definir timeouts/concurrencia del servidor y cuotas apropiadas para el tamaño real de la LAN. El limitador global PostgreSQL ya está implementado y probado.
-- Completar manual de generación, rotación, respaldo y distribución de CA local.
+La última CI de la rama consolidada PR #85 pasó contra PostgreSQL desechable:
+- Transporte [#38281405401](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38281405401): **182 pruebas** y `pip check` limpio; incluye la suite de journal/SQLite.
+- Persistencia/servicio [#38281404982](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38281404982): 32 pruebas de persistencia, 18 de guard y 54 de autorización; `pip check` limpio.
+- Esquema [#38281404382](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38281404382): migraciones e invariantes aprobadas.
+
+Pendiente:
+- Integrar el cliente HTTPS y el journal con el bucle real del agente y validar en hardware anfitrión.
+- Completar el manual de generación, rotación, respaldo y distribución de CA local.
 - No conectar handlers de producción ni desplegar hasta cerrar los criterios anteriores.
 
 Los tests de configuración TLS usan archivos ficticios para probar restricciones del listener, no para simular certificados válidos. El paquete no instala software en PCs físicas ni requiere APIs o servicios de pago.
@@ -119,9 +122,17 @@ La política de vencimiento y la rutina manual de preview/poda se documentan en 
 Usa `create_postgres_agent_app(connect)` para cablear autenticación, nonces, idempotencia, handlers PostgreSQL y el limitador compartido de 60 solicitudes/minuto por nodo. El callback `connect` debe abrir conexiones con credenciales fuera del DSN y TLS verificado si PostgreSQL es remoto. La función solo construye la app ASGI: no inicia un listener ni configura TLS. El runtime debe servirla exclusivamente por HTTPS. El limitador en memoria de `create_agent_app` es para pruebas/desarrollo, no para límites globales multiworker.
 
 
+## Leases de tareas y reloj autoritativo — 2026-10-12
+
+- La lease de entrega de 30 segundos solo gobierna la fase `delivered` y el ACK inicial. Si la tarea ya está `accepted` o `running`, el vencimiento de esa lease no bloquea el progreso ni el resultado.
+- La lease de asignación y el `assignment_epoch` siguen siendo obligatorios para aceptar/progresar/finalizar; si vencen, la operación falla cerrada.
+- La reconciliación reconoce el par esperado `agent_tasks.status=delivered` + `operations.status=accepted`. Una entrega no aceptada cuya lease vence queda en hold; una tarea activa con lease de asignación vigente no queda bloqueada por la antigua lease de entrega.
+- Las comparaciones de leases usan `now()` de PostgreSQL, no el reloj del proceso, para evitar aceptar asignaciones vencidas si el reloj de la aplicación está atrasado.
+- Pruebas de regresión: progreso tras vencer la lease de entrega, reconciliación de tareas activas y simulación de reloj de aplicación una hora atrasado.
+
 ## Revalidación de ACK durable — 2026-10-12
 
 - Se integró en la rama del supervisor el journal versionado del PR #38, incluyendo migraciones v1→v3 y pruebas de recibos.
 - `mark_receipt_synced` compara estado y resultado canónicos bajo `BEGIN IMMEDIATE`; un ACK de versión obsoleta no oculta el recibo actual. `unknown` puede sincronizarse como incertidumbre sin convertirse en éxito/fallo.
 - El workflow fija el journal al commit `5815bc6e8f4146099e5fff028008fdf9f0ede5d6`, ejecuta primero la suite del journal y luego la suite del transporte. La prueba SQLite real ya no se omite por falta de API.
-- CI de la pila consolidada PR #85 aprobada en HEAD documental `e1c7c6869ca11aeb13452c50958abfbbcd8ac1fe`: transporte #38274253344 (160 pruebas transporte + 18 journal/SQLite), esquema #38274253515 y persistencia/assignment #38274253350; `pip check` limpio y sin warning Starlette. Esta evidencia no equivale a validación de instalación en Windows ni a despliegue real.
+- CI del HEAD `17222427612d41c6cea0a16d2633a8b819933393`: transporte #38281405401 (182 pruebas + journal/SQLite), esquema #38281404382 y persistencia/servicio #38281404982; `pip check` limpio. La evidencia cubre CI y PostgreSQL desechable, no instalación en Windows ni despliegue real.
