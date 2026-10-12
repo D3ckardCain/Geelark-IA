@@ -29,6 +29,10 @@ def test_password_policy_and_malformed_hash_fail_closed() -> None:
         hash_operator_password("long-enough-password", iterations=1000)
     assert not verify_operator_password("password", "plaintext")
     assert not verify_operator_password("password", "pbkdf2_sha256$1$00$00")
+    with pytest.raises(ValueError, match="entre 600000 y 2000000"):
+        hash_operator_password("long-enough-password", iterations=2_000_001)
+    oversized_cost_hash = "pbkdf2_sha256$2000001$" + ("00" * 16) + "$" + ("00" * 32)
+    assert not verify_operator_password("password", oversized_cost_hash)
 
 
 def test_sessions_are_hashed_revocable_and_expire(tmp_path: Path) -> None:
@@ -36,6 +40,8 @@ def test_sessions_are_hashed_revocable_and_expire(tmp_path: Path) -> None:
     store = SessionStore(tmp_path / "private" / "sessions.sqlite3", clock=lambda: now[0])
     token = store.create()
     assert token
+    assert not store.valid("cookie-☃-no-ascii")
+    store.revoke("cookie-☃-no-ascii")
     assert store.valid(token)
     with store._connect() as conn:
         row = conn.execute("SELECT token_hash FROM operator_sessions").fetchone()
