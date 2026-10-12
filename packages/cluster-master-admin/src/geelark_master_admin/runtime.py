@@ -107,6 +107,23 @@ def _database_connector():
         raise RuntimeError(
             "PostgreSQL remoto requiere host= explícito para verificar el nombre del servidor; hostaddr por sí solo no basta."
         )
+    if remote:
+        non_loopback_hosts = []
+        for item in hosts:
+            if item.startswith("/"):
+                continue
+            if item.lower() == "localhost":
+                continue
+            try:
+                is_loopback_host = ipaddress.ip_address(item).is_loopback
+            except ValueError:
+                is_loopback_host = False
+            if not is_loopback_host:
+                non_loopback_hosts.append(item)
+        if not non_loopback_hosts:
+            raise RuntimeError(
+                "PostgreSQL remoto requiere un host DNS/IP no-loopback; no se acepta verificar un destino remoto como localhost."
+            )
     if details.get("user", "") != "geelark_master_reader":
         raise RuntimeError(
             "GEELARK_ADMIN_DATABASE_URL debe usar exactamente el rol dedicado "
