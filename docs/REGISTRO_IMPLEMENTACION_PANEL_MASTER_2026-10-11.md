@@ -12,18 +12,20 @@ Fecha: 2026-10-11. PR: #76 (borrador).
 - Añadidas pruebas para consulta SQL sin base de datos y para bloquear el bind remoto.
 
 ## Estado de validación
-- Una ejecución anterior aprobó 10 pruebas, pero corresponde a un commit anterior a la integración final del panel/runtime y a las pruebas recientes.
-- Se amplió el workflow de integración existente para ejecutar los tests administrativos y comprobar el rol de solo lectura en PostgreSQL desechable.
-- CI aprobada en el HEAD `8e0b47c564a0c4db287c01b62878f810f7f2ade4`: 33 tests de persistencia, 12 de guardia, 54 de autenticación de agentes, 20 de API administrativa, verificación de grants y `pip check`. [Ejecución 38186772500](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38186772500).
-- Advertencia no bloqueante: deprecación del uso de `httpx` en `starlette.testclient`; se registra para resolver en una actualización posterior.
+- HEAD validado: `7ced1509474eb682092b4d3d837c652218ae6f8c`; [CI #38190571137](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38190571137) terminó en success.
+- 33 pruebas de persistencia, 12 de guardia, 54 de autenticación de agentes y 24 pruebas administrativas aprobadas; `pip check` correcto.
+- El workflow existente verifica el rol lector incluso cuando ya existía con `NOLOGIN`, y comprueba que falle si se le concede SELECT sobre una tabla ajena o CREATE/propiedad en otro esquema.
+- Se añadió límite PBKDF2 de 600.000–2.000.000 iteraciones; PostgreSQL remoto requiere `sslmode=verify-full`, detecta `hostaddr` remoto y rechaza DSN `service=`.
+- Advertencia no bloqueante: deprecación del uso de `httpx` en `starlette.testclient`.
 - No se ejecutó en PC-MASTER, no se abrió ningún puerto, no se desplegó ni se fusionó.
 - No se han verificado grants en una base real. El proyecto Supabase vinculado aparece inactivo y no se reactivó ni modificó.
+- La CI desechable valida comportamiento automatizado, no las ACL NTFS/TLS de Windows ni la configuración heredada de una base real.
 
 ## Bloqueos antes de producción
 1. Confirmar una base de datos que permita operación real a $0; preferir PostgreSQL local para no depender de una instancia remota.
 2. Instalar/configurar el servicio en PC-MASTER y confiar el certificado TLS local.
 3. Ejecutar `packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql` con una cuenta administradora y después `packages/cluster-master-admin/sql/verify_readonly_role.sql` como `geelark_master_reader`.
-4. Revisar la ejecución del workflow de integración que incluye tests administrativos y verificación de grants; después probar el flujo en PC-MASTER.
+4. Completar en Windows la verificación real de ACL NTFS para el directorio, credenciales, PGPASSFILE, SQLite y clave TLS; comprobar certificado/SAN y escucha exclusiva en loopback.
 5. Probar login, sesión, snapshots y logout en la máquina real; realizar revisión de seguridad.
 
 ## Coste
@@ -34,4 +36,4 @@ No se incorporan APIs de pago ni autenticación SaaS. Los tests administrativos 
 - El SQL de preparación crea el rol dentro de un bloque DO usando ejecución dinámica, evitando depender de soporte de comandos DDL estáticos en PL/pgSQL.
 - El inicializador de credenciales restringe ACL NTFS del directorio y del archivo en Windows; si no puede aplicar la ACL al archivo, lo elimina y falla cerrado.
 - El script de prueba de grants es `packages/cluster-master-admin/sql/verify_readonly_role.sql` (no ejecutar como administrador: debe ejecutarse como el rol lector).
-- Las pruebas del HEAD citado finalizaron correctamente. El último cambio de documentación posterior quedó en `47ef79d4d2ef873af6a72b64e9b799416f23d898`; no cambia el código ejecutado por CI. La siguiente actualización de código deberá volver a validarse.
+- La última CI del código actual finalizó correctamente en `38190571137`. Cualquier cambio posterior en código debe volver a validarse; esta actualización documental no altera la ejecución ya verificada.
