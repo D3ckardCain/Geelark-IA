@@ -132,6 +132,24 @@ jobs:
           grep -q "EXECUTE sobre una rutina no permitida" /tmp/geelark-admin-function-probe.log || { cat /tmp/geelark-admin-function-probe.log; exit 1; }
           docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "DROP FUNCTION public.geelark_admin_function_probe()"
 
+          # Negative test: column-level SELECT on an unrelated table must be rejected.
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "CREATE TABLE public.geelark_admin_column_probe(secret text); GRANT SELECT(secret) ON public.geelark_admin_column_probe TO geelark_master_reader"
+          if PGPASSWORD=test-only-password psql "$reader_dsn" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql > /tmp/geelark-admin-column-probe.log 2>&1; then
+            echo "ERROR: el verificador aceptó SELECT de columna en una tabla ajena"
+            exit 1
+          fi
+          grep -q "privilegios efectivos sobre un objeto distinto" /tmp/geelark-admin-column-probe.log || { cat /tmp/geelark-admin-column-probe.log; exit 1; }
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "REVOKE SELECT(secret) ON public.geelark_admin_column_probe FROM geelark_master_reader; DROP TABLE public.geelark_admin_column_probe"
+
+          # Negative test: column-level UPDATE on the allowed nodes table must be rejected.
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "GRANT UPDATE(display_name) ON geelark_control.nodes TO geelark_master_reader"
+          if PGPASSWORD=test-only-password psql "$reader_dsn" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql > /tmp/geelark-admin-node-column-write.log 2>&1; then
+            echo "ERROR: el verificador aceptó UPDATE de columna en nodes"
+            exit 1
+          fi
+          grep -q "privilegios de escritura o DDL sobre nodes" /tmp/geelark-admin-node-column-write.log || { cat /tmp/geelark-admin-node-column-write.log; exit 1; }
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "REVOKE UPDATE(display_name) ON geelark_control.nodes FROM geelark_master_reader"
+
           # Negative test: ownership/CREATE on an unrelated schema must be rejected.
           docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "CREATE SCHEMA geelark_admin_owner_probe AUTHORIZATION geelark_master_reader"
           if PGPASSWORD=test-only-password psql "$reader_dsn" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql > /tmp/geelark-admin-owner-probe.log 2>&1; then
