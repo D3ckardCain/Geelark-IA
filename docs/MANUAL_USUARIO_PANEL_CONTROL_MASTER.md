@@ -1,6 +1,6 @@
 # Manual de usuario — Panel de control PC-MASTER
 
-**Estado:** integración de panel y autenticación implementadas en la rama de propuesta. No están instaladas ni ejecutándose en el PC-MASTER real. La validación de CI del último conjunto de cambios está pendiente.
+**Estado:** panel y autenticación implementados en la PR borrador #84. La CI de la rama pasó en la ejecución [#38272945485](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38272945485), incluidas las pruebas del paquete Master Admin y los probes negativos del rol PostgreSQL. No está instalado ni ejecutándose en el PC-MASTER real; la validación de Windows sigue pendiente en la issue #77.
 
 ## 1. Acceso inicial
 
@@ -79,4 +79,4 @@ Si PostgreSQL está alojado remotamente, consultar datos reales requiere Interne
 - La sesión se guarda en SQLite local y expira en ocho horas.
 - CI verifica los permisos del rol en PostgreSQL desechable. Los permisos efectivos de la instancia real deben verificarse ejecutando `packages/cluster-master-admin/sql/verify_readonly_role.sql` como el usuario lector.
 - La CI aprobada incluye pruebas de la API y verificación de grants en una base PostgreSQL desechable; no sustituye la validación de credenciales, permisos ni conectividad en la instancia real de PC-MASTER ni la revisión manual de seguridad.
-- No se ha ejecutado en hardware real ni se ha desplegado. No debe considerarse operativo hasta completar la lista de aceptación de la issue #77; el código revisable está en la PR #79, aún draft.
+- No se ha ejecutado en hardware real ni se ha desplegado. No debe considerarse operativo hasta completar la lista de aceptación de la issue #77; la rama revisable actual es la PR #84, aún draft. Las PR #76 y #79 quedaron supersedidas y cerradas sin merge.
