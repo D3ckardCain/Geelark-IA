@@ -57,7 +57,10 @@ BEGIN
        OR has_table_privilege(current_user, 'geelark_control.nodes', 'DELETE')
        OR has_table_privilege(current_user, 'geelark_control.nodes', 'TRUNCATE')
        OR has_table_privilege(current_user, 'geelark_control.nodes', 'REFERENCES')
-       OR has_table_privilege(current_user, 'geelark_control.nodes', 'TRIGGER') THEN
+       OR has_table_privilege(current_user, 'geelark_control.nodes', 'TRIGGER')
+       OR has_any_column_privilege(current_user, 'geelark_control.nodes', 'INSERT')
+       OR has_any_column_privilege(current_user, 'geelark_control.nodes', 'UPDATE')
+       OR has_any_column_privilege(current_user, 'geelark_control.nodes', 'REFERENCES') THEN
         RAISE EXCEPTION 'El rol tiene privilegios de escritura o DDL sobre nodes';
     END IF;
 
@@ -77,6 +80,10 @@ BEGIN
              OR has_table_privilege(current_user, format('%I.%I', n.nspname, c.relname), 'TRUNCATE')
              OR has_table_privilege(current_user, format('%I.%I', n.nspname, c.relname), 'REFERENCES')
              OR has_table_privilege(current_user, format('%I.%I', n.nspname, c.relname), 'TRIGGER')
+             OR has_any_column_privilege(current_user, c.oid, 'SELECT')
+             OR has_any_column_privilege(current_user, c.oid, 'INSERT')
+             OR has_any_column_privilege(current_user, c.oid, 'UPDATE')
+             OR has_any_column_privilege(current_user, c.oid, 'REFERENCES')
            )
     ) THEN
         RAISE EXCEPTION 'El rol tiene privilegios efectivos sobre un objeto distinto de geelark_control.nodes';
