@@ -15,8 +15,15 @@ class InMemoryRateLimiter:
     """
 
     def __init__(self, *, max_requests: int = 60, window_seconds: int = 60) -> None:
-        if max_requests < 1 or window_seconds < 1:
-            raise ValueError("Los límites deben ser positivos.")
+        if (
+            isinstance(max_requests, bool)
+            or not isinstance(max_requests, int)
+            or isinstance(window_seconds, bool)
+            or not isinstance(window_seconds, int)
+            or max_requests < 1
+            or window_seconds < 1
+        ):
+            raise ValueError("Los límites deben ser enteros positivos.")
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self._events: dict[str, Deque[float]] = defaultdict(deque)
@@ -44,7 +51,14 @@ class PostgresRateLimiter:
     """
 
     def __init__(self, connect, *, max_requests: int = 60, window_seconds: int = 60) -> None:
-        if isinstance(max_requests, bool) or isinstance(window_seconds, bool) or max_requests < 1 or window_seconds < 1:
+        if (
+            isinstance(max_requests, bool)
+            or not isinstance(max_requests, int)
+            or isinstance(window_seconds, bool)
+            or not isinstance(window_seconds, int)
+            or max_requests < 1
+            or window_seconds < 1
+        ):
             raise ValueError("Los límites deben ser enteros positivos.")
         self.connect = connect
         self.max_requests = max_requests
