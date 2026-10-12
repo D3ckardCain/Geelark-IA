@@ -112,3 +112,8 @@ El CLI `geelark-agent --config /ruta/agente.toml` requiere configuración explí
 ## Retención y mantenimiento manual
 
 La política de vencimiento y la rutina manual de preview/poda se documentan en [Manual de retención de agentes](../../docs/MANUAL_RETENCION_AGENTES.md). No hay limpieza automática ni cron. Los scopes desconocidos no se vencen; los informes inciertos/conflictivos solo pueden borrarse tras exportación revisada, antigüedad >365 días y doble confirmación.
+
+
+## Ensamblado recomendado para PostgreSQL
+
+Usa `create_postgres_agent_app(connect)` para cablear autenticación, nonces, idempotencia, handlers PostgreSQL y el limitador compartido de 60 solicitudes/minuto por nodo. El callback `connect` debe abrir conexiones con credenciales fuera del DSN y TLS verificado si PostgreSQL es remoto. La función solo construye la app ASGI: no inicia un listener ni configura TLS. El runtime debe servirla exclusivamente por HTTPS. El limitador en memoria de `create_agent_app` es para pruebas/desarrollo, no para límites globales multiworker.
