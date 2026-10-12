@@ -27,7 +27,7 @@ def make_client(principal, *, base_url="https://testserver", configure_task_hand
     if not configure_task_handlers:
         configured_operations -= {
             Operation.TASK_ACCEPT, Operation.TASK_PROGRESS,
-            Operation.TASK_RESULT, Operation.RECONCILE,
+            Operation.TASK_RESULT, Operation.RECONCILE, Operation.RECONCILE_INVENTORY,
         }
     handlers = {
         op: (lambda *, principal, payload=None, conn=None, op=op: calls.append(op.value) or {"ok": True})
@@ -189,3 +189,55 @@ def test_inconsistent_revoked_and_expired_principal_states_never_reach_handlers(
         )
         assert response.status_code == 403
         assert calls == []
+
+
+def test_reconcile_route_requires_active_node_and_uses_handler():
+    pending_client, pending_calls = make_client(PENDING)
+    body = {"schema_version": 1, "inventory": []}
+    denied = pending_client.post("/agent/v1/reconcile/inventory", headers=headers(), json=body)
+    assert denied.status_code == 403
+    assert pending_calls == []
+
+    active_client, active_calls = make_client(ACTIVE)
+    response = active_client.post("/agent/v1/reconcile/inventory", headers=headers(), json=body)
+    assert response.status_code == 200
+    assert active_calls == ["reconcile_inventory"]
+
+
+def test_reconcile_payload_rejects_duplicate_tasks_and_oversized_result_summary():
+    client, calls = make_client(ACTIVE)
+    task_id, operation_id, instance_id = str(uuid4()), str(uuid4()), str(uuid4())
+    item = {
+        "task_id": task_id,
+        "operation_id": operation_id,
+        "instance_id": instance_id,
+        "assignment_epoch": 3,
+        "local_state": "running",
+        "result_summary": {},
+    }
+    duplicate = client.post(
+        "/agent/v1/reconcile/inventory", headers=headers(),
+        json={"schema_version": 1, "inventory": [item, item]},
+    )
+    assert duplicate.status_code == 422
+
+    oversized = {**item, "task_id": str(uuid4()), "result_summary": {"data": "x" * 70_000}}
+    response = client.post(
+        "/agent/v1/reconcile/inventory", headers=headers(),
+        json={"schema_version": 1, "inventory": [oversized]},
+    )
+    assert response.status_code == 422
+
+    invalid_epoch = {**item, "task_id": str(uuid4()), "assignment_epoch": True}
+    epoch_response = client.post(
+        "/agent/v1/reconcile/inventory", headers=headers(),
+        json={"schema_version": 1, "inventory": [invalid_epoch]},
+    )
+    assert epoch_response.status_code == 422
+
+    invalid_schema = client.post(
+        "/agent/v1/reconcile/inventory", headers=headers(),
+        json={"schema_version": True, "inventory": []},
+    )
+    assert invalid_schema.status_code == 422
+    assert calls == []
