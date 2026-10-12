@@ -200,22 +200,6 @@ Fuentes:
 Estos detalles amplían la especificación de RPA, pero no cierran la auditoría exhaustiva de bloques. La documentación pública y las capturas disponibles no demuestran todos los módulos, parámetros ni errores de la versión actual.
 
 
-### Requisito adicional RPA — selectores y variables (2026-10-12)
-
-| Área | Evidencia oficial | Adaptación local | Prueba de aceptación pendiente |
-|---|---|---|---|
-| P-007 RPA: selectores | Texto visible, atributos `fullId`/`desc`/`className`, coordenadas; Equals/Contains; orden fijo/aleatorio; timeout; opción de elementos invisibles; resultado booleano | Selectores tipados con prioridad semántica, timeout obligatorio, resultado estructurado y modo coordenadas explícitamente frágil | Selector único/ambiguo/ausente, timeout, elemento oculto, resolución distinta, idioma distinto y reintento sin duplicar efectos |
-| P-007 RPA: variables y control | Variables string, number, boolean y object; extracción/reutilización de texto; loops por cantidad/elementos/datos; condiciones y manejo de excepción skip/stop | Variables tipadas, límites de memoria/iteraciones, esquema validado y excepción tipada; no ejecutar scripts arbitrarios | Tipos incompatibles, variable inexistente, loop infinito, cancelación, error en bloque intermedio y persistencia de resultados |
-
-Fuentes:
-- https://www.geelark.com/features/rpa/
-- https://www.geelark.com/es/blog-es/geelark-guia-de-rpa-para-principiantes-4/
-- https://www.geelark.com/blog/geelark-rpa-guide-5/
-- https://www.geelark.com/es/blog-es/automatizacion-de-apps-android-y-navegador-geelark-rpa/
-
-Estos detalles amplían la especificación de RPA, pero no cierran la auditoría exhaustiva de bloques. La documentación pública no demuestra todos los módulos, parámetros ni errores de la versión actual.
-
-
 ### Bloques RPA adicionales identificados (2026-10-12)
 
 | Bloque | Evidencia publicada | Adaptación local / pruebas pendientes |
