@@ -60,6 +60,15 @@ def test_fresh_snapshot_uses_master_clock_and_closed_capability_list():
     assert snapshot["node"]["modules"][0]["state"] == "operational"
 
 
+def test_reported_health_is_not_read_from_derived_health_column():
+    snapshot = build_status_snapshot(
+        make_row(reported="unhealthy", last_seen=NOW - timedelta(seconds=10)),
+        now=NOW,
+    )
+    assert snapshot["node"]["reported_health_state"] == "unhealthy"
+    assert snapshot["node"]["health_state"] == "degraded"
+
+
 def test_missing_or_stale_heartbeat_never_looks_healthy():
     missing = build_status_snapshot(make_row(last_seen=None), now=NOW)
     assert missing["freshness"]["state"] == "missing"
@@ -140,7 +149,8 @@ def test_postgres_provider_executes_select_only_and_returns_none_for_missing_nod
 
     assert result["node"]["node_id"] == str(NODE_ID)
     assert connection.sql.lstrip().upper().startswith("SELECT")
-    assert "health_state AS reported_health_state" in connection.sql
+    assert "reported_health_state" in connection.sql
+    assert "health_state AS reported_health_state" not in connection.sql
     assert not any(word in connection.sql.upper() for word in ("INSERT ", "UPDATE ", "DELETE "))
     assert connection.params == (NODE_ID,)
 
