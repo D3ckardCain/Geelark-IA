@@ -6,11 +6,14 @@ on:
       - "db/**"
       - "packages/cluster-persistence/**"
       - "packages/cluster-agent-guard/**"
+      - "packages/cluster-agent-auth/**"
   push:
     branches: [main]
     paths:
       - "db/**"
       - "packages/cluster-persistence/**"
+      - "packages/cluster-agent-guard/**"
+      - "packages/cluster-agent-auth/**"
       - ".github/workflows/cluster-persistence-service.yml"
   workflow_dispatch:
 
@@ -73,6 +76,14 @@ jobs:
         if: hashFiles('packages/cluster-agent-guard/pyproject.toml') != ''
         run: python -m pytest packages/cluster-agent-guard/tests -q
 
+      - name: Install agent auth service and tests when present
+        if: hashFiles('packages/cluster-agent-auth/pyproject.toml') != ''
+        run: python -m pip install -e "packages/cluster-agent-auth[test]"
+
+      - name: Run agent auth service tests when present
+        if: hashFiles('packages/cluster-agent-auth/pyproject.toml') != ''
+        run: python -m pytest packages/cluster-agent-auth/tests -q
+
       - name: Check dependency consistency
-        if: hashFiles('packages/cluster-persistence/pyproject.toml') != '' || hashFiles('packages/cluster-agent-guard/pyproject.toml') != ''
+        if: hashFiles('packages/cluster-persistence/pyproject.toml') != '' || hashFiles('packages/cluster-agent-guard/pyproject.toml') != '' || hashFiles('packages/cluster-agent-auth/pyproject.toml') != ''
         run: python -m pip check
