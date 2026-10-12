@@ -1,6 +1,6 @@
 # Matriz de paridad funcional con GeeLark
 
-**Fecha:** 2026-10-09  
+**Fecha:** 2026-10-12  
 **Estado:** versión 0.1; catálogo preliminar basado en fuentes oficiales públicas.  
 **Regla:** ninguna fila se marca como equivalente hasta tener pruebas reproducibles.
 
@@ -158,3 +158,27 @@ Las notas v4.5.1 y v4.5.2 se incorporaron al catálogo (sección 28). Las funcio
 
 
 Las notas históricas v3.6–v3.9 se documentaron en el catálogo, sección 30. Sus límites y opciones no se consideran garantía actual ni límites que debamos copiar; la implementación local deberá validarse con pruebas propias.
+
+
+## 2.7 Revalidación de fuentes oficiales (2026-10-12)
+
+| Área | Evidencia actualizada | Implicación para la adaptación local | Estado |
+|---|---|---|---|
+| P-001 Perfiles | Creación individual, rápida y por lotes; Quick Create y Batch Create son Pro. La guía individual exige grupo, OS y proxy, y describe comprobación de proxy. | Crear perfiles locales sin facturación cloud; operaciones por lotes deben ser idempotentes, con validación por fila y recuperación. | Investigación inicial; ver catálogo §32.1 |
+| P-004 Proxies | Proxy estático/rotativo, guardados/personalizados, asociación con perfiles y comprobación de conexión/ubicación; proxy expirado no permitido. | Guardar secretos cifrados o en almacén del sistema, nunca en logs; ubicación será estimación y no garantía de anonimato. | Investigación inicial |
+| P-006 Library | Pro-only; 100 GB y eliminación tras 30 días en el servicio cloud de GeeLark. | Biblioteca local persistente con límites por disco configurables, backup y borrado explícito; no copiar el límite comercial de 30 días. | Investigación inicial |
+| P-009 Synchronizer | Pro-only; teléfono principal replica acciones a otros; guía recomienda dispositivos apagados y del mismo tipo; Android 9–15. | Verificar estado/compatibilidad antes de iniciar, informar resultados por destino y no prometer equivalencia entre layouts distintos. | Investigación inicial |
+| P-010 API | La página pública enumera ciclo de vida de cloud phones, automatización, apps/contenido, archivos, Library, ADB y webhooks. | API local propia y versionada; ninguna dependencia de endpoints ni credenciales de GeeLark. | Investigación inicial |
+| P-011 ADB | Guía consultada enumera Android 11–16 para ADB; no coincide con la lista de Synchronizer. | Restringir ADB a loopback/red interna y validar por motor/imagen; mantener la discrepancia de versiones abierta. | Pendiente de aclarar |
+| P-018 Facturación/planes | El cloud phone se factura por minuto salvo paquete de tiempo/alquiler mensual; varias funciones son Pro. | No reproducir cobros cloud; medir uso local y limitar por hardware. | Diferencia estructural |
+| P-023 Versiones Android | Synchronizer publica Android 9–15; ADB publica Android 11–16. | No inferir soporte general a partir de una lista específica de función. | Pendiente de aclarar |
+
+Fuentes oficiales revisadas:
+- Perfil y facturación: https://help.geelark.com/Profile-e60c92ba743748a697c07551f59812b8
+- Gestión de perfiles: https://help.geelark.com/Profile-management-c91b6291bb954a69a5d231781a03d0e1
+- Synchronizer: https://help.geelark.com/Synchronizer-82c1c9a8f62d489ca81b1f753d2a7bfa
+- Library: https://help.geelark.com/Library-1c20be7d9e41800a8535ea943b930bd4
+- API: https://www.geelark.com/features/api/
+- ADB: https://help.geelark.com/ADB-1600be7d9e418006b80cf649bcdc80ad
+
+Esta revalidación actualiza evidencia documental únicamente. No cambia filas a “Implementado”, “Probado” o “Equivalente”; la compatibilidad real de Geelark-IA requiere pruebas propias.
