@@ -66,8 +66,8 @@ def test_session_database_permissions_are_restricted(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("directory", "expected_grant"),
     [
-        (False, r"PC-MASTER\\operator:F"),
-        (True, r"PC-MASTER\\operator:(OI)(CI)F"),
+        (False, r"PC-MASTER\operator:F"),
+        (True, r"PC-MASTER\operator:(OI)(CI)F"),
     ],
 )
 def test_windows_acl_resets_old_explicit_entries_before_grant(
@@ -86,7 +86,7 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
     def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
         calls.append(command)
         if command[0].lower().endswith("whoami.exe"):
-            return SimpleNamespace(stdout=r"PC-MASTER\\operator")
+            return SimpleNamespace(stdout=r"PC-MASTER\operator")
         return SimpleNamespace(stdout="")
 
     monkeypatch.setattr(Path, "is_file", fake_is_file)
