@@ -872,3 +872,41 @@ La review formal `COMMENTED` de #16 enumeró seis áreas. La rama de #30 está a
 Comparaciones de commit actuales: #38 HEAD `e37e5aaef72837c19837eb5b648c29f05ae9b3c3` frente a #42 HEAD `68923019a5921ea7236d320c01a913e483130426`, #44 HEAD `1d4f9a79461c2128249f22598740c7f9e79aea05`, #47 HEAD `b03d225c5824b51848061bc206c84c888580bcd2` y #48 HEAD `f653c95e7c050f308738ec6279dd6b739d575c94`: todas las comparaciones muestran `diverged` desde merge-base `707e9b643f9ffee07c34b3106173d92f99d163b6`, con 13 commits recientes de #38 ausentes en la cadena auth/transporte. #48 tiene 146 commits exclusivos respecto al journal porque hereda toda la pila y añade transporte. El workflow de #48 hace checkout separado y pinneado del journal #38 para ejecutar pruebas, lo cual valida compatibilidad de código en CI pero **no** reescribe la ascendencia de la PR ni reconcilia la secuencia de migraciones en un árbol final.
 
 Hallazgo registrado en [#42](https://github.com/D3ckardCain/Geelark-IA/pull/42#issuecomment-6114330134), [#44](https://github.com/D3ckardCain/Geelark-IA/pull/44#issuecomment-6114330539), [#47](https://github.com/D3ckardCain/Geelark-IA/pull/47#issuecomment-6114330949) y [#48](https://github.com/D3ckardCain/Geelark-IA/pull/48#issuecomment-6114331370). Acción pendiente: acordar orden de actualización del grafo y comprobar migraciones 0002/0003, journal v3, inventario 0004 y bandeja 0005 en un único HEAD consolidado. No fusionar PRs por separado basándose solo en CI verde. Debido al requisito $0 y falta de acceso a Billing, no se cambió historia ni se disparó CI adicional.
+
+
+## Reauditoría GitHub — 2026-10-14
+
+Este corte actualiza la instantánea histórica del 10–11 de octubre. La revisión se realizó desde la API de GitHub; no se fusionaron PRs, no se lanzaron workflows manuales, no se desplegó en equipos físicos y no se conectaron bases de datos productivas.
+
+### Inventario actual
+
+- **41 Issues abiertas** al inicio de este corte; tras registrar el problema nuevo de colección de pytest (#91), el total pasa a 42.
+- **30 PR abiertas**, todas las PR revisadas continúan en borrador.
+- La Issue #1 se cerró porque su objetivo limitado —consolidar contexto, requisitos y plan inicial— ya está cubierto. Esto no cierra las fases de inventario, arquitectura ni pruebas.
+- La Issue #91 registra un bloqueo distinto de ACL: Pytest se detiene durante la colección porque test_app.py y test_runtime.py existen en dos paquetes y chocan en modo de importación.
+
+### PC-MASTER Windows
+
+- La fuente de la aplicación está en la rama de la PR #87, bajo apps/pc-master-windows/: pc_master.py, run_pc_master.bat, README.md y tests/test_pc_master.py. Es código fuente Python, no un instalador .exe final.
+- La PR #87 sigue en draft y está basada en feat/master-control-readonly-api-local-auth, una base anterior del panel. La PR vigente del panel es #84, cuya rama es feat/master-control-readonly-api-local-auth-v2. No cambiar la base sin reconciliar el historial.
+- La PR #90 sigue en draft y su SHA base registrado (f5c0e7ea649c0d7ec715bd955a2e02b0211a26a9) no coincide con el HEAD actual de la rama base de #87 (2bcb242afd51573872db47215e2898e35ff47f5a). Debe actualizarse/rebasarse después de resolver la colección de tests.
+- La ejecución local más reciente de pytest -q se interrumpió antes de ejecutar la suite por conflictos de colección entre cluster-agent-transport/tests y cluster-master-admin/tests. Esto no prueba que la lógica ACL falle, pero bloquea la validación global.
+- La Issue #77 sigue pendiente de pruebas físicas en Windows: ACL NTFS, confianza TLS, bind loopback, login/logout y permisos efectivos del rol PostgreSQL lector. La Issue #88 queda abierta hasta comprobar que el acceso directo local apunta a esta fuente.
+
+### Cadenas de PR que no deben fusionarse en bloque
+
+Las ramas apiladas requieren verificar su SHA base y reconciliarse desde las capas inferiores hacia arriba. La auditoría detectó discrepancias entre bases registradas y HEADs padres actuales, entre otras en:
+
+- PC-MASTER: #87 → #90; además, #87 usa una base anterior a la rama activa #84.
+- Inventario/snapshot/bandeja/sincronización: #48 → #73 → #74 → #52 → #57.
+- Autenticación/transporte: #42 → #44 → #47 → #48.
+- Persistencia/journal: #32 → #34 → #36 → #38 → #49.
+
+No se debe asumir que un PR está listo por tener una implementación descrita o una ejecución de CI antigua. Antes de integrar, comprobar el HEAD actual, los checks del mismo SHA, las migraciones, la seguridad y el orden de dependencias.
+
+### Coste y límites de esta auditoría
+
+- No se lanzaron Actions manuales ni se aumentó deliberadamente el consumo de CI.
+- No se puede certificar el saldo/facturación de la cuenta desde la conexión de GitHub; la Issue #63 sigue pendiente de comprobación directa del propietario.
+- No se restauró Supabase, no se usó una base productiva y no se habilitó ejecución Android/ADB/shell.
+- No se cerraron Issues que todavía exigen validación física, aprobación del usuario, integración de dependencias, revisión de seguridad o pruebas reproducibles.
