@@ -881,7 +881,7 @@ Este corte actualiza la instantánea histórica del 10–11 de octubre. La revis
 ### Inventario actual
 
 - **41 Issues abiertas** al inicio de este corte; tras registrar el problema nuevo de colección de pytest (#91), el total pasa a 42.
-- **30 PR abiertas**, todas las PR revisadas continúan en borrador.
+- **30 PR abiertas**. Las PR de implementación inspeccionadas (#87, #90, #84, #85 y las cadenas de dependencias descritas abajo) continúan en borrador.
 - La Issue #1 se cerró porque su objetivo limitado —consolidar contexto, requisitos y plan inicial— ya está cubierto. Esto no cierra las fases de inventario, arquitectura ni pruebas.
 - La Issue #91 registra un bloqueo distinto de ACL: Pytest se detiene durante la colección porque test_app.py y test_runtime.py existen en dos paquetes y chocan en modo de importación.
 
