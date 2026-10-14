@@ -106,6 +106,35 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
         assert acl_call[0].lower().endswith("icacls.exe")
         assert acl_call[2:] == expected_args
 
+def test_windows_acl_empty_identity_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess
+    from types import SimpleNamespace
+
+    from geelark_master_admin import auth as auth_module
+
+    calls: list[list[str]] = []
+
+    def fake_is_file(path: Path) -> bool:
+        return path.name.lower() in {"whoami.exe", "icacls.exe"}
+
+    def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
+        calls.append(command)
+        return SimpleNamespace(stdout="")
+
+    monkeypatch.setattr(Path, "is_file", fake_is_file)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(PermissionError, match="ACL NTFS"):
+        auth_module._restrict_windows_acl(
+            tmp_path / "sessions.sqlite3", directory=False
+        )
+
+    assert len(calls) == 1
+    assert calls[0][0].lower().endswith("whoami.exe")
+
+
 def test_windows_acl_failure_fails_closed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

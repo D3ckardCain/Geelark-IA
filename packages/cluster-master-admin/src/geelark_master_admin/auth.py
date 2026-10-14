@@ -76,6 +76,8 @@ def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
         identity = subprocess.run(
             [str(whoami)], check=True, capture_output=True, text=True, timeout=3
         ).stdout.strip()
+        if not identity:
+            raise OSError("whoami returned no valid user identity.")
         grant = f"{identity}:(OI)(CI)F" if directory else f"{identity}:F"
 
         # Windows rechaza /reset y /inheritance:r en una misma llamada.
