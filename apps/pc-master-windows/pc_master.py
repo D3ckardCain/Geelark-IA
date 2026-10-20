@@ -6,6 +6,8 @@ remotos y no persiste secretos. La API debe instalarse por separado desde el rep
 from __future__ import annotations
 
 import importlib.util
+import http.client
+import ssl
 import json
 import os
 import re
@@ -227,7 +229,21 @@ class PcMasterApp(tk.Tk):
         env.pop("GEELARK_ADMIN_ALLOW_REMOTE", None)
         env["PGPASSFILE"] = settings["pgpassfile"]
         try:
-            self.process = subprocess.Popen([sys.executable, "-m", "geelark_master_admin.runtime"], env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+            runtime_log = CONFIG_DIR / "runtime.log"
+            with runtime_log.open("a", encoding="utf-8") as log_stream:
+                log_stream.write("\n\n===== INICIO PC-MASTER BACKEND =====\n")
+                log_stream.flush()
+                self.process = subprocess.Popen(
+                    [sys.executable, "-m", "geelark_master_admin.runtime"],
+                    env=env,
+                    stdin=subprocess.PIPE,
+                    stdout=log_stream,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    encoding="utf-8",
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                )
         except OSError as exc:
             messagebox.showerror("Error de inicio", f"No se pudo iniciar la API con este Python: {exc}", parent=self)
             return
@@ -236,37 +252,156 @@ class PcMasterApp(tk.Tk):
 
     def _wait_for_server(self, port: int, process: subprocess.Popen) -> None:
         deadline = time.monotonic() + 12
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        # This probe only checks the local process; it does not authenticate
+        # the certificate. The browser remains responsible for certificate validation.
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+
         while time.monotonic() < deadline:
             if process.poll() is not None:
-                self.after(0, lambda: self.status_var.set("No inició · revisa configuración/dependencias"))
+                self.after(
+                    0,
+                    lambda: self.status_var.set(
+                        "No inició · revisa configuración/dependencias"
+                    ),
+                )
                 return
+
+            connection = http.client.HTTPSConnection(
+                "localhost", port, timeout=0.8, context=context
+            )
             try:
-                with socket.create_connection(("127.0.0.1", port), timeout=0.4):
-                    self.after(0, lambda: self._server_ready(port, process))
-                    return
-            except OSError:
+                connection.request(
+                    "GET",
+                    "/admin/v1/session",
+                    headers={"Connection": "close"},
+                )
+                response = connection.getresponse()
+                response.read()
+                self.after(0, lambda: self._server_ready(port, process))
+                return
+            except (OSError, ssl.SSLError, http.client.HTTPException):
                 time.sleep(0.25)
-        self.after(0, lambda: self.status_var.set("Sin respuesta · revisar diagnóstico"))
+            finally:
+                connection.close()
+
+        self.after(
+            0,
+            lambda: self.status_var.set("Sin respuesta · revisar diagnóstico"),
+        )
 
     def _server_ready(self, port: int, process: subprocess.Popen) -> None:
         if self.process is process and process.poll() is None:
             self.status_var.set(f"Activo · https://localhost:{port}/")
             webbrowser.open(f"https://localhost:{port}/")
 
-    def _stop_panel(self) -> None:
+    def _stop_panel(self) -> bool:
         process = self.process
-        if not process or process.poll() is not None:
+        if process is None:
             self.status_var.set("Sin iniciar")
+            return True
+
+        if process.poll() is not None:
             self.process = None
-            return
-        process.terminate()
+            self.status_var.set("Detenido")
+            return True
+
+        # First request an orderly Uvicorn shutdown over the private stdin pipe.
+        control = getattr(process, "stdin", None)
+        if control is not None:
+            try:
+                control.write("STOP\n")
+                control.flush()
+                control.close()
+            except (OSError, ValueError):
+                pass
+
         try:
-            process.wait(timeout=4)
+            process.wait(timeout=8)
         except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=2)
+            pass
+        except OSError as exc:
+            self.status_var.set("Error al detener; comprueba el puerto")
+            messagebox.showerror(
+                "Error al detener PC-MASTER",
+                f"No se pudo esperar la salida del proceso.\n{exc}",
+                parent=self,
+            )
+            return False
+
+        # Forced tree termination is a fallback, not the normal shutdown path.
+        if process.poll() is None and sys.platform == "win32":
+            taskkill = (
+                Path(os.environ.get("SystemRoot", r"C:\Windows"))
+                / "System32"
+                / "taskkill.exe"
+            )
+            try:
+                result = subprocess.run(
+                    [str(taskkill), "/PID", str(process.pid), "/T", "/F"],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    timeout=10,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                    check=False,
+                )
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                self.status_var.set("Error al detener; comprueba el puerto")
+                messagebox.showerror(
+                    "Error al detener PC-MASTER",
+                    f"No se pudo completar la parada de emergencia.\n{exc}",
+                    parent=self,
+                )
+                return False
+
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                if process.poll() is None:
+                    self.status_var.set("Parada no confirmada; comprueba el puerto")
+                    messagebox.showwarning(
+                        "Verificar PC-MASTER",
+                        "No se confirmó la salida del proceso. Comprueba el puerto "
+                        "antes de intentar iniciar otra instancia.",
+                        parent=self,
+                    )
+                    return False
+            except OSError as exc:
+                self.status_var.set("Error al detener; comprueba el puerto")
+                messagebox.showerror(
+                    "Error al detener PC-MASTER",
+                    f"No se pudo verificar la salida del proceso.\n{exc}",
+                    parent=self,
+                )
+                return False
+
+            if process.poll() is None:
+                self.status_var.set("Parada no confirmada; comprueba el puerto")
+                return False
+
+        elif process.poll() is None:
+            try:
+                process.terminate()
+                process.wait(timeout=3)
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                self.status_var.set("Parada no confirmada; comprueba el puerto")
+                messagebox.showerror(
+                    "Error al detener PC-MASTER",
+                    f"No se confirm\u00f3 la salida del proceso.\n{exc}",
+                    parent=self,
+                )
+                return False
+
+        if process.poll() is None:
+            self.status_var.set("Parada no confirmada; comprueba el puerto")
+            return False
+
         self.process = None
         self.status_var.set("Detenido")
+        return True
 
     def _refresh_runtime_status(self) -> None:
         if self.process and self.process.poll() is None:
@@ -274,11 +409,18 @@ class PcMasterApp(tk.Tk):
 
     def _on_close(self) -> None:
         if self.process and self.process.poll() is None:
-            if not messagebox.askyesno("Cerrar PC-MASTER", "El panel sigue activo. ¿Detenerlo y cerrar?", parent=self):
+            if not messagebox.askyesno(
+                "Cerrar PC-MASTER",
+                "El panel sigue activo. ¿Detenerlo y cerrar?",
+                parent=self,
+            ):
                 return
-            self._stop_panel()
-        self.destroy()
 
+        if not self._stop_panel():
+            # Mantener la ventana abierta si la parada no está confirmada.
+            return
+
+        self.destroy()
 
 def main() -> None:
     app = PcMasterApp()
