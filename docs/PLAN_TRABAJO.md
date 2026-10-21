@@ -128,14 +128,14 @@ La arquitectura de clúster heterogéneo queda incorporada como línea prioritar
 Documentos nuevos:
 - [Arquitectura de clúster heterogéneo](ARQUITECTURA_CLUSTER_HETEROGENEO.md).
 - [Contrato del agente de nodo y planificador distribuido](CONTRATO_AGENTE_NODO_PLANIFICADOR.md).
-- [Comparativa Proxmox VE frente a Linux directo](COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md).
+- [Arquitectura de clúster físico heterogéneo](ARQUITECTURA_CLUSTER_HETEROGENEO.md).
 - [ADR-003 — Arquitectura distribuida](decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md).
 - [Issue #14 — Integrar clúster y planificador](https://github.com/D3ckardCain/Geelark-IA/issues/14).
 
 Orden de trabajo actualizado:
 1. Cerrar el contrato del agente de nodo, alta/autorización, heartbeat, capacidades, tareas, leases, seguridad y reconciliación.
 2. Diseñar el modelo de recursos y la asignación explicable para CPU, RAM, disco, ABI, motor Android y salud.
-3. Mantener Proxmox VE y Linux directo como candidatos hasta comparar licencias, mantenimiento, aislamiento y rendimiento.
+3. Mantener Debian 13 como sistema base previsto de los WORKER y validar la compatibilidad de virtualización Android, licencias, seguridad y rendimiento.
 4. Definir una prueba reproducible de dos nodos heterogéneos y un workload Android común.
 5. Solo después de la prueba, decidir infraestructura y motor; luego implementar el núcleo distribuido con pruebas y manual en español.
 
@@ -147,7 +147,7 @@ La especificación de agente/planificador ya está documentada, pero no implemen
 Se añadieron dos documentos para convertir el diseño del clúster en criterios comprobables:
 
 - [Especificación del planificador de recursos](ESPECIFICACION_PLANIFICADOR_RECURSOS.md): filtros de elegibilidad, reservas, puntuación explicable, leases/epochs, reconciliación, seguridad y pruebas de aceptación.
-- [Plan de prueba de concepto del clúster](PLAN_PRUEBA_CONCEPTO_CLUSTER.md): protocolo reproducible para comparar Linux directo y Proxmox VE con dos nodos heterogéneos, medir cargas Android y comprobar desconexión, recuperación y backups.
+- [Plan de prueba de concepto del aprovisionamiento](PLAN_PRUEBA_CONCEPTO_CLUSTER.md): protocolo para validar descubrimiento, adopción aprobada, instalación desatendida de Debian por red, despliegue del agente y preparación del entorno Android.
 
 Orden inmediato:
 1. Revisar la persistencia autoritativa y las garantías de consistencia del plano de control antes de implementar asignaciones distribuidas.
