@@ -432,3 +432,16 @@ def test_database_connector_rejects_tls_key_logging_environment(
     )
     with pytest.raises(RuntimeError, match="claves de sesión TLS"):
         _database_connector()
+
+
+def test_database_connector_rejects_tls_key_logging_dsn(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark "
+        "sslkeylogfile=/tmp/geelark-tls-session-keys.log",
+    )
+    with pytest.raises(RuntimeError) as exc:
+        _database_connector()
+    assert "sslkeylogfile" in str(exc.value) or "DSN PostgreSQL válido" in str(exc.value)
