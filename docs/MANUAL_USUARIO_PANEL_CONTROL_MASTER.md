@@ -1,6 +1,6 @@
 # Manual de usuario — Panel de control PC-MASTER
 
-**Estado:** panel y autenticación implementados en la PR borrador #84. La CI de la rama pasó en la ejecución [#38272945485](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38272945485), incluidas las pruebas del paquete Master Admin y los probes negativos del rol PostgreSQL. La validación de Windows de la issue #77 ya se realizó y superó en la sesión de trabajo del proyecto; no se debe repetir como tarea pendiente sin una regresión o un cambio técnico que la justifique. La PR continúa en draft y no está fusionada.
+**Estado:** panel y autenticación están implementados en la PR #104, abierta en draft y sin fusionar. En el HEAD reconciliado `09d6a5ba322b636fd5d277c1cdb366416e057845`, los workflows de persistencia/PostgreSQL + ACL NTFS de Windows y transporte HTTPS terminaron correctamente. Esto valida la CI, no la configuración del PC-MASTER real. La aceptación manual de la issue #77 sigue pendiente: completar el checklist de este manual en el equipo Windows del proyecto y registrar evidencia sanitizada antes de declarar operativo el panel.
 
 ## 1. Acceso inicial
 
