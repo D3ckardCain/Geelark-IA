@@ -11,7 +11,7 @@ from geelark_master_admin.runtime import _database_connector, main
 @pytest.fixture(autouse=True)
 def isolated_libpq_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     # Keep developer/runner libpq settings from silently changing unit-test behavior.
-    for name in ("PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR", "PGPORT", "PGSSLROOTCERT", "PGPASSWORD"):
+    for name in ("PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR", "PGPORT", "PGSSLROOTCERT", "PGPASSWORD", "PGOPTIONS"):
         monkeypatch.delenv(name, raising=False)
     passfile = tmp_path / "pgpass"
     passfile.write_text("localhost:5432:geelark:geelark_master_reader:test-only\n", encoding="utf-8")
@@ -156,7 +156,8 @@ def test_database_connector_sets_gssencmode_disable(monkeypatch: pytest.MonkeyPa
     monkeypatch.setenv(
         "GEELARK_ADMIN_DATABASE_URL",
         f"host=db.example.test user=geelark_master_reader dbname=geelark "
-        f"sslmode=verify-full gssencmode=prefer sslrootcert={os.environ['TEST_PG_CA_CERT']}",
+        f"sslmode=verify-full gssencmode=prefer sslrootcert={os.environ['TEST_PG_CA_CERT']} "
+        "options='-c default_transaction_read_only=off -c statement_timeout=0 -c lock_timeout=0'",
     )
     calls: list[dict[str, object]] = []
     sentinel = object()
@@ -165,15 +166,21 @@ def test_database_connector_sets_gssencmode_disable(monkeypatch: pytest.MonkeyPa
         calls.append(kwargs)
         return sentinel
 
+    monkeypatch.setenv(
+        "PGOPTIONS",
+        "-c default_transaction_read_only=off -c statement_timeout=0 -c lock_timeout=0",
+    )
     monkeypatch.setattr(runtime_module.psycopg, "connect", fake_connect)
     connector = _database_connector()
     assert connector() is sentinel
     assert calls[0]["gssencmode"] == "disable"
     assert calls[0]["sslrootcert"] == str(Path(os.environ["TEST_PG_CA_CERT"]).resolve())
     assert calls[0]["connect_timeout"] == 3
-    assert "default_transaction_read_only=on" in str(calls[0]["options"])
-    assert "statement_timeout=1500" in str(calls[0]["options"])
-    assert "lock_timeout=500" in str(calls[0]["options"])
+    assert calls[0]["options"] == (
+        "-c default_transaction_read_only=on "
+        "-c statement_timeout=1500 "
+        "-c lock_timeout=500"
+    )
 
 
 def test_database_connector_requires_explicit_passfile(monkeypatch: pytest.MonkeyPatch) -> None:
