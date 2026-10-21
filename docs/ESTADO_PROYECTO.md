@@ -288,12 +288,16 @@ El PR borrador #16 ahora incluye validación de coherencia entre `status` y `obs
 
 Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md). Define transacciones, restricciones para un único propietario, idempotencia durable, outbox y pruebas de caída/concurrencia. No hay DDL, migraciones ni código de persistencia implementados; PostgreSQL local sigue siendo una propuesta pendiente de validar.
 
-## Panel PC-MASTER — rama de solo lectura en revisión (2026-10-12)
+## Panel PC-MASTER — implementación de solo lectura en revisión (actualizado 2026-10-21)
 
-La implementación administrativa actual está en la PR #84. Incluye login local, sesiones SQLite revocables, panel del mismo origen, TLS obligatorio, bind loopback por defecto, consulta autenticada de snapshots y rol PostgreSQL dedicado de solo lectura. No expone mutaciones, tareas, ADB ni shell.
+La implementación administrativa continúa en la [PR #104](https://github.com/D3ckardCain/Geelark-IA/pull/104), que recupera el trabajo de la PR #84 (cerrada sin fusionar) y agrega correcciones posteriores de Windows/CA y pruebas de regresión. Incluye login local, sesiones SQLite revocables, panel del mismo origen, TLS obligatorio, bind loopback por defecto, consulta autenticada de snapshots y rol PostgreSQL dedicado de solo lectura. No expone mutaciones, tareas, ADB ni shell.
 
 La consulta del panel lee `reported_health_state` desde su columna separada; la salud derivada se calcula con frescura del heartbeat. El panel no debe declarar operativo un módulo ausente, obsoleto o incoherente.
 
-CI de la rama #84 tras sincronizar la dependencia de pruebas: [transporte #38274719927](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38274719927) pasó 58 pruebas, `pip check` limpio y sin advertencia Starlette; [persistencia/admin #38274719942](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38274719942) pasó 33 persistencia/snapshot, 12 guard, 54 autorización y 30 pruebas Master Admin, `pip check` limpio y probes negativos del rol lector. No se ha instalado en Windows PC-MASTER ni conectado a una base real.
+CI verificada para HEAD `ee84b0f819f65b53e0a7061144da07d3372558ae`:
+- [Persistencia y Windows #586](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39669465901): Windows **50 passed, 8 skipped**, `pip check` limpio; el job PostgreSQL/persistencia también terminó en éxito.
+- [Transporte HTTPS #457](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39669465829): éxito.
 
-Bloqueo operativo: issue #77, que exige comprobar ACL NTFS, certificado y confianza TLS, bind loopback, login/logout y permisos efectivos contra PostgreSQL local desechable. Mantener PR #84 en draft; no fusionar ni desplegar hasta esa validación. Coste operativo objetivo $0 USD; no restaurar Supabase ni habilitar facturación/runners propios.
+La CI confirma las pruebas automatizadas del runner, incluidas ACL NTFS y las pruebas de regresión de validación del directorio contenedor de archivos privados. No equivale a aceptación manual en el PC-MASTER Windows 11 del usuario ni a permisos/conectividad de una base real.
+
+Pendiente antes de fusionar o desplegar: revisar la rama base/alcance de integración, comprobar certificados y confianza TLS, ejecutar login/logout y verificar los permisos efectivos contra una PostgreSQL local desechable. No fusionar ni desplegar todavía. Coste operativo objetivo $0 USD; no restaurar Supabase ni habilitar facturación/runners propios.
