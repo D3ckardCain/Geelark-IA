@@ -55,21 +55,30 @@ Los workflows se ejecutaron con Python 3.11 y PostgreSQL desechable. No prueban 
 
 La nueva lógica de ACL NTFS tiene pruebas unitarias que simulan PowerShell en CI Linux, pero **no se ha ejecutado todavía contra ACL reales en un host Windows**. La validación Windows anterior registrada en la issue #77 es anterior a estos cambios y no debe interpretarse como integración de esta nueva lógica. Se añadió un job de integración NTFS en `windows-latest`, opt-in mediante la etiqueta `enhancement` del PR para no consumir minutos Windows en cada push. El runner hospedado es Windows Server, no el escritorio Windows 11 de PC-MASTER; la prueba valida APIs NTFS/PowerShell compatibles, pero no sustituye toda la aceptación local.
 
-Antes de habilitar esta ruta en producción, queda pendiente una prueba de aceptación Windows de la carpeta de sesiones, el archivo `PGPASSFILE`, el archivo de hash del operador y, si se usa PostgreSQL remoto, la CA TLS. Hasta entonces, PR #84 permanece en borrador y sin fusionar.
+Antes de habilitar esta ruta en producción, queda pendiente una prueba de aceptación local de la carpeta de sesiones, el archivo `PGPASSFILE`, el archivo de hash del operador y, si se usa PostgreSQL remoto, la CA TLS. La PR activa #99 permanece en borrador y sin fusionar; no se ha instalado en PC-MASTER.
 
 ## Trazabilidad
 
 Los commits, resultados CI, errores detectados durante las iteraciones y sus correcciones están registrados en el historial de esta rama y en los comentarios de la [issue #93](https://github.com/D3ckardCain/Geelark-IA/issues/93). Este documento consolida el estado de auditoría; no sustituye el historial de commits ni los logs de Actions.
 
 
-## Incidencia detectada en la primera ejecución Windows real — 2026-10-21
+## Incidencia detectada y corregida en Windows real — 2026-10-21
 
-La validación con `windows-latest` detectó que las variantes compactas de `icacls` no eran aceptadas por ese runner. La alternativa de modificar la DACL mediante `Set-Acl` se descartó después de que una prueba real excediera el timeout. El código vuelve a usar `icacls`, pasando el nivel de herencia como argumentos separados (`/inheritancelevel`, `r`), conserva la verificación de propietario/ACE mediante PowerShell y prepara explícitamente `PSModulePath`. También se corrigieron las rutas CA de pruebas para que sean portables en Windows. La aceptación final de NTFS queda pendiente de una nueva ejecución Windows sobre el HEAD sincronizado con la PR; no se declara aprobada hasta entonces.
+La primera ejecución con `windows-latest` confirmó el código de salida 87 al combinar las operaciones de `icacls`. Se descartó la modificación de DACL con `Set-Acl` porque una ejecución excedió el timeout. La implementación definitiva ejecuta por separado `icacls /reset`, `icacls /inheritance:r` y `icacls /grant:r`, comprueba el código de salida de cada llamada y vuelve a leer la ACL para verificar que solo quede la ACE de control total del usuario actual. Las herramientas nativas se capturan con `encoding="utf-8"` y `errors="replace"`, sin ignorar errores.
 
+## Validación de CI — 2026-10-21
 
-## Corrección del ciclo CI Windows — 2026-10-21
+La PR activa es [#99](https://github.com/D3ckardCain/Geelark-IA/pull/99), en borrador y sin fusionar.
 
-- El job Windows estaba condicionado a un evento de etiquetado, por lo que quedaba omitido al actualizar la PR aunque la etiqueta estuviera presente. Se cambió a ejecutarse en cada evento `pull_request` de esta familia de cambios.
-- Se corrigió la doble codificación de las rutas CA en DSN URI de prueba. En DSN keyword/value, las rutas se entrecomillan como valores, no se codifican como URL.
-- La estrategia ACL elegida ejecuta por separado `icacls /reset`, `icacls /inheritance:r` y `icacls /grant:r`, falla ante cualquier código distinto de cero y comprueba después que solo queda la ACE de control total del usuario actual.
-- No aceptar la corrección hasta que el job Windows de la PR #98 termine en verde y el resto de CI de ese HEAD finalice.
+- Windows real: `49 passed, 8 skipped in 10.63s`; los omitidos corresponden a comprobaciones específicas de POSIX.
+- `pip check`: `No broken requirements found.`
+- PostgreSQL desechable: 33 pruebas de persistencia pasaron.
+- Agent Guard: 12 pruebas pasaron.
+- Autenticación de agentes: 54 pruebas pasaron.
+- Master Admin en Linux: 68 pruebas pasaron y 2 se omitieron por ser específicas de Windows.
+- Verificación del rol PostgreSQL de solo lectura: pasó.
+- Transporte HTTPS: CI pasó.
+
+Evidencia principal: [run de CI #39618915285](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39618915285). El job Windows y el job de integración terminaron en `success`.
+
+La validación cubre las pruebas automatizadas del código en CI. No equivale a una instalación o aceptación física en el PC-MASTER del usuario, ni valida una base PostgreSQL productiva o un certificado CA real de su entorno. No se ha fusionado ni desplegado nada.
