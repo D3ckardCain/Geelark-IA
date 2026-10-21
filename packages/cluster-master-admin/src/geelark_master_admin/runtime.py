@@ -185,10 +185,23 @@ def _database_connector():
     if os.environ.get("PGPASSWORD", "").strip():
         raise RuntimeError("No se admite PGPASSWORD; usa un archivo PGPASSFILE protegido.")
 
+    if details.get("passfile"):
+        raise RuntimeError(
+            "No se admite passfile dentro de GEELARK_ADMIN_DATABASE_URL; usa PGPASSFILE explícito."
+        )
+
     # libpq may otherwise fall back to a platform-default password file whose
     # location and permissions are outside this service's explicit configuration.
+    raw_passfile = os.environ.get("PGPASSFILE", "").strip()
+    if not raw_passfile:
+        raise RuntimeError("Falta configurar PGPASSFILE con una ruta privada explícita.")
+    if Path(raw_passfile).expanduser().is_symlink():
+        raise PermissionError("PGPASSFILE no puede ser un enlace simbólico.")
     passfile = _required_path("PGPASSFILE")
     _check_private_file(passfile, "El archivo de contraseñas PostgreSQL (PGPASSFILE)")
+    # Ensure libpq opens the exact canonical path whose owner and permissions
+    # were inspected above, not an unchecked alias from the environment.
+    os.environ["PGPASSFILE"] = str(passfile)
 
     if details.get("password"):
         raise RuntimeError(

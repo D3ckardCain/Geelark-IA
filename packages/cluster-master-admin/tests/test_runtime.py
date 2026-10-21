@@ -309,3 +309,50 @@ def test_database_connector_rejects_passfile_in_group_writable_directory(
     )
     with pytest.raises(PermissionError, match="directorio contenedor"):
         _database_connector()
+
+
+def test_database_connector_rejects_passfile_override_in_dsn(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark passfile=/tmp/alternate-passfile",
+    )
+    with pytest.raises(RuntimeError) as exc:
+        _database_connector()
+    assert "passfile dentro de GEELARK_ADMIN_DATABASE_URL" in str(exc.value) or (
+        "DSN PostgreSQL válido" in str(exc.value)
+    )
+
+
+@pytest.mark.skipif(os.name != "posix", reason="La prueba de enlaces POSIX no aplica en Windows.")
+def test_database_connector_rejects_symlink_passfile(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target = tmp_path / "real-pgpass"
+    target.write_text(
+        "localhost:5432:geelark:geelark_master_reader:test-only\\n",
+        encoding="utf-8",
+    )
+    target.chmod(0o600)
+    alias = tmp_path / "pgpass-link"
+    alias.symlink_to(target)
+    monkeypatch.setenv("PGPASSFILE", str(alias))
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark",
+    )
+    with pytest.raises(PermissionError, match="enlace simbólico"):
+        _database_connector()
+
+
+def test_database_connector_canonicalizes_valid_passfile_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configured = Path(os.environ["PGPASSFILE"])
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark",
+    )
+    assert callable(_database_connector())
+    assert os.environ["PGPASSFILE"] == str(configured.resolve())
