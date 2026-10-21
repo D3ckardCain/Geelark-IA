@@ -227,3 +227,18 @@ def test_oversized_request_body_is_rejected_without_reflecting_content(tmp_path:
     assert response.status_code == 413
     assert response.json() == {"error": {"code": "BODY_TOO_LARGE"}}
     assert "A" * 100 not in response.text
+
+
+def test_panel_payload_validator_covers_contract_constraints() -> None:
+    panel = Path(__file__).parents[1] / "src" / "geelark_master_admin" / "panel.html"
+    source = panel.read_text(encoding="utf-8")
+    validator = source.split("function validatePayload(data){", 1)[1].split("\nfunction currentSnapshots()", 1)[0]
+    # Contract guardrails: IDs/dates, enums, bounded arrays, exact object keys, and cross-field safety rules.
+    for marker in (
+        "snapshot_id", "uuid(s.snapshot_id)", "dateTime(s.generated_at)",
+        "authorization_state", "authStates", "healthStates", "freshnessStates",
+        "capabilitiesAllowed", "n.capabilities.length>32", "n.modules.length>128",
+        "threshold_seconds>86400", "Object.keys(value)",
+        "un snapshot sin frescura", "un nodo sin heartbeat",
+    ):
+        assert marker in validator, f"Falta una validación del contrato en el panel: {marker}"
