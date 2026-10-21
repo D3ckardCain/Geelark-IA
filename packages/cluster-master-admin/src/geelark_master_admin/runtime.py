@@ -256,7 +256,8 @@ def _database_connector():
             "options": (
                 "-c default_transaction_read_only=on "
                 "-c statement_timeout=1500 "
-                "-c lock_timeout=500"
+                "-c lock_timeout=500 "
+                "-c idle_in_transaction_session_timeout=5000"
             ),
         }
         if sslrootcert_path is not None:

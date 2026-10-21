@@ -157,7 +157,7 @@ def test_database_connector_sets_gssencmode_disable(monkeypatch: pytest.MonkeyPa
         "GEELARK_ADMIN_DATABASE_URL",
         f"host=db.example.test user=geelark_master_reader dbname=geelark "
         f"sslmode=verify-full gssencmode=prefer sslrootcert={os.environ['TEST_PG_CA_CERT']} "
-        "options='-c default_transaction_read_only=off -c statement_timeout=0 -c lock_timeout=0'",
+        "options='-c default_transaction_read_only=off -c statement_timeout=0 -c lock_timeout=0 -c idle_in_transaction_session_timeout=0'",
     )
     calls: list[dict[str, object]] = []
     sentinel = object()
@@ -168,7 +168,7 @@ def test_database_connector_sets_gssencmode_disable(monkeypatch: pytest.MonkeyPa
 
     monkeypatch.setenv(
         "PGOPTIONS",
-        "-c default_transaction_read_only=off -c statement_timeout=0 -c lock_timeout=0",
+        "-c default_transaction_read_only=off -c statement_timeout=0 -c lock_timeout=0 -c idle_in_transaction_session_timeout=0",
     )
     monkeypatch.setattr(runtime_module.psycopg, "connect", fake_connect)
     connector = _database_connector()
@@ -179,7 +179,8 @@ def test_database_connector_sets_gssencmode_disable(monkeypatch: pytest.MonkeyPa
     assert calls[0]["options"] == (
         "-c default_transaction_read_only=on "
         "-c statement_timeout=1500 "
-        "-c lock_timeout=500"
+        "-c lock_timeout=500 "
+        "-c idle_in_transaction_session_timeout=5000"
     )
 
 
