@@ -77,9 +77,15 @@ def _database_connector():
 
     # No se admiten perfiles libpq externos: podrían ocultar host/SSL reales
     # en un archivo de servicio y eludir la validación de este runtime.
-    if details.get("service"):
+    if (
+        details.get("service")
+        or details.get("servicefile")
+        or os.environ.get("PGSERVICE", "").strip()
+        or os.environ.get("PGSERVICEFILE", "").strip()
+    ):
         raise RuntimeError(
-            "No se admiten DSN PostgreSQL con service=; configura host y TLS explícitos."
+            "No se admiten perfiles libpq externos (service/servicefile/PGSERVICE); "
+            "configura los parámetros de conexión directamente."
         )
 
     raw_host = details.get("host") or ""
@@ -91,6 +97,18 @@ def _database_connector():
     hostaddrs = [item.strip() for item in raw_hostaddr.split(",")] if raw_hostaddr else []
     if any(not item for item in hostaddrs):
         raise RuntimeError("GEELARK_ADMIN_DATABASE_URL no puede contener entradas hostaddr= vacías.")
+    if not hosts and not hostaddrs:
+        raise RuntimeError(
+            "GEELARK_ADMIN_DATABASE_URL debe definir host= o hostaddr= explícito; no se usan valores por defecto de libpq."
+        )
+    if os.environ.get("PGHOSTADDR", "").strip() and not details.get("hostaddr"):
+        raise RuntimeError(
+            "PGHOSTADDR no se admite sin hostaddr explícito en GEELARK_ADMIN_DATABASE_URL."
+        )
+    if not details.get("dbname"):
+        raise RuntimeError("GEELARK_ADMIN_DATABASE_URL debe definir dbname explícito.")
+    if os.environ.get("PGPORT", "").strip() and not details.get("port"):
+        raise RuntimeError("PGPORT no se admite sin port explícito en GEELARK_ADMIN_DATABASE_URL.")
 
     def is_loopback_host(item: str) -> bool:
         if item.lower() == "localhost" or item.startswith("/"):
@@ -121,6 +139,10 @@ def _database_connector():
     if any(not address.is_loopback for address in parsed_hostaddrs):
         remote = True
 
+    if remote and os.environ.get("PGSSLROOTCERT", "").strip() and not details.get("sslrootcert"):
+        raise RuntimeError(
+            "PostgreSQL remoto requiere sslrootcert explícito si PGSSLROOTCERT está definido."
+        )
     if remote and details.get("sslmode") != "verify-full":
         raise RuntimeError(
             "PostgreSQL remoto exige sslmode=verify-full y verificación del nombre del servidor."
@@ -151,6 +173,9 @@ def _database_connector():
             "GEELARK_ADMIN_DATABASE_URL debe usar exactamente el rol dedicado "
             "geelark_master_reader."
         )
+
+    if os.environ.get("PGPASSWORD", "").strip():
+        raise RuntimeError("No se admite PGPASSWORD; usa un archivo PGPASSFILE protegido.")
 
     if details.get("password"):
         raise RuntimeError(
