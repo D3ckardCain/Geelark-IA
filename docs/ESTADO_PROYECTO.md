@@ -294,10 +294,12 @@ La implementación administrativa continúa en la [PR #104](https://github.com/D
 
 La consulta del panel lee `reported_health_state` desde su columna separada; la salud derivada se calcula con frescura del heartbeat. El panel no debe declarar operativo un módulo ausente, obsoleto o incoherente.
 
-CI verificada para HEAD `ee84b0f819f65b53e0a7061144da07d3372558ae`:
-- [Persistencia y Windows #586](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39669465901): Windows **50 passed, 8 skipped**, `pip check` limpio; el job PostgreSQL/persistencia también terminó en éxito.
-- [Transporte HTTPS #457](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39669465829): éxito.
+CI verificada para HEAD reconciliado `09d6a5ba322b636fd5d277c1cdb366416e057845` (2026-10-21):
+- [Persistencia/PostgreSQL y Windows ACL #591](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39686519813): ambos jobs terminaron en success.
+- [Transporte HTTPS #462](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39686519850): success.
 
-La CI confirma las pruebas automatizadas del runner, incluidas ACL NTFS y las pruebas de regresión de validación del directorio contenedor de archivos privados. No equivale a aceptación manual en el PC-MASTER Windows 11 del usuario ni a permisos/conectividad de una base real.
+Se añadió `pytest.ini` con `--import-mode=importlib` y un job aislado de suite integral desde la raíz para PR #104, con PostgreSQL 16 desechable. La suite integral sobre este HEAD aún debe terminar verde; `TEST_DATABASE_URL` no debe apuntar a una base productiva.
 
-Pendiente antes de fusionar o desplegar: revisar la rama base/alcance de integración, comprobar certificados y confianza TLS, ejecutar login/logout y verificar los permisos efectivos contra una PostgreSQL local desechable. No fusionar ni desplegar todavía. Coste operativo objetivo $0 USD; no restaurar Supabase ni habilitar facturación/runners propios.
+La aceptación manual en el PC-MASTER Windows 11 sigue pendiente. La CI no demuestra certificados y confianza TLS del equipo, login/logout real ni permisos/conectividad de la base del equipo. Completar el checklist de la issue #77 con evidencia sanitizada antes de declarar operativo el panel.
+
+Pendiente antes de fusionar o desplegar: suite raíz verde y aceptación manual del checklist de la issue #77. No fusionar ni desplegar todavía. Coste operativo objetivo $0 USD; no restaurar Supabase ni habilitar facturación/runners propios.
