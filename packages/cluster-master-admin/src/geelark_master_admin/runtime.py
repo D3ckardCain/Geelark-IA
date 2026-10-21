@@ -176,6 +176,19 @@ def _database_connector():
             raise RuntimeError(
                 "PostgreSQL remoto requiere un host DNS/IP no-loopback; no se acepta verificar un destino remoto como localhost."
             )
+
+    raw_sslrootcert = details.get("sslrootcert")
+    sslrootcert_path: str | None = None
+    if remote and not raw_sslrootcert:
+        raise RuntimeError(
+            "PostgreSQL remoto exige sslrootcert explícito; no se usa la CA predeterminada de libpq."
+        )
+    if raw_sslrootcert:
+        ca_path = Path(raw_sslrootcert).expanduser().resolve()
+        if not ca_path.is_file():
+            raise RuntimeError("sslrootcert debe apuntar a un archivo CA existente.")
+        sslrootcert_path = str(ca_path)
+
     if details.get("user", "") != "geelark_master_reader":
         raise RuntimeError(
             "GEELARK_ADMIN_DATABASE_URL debe usar exactamente el rol dedicado "
@@ -210,17 +223,20 @@ def _database_connector():
         )
 
     def connect():
-        return psycopg.connect(
-            dsn,
+        connect_options = {
             # libpq may prefer GSS encryption over TLS even with sslmode=verify-full.
-            gssencmode="disable",
-            connect_timeout=3,
-            options=(
+            "gssencmode": "disable",
+            "connect_timeout": 3,
+            "options": (
                 "-c default_transaction_read_only=on "
                 "-c statement_timeout=1500 "
                 "-c lock_timeout=500"
             ),
-        )
+        }
+        if sslrootcert_path is not None:
+            # Pin the canonical CA file that was checked above.
+            connect_options["sslrootcert"] = sslrootcert_path
+        return psycopg.connect(dsn, **connect_options)
 
     return connect
 

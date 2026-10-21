@@ -18,6 +18,9 @@ def isolated_libpq_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
     if os.name == "posix":
         passfile.chmod(0o600)
     monkeypatch.setenv("PGPASSFILE", str(passfile))
+    ca_file = tmp_path / "test-root.crt"
+    ca_file.write_text("test-only public CA placeholder\\n", encoding="utf-8")
+    monkeypatch.setenv("TEST_PG_CA_CERT", str(ca_file))
 
 
 def test_database_connector_requires_dedicated_reader_role(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -45,7 +48,10 @@ def test_database_connector_requires_tls_verification_for_remote_db(monkeypatch:
 
 
 def test_database_connector_accepts_remote_verified_tls_without_connecting(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "postgresql://geelark_master_reader@db.example.test:5432/geelark?sslmode=verify-full")
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        f"postgresql://geelark_master_reader@db.example.test:5432/geelark?sslmode=verify-full&sslrootcert={os.environ['TEST_PG_CA_CERT']}",
+    )
     connector = _database_connector()
     assert callable(connector)
 
@@ -84,7 +90,10 @@ def test_database_connector_allows_loopback_hostaddr_without_remote_tls(monkeypa
     assert callable(connector)
 
 def test_database_connector_accepts_remote_hostaddr_with_explicit_hostname(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "postgresql://geelark_master_reader@db.example.test:5432/geelark?hostaddr=203.0.113.10&sslmode=verify-full")
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        f"postgresql://geelark_master_reader@db.example.test:5432/geelark?hostaddr=203.0.113.10&sslmode=verify-full&sslrootcert={os.environ['TEST_PG_CA_CERT']}",
+    )
     connector = _database_connector()
     assert callable(connector)
 
@@ -134,9 +143,9 @@ def test_database_connector_accepts_matching_remote_hostaddr_pairs(
 ) -> None:
     monkeypatch.setenv(
         "GEELARK_ADMIN_DATABASE_URL",
-        "host=db1.example.test,db2.example.test "
-        "hostaddr=203.0.113.10,203.0.113.11 "
-        "user=geelark_master_reader dbname=geelark sslmode=verify-full",
+        f"host=db1.example.test,db2.example.test "
+        f"hostaddr=203.0.113.10,203.0.113.11 "
+        f"user=geelark_master_reader dbname=geelark sslmode=verify-full sslrootcert={os.environ['TEST_PG_CA_CERT']}",
     )
     assert callable(_database_connector())
 
@@ -146,8 +155,8 @@ def test_database_connector_sets_gssencmode_disable(monkeypatch: pytest.MonkeyPa
 
     monkeypatch.setenv(
         "GEELARK_ADMIN_DATABASE_URL",
-        "host=db.example.test user=geelark_master_reader dbname=geelark "
-        "sslmode=verify-full gssencmode=prefer",
+        f"host=db.example.test user=geelark_master_reader dbname=geelark "
+        f"sslmode=verify-full gssencmode=prefer sslrootcert={os.environ['TEST_PG_CA_CERT']}",
     )
     calls: list[dict[str, object]] = []
     sentinel = object()
@@ -160,6 +169,7 @@ def test_database_connector_sets_gssencmode_disable(monkeypatch: pytest.MonkeyPa
     connector = _database_connector()
     assert connector() is sentinel
     assert calls[0]["gssencmode"] == "disable"
+    assert calls[0]["sslrootcert"] == str(Path(os.environ["TEST_PG_CA_CERT"]).resolve())
     assert calls[0]["connect_timeout"] == 3
     assert "default_transaction_read_only=on" in str(calls[0]["options"])
     assert "statement_timeout=1500" in str(calls[0]["options"])
@@ -356,3 +366,26 @@ def test_database_connector_canonicalizes_valid_passfile_environment(
     )
     assert callable(_database_connector())
     assert os.environ["PGPASSFILE"] == str(configured.resolve())
+
+
+def test_database_connector_requires_explicit_remote_ca(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=db.example.test user=geelark_master_reader dbname=geelark sslmode=verify-full",
+    )
+    with pytest.raises(RuntimeError, match="sslrootcert explícito"):
+        _database_connector()
+
+
+def test_database_connector_rejects_missing_remote_ca_file(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=db.example.test user=geelark_master_reader dbname=geelark "
+        "sslmode=verify-full sslrootcert=/tmp/geelark-nonexistent-ca.crt",
+    )
+    with pytest.raises(RuntimeError, match="archivo CA existente"):
+        _database_connector()
