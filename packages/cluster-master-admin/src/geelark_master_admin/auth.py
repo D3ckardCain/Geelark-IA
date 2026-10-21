@@ -6,9 +6,10 @@ import hmac
 import os
 import secrets
 import sqlite3
+import stat
 import subprocess
 import time
-from collections import defaultdict, deque
+from collections import deque
 from pathlib import Path
 from typing import Callable
 
@@ -18,6 +19,7 @@ PBKDF2_ITERATIONS = PBKDF2_MIN_ITERATIONS
 SESSION_TTL_SECONDS = 8 * 60 * 60
 LOGIN_WINDOW_SECONDS = 15 * 60
 LOGIN_MAX_ATTEMPTS = 5
+LOGIN_MAX_TRACKED_CLIENTS = 1024
 
 
 def hash_operator_password(password: str, *, salt: bytes | None = None, iterations: int = PBKDF2_ITERATIONS) -> str:
@@ -46,53 +48,192 @@ def verify_operator_password(password: str, encoded: str) -> bool:
 
 
 class LoginRateLimiter:
-    """Limitador en memoria por dirección; pensado para un proceso local único."""
+    """Limitador local con ventana temporal y número máximo de direcciones rastreadas."""
     def __init__(self, *, clock: Callable[[], float] = time.monotonic) -> None:
         self._clock = clock
-        self._attempts: dict[str, deque[float]] = defaultdict(deque)
+        self._attempts: dict[str, deque[float]] = {}
+
+    def _prune_expired(self, now: float) -> None:
+        for key, bucket in list(self._attempts.items()):
+            while bucket and now - bucket[0] >= LOGIN_WINDOW_SECONDS:
+                bucket.popleft()
+            if not bucket:
+                self._attempts.pop(key, None)
 
     def allowed(self, key: str) -> bool:
         now = self._clock()
-        bucket = self._attempts[key]
-        while bucket and now - bucket[0] >= LOGIN_WINDOW_SECONDS:
-            bucket.popleft()
-        return len(bucket) < LOGIN_MAX_ATTEMPTS
+        bucket = self._attempts.get(key)
+        if bucket is not None:
+            while bucket and now - bucket[0] >= LOGIN_WINDOW_SECONDS:
+                bucket.popleft()
+            if bucket:
+                return len(bucket) < LOGIN_MAX_ATTEMPTS
+            self._attempts.pop(key, None)
+
+        if len(self._attempts) >= LOGIN_MAX_TRACKED_CLIENTS:
+            self._prune_expired(now)
+            if len(self._attempts) >= LOGIN_MAX_TRACKED_CLIENTS:
+                # Fail closed instead of allocating unbounded per-address state.
+                return False
+
+        self._attempts[key] = deque()
+        return True
 
     def failed(self, key: str) -> None:
-        self._attempts[key].append(self._clock())
+        bucket = self._attempts.get(key)
+        if bucket is None:
+            now = self._clock()
+            self._prune_expired(now)
+            if len(self._attempts) >= LOGIN_MAX_TRACKED_CLIENTS:
+                return
+            bucket = deque()
+            self._attempts[key] = bucket
+        bucket.append(self._clock())
 
     def succeeded(self, key: str) -> None:
         self._attempts.pop(key, None)
 
 
+
+def _verify_windows_acl_no_untrusted_writers(path: Path) -> None:
+    """Comprueba ACL de una ruta sin modificarla; solo usuario/SYSTEM/admin pueden escribir."""
+    try:
+        system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
+        powershell = system_root / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+        if not powershell.is_file():
+            raise FileNotFoundError("No se encontró Windows PowerShell.")
+        script = r"""
+$ErrorActionPreference = 'Stop'
+Import-Module Microsoft.PowerShell.Security -ErrorAction Stop
+$target = $env:GEELARK_ACL_TARGET
+$currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$trustedSids = @(
+    $currentSid,
+    'S-1-5-18',
+    'S-1-5-32-544',
+    'S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464'
+)
+$writeMask = [int]([System.Security.AccessControl.FileSystemRights]::WriteData) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::AppendData) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::WriteExtendedAttributes) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::WriteAttributes) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::Delete) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::DeleteSubdirectoriesAndFiles) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::ChangePermissions) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::TakeOwnership)
+$acl = Get-Acl -LiteralPath $target
+$ownerSid = $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
+if ($trustedSids -notcontains $ownerSid) {
+    [Console]::Error.WriteLine('UNTRUSTED_OWNER')
+    exit 13
+}
+foreach ($entry in $acl.Access) {
+    if ($entry.AccessControlType -ne [System.Security.AccessControl.AccessControlType]::Allow) { continue }
+    if (($entry.PropagationFlags -band [System.Security.AccessControl.PropagationFlags]::InheritOnly) -ne 0) { continue }
+    $sid = $entry.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value
+    $rights = [int]$entry.FileSystemRights
+    if (($trustedSids -notcontains $sid) -and (($rights -band $writeMask) -ne 0)) {
+        [Console]::Error.WriteLine('UNTRUSTED_WRITE_ACE')
+        exit 13
+    }
+}
+[Console]::Out.WriteLine('OK')
+"""
+        env = os.environ.copy()
+        env["PSModulePath"] = ";".join(
+            [
+                str(system_root / "System32" / "WindowsPowerShell" / "v1.0" / "Modules"),
+                str(Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "WindowsPowerShell" / "Modules"),
+            ]
+        )
+        env["GEELARK_ACL_TARGET"] = str(path)
+        result = subprocess.run(
+            [str(powershell), "-NoProfile", "-NonInteractive", "-Command", script],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=env,
+        )
+    except Exception:
+        raise PermissionError("No se pudieron verificar las ACL NTFS de la ruta protegida.") from None
+    if result.returncode != 0 or result.stdout.strip() != "OK":
+        raise PermissionError(
+            "Las ACL NTFS permiten escritura por identidades no confiables o no pudieron verificarse."
+        )
+
+
 def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
-    """Restringe ACL NTFS al usuario actual; falla cerrado si icacls no funciona."""
+    """Restringe ACL NTFS al usuario actual; verifica el resultado y falla cerrado."""
     try:
         system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
         whoami = system_root / "System32" / "whoami.exe"
         icacls = system_root / "System32" / "icacls.exe"
         if not whoami.is_file() or not icacls.is_file():
             raise FileNotFoundError("No se encontraron las herramientas del sistema Windows.")
-        identity = subprocess.run(
-            [str(whoami)], check=True, capture_output=True, text=True, timeout=3
-        ).stdout.strip()
-        if not identity:
-            raise OSError("whoami returned no valid user identity.")
+        # La salida de herramientas nativas puede usar una página de códigos local.
+        # errors=replace conserva el diagnóstico sin ignorar códigos de salida.
+        output_options = {
+            "capture_output": True,
+            "text": True,
+            "encoding": "utf-8",
+            "errors": "replace",
+        }
+        identity_result = subprocess.run(
+            [str(whoami)],
+            check=True,
+            timeout=10,
+            **output_options,
+        )
+        identity = identity_result.stdout.strip()
+        if not identity or any(char in identity for char in "\r\n"):
+            raise PermissionError("No se pudo identificar al usuario actual para ACL NTFS.")
         grant = f"{identity}:(OI)(CI)F" if directory else f"{identity}:F"
-
-        # Windows rechaza /reset y /inheritance:r en una misma llamada.
-        # Descartar la salida de icacls evita errores de decodificación
-        # causados por la página de códigos local de Windows.
-        for args in (["/reset"], ["/inheritance:r"], ["/grant:r", grant]):
-            subprocess.run(
-                [str(icacls), str(path), *args],
-                check=True, stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL, timeout=5
+        # El runner Windows devuelve ERROR_INVALID_PARAMETER (87) al combinar
+        # /reset, /inheritance:r y /grant:r en una sola llamada. Cada paso se
+        # ejecuta por separado; cualquier fallo impide crear/usar el almacén.
+        commands = (
+            [str(icacls), str(path), "/reset"],
+            [str(icacls), str(path), "/inheritance:r"],
+            [str(icacls), str(path), "/grant:r", grant],
+        )
+        for command in commands:
+            subprocess.run(command, check=True, timeout=10, **output_options)
+        verification = subprocess.run(
+            [str(icacls), str(path)],
+            check=True,
+            timeout=10,
+            **output_options,
+        ).stdout
+        entries: list[tuple[str, str]] = []
+        target_text = str(path)
+        for line in verification.splitlines():
+            if ":(" not in line:
+                continue
+            entry = line.strip()
+            if entry.casefold().startswith(target_text.casefold()):
+                entry = entry[len(target_text):].strip()
+                if entry.startswith(":"):
+                    entry = entry[1:].strip()
+            ace_identity = entry.split(":(", 1)[0].strip()
+            if ace_identity:
+                entries.append((ace_identity, line))
+        if (
+            len(entries) != 1
+            or entries[0][0].casefold() != identity.casefold()
+            or "(F)" not in entries[0][1].upper()
+            or "DENY" in entries[0][1].upper()
+        ):
+            raise PermissionError(
+                "La ACL NTFS resultante no quedó limitada al usuario actual con control total."
             )
+        # La ACE visible no muestra el propietario; el propietario puede cambiar
+        # la DACL incluso si no aparece como ACE. Verificarlo también.
+        _verify_windows_acl_no_untrusted_writers(path)
+    except PermissionError:
+        raise
     except (OSError, subprocess.SubprocessError) as exc:
-        raise PermissionError(
-            "No se pudieron restringir las ACL NTFS del almacén de sesiones."
-        ) from exc
+        raise PermissionError("No se pudieron restringir las ACL NTFS del almacén de sesiones.") from exc
 
 
 class SessionStore:
@@ -102,9 +243,28 @@ class SessionStore:
         self.clock = clock
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         if os.name == "posix":
-            if self.path.parent.stat().st_mode & 0o077:
+            state_dir_info = self.path.parent.stat()
+            if state_dir_info.st_uid != os.geteuid():
+                raise PermissionError(
+                    "El directorio de sesiones debe pertenecer al usuario que ejecuta PC-MASTER."
+                )
+            if stat.S_IMODE(state_dir_info.st_mode) & 0o077:
                 raise PermissionError("El directorio de sesiones debe tener permisos privados (0700).")
+            parent_info = self.path.parent.parent.stat()
+            if parent_info.st_uid not in {os.geteuid(), 0}:
+                raise PermissionError(
+                    "El directorio superior de sesiones debe pertenecer al usuario actual o a root."
+                )
+            parent_mode = stat.S_IMODE(parent_info.st_mode)
+            if parent_mode & 0o022 and not (
+                parent_mode & stat.S_ISVTX and parent_info.st_uid == 0
+            ):
+                raise PermissionError(
+                    "El directorio superior de sesiones no puede permitir escritura a grupo/otros, "
+                    "salvo un directorio raíz con sticky bit."
+                )
         elif os.name == "nt":
+            _verify_windows_acl_no_untrusted_writers(self.path.parent.parent)
             _restrict_windows_acl(self.path.parent, directory=True)
         with self._connect() as conn:
             conn.execute("""
