@@ -126,3 +126,28 @@ def test_database_connector_accepts_matching_remote_hostaddr_pairs(
         "user=geelark_master_reader dbname=geelark sslmode=verify-full",
     )
     assert callable(_database_connector())
+
+
+def test_database_connector_sets_gssencmode_disable(monkeypatch: pytest.MonkeyPatch) -> None:
+    from geelark_master_admin import runtime as runtime_module
+
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=db.example.test user=geelark_master_reader dbname=geelark "
+        "sslmode=verify-full gssencmode=prefer",
+    )
+    calls: list[dict[str, object]] = []
+    sentinel = object()
+
+    def fake_connect(dsn: str, **kwargs: object) -> object:
+        calls.append(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(runtime_module.psycopg, "connect", fake_connect)
+    connector = _database_connector()
+    assert connector() is sentinel
+    assert calls[0]["gssencmode"] == "disable"
+    assert calls[0]["connect_timeout"] == 3
+    assert "default_transaction_read_only=on" in str(calls[0]["options"])
+    assert "statement_timeout=1500" in str(calls[0]["options"])
+    assert "lock_timeout=500" in str(calls[0]["options"])
