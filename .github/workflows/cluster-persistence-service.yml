@@ -34,6 +34,7 @@ jobs:
   integration:
     name: Python 3.11 — PostgreSQL assignment service
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:16-alpine
@@ -171,7 +172,7 @@ jobs:
     if: github.event_name == 'pull_request' && github.head_ref == 'ci/full-root-suite-issue-91'
     name: Python 3.11 — suite completa desde la raíz
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:16-alpine
