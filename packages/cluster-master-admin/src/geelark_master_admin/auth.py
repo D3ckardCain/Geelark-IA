@@ -157,28 +157,59 @@ foreach ($entry in $acl.Access) {
 
 
 def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
-    """Restringe ACL NTFS al usuario actual; falla cerrado si icacls no funciona."""
+    """Restringe ACL NTFS al usuario actual mediante PowerShell y verifica con icacls."""
     try:
         system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
-        whoami = system_root / "System32" / "whoami.exe"
+        powershell = system_root / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
         icacls = system_root / "System32" / "icacls.exe"
-        if not whoami.is_file() or not icacls.is_file():
+        if not powershell.is_file() or not icacls.is_file():
             raise FileNotFoundError("No se encontraron las herramientas del sistema Windows.")
-        identity = subprocess.run(
-            [str(whoami)], check=True, capture_output=True, text=True, timeout=3
-        ).stdout.strip()
-        grant = f"{identity}:(OI)(CI)F" if directory else f"{identity}:F"
-        # /grant:r solo reemplaza las ACE de la identidad indicada; no elimina
-        # permisos explícitos de otras identidades. /reset elimina esas ACE
-        # preexistentes restaurando primero la ACL heredada; después se corta
-        # la herencia con /inheritancelevel r y se concede acceso únicamente al usuario actual.
-        subprocess.run(
-            [str(icacls), str(path), "/reset", "/inheritancelevel", "r", "/grant:r", grant],
-            check=True, capture_output=True, text=True, timeout=5,
+        script = r"""
+$ErrorActionPreference = 'Stop'
+$target = $env:GEELARK_ACL_TARGET
+$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+$acl = Get-Acl -LiteralPath $target
+$acl.SetAccessRuleProtection($true, $false)
+foreach ($entry in @($acl.Access)) {
+    [void]$acl.RemoveAccessRuleSpecific($entry)
+}
+$acl.SetOwner($identity)
+$inheritance = [System.Security.AccessControl.InheritanceFlags]::None
+if ($env:GEELARK_ACL_DIRECTORY -eq '1') {
+    $inheritance = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor
+                   [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
+}
+$rule = [System.Security.AccessControl.FileSystemAccessRule]::new(
+    $identity,
+    [System.Security.AccessControl.FileSystemRights]::FullControl,
+    $inheritance,
+    [System.Security.AccessControl.PropagationFlags]::None,
+    [System.Security.AccessControl.AccessControlType]::Allow
+)
+[void]$acl.AddAccessRule($rule)
+Set-Acl -LiteralPath $target -AclObject $acl
+[Console]::Out.WriteLine([System.Security.Principal.WindowsIdentity]::GetCurrent().Name)
+"""
+        env = os.environ.copy()
+        env["GEELARK_ACL_TARGET"] = str(path)
+        env["GEELARK_ACL_DIRECTORY"] = "1" if directory else "0"
+        result = subprocess.run(
+            [str(powershell), "-NoProfile", "-NonInteractive", "-Command", script],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=8,
+            env=env,
         )
+        identity = result.stdout.strip()
+        if not identity:
+            raise PermissionError("No se pudo identificar al usuario actual para ACL NTFS.")
         verification = subprocess.run(
             [str(icacls), str(path)],
-            check=True, capture_output=True, text=True, timeout=5,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=5,
         ).stdout
         entries: list[tuple[str, str]] = []
         target_text = str(path)
