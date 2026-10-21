@@ -368,3 +368,31 @@ def test_panel_payload_validator_rejects_malformed_payloads() -> None:
         rejected = run(payload)
         assert rejected.returncode == 1
         assert json.loads(rejected.stdout) == {"ok": False}
+
+
+def test_panel_validator_enums_match_versioned_contract() -> None:
+    root = Path(__file__).resolve().parents[3]
+    schema = json.loads((root / "docs/contracts/master-worker-status-v1.schema.json").read_text())
+    panel = Path(__file__).parents[1] / "src" / "geelark_master_admin" / "panel.html"
+    source = panel.read_text(encoding="utf-8")
+
+    def array_after(marker: str) -> list:
+        start = source.index(marker) + len(marker)
+        end = source.index("]", start) + 1
+        return json.loads(source[start:end])
+
+    node = schema["properties"]["node"]["properties"]
+    module = node["modules"]["items"]["properties"]
+    assert set(array_after("const authStates=")) == set(node["authorization_state"]["enum"])
+    assert set(array_after("const healthStates=")) == set(node["health_state"]["enum"])
+    assert set(array_after("const freshnessStates=")) == set(
+        schema["properties"]["freshness"]["properties"]["state"]["enum"]
+    )
+    assert set(array_after("const moduleIds=")) == set(module["module_id"]["enum"])
+    assert set(array_after("const moduleStates=")) == set(module["state"]["enum"])
+    assert set(array_after("const moduleSources=")) == set(module["source"]["enum"])
+    assert set(array_after("const caps=")) == set(node["capabilities"]["items"]["enum"])
+    assert set(array_after("one(s.source,")) == set(schema["properties"]["source"]["enum"])
+    reported = set(array_after("one(n.reported_health_state,"))
+    assert reported | {None} == set(node["reported_health_state"]["enum"])
+    assert schema["properties"]["schema_version"]["const"] == "1.0"
