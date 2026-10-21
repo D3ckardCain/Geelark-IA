@@ -119,6 +119,10 @@ class AgentHTTPSClient:
         decoded_path = parsed_path.path
         # Reject traversal after repeated URL decoding, including encoded backslashes.
         for _ in range(8):
+            if any(ord(char) < 0x20 or ord(char) == 0x7F for char in decoded_path):
+                raise ValueError(
+                    "La ruta debe ser local al controlador; no se permiten URL absolutas, caracteres de control, backslashes ni traversal."
+                )
             if "\\" in decoded_path:
                 raise ValueError(
                     "La ruta debe ser local al controlador; no se permiten URL absolutas, caracteres de control, backslashes ni traversal."
