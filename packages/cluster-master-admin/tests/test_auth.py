@@ -78,6 +78,7 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
     from geelark_master_admin import auth as auth_module
 
     calls: list[list[str]] = []
+    options_seen: list[dict[str, object]] = []
     target = tmp_path / ("sessions" if directory else "sessions.sqlite3")
 
     def fake_is_file(path: Path) -> bool:
@@ -85,12 +86,13 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
 
     def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
         calls.append(command)
+        options_seen.append(kwargs)
         if command[0].lower().endswith("whoami.exe"):
-            return SimpleNamespace(stdout=r"PC-MASTER\operator")
-        if len(calls) == 2:
-            return SimpleNamespace(stdout="ACL updated")
-        flags = "(OI)(CI)(F)" if directory else "(F)"
-        return SimpleNamespace(stdout=f"{target} PC-MASTER\\operator:{flags}\n")
+            return SimpleNamespace(stdout=r"PC-MASTER\operator", stderr="")
+        if len(command) == 2:
+            flags = "(OI)(CI)(F)" if directory else "(F)"
+            return SimpleNamespace(stdout=f"{target} PC-MASTER\\operator:{flags}\n", stderr="")
+        return SimpleNamespace(stdout="ACL updated\n", stderr="")
 
     monkeypatch.setattr(Path, "is_file", fake_is_file)
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -98,15 +100,48 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
     auth_module._restrict_windows_acl(target, directory=directory)
 
     expected_grant = r"PC-MASTER\operator:(OI)(CI)F" if directory else r"PC-MASTER\operator:F"
+    assert len(calls) == 5
+    assert calls[0][0].lower().endswith("whoami.exe")
+    assert calls[1][2:] == ["/reset"]
+    assert calls[2][2:] == ["/inheritance:r"]
+    assert calls[3][2:] == ["/grant:r", expected_grant]
+    assert calls[4] == [calls[1][0], str(target)]
+    assert all(options["check"] is True for options in options_seen)
+    assert all(options["encoding"] == "utf-8" for options in options_seen)
+    assert all(options["errors"] == "replace" for options in options_seen)
+
+
+def test_windows_acl_intermediate_failure_stops_before_grant(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess
+    from types import SimpleNamespace
+
+    from geelark_master_admin import auth as auth_module
+
+    calls: list[list[str]] = []
+
+    def fake_is_file(path: Path) -> bool:
+        return path.name.lower() in {"whoami.exe", "icacls.exe"}
+
+    def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
+        calls.append(command)
+        if command[0].lower().endswith("whoami.exe"):
+            return SimpleNamespace(stdout=r"PC-MASTER\operator", stderr="")
+        if "/inheritance:r" in command:
+            raise subprocess.CalledProcessError(87, command, stderr='Invalid parameter')
+        return SimpleNamespace(stdout="", stderr="")
+
+    monkeypatch.setattr(Path, "is_file", fake_is_file)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(PermissionError, match="ACL NTFS"):
+        auth_module._restrict_windows_acl(tmp_path / "sessions.sqlite3", directory=False)
+
     assert len(calls) == 3
-    assert calls[1][0].lower().endswith("icacls.exe")
-    assert calls[1][2:] == [
-        "/reset",
-        "/inheritance:r",
-        "/grant:r",
-        expected_grant,
-    ]
-    assert calls[2] == [calls[1][0], str(target)]
+    assert calls[1][2:] == ["/reset"]
+    assert calls[2][2:] == ["/inheritance:r"]
+
 
 
 def test_windows_acl_verification_rejects_unexpected_identity(
