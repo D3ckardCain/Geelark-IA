@@ -149,7 +149,7 @@ def test_database_connector_accepts_matching_remote_hostaddr_pairs(
         "GEELARK_ADMIN_DATABASE_URL",
         f"host=db1.example.test,db2.example.test "
         f"hostaddr=203.0.113.10,203.0.113.11 "
-        f"user=geelark_master_reader dbname=geelark sslmode=verify-full sslrootcert='{os.environ['TEST_PG_CA_CERT']}'",
+        f"user=geelark_master_reader dbname=geelark sslmode=verify-full sslrootcert='{Path(os.environ['TEST_PG_CA_CERT']).as_posix()}'",
     )
     assert callable(_database_connector())
 
@@ -160,7 +160,7 @@ def test_database_connector_sets_gssencmode_disable(monkeypatch: pytest.MonkeyPa
     monkeypatch.setenv(
         "GEELARK_ADMIN_DATABASE_URL",
         f"host=db.example.test user=geelark_master_reader dbname=geelark "
-        f"sslmode=verify-full gssencmode=prefer sslrootcert='{os.environ['TEST_PG_CA_CERT']}' "
+        f"sslmode=verify-full gssencmode=prefer sslrootcert='{Path(os.environ['TEST_PG_CA_CERT']).as_posix()}' "
         "options='-c default_transaction_read_only=off -c statement_timeout=0 -c lock_timeout=0 -c idle_in_transaction_session_timeout=0'",
     )
     calls: list[dict[str, object]] = []
