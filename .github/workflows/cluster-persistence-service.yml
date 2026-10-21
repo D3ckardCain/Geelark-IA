@@ -9,6 +9,7 @@ on:
       - "packages/cluster-agent-auth/**"
       - "packages/cluster-master-admin/**"
       - ".github/workflows/cluster-persistence-service.yml"
+      - "pytest.ini"
   push:
     branches: [main]
     paths:
@@ -32,6 +33,7 @@ jobs:
   integration:
     name: Python 3.11 — PostgreSQL assignment service
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:16-alpine
@@ -161,4 +163,79 @@ jobs:
 
       - name: Check dependency consistency
         if: hashFiles('packages/cluster-persistence/pyproject.toml') != '' || hashFiles('packages/cluster-agent-guard/pyproject.toml') != '' || hashFiles('packages/cluster-agent-auth/pyproject.toml') != '' || hashFiles('packages/cluster-master-admin/pyproject.toml') != ''
+        run: python -m pip check
+
+
+  windows-acl:
+    if: github.event_name == 'pull_request' && github.head_ref == 'fix/windows-icacls-sequential-acl'
+    name: Windows — ACL NTFS reales y autenticación local
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install Master Admin test dependencies
+        run: python -m pip install -e "packages/cluster-persistence[test]" -e "packages/cluster-master-admin[test]"
+
+      - name: Run Windows ACL tests on NTFS
+        run: python -m pytest -vv -o faulthandler_timeout=30 packages/cluster-master-admin/tests/test_auth.py
+
+      - name: Check dependency consistency
+        run: python -m pip check
+
+  root-suite:
+    if: github.event_name == 'pull_request' && github.head_ref == 'fix/windows-icacls-sequential-acl'
+    name: Python 3.11 — suite completa desde la raíz
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: geelark_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d geelark_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:test-only-password@127.0.0.1:5432/geelark_test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Apply schema migrations to disposable database
+        if: hashFiles('db/migrations/*.sql') != ''
+        shell: bash
+        run: |
+          container_id="$(docker ps --filter 'ancestor=postgres:16-alpine' --format '{{.ID}}' | head -n 1)"
+          test -n "$container_id"
+          for migration in db/migrations/*.sql; do
+            test -f "$migration" || continue
+            docker exec -i "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 < "$migration"
+          done
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install all package test dependencies
+        run: |
+          python -m pip install -e "packages/cluster-persistence[test]" -e "packages/cluster-agent-guard[test]" -e "packages/cluster-agent-auth[test]" -e "packages/cluster-agent-transport[test]" -e "packages/cluster-master-admin[test]"
+
+      - name: Run full repository test suite from root
+        run: python -m pytest -vv -o faulthandler_timeout=30
+
+      - name: Check dependency consistency
         run: python -m pip check
