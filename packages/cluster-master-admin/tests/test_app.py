@@ -235,10 +235,10 @@ def test_panel_payload_validator_covers_contract_constraints() -> None:
     validator = source.split("function validatePayload(data){", 1)[1].split("\nfunction currentSnapshots()", 1)[0]
     # Contract guardrails: IDs/dates, enums, bounded arrays, exact object keys, and cross-field safety rules.
     for marker in (
-        "snapshot_id", "uuid(s.snapshot_id)", "dateTime(s.generated_at)",
+        "snapshot_id", "uuid(s.snapshot_id)", "dt(s.generated_at)",
         "authorization_state", "authStates", "healthStates", "freshnessStates",
-        "capabilitiesAllowed", "n.capabilities.length>32", "n.modules.length>128",
-        "threshold_seconds>86400", "Object.keys(value)",
+        "caps", "n.capabilities.length>32", "n.modules.length>128",
+        "threshold_seconds>86400", "Object.keys(v)",
         "un snapshot sin frescura", "un nodo sin heartbeat",
     ):
         assert marker in validator, f"Falta una validación del contrato en el panel: {marker}"
