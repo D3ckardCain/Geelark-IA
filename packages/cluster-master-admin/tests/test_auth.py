@@ -8,6 +8,7 @@ import pytest
 from geelark_master_admin.auth import (
     SESSION_TTL_SECONDS,
     SessionStore,
+    _restrict_windows_acl,
     hash_operator_password,
     verify_operator_password,
 )
@@ -36,6 +37,8 @@ def test_password_policy_and_malformed_hash_fail_closed() -> None:
 
 
 def test_sessions_are_hashed_revocable_and_expire(tmp_path: Path) -> None:
+    if os.name == "nt":
+        _restrict_windows_acl(tmp_path, directory=True)
     now = [1_000_000.0]
     store = SessionStore(tmp_path / "private" / "sessions.sqlite3", clock=lambda: now[0])
     token = store.create()
@@ -56,6 +59,8 @@ def test_sessions_are_hashed_revocable_and_expire(tmp_path: Path) -> None:
 
 
 def test_session_database_permissions_are_restricted(tmp_path: Path) -> None:
+    if os.name == "nt":
+        _restrict_windows_acl(tmp_path, directory=True)
     path = tmp_path / "private" / "sessions.sqlite3"
     SessionStore(path)
     assert path.exists()

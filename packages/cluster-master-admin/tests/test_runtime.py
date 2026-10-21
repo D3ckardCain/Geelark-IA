@@ -5,11 +5,14 @@ from pathlib import Path
 
 import pytest
 
+from geelark_master_admin.auth import _restrict_windows_acl
 from geelark_master_admin.runtime import _database_connector, main
 
 
 @pytest.fixture(autouse=True)
 def isolated_libpq_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    if os.name == "nt":
+        _restrict_windows_acl(tmp_path, directory=True)
     # Keep developer/runner libpq settings from silently changing unit-test behavior.
     for name in ("PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR", "PGPORT", "PGSSLROOTCERT", "PGPASSWORD", "PGOPTIONS", "PGSSLKEYLOGFILE"):
         monkeypatch.delenv(name, raising=False)
