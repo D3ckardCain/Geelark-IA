@@ -303,7 +303,7 @@ def test_database_connector_rejects_group_or_world_readable_passfile(
         "GEELARK_ADMIN_DATABASE_URL",
         "host=localhost user=geelark_master_reader dbname=geelark",
     )
-    with pytest.raises(PermissionError, match="permisos 0600"):
+    with pytest.raises(PermissionError, match="legible solo por el usuario"):
         _database_connector()
 
 
@@ -445,3 +445,17 @@ def test_database_connector_rejects_tls_key_logging_dsn(
     with pytest.raises(RuntimeError) as exc:
         _database_connector()
     assert "sslkeylogfile" in str(exc.value) or "DSN PostgreSQL válido" in str(exc.value)
+
+
+@pytest.mark.skipif(os.name != "posix", reason="Los permisos POSIX no aplican en Windows.")
+def test_database_connector_rejects_unreadable_passfile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    passfile = Path(os.environ["PGPASSFILE"])
+    passfile.chmod(0o000)
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark",
+    )
+    with pytest.raises(PermissionError, match="legible solo por el usuario"):
+        _database_connector()

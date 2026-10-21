@@ -42,9 +42,10 @@ def _check_private_file(path: Path, label: str) -> None:
         if info.st_uid != os.geteuid():
             raise PermissionError(f"{label} debe pertenecer al usuario que ejecuta PC-MASTER.")
         mode = stat.S_IMODE(info.st_mode)
-        if mode & 0o077:
+        if not mode & 0o400 or mode & 0o077:
             raise PermissionError(
-                f"{label} debe tener permisos 0600; permisos actuales: {mode:04o}."
+                f"{label} debe ser legible solo por el usuario (por ejemplo, 0600 o 0400); "
+                f"permisos actuales: {mode:04o}."
             )
         parent_info = path.parent.stat()
         if parent_info.st_uid not in {os.geteuid(), 0}:
