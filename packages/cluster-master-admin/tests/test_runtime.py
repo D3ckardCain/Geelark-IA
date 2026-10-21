@@ -499,6 +499,7 @@ def test_database_connector_rejects_ca_in_group_writable_ancestor(
 
 
 @pytest.mark.skipif(os.name != "posix", reason="Los permisos POSIX no aplican en Windows.")
+@pytest.mark.skipif(os.name == "nt", reason="chmod POSIX no restringe ACL NTFS; Windows se valida mediante ACL reales.")
 def test_database_connector_rejects_unreadable_passfile(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
