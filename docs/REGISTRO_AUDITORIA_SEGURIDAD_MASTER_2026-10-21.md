@@ -97,3 +97,8 @@ La auditoría encontró que el runtime comprobaba el archivo y su directorio inm
 ## Verificación de propietario tras aplicar ACL NTFS — 2026-10-21
 
 La ACL visible no basta para demostrar que el archivo/directorio es seguro: el propietario de un objeto NTFS puede modificar su DACL aunque no aparezca como ACE. `_restrict_windows_acl` ahora verifica también propietario y ACE mediante el verificador PowerShell después de aplicar los cambios. La prueba de argumentos confirma que la verificación posterior es obligatoria. Pendiente de CI sobre el HEAD actualizado.
+
+
+## Límite de iteración en capacidades no confiables — 2026-10-21
+
+El proveedor de snapshots limitaba la cantidad de capacidades de salida, pero podía recorrer toda la lista JSONB de entrada si los elementos iniciales eran desconocidos. Ahora solo inspecciona un prefijo acotado de 128 entradas, además del límite de 32 valores normalizados. Se añadió una prueba con 10.000 entradas no válidas para asegurar que una capacidad válida fuera del prefijo no provoca una iteración ilimitada. Pendiente de CI sobre el HEAD actualizado.

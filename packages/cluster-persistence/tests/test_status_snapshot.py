@@ -41,6 +41,16 @@ def make_row(*, display_name="WORKER-01", admin_state="active", reported="health
     )
 
 
+
+
+def test_capability_normalization_bounds_untrusted_raw_items() -> None:
+    raw_items = ["untrusted-capability"] * 10_000 + ["heartbeat-v1"]
+    snapshot = build_status_snapshot(
+        make_row(capabilities={"version": 1, "items": raw_items}),
+        now=NOW,
+    )
+    assert snapshot["node"]["capabilities"] == []
+
 def test_fresh_snapshot_uses_master_clock_and_closed_capability_list():
     snapshot = build_status_snapshot(make_row(), now=NOW)
 

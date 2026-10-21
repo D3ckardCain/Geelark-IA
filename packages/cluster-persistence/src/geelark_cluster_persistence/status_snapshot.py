@@ -109,7 +109,8 @@ def _safe_capabilities(value: Any) -> list[str]:
     if not isinstance(raw, list):
         return []
     result: list[str] = []
-    for item in raw:
+    # No recorrer un array JSONB arbitrariamente grande aunque solo aceptemos 32 valores.
+    for item in raw[:128]:
         if not isinstance(item, str):
             continue
         normalized = CAPABILITY_ALIASES.get(item)
