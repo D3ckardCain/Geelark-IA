@@ -82,22 +82,44 @@ def _database_connector():
             "No se admiten DSN PostgreSQL con service=; configura host y TLS explícitos."
         )
 
-    host = details.get("host") or ""
-    hosts = [item.strip() for item in host.split(",") if item.strip()]
-    hostaddrs = [item.strip() for item in (details.get("hostaddr") or "").split(",") if item.strip()]
-    remote = any(
-        item not in {"localhost", "127.0.0.1", "::1"}
-        and not item.startswith("/")
-        for item in hosts
-    )
-    for address in hostaddrs:
+    raw_host = details.get("host") or ""
+    hosts = [item.strip() for item in raw_host.split(",")] if raw_host else []
+    if any(not item for item in hosts):
+        raise RuntimeError("GEELARK_ADMIN_DATABASE_URL no puede contener entradas host= vacías.")
+
+    raw_hostaddr = details.get("hostaddr") or ""
+    hostaddrs = [item.strip() for item in raw_hostaddr.split(",")] if raw_hostaddr else []
+    if any(not item for item in hostaddrs):
+        raise RuntimeError("GEELARK_ADMIN_DATABASE_URL no puede contener entradas hostaddr= vacías.")
+
+    def is_loopback_host(item: str) -> bool:
+        if item.lower() == "localhost" or item.startswith("/"):
+            return True
         try:
-            is_loopback = ipaddress.ip_address(address).is_loopback
+            return ipaddress.ip_address(item).is_loopback
         except ValueError:
-            remote = True
-        else:
-            if not is_loopback:
-                remote = True
+            return False
+
+    if hostaddrs and hosts and len(hostaddrs) != len(hosts):
+        raise RuntimeError(
+            "hostaddr debe tener la misma cantidad de entradas IP que host para validar cada destino."
+        )
+
+    parsed_hostaddrs = []
+    for index, address in enumerate(hostaddrs):
+        try:
+            parsed_address = ipaddress.ip_address(address)
+        except ValueError as exc:
+            raise RuntimeError("hostaddr solo admite direcciones IP válidas.") from exc
+        parsed_hostaddrs.append(parsed_address)
+        if hosts and is_loopback_host(hosts[index]) and not parsed_address.is_loopback:
+            raise RuntimeError(
+                "hostaddr remoto no puede emparejarse con host loopback; usa host DNS/IP no-loopback."
+            )
+
+    remote = any(not is_loopback_host(item) for item in hosts)
+    if any(not address.is_loopback for address in parsed_hostaddrs):
+        remote = True
 
     if remote and details.get("sslmode") != "verify-full":
         raise RuntimeError(
