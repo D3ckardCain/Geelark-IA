@@ -87,7 +87,7 @@ class AgentHTTPSClient:
         decoded_path = parsed_path.path
         # Reject traversal after repeated URL decoding, including encoded backslashes.
         for _ in range(8):
-            normalized_parts = decoded_path.replace("\\\\", "/").split("/")
+            normalized_parts = decoded_path.replace("\\", "/").split("/")
             if any(part in {".", ".."} for part in normalized_parts):
                 raise ValueError(
                     "La ruta debe ser local al controlador; no se permiten URL absolutas ni traversal."
