@@ -323,6 +323,17 @@ def test_panel_payload_validator_rejects_malformed_payloads() -> None:
     assert accepted.returncode == 0, accepted.stderr
     assert json.loads(accepted.stdout) == {"ok": True, "count": 1}
 
+    valid_offset = copy.deepcopy(valid)
+    offset_timestamp = "2026-10-21T09:30:00+05:30"
+    valid_offset["generated_at"] = offset_timestamp
+    valid_offset["snapshots"][0]["generated_at"] = offset_timestamp
+    valid_offset["snapshots"][0]["node"]["last_heartbeat_at"] = offset_timestamp
+    valid_offset["snapshots"][0]["node"]["modules"][0]["checked_at"] = offset_timestamp
+    valid_offset["snapshots"][0]["freshness"]["observed_at"] = offset_timestamp
+    accepted_offset = run(valid_offset)
+    assert accepted_offset.returncode == 0, accepted_offset.stderr
+    assert json.loads(accepted_offset.stdout) == {"ok": True, "count": 1}
+
     malformed = []
     bad_uuid = copy.deepcopy(valid)
     bad_uuid["snapshots"][0]["snapshot_id"] = "not-a-uuid"
@@ -355,6 +366,10 @@ def test_panel_payload_validator_rejects_malformed_payloads() -> None:
     impossible_calendar_date = copy.deepcopy(valid)
     impossible_calendar_date["generated_at"] = "2026-02-31T12:00:00Z"
     malformed.append(impossible_calendar_date)
+
+    invalid_offset = copy.deepcopy(valid)
+    invalid_offset["generated_at"] = "2026-10-21T09:30:00+05:99"
+    malformed.append(invalid_offset)
 
     duplicate_capability = copy.deepcopy(valid)
     duplicate_capability["snapshots"][0]["node"]["capabilities"].append("heartbeat-v1")
