@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import copy
+import json
+import shutil
+import subprocess
 from contextlib import AbstractContextManager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -242,3 +246,121 @@ def test_panel_payload_validator_covers_contract_constraints() -> None:
         "un snapshot sin frescura", "un nodo sin heartbeat",
     ):
         assert marker in validator, f"Falta una validación del contrato en el panel: {marker}"
+
+
+def test_panel_payload_validator_rejects_malformed_payloads() -> None:
+    node = shutil.which("node")
+    if node is None:
+        import pytest
+
+        pytest.skip("Node.js no está disponible; la CI de GitHub sí lo proporciona.")
+
+    panel = Path(__file__).parents[1] / "src" / "geelark_master_admin" / "panel.html"
+    source = panel.read_text(encoding="utf-8")
+    start = source.index("function validatePayload(data){")
+    end = source.index("\nfunction currentSnapshots()", start)
+    validator = source[start:end]
+
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    valid = {
+        "schema_version": "1.0",
+        "generated_at": now,
+        "snapshots": [
+            {
+                "schema_version": "1.0",
+                "snapshot_id": str(uuid4()),
+                "generated_at": now,
+                "source": "master-live",
+                "node": {
+                    "node_id": str(uuid4()),
+                    "display_name": "WORKER-TEST-01",
+                    "authorization_state": "active",
+                    "health_state": "healthy",
+                    "last_heartbeat_at": now,
+                    "agent_version": "1.0.0",
+                    "capabilities": ["heartbeat-v1"],
+                    "modules": [
+                        {
+                            "module_id": "agent-supervisor",
+                            "state": "operational",
+                            "version": "1.0.0",
+                            "checked_at": now,
+                            "source": "agent-report",
+                            "error_code": None,
+                        }
+                    ],
+                    "reported_health_state": "healthy",
+                },
+                "freshness": {
+                    "state": "fresh",
+                    "age_seconds": 0,
+                    "threshold_seconds": 90,
+                    "observed_at": now,
+                },
+            }
+        ],
+    }
+
+    script = (
+        validator
+        + "\nconst data=JSON.parse(process.argv[1]);"
+        + "\ntry { const result=validatePayload(data);"
+        + " process.stdout.write(JSON.stringify({ok:true,count:result.length}));"
+        + " } catch (error) { process.stdout.write(JSON.stringify({ok:false}));"
+        + " process.exitCode=1; }"
+    )
+
+    def run(payload: dict) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [node, "-e", script, json.dumps(payload)],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+
+    accepted = run(valid)
+    assert accepted.returncode == 0, accepted.stderr
+    assert json.loads(accepted.stdout) == {"ok": True, "count": 1}
+
+    malformed = []
+    bad_uuid = copy.deepcopy(valid)
+    bad_uuid["snapshots"][0]["snapshot_id"] = "not-a-uuid"
+    malformed.append(bad_uuid)
+
+    bad_enum = copy.deepcopy(valid)
+    bad_enum["snapshots"][0]["node"]["authorization_state"] = "root"
+    malformed.append(bad_enum)
+
+    bad_capability = copy.deepcopy(valid)
+    bad_capability["snapshots"][0]["node"]["capabilities"].append("shell-v1")
+    malformed.append(bad_capability)
+
+    extra_field = copy.deepcopy(valid)
+    extra_field["snapshots"][0]["node"]["untrusted"] = True
+    malformed.append(extra_field)
+
+    stale_but_healthy = copy.deepcopy(valid)
+    stale_but_healthy["snapshots"][0]["freshness"]["state"] = "stale"
+    malformed.append(stale_but_healthy)
+
+    bad_module_state = copy.deepcopy(valid)
+    bad_module_state["snapshots"][0]["node"]["modules"][0]["state"] = "running"
+    malformed.append(bad_module_state)
+
+    bad_date = copy.deepcopy(valid)
+    bad_date["generated_at"] = "not-a-date"
+    malformed.append(bad_date)
+
+    duplicate_capability = copy.deepcopy(valid)
+    duplicate_capability["snapshots"][0]["node"]["capabilities"].append("heartbeat-v1")
+    malformed.append(duplicate_capability)
+
+    too_many = copy.deepcopy(valid)
+    too_many["snapshots"] = too_many["snapshots"] * 501
+    malformed.append(too_many)
+
+    for payload in malformed:
+        rejected = run(payload)
+        assert rejected.returncode == 1
+        assert json.loads(rejected.stdout) == {"ok": False}
