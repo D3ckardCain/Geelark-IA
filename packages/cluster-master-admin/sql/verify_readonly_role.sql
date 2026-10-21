@@ -1,18 +1,36 @@
 -- Ejecutar conectado directamente como geelark_master_reader, tras aplicar
 -- packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql y establecer su contraseña.
--- La prueba falla si el rol conserva privilegios fuera del único objeto permitido.
+-- La prueba falla si el rol conserva privilegios fuera del único objeto permitido
+-- o si sus valores de sesión por defecto no mantienen read-only y timeouts acotados.
+DO $preflight$
+BEGIN
+    IF current_setting('default_transaction_read_only') <> 'on' THEN
+        RAISE EXCEPTION 'default_transaction_read_only debe ser on';
+    END IF;
+    IF current_setting('transaction_read_only') <> 'on' THEN
+        RAISE EXCEPTION 'La transacción por defecto no está en modo read-only';
+    END IF;
+    IF current_setting('statement_timeout')::interval <> interval '1500 milliseconds' THEN
+        RAISE EXCEPTION 'statement_timeout debe ser 1500ms';
+    END IF;
+    IF current_setting('lock_timeout')::interval <> interval '500 milliseconds' THEN
+        RAISE EXCEPTION 'lock_timeout debe ser 500ms';
+    END IF;
+    IF current_setting('idle_in_transaction_session_timeout')::interval <> interval '5 seconds' THEN
+        RAISE EXCEPTION 'idle_in_transaction_session_timeout debe ser 5s';
+    END IF;
+END
+$preflight$;
+
 BEGIN READ ONLY;
 
-DO $$
+DO $
 DECLARE
     forbidden_object text;
     role_oid oid;
 BEGIN
     SELECT oid INTO role_oid FROM pg_roles WHERE rolname = current_user;
 
-    IF current_setting('transaction_read_only') <> 'on' THEN
-        RAISE EXCEPTION 'La transacción no está en modo read-only';
-    END IF;
     IF role_oid IS NULL OR NOT EXISTS (
         SELECT 1 FROM pg_roles WHERE oid = role_oid AND rolcanlogin
     ) THEN

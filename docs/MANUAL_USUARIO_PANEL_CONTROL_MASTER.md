@@ -95,6 +95,6 @@ Si PostgreSQL está alojado remotamente, consultar datos reales requiere Interne
 
 - Una sola instancia de servidor; el limitador de login es en memoria.
 - La sesión se guarda en SQLite local y expira en ocho horas.
-- CI verifica los permisos del rol en PostgreSQL desechable. Los permisos efectivos de la instancia real deben verificarse ejecutando `packages/cluster-master-admin/sql/verify_readonly_role.sql` como el usuario lector.
+- CI verifica los permisos del rol y sus valores de sesión (`default_transaction_read_only`, `statement_timeout`, `lock_timeout`, `idle_in_transaction_session_timeout`) en PostgreSQL desechable, incluidas pruebas negativas que alteran cada valor y comprueban que el verificador falla. Los permisos efectivos de la instancia real deben verificarse ejecutando `packages/cluster-master-admin/sql/verify_readonly_role.sql` como el usuario lector.
 - La CI aprobada incluye pruebas de la API y verificación de grants en una base PostgreSQL desechable; no sustituye la validación de credenciales, permisos ni conectividad en la instancia real de PC-MASTER ni la revisión manual de seguridad.
 - La validación controlada de Windows ya está completada según el registro de trabajo; no equivale a un despliegue en Workers físicos ni habilita sus operaciones. La PR #84 sigue en draft y no está fusionada. Las PR #76 y #79 quedaron supersedidas y cerradas sin merge.

@@ -159,6 +159,23 @@ jobs:
           grep -q "CREATE sobre un esquema no permitido" /tmp/geelark-admin-owner-probe.log || { cat /tmp/geelark-admin-owner-probe.log; exit 1; }
           docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "DROP SCHEMA geelark_admin_owner_probe"
 
+          # Negative tests: each role-level session safeguard must be independently enforced.
+          for setting in default_transaction_read_only statement_timeout lock_timeout idle_in_transaction_session_timeout; do
+            case "$setting" in
+              default_transaction_read_only) bad_value="off"; expected="default_transaction_read_only debe ser on" ;;
+              statement_timeout) bad_value="0"; expected="statement_timeout debe ser 1500ms" ;;
+              lock_timeout) bad_value="0"; expected="lock_timeout debe ser 500ms" ;;
+              idle_in_transaction_session_timeout) bad_value="0"; expected="idle_in_transaction_session_timeout debe ser 5s" ;;
+            esac
+            docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "ALTER ROLE geelark_master_reader SET $setting = '$bad_value'"
+            if PGPASSWORD=test-only-password psql "$reader_dsn" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql > "/tmp/geelark-admin-setting-$setting.log" 2>&1; then
+              echo "ERROR: el verificador aceptó $setting=$bad_value"
+              exit 1
+            fi
+            grep -Fq "$expected" "/tmp/geelark-admin-setting-$setting.log" || { cat "/tmp/geelark-admin-setting-$setting.log"; exit 1; }
+            docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "ALTER ROLE geelark_master_reader RESET $setting"
+          done
+
       - name: Check dependency consistency
         if: hashFiles('packages/cluster-persistence/pyproject.toml') != '' || hashFiles('packages/cluster-agent-guard/pyproject.toml') != '' || hashFiles('packages/cluster-agent-auth/pyproject.toml') != '' || hashFiles('packages/cluster-master-admin/pyproject.toml') != ''
         run: python -m pip check
