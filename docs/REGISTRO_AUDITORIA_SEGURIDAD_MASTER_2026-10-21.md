@@ -65,3 +65,20 @@ Los commits, resultados CI, errores detectados durante las iteraciones y sus cor
 ## Incidencia detectada en la primera ejecución Windows real — 2026-10-21
 
 La validación con `windows-latest` reveló que el entorno de Windows Server rechazaba las variantes de `icacls` usadas para desactivar herencia. Se sustituyó esa operación por una DACL protegida aplicada con PowerShell y verificada después con `icacls`. La primera ejecución de esta nueva vía falló porque `Microsoft.PowerShell.Security` no se auto-cargó desde el entorno del runner. El código prepara ahora un `PSModulePath` de Windows PowerShell y carga explícitamente el módulo. La aceptación final de NTFS queda pendiente de una nueva ejecución Windows sobre el HEAD sincronizado con la PR; no se declara aprobada hasta entonces.
+
+## Seguimiento de auditoría — PR #104 y CI Windows/CA (2026-10-21)
+
+Este seguimiento complementa el registro histórico anterior. La implementación de la PR #84 se cerró sin merge; la continuación está en la [PR #104](https://github.com/D3ckardCain/Geelark-IA/pull/104), cuyo título y descripción se actualizaron para reflejar el alcance real del panel PC-MASTER autenticado de solo lectura y las correcciones de seguridad acumuladas.
+
+### Correcciones adicionales
+- Los fixtures de `sslrootcert` en DSN PostgreSQL URL codifican caracteres especiales; los DSN clave-valor usan rutas POSIX normalizadas en pruebas Windows para evitar que las barras invertidas se interpreten como escapes.
+- El job de ACL NTFS se ejecuta en eventos relevantes de pull request y ya no depende únicamente de una etiqueta.
+- `_check_private_file` verifica la ACL del directorio contenedor en Windows antes de restringir archivos sensibles, mitigando la sustitución del archivo mediante permisos de eliminación del directorio.
+- Dos pruebas de regresión verifican el orden de la comprobación de ACL y que el proceso falla cerrado si el directorio no es confiable.
+
+### Validación automatizada confirmada
+HEAD: `ee84b0f819f65b53e0a7061144da07d3372558ae`.
+- [Persistencia y Windows #586](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39669465901): Windows **50 passed, 8 skipped**; `pip check` limpio; job de PostgreSQL/persistencia en éxito.
+- [Transporte HTTPS #457](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39669465829): éxito.
+
+La CI automatizada está verde para ese HEAD. La validación de CI no equivale a aceptación manual en el PC-MASTER Windows 11 del usuario ni prueba permisos/conectividad en una base real. La PR sigue abierta en draft; no se ha fusionado ni desplegado. No se han tocado Workers físicos ni se ha incurrido en nuevos servicios de pago.
