@@ -44,7 +44,7 @@ Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la refer
 - `docs/ESPECIFICACION_MOTOR_RPA.md`: diseño de automatización por bloques tipados.
 - GitHub Issues: tareas, dudas, incidencias, decisiones y soluciones.
 
-## Decisiones aún no tomadas
+## Arquitectura acordada y validación pendiente
 
 El PC-MASTER se mantiene como aplicación Windows. Los PC WORKER son equipos físicos con Debian 13 como sistema base previsto; PC-MASTER deberá descubrirlos, solicitar aprobación de adopción y automatizar el aprovisionamiento del agente y del entorno Android. Las capacidades y el rendimiento se validarán paso a paso.
 
