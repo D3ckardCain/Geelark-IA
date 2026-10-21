@@ -313,3 +313,32 @@ def test_windows_parent_acl_verifier_fails_closed_on_untrusted_writer(
     )
     with pytest.raises(PermissionError, match="ACL NTFS"):
         auth_module._verify_windows_acl_no_untrusted_writers(target)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Prueba de integración exclusiva de Windows.")
+def test_windows_acl_verifier_accepts_private_directory_on_real_ntfs(tmp_path: Path) -> None:
+    from geelark_master_admin import auth as auth_module
+
+    target = tmp_path / "private-accepted"
+    target.mkdir()
+    auth_module._restrict_windows_acl(target, directory=True)
+    auth_module._verify_windows_acl_no_untrusted_writers(target)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Prueba de integración exclusiva de Windows.")
+def test_windows_acl_verifier_rejects_users_group_write_on_real_ntfs(tmp_path: Path) -> None:
+    import subprocess
+
+    from geelark_master_admin import auth as auth_module
+
+    target = tmp_path / "private-rejected"
+    target.mkdir()
+    auth_module._restrict_windows_acl(target, directory=True)
+    subprocess.run(
+        ["icacls", str(target), "/grant", "*S-1-5-32-545:(OI)(CI)(M)"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    with pytest.raises(PermissionError, match="ACL NTFS"):
+        auth_module._verify_windows_acl_no_untrusted_writers(target)

@@ -2,6 +2,7 @@ name: Cluster persistence service
 
 on:
   pull_request:
+    types: [opened, reopened, synchronize, labeled]
     paths:
       - "db/**"
       - "packages/cluster-persistence/**"
@@ -30,6 +31,7 @@ concurrency:
 
 jobs:
   integration:
+    if: github.event.action != 'labeled' || github.event.label.name != 'enhancement'
     name: Python 3.11 — PostgreSQL assignment service
     runs-on: ubuntu-latest
     services:
@@ -178,4 +180,31 @@ jobs:
 
       - name: Check dependency consistency
         if: hashFiles('packages/cluster-persistence/pyproject.toml') != '' || hashFiles('packages/cluster-agent-guard/pyproject.toml') != '' || hashFiles('packages/cluster-agent-auth/pyproject.toml') != '' || hashFiles('packages/cluster-master-admin/pyproject.toml') != ''
+        run: python -m pip check
+
+
+  windows-acl:
+    if: github.event_name == 'pull_request' && github.event.action == 'labeled' && github.event.label.name == 'enhancement' && contains(github.event.pull_request.labels.*.name, 'enhancement')
+    name: Windows 11 — ACL NTFS de PC-MASTER
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install persistence package
+        run: python -m pip install -e packages/cluster-persistence
+
+      - name: Install Master Admin and test dependencies
+        run: python -m pip install -e "packages/cluster-master-admin[test]"
+
+      - name: Run Master Admin auth and runtime tests on real Windows ACLs
+        run: python -m pytest packages/cluster-master-admin/tests/test_auth.py packages/cluster-master-admin/tests/test_runtime.py -q
+
+      - name: Check dependency consistency
         run: python -m pip check
