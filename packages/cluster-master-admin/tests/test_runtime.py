@@ -194,7 +194,8 @@ def test_database_connector_rejects_servicefile_in_dsn(monkeypatch: pytest.Monke
         "servicefile=/tmp/pg_service.conf host=localhost "
         "user=geelark_master_reader dbname=geelark",
     )
-    with pytest.raises(RuntimeError, match="perfiles libpq externos"):
+    # libpq rejects servicefile as an unknown DSN option before application checks.
+    with pytest.raises(RuntimeError, match="DSN PostgreSQL válido"):
         _database_connector()
 
 
