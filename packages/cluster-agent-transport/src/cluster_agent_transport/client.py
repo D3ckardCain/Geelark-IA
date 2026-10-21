@@ -52,7 +52,11 @@ class AgentHTTPSClient:
             raise ValueError("El host del controlador debe ser una IP literal privada/loopback.") from exc
         if address.is_unspecified or not is_private_lan_address(address):
             raise ValueError("El controlador debe estar en una IP privada/loopback.")
-        if not isinstance(timeout_seconds, (int, float)) or not 0.1 <= timeout_seconds <= 60:
+        if (
+            isinstance(timeout_seconds, bool)
+            or not isinstance(timeout_seconds, (int, float))
+            or not 0.1 <= timeout_seconds <= 60
+        ):
             raise ValueError("timeout_seconds debe estar entre 0.1 y 60.")
         if isinstance(max_response_bytes, bool) or not 1 <= max_response_bytes <= 16 * 1024 * 1024:
             raise ValueError("max_response_bytes debe estar entre 1 byte y 16 MiB.")
@@ -80,13 +84,27 @@ class AgentHTTPSClient:
         if method not in {"GET", "POST", "PUT"}:
             raise ValueError("Método HTTP no permitido.")
         parsed_path = urlsplit(path)
+        decoded_path = parsed_path.path
+        # Reject traversal after repeated URL decoding, including encoded backslashes.
+        for _ in range(8):
+            normalized_parts = decoded_path.replace("\\\\", "/").split("/")
+            if any(part in {".", ".."} for part in normalized_parts):
+                raise ValueError(
+                    "La ruta debe ser local al controlador; no se permiten URL absolutas ni traversal."
+                )
+            next_path = unquote(decoded_path)
+            if next_path == decoded_path:
+                break
+            decoded_path = next_path
+        else:
+            raise ValueError("La ruta contiene codificación anidada no permitida.")
+
         if (
             not path.startswith("/")
             or path.startswith("//")
             or parsed_path.scheme
             or parsed_path.netloc
             or parsed_path.fragment
-            or any(part in {".", ".."} for part in unquote(parsed_path.path).split("/"))
         ):
             raise ValueError("La ruta debe ser local al controlador; no se permiten URL absolutas ni traversal.")
 
