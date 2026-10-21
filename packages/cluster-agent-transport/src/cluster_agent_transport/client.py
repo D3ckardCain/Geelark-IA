@@ -111,14 +111,22 @@ class AgentHTTPSClient:
         method = method.upper()
         if method not in {"GET", "POST", "PUT"}:
             raise ValueError("Método HTTP no permitido.")
+        if any(ord(char) < 0x20 or ord(char) == 0x7F for char in path):
+            raise ValueError(
+                "La ruta debe ser local al controlador; no se permiten URL absolutas, caracteres de control, backslashes ni traversal."
+            )
         parsed_path = urlsplit(path)
         decoded_path = parsed_path.path
         # Reject traversal after repeated URL decoding, including encoded backslashes.
         for _ in range(8):
-            normalized_parts = decoded_path.replace("\\", "/").split("/")
+            if "\\" in decoded_path:
+                raise ValueError(
+                    "La ruta debe ser local al controlador; no se permiten URL absolutas, caracteres de control, backslashes ni traversal."
+                )
+            normalized_parts = decoded_path.split("/")
             if any(part in {".", ".."} for part in normalized_parts):
                 raise ValueError(
-                    "La ruta debe ser local al controlador; no se permiten URL absolutas ni traversal."
+                    "La ruta debe ser local al controlador; no se permiten URL absolutas, caracteres de control, backslashes ni traversal."
                 )
             next_path = unquote(decoded_path)
             if next_path == decoded_path:

@@ -109,6 +109,10 @@ def test_private_lan_classifier_is_explicit(address: str, expected: bool) -> Non
         "/%252e%252e/admin",
         "/a/%255c..%255cadmin",
         "/admin#fragment",
+        "/path\r\nInjected: yes",
+        "/path\x00tail",
+        "/a\\b",
+        "/a/%5cb",
         "relative/path",
     ],
 )
