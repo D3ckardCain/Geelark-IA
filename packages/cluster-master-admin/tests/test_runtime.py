@@ -7,6 +7,18 @@ import pytest
 from geelark_master_admin.runtime import _database_connector, main
 
 
+@pytest.fixture(autouse=True)
+def isolated_libpq_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # Keep developer/runner libpq settings from silently changing unit-test behavior.
+    for name in ("PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR", "PGPORT", "PGSSLROOTCERT", "PGPASSWORD"):
+        monkeypatch.delenv(name, raising=False)
+    passfile = tmp_path / "pgpass"
+    passfile.write_text("localhost:5432:geelark:geelark_master_reader:test-only\n", encoding="utf-8")
+    if __import__("os").name == "posix":
+        passfile.chmod(0o600)
+    monkeypatch.setenv("PGPASSFILE", str(passfile))
+
+
 def test_database_connector_requires_dedicated_reader_role(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "postgresql://postgres@localhost:5432/geelark")
     with pytest.raises(RuntimeError, match="geelark_master_reader"):
@@ -151,3 +163,125 @@ def test_database_connector_sets_gssencmode_disable(monkeypatch: pytest.MonkeyPa
     assert "default_transaction_read_only=on" in str(calls[0]["options"])
     assert "statement_timeout=1500" in str(calls[0]["options"])
     assert "lock_timeout=500" in str(calls[0]["options"])
+
+
+def test_database_connector_requires_explicit_passfile(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PGPASSFILE", raising=False)
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark",
+    )
+    with pytest.raises(RuntimeError, match="PGPASSFILE"):
+        _database_connector()
+
+
+@pytest.mark.parametrize("environment_name", ["PGSERVICE", "PGSERVICEFILE"])
+def test_database_connector_rejects_external_service_environment(
+    monkeypatch: pytest.MonkeyPatch, environment_name: str
+) -> None:
+    monkeypatch.setenv(environment_name, "external-service")
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark",
+    )
+    with pytest.raises(RuntimeError, match="perfiles libpq externos"):
+        _database_connector()
+
+
+def test_database_connector_rejects_servicefile_in_dsn(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "servicefile=/tmp/pg_service.conf host=localhost "
+        "user=geelark_master_reader dbname=geelark",
+    )
+    with pytest.raises(RuntimeError, match="perfiles libpq externos"):
+        _database_connector()
+
+
+def test_database_connector_rejects_implicit_hostaddr_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PGHOSTADDR", "203.0.113.10")
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark",
+    )
+    with pytest.raises(RuntimeError, match="PGHOSTADDR"):
+        _database_connector()
+
+
+def test_database_connector_requires_explicit_host_even_if_pghost_is_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PGHOST", "db.example.test")
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "user=geelark_master_reader dbname=geelark",
+    )
+    with pytest.raises(RuntimeError, match="host= o hostaddr= explícito"):
+        _database_connector()
+
+
+def test_database_connector_requires_explicit_database_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader",
+    )
+    with pytest.raises(RuntimeError, match="dbname explícito"):
+        _database_connector()
+
+
+def test_database_connector_rejects_implicit_port_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PGPORT", "55432")
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark",
+    )
+    with pytest.raises(RuntimeError, match="PGPORT"):
+        _database_connector()
+
+
+def test_database_connector_rejects_implicit_remote_ssl_root(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PGSSLROOTCERT", "/tmp/unreviewed-root.crt")
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=db.example.test user=geelark_master_reader dbname=geelark sslmode=verify-full",
+    )
+    with pytest.raises(RuntimeError, match="PGSSLROOTCERT"):
+        _database_connector()
+
+
+def test_database_connector_rejects_password_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    secret = "environment-password-must-not-be-used"
+    monkeypatch.setenv("PGPASSWORD", secret)
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark",
+    )
+    with pytest.raises(RuntimeError, match="PGPASSWORD") as exc:
+        _database_connector()
+    assert secret not in str(exc.value)
+
+
+@pytest.mark.skipif(__import__("os").name != "posix", reason="Los permisos POSIX no aplican en Windows.")
+def test_database_connector_rejects_group_or_world_readable_passfile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from pathlib import Path
+
+    passfile = Path(__import__("os").environ["PGPASSFILE"])
+    passfile.chmod(0o644)
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark",
+    )
+    with pytest.raises(PermissionError, match="permisos 0600"):
+        _database_connector()
