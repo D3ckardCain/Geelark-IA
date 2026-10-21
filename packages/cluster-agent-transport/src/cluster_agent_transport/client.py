@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import os
 import ssl
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -64,13 +66,24 @@ class AgentHTTPSClient:
             or not 1 <= max_response_bytes <= 16 * 1024 * 1024
         ):
             raise ValueError("max_response_bytes debe ser un entero entre 1 byte y 16 MiB.")
-        if not Path(ca_cert).is_file():
+        ca_path = Path(ca_cert).expanduser().resolve()
+        if not ca_path.is_file():
             raise ValueError("No existe el certificado público de la CA local.")
+        if os.name == "posix":
+            ca_mode = stat.S_IMODE(ca_path.stat().st_mode)
+            if ca_mode & 0o022:
+                raise ValueError("El archivo CA no puede ser modificable por grupo u otros.")
+            ca_parent_mode = stat.S_IMODE(ca_path.parent.stat().st_mode)
+            if ca_parent_mode & 0o022:
+                raise ValueError(
+                    "El directorio contenedor del archivo CA no puede permitir escritura a grupo u otros."
+                )
 
         self.base_url = f"https://{parsed.netloc}"
         self.timeout_seconds = float(timeout_seconds)
         self.max_response_bytes = max_response_bytes
-        self.ssl_context = ssl.create_default_context(cafile=ca_cert)
+        # Load the canonical, checked trust anchor rather than an unchecked alias.
+        self.ssl_context = ssl.create_default_context(cafile=str(ca_path))
         self.ssl_context.verify_mode = ssl.CERT_REQUIRED
         self.ssl_context.check_hostname = True
         self.ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2

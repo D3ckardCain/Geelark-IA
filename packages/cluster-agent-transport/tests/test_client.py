@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import ssl
 from pathlib import Path
 from urllib.error import URLError
@@ -225,3 +226,24 @@ def test_request_encodes_json_without_nonstandard_values(tmp_path: Path) -> None
     assert result.status == 200
     assert opener.request.get_header("Content-type") == "application/json"
     assert json.loads(opener.request.data.decode("utf-8")) == {"name": "worker"}
+
+
+@pytest.mark.skipif(os.name != "posix", reason="La prueba de modos POSIX no aplica en Windows.")
+@pytest.mark.parametrize("unsafe_target", ["file", "directory"])
+def test_client_rejects_mutable_ca_trust_path(
+    tmp_path: Path, unsafe_target: str
+) -> None:
+    ca_dir = tmp_path / "ca-store"
+    ca_dir.mkdir()
+    ca_file = ca_dir / "root.crt"
+    ca_file.write_text("not a certificate; permissions must be checked first", encoding="utf-8")
+    ca_file.chmod(0o644)
+    if unsafe_target == "file":
+        ca_file.chmod(0o666)
+    else:
+        ca_dir.chmod(0o777)
+    with pytest.raises(ValueError, match="archivo CA|directorio contenedor"):
+        AgentHTTPSClient(
+            base_url="https://127.0.0.1:8765",
+            ca_cert=str(ca_file),
+        )
