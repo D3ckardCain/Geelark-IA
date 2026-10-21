@@ -106,7 +106,12 @@ def _verify_windows_acl_no_untrusted_writers(path: Path) -> None:
 $ErrorActionPreference = 'Stop'
 $target = $env:GEELARK_ACL_TARGET
 $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-$trustedSids = @($currentSid, 'S-1-5-18', 'S-1-5-32-544')
+$trustedSids = @(
+    $currentSid,
+    'S-1-5-18',
+    'S-1-5-32-544',
+    'S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464'
+)
 $writeMask = [int]([System.Security.AccessControl.FileSystemRights]::WriteData) -bor
              [int]([System.Security.AccessControl.FileSystemRights]::AppendData) -bor
              [int]([System.Security.AccessControl.FileSystemRights]::WriteExtendedAttributes) -bor
@@ -116,6 +121,11 @@ $writeMask = [int]([System.Security.AccessControl.FileSystemRights]::WriteData) 
              [int]([System.Security.AccessControl.FileSystemRights]::ChangePermissions) -bor
              [int]([System.Security.AccessControl.FileSystemRights]::TakeOwnership)
 $acl = Get-Acl -LiteralPath $target
+$ownerSid = $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
+if ($trustedSids -notcontains $ownerSid) {
+    [Console]::Error.WriteLine('UNTRUSTED_OWNER')
+    exit 13
+}
 foreach ($entry in $acl.Access) {
     if ($entry.AccessControlType -ne [System.Security.AccessControl.AccessControlType]::Allow) { continue }
     if (($entry.PropagationFlags -band [System.Security.AccessControl.PropagationFlags]::InheritOnly) -ne 0) { continue }

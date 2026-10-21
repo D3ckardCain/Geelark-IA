@@ -282,6 +282,8 @@ def test_windows_parent_acl_verifier_accepts_trusted_acl(
         calls.append(command)
         assert kwargs["env"]["GEELARK_ACL_TARGET"] == str(target)
         assert "Get-Acl" in command[-1]
+        assert "GetOwner" in command[-1]
+        assert "UNTRUSTED_OWNER" in command[-1]
         return SimpleNamespace(returncode=0, stdout="OK\n", stderr="")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
