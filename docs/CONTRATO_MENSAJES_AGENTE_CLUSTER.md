@@ -7,7 +7,7 @@
 
 ## 1. Alcance
 
-Define mensajes mínimos entre el controlador y los agentes de PC. No define un protocolo de ejecución de shell. Los agentes solo aceptan operaciones tipadas que estén en la lista permitida. Este contrato es independiente del motor Android y del hipervisor.
+Define mensajes mínimos entre el controlador y los agentes de PC. No define un protocolo de ejecución de shell. Los agentes solo aceptan operaciones tipadas que estén en la lista permitida. Este contrato es independiente de la implementación concreta del runtime Android.
 
 ## 2. Convenciones comunes
 
