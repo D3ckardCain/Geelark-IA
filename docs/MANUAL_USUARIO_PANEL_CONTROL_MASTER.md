@@ -17,10 +17,24 @@ Pulsa **Cerrar sesión** en la cabecera. El servidor revoca la sesión en SQLite
 
 ## 3. Navegación
 
+La interfaz usa un tema oscuro inspirado en GitHub Dark: fondo carbón, paneles discretos, bordes grises, texto claro y acento azul. La barra lateral agrupa las áreas del producto para que la navegación pueda ampliarse sin rehacer el panel.
+
+Secciones disponibles en esta versión:
 - **Resumen:** contadores y últimos snapshots.
-- **Nodos Worker:** búsqueda por nombre o identificador, estado de autorización, salud, heartbeat, versión y capacidades.
-- **Módulos:** estado de los módulos reportados y frescura del reporte.
-- **Auditoría y CI:** enlaces a las ejecuciones de GitHub. Consultar GitHub requiere Internet.
+- **PC Workers:** búsqueda por nombre o identificador, estado de autorización, salud derivada, heartbeat, versión y capacidades.
+- **Aplicaciones y módulos:** estado de módulos reportados y frescura del reporte.
+- **Auditoría y CI:** estado de integración y enlaces a las ejecuciones de GitHub. Consultar GitHub requiere Internet.
+
+Secciones visibles pero todavía deshabilitadas:
+- **Instancias Android**
+- **Automatizaciones**
+- **Tareas y colas**
+- **Red y conectividad**
+- **Almacenamiento**
+- **Usuarios y permisos**
+- **Configuración**
+
+Los accesos deshabilitados son marcadores de navegación futura, no funciones implementadas. No permiten operaciones y no deben interpretarse como evidencia de que esas capacidades ya estén disponibles.
 
 ## 4. Estados
 
