@@ -19,6 +19,7 @@ on:
       - "packages/cluster-agent-guard/**"
       - "packages/cluster-agent-auth/**"
       - "packages/cluster-master-admin/**"
+      - "pytest.ini"
       - ".github/workflows/cluster-persistence-service.yml"
   workflow_dispatch:
 
