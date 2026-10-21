@@ -53,7 +53,7 @@ Los workflows se ejecutaron con Python 3.11 y PostgreSQL desechable. No prueban 
 
 ## Puerta pendiente antes de desplegar
 
-La nueva lógica de ACL NTFS tiene pruebas unitarias que simulan PowerShell en CI Linux, pero **no se ha ejecutado todavía contra ACL reales en un host Windows**. La validación Windows anterior registrada en la issue #77 es anterior a estos cambios y no debe interpretarse como integración de esta nueva lógica. No se ha añadido un runner Windows para conservar minutos de GitHub Actions.
+La nueva lógica de ACL NTFS tiene pruebas unitarias que simulan PowerShell en CI Linux, pero **no se ha ejecutado todavía contra ACL reales en un host Windows**. La validación Windows anterior registrada en la issue #77 es anterior a estos cambios y no debe interpretarse como integración de esta nueva lógica. Se añadió un job de integración NTFS en `windows-latest`, opt-in mediante la etiqueta `enhancement` del PR para no consumir minutos Windows en cada push. El runner hospedado es Windows Server, no el escritorio Windows 11 de PC-MASTER; la prueba valida APIs NTFS/PowerShell compatibles, pero no sustituye toda la aceptación local.
 
 Antes de habilitar esta ruta en producción, queda pendiente una prueba de aceptación Windows de la carpeta de sesiones, el archivo `PGPASSFILE`, el archivo de hash del operador y, si se usa PostgreSQL remoto, la CA TLS. Hasta entonces, PR #84 permanece en borrador y sin fusionar.
 

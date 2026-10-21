@@ -184,7 +184,7 @@ jobs:
 
   windows-acl:
     if: github.event_name == 'pull_request' && github.event.action == 'labeled' && github.event.label.name == 'enhancement' && contains(github.event.pull_request.labels.*.name, 'enhancement')
-    name: Windows 11 — ACL NTFS de PC-MASTER
+    name: Windows runner — ACL NTFS de PC-MASTER
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
