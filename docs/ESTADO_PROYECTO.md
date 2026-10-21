@@ -223,14 +223,14 @@ Se confirma que Geelark-IA debe administrar varios PC físicos heterogéneos med
 - [x] Documentar la arquitectura de clúster: [ARQUITECTURA_CLUSTER_HETEROGENEO.md](ARQUITECTURA_CLUSTER_HETEROGENEO.md).
 - [x] Registrar la decisión distribuida: [ADR-003](decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md).
 - [x] Especificar el contrato del agente/planificador: [CONTRATO_AGENTE_NODO_PLANIFICADOR.md](CONTRATO_AGENTE_NODO_PLANIFICADOR.md).
-- [x] Documentar comparación inicial: [COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md](COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md).
+- [x] Registrar la arquitectura de clúster con PC-MASTER en Windows y PC WORKER físicos con Debian 13 como base prevista.
 - [x] Crear [issue #14](https://github.com/D3ckardCain/Geelark-IA/issues/14) para seguimiento.
 - [ ] Validar contrato mediante pruebas de esquema y seguridad.
 - [ ] Ejecutar prueba de concepto con al menos dos nodos heterogéneos.
 - [ ] Medir rendimiento Android, aislamiento, pérdida de red, recuperación y backups.
-- [ ] Aprobar Proxmox VE o Linux directo con evidencia, no por preferencia teórica.
+- [ ] Implementar y validar el aprovisionamiento desatendido de los PC WORKER, desde arranque por red hasta Android operativo.
 
-Hallazgo documental: Proxmox VE puede usarse sin comprar una licencia de software y su código es AGPLv3, pero el acceso a repositorios Enterprise y el soporte son comerciales; el repositorio no-subscription es una opción sin clave cuyo nivel de validación tiene advertencias oficiales. Proxmox tiene gestión de clúster multi-master y quorum, así que la PC principal de Geelark-IA es un rol operativo del producto y no un supuesto nodo maestro exclusivo de Proxmox. Fuentes y límites en [COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md](COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md).
+Decisión vigente: PC-MASTER permanece en Windows. Los PC WORKER utilizarán Debian 13 directamente como sistema base previsto. GeeLark-IA implementará su propio descubrimiento, adopción aprobada, despliegue del agente, preparación del entorno Android y administración central. La instalación desde equipos vacíos mediante arranque por red queda pendiente de validación en hardware y red reales.
 
 **Estado real:** documentos y criterios creados; no existe aún agente, planificador ni clúster implementado y no se han ejecutado pruebas de rendimiento.
 
@@ -238,7 +238,7 @@ Hallazgo documental: Proxmox VE puede usarse sin comprar una licencia de softwar
 ## Actualización — planificador de recursos y prueba de concepto (2026-10-09)
 
 - [x] Crear la especificación documental del planificador de recursos.
-- [x] Crear el protocolo de prueba de concepto para comparar Linux directo y Proxmox VE.
+- [x] Crear el plan documental de pruebas para validar el aprovisionamiento de WORKER y el ciclo de vida de Android.
 - [ ] Definir persistencia autoritativa, consistencia y fencing para asignaciones distribuidas.
 - [ ] Validar esquemas del agente y protocolo mediante pruebas.
 - [ ] Ejecutar pruebas con al menos dos nodos heterogéneos.
@@ -247,7 +247,7 @@ Hallazgo documental: Proxmox VE puede usarse sin comprar una licencia de softwar
 
 Documentos: [ESPECIFICACION_PLANIFICADOR_RECURSOS.md](ESPECIFICACION_PLANIFICADOR_RECURSOS.md) y [PLAN_PRUEBA_CONCEPTO_CLUSTER.md](PLAN_PRUEBA_CONCEPTO_CLUSTER.md).
 
-**Estado real:** se añadieron especificaciones y un plan de pruebas, no código ejecutable. No se ha medido rendimiento ni se ha aprobado Proxmox/Linux directo.
+**Estado real:** la arquitectura y el plan de aprovisionamiento están documentados; el flujo integral todavía no está validado en hardware físico.
 
 
 ### Propuesta de persistencia del plano de control (2026-10-09)
