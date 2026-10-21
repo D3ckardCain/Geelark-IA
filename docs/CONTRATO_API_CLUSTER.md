@@ -3,7 +3,7 @@
 **Versión:** 0.1  
 **Fecha:** 2026-10-09  
 **Estado:** especificación preliminar; no implementada ni validada con pruebas.  
-**Objetivo:** definir una API local y privada para administrar clúster, nodos, instancias Android y tareas sin acoplar el dominio a Proxmox VE o a un motor Android concreto.
+**Objetivo:** definir una API local y privada para administrar clúster, nodos, instancias Android y tareas sin acoplar el dominio a una implementación concreta del runtime Android.
 
 ## 1. Reglas de diseño
 
