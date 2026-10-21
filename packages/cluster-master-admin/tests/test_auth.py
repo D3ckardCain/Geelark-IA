@@ -102,8 +102,7 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
     assert calls[1][0].lower().endswith("icacls.exe")
     assert calls[1][2:] == [
         "/reset",
-        "/inheritancelevel",
-        "r",
+        "/inheritance:r",
         "/grant:r",
         expected_grant,
     ]
