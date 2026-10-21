@@ -60,3 +60,8 @@ Antes de habilitar esta ruta en producción, queda pendiente una prueba de acept
 ## Trazabilidad
 
 Los commits, resultados CI, errores detectados durante las iteraciones y sus correcciones están registrados en el historial de esta rama y en los comentarios de la [issue #93](https://github.com/D3ckardCain/Geelark-IA/issues/93). Este documento consolida el estado de auditoría; no sustituye el historial de commits ni los logs de Actions.
+
+
+## Incidencia detectada en la primera ejecución Windows real — 2026-10-21
+
+La validación con `windows-latest` reveló que el entorno de Windows Server rechazaba las variantes de `icacls` usadas para desactivar herencia. Se sustituyó esa operación por una DACL protegida aplicada con PowerShell y verificada después con `icacls`. La primera ejecución de esta nueva vía falló porque `Microsoft.PowerShell.Security` no se auto-cargó desde el entorno del runner. El código prepara ahora un `PSModulePath` de Windows PowerShell y carga explícitamente el módulo. La aceptación final de NTFS queda pendiente de una nueva ejecución Windows sobre el HEAD sincronizado con la PR; no se declara aprobada hasta entonces.
