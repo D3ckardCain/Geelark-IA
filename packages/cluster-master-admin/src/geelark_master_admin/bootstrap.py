@@ -7,7 +7,7 @@ import os
 from getpass import getpass
 from pathlib import Path
 
-from .auth import _restrict_windows_acl, hash_operator_password
+from .auth import _restrict_windows_acl, _verify_windows_acl_no_untrusted_writers, hash_operator_password
 
 
 def main() -> int:
@@ -30,6 +30,7 @@ def main() -> int:
         parser.error("El directorio de destino debe ser privado (0700); corrige sus permisos antes de continuar.")
     if os.name == "nt":
         try:
+            _verify_windows_acl_no_untrusted_writers(target.parent.parent)
             _restrict_windows_acl(target.parent, directory=True)
         except PermissionError as exc:
             parser.error(str(exc))

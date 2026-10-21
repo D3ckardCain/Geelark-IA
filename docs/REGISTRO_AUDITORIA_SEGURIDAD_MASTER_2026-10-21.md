@@ -82,3 +82,8 @@ La PR activa es [#99](https://github.com/D3ckardCain/Geelark-IA/pull/99), en bor
 Evidencia principal: [run de CI #39618915285](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39618915285). El job Windows y el job de integración terminaron en `success`.
 
 La validación cubre las pruebas automatizadas del código en CI. No equivale a una instalación o aceptación física en el PC-MASTER del usuario, ni valida una base PostgreSQL productiva o un certificado CA real de su entorno. No se ha fusionado ni desplegado nada.
+
+
+## Revisión adicional del inicializador de credenciales — 2026-10-21
+
+Se detectó una diferencia de defensa en profundidad: `SessionStore` verificaba que el directorio superior no permitiera escritura a identidades no confiables, pero el inicializador de credenciales solo restringía el directorio final. El bootstrap ahora verifica primero las ACL del directorio superior en Windows y falla cerrado antes de escribir el hash. Se añadió una prueba de orden que exige verificar el ancestro antes de modificar ACL y crear el archivo. Pendiente de CI sobre el HEAD actualizado.
