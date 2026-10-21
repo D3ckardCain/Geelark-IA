@@ -463,3 +463,63 @@ def test_database_connector_rejects_unreadable_passfile(
     )
     with pytest.raises(PermissionError, match="legible solo por el usuario"):
         _database_connector()
+
+
+def test_windows_private_file_checks_parent_acl_before_restricting_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from types import SimpleNamespace
+
+    from geelark_master_admin import runtime as runtime_module
+
+    path = tmp_path / "pgpass"
+    path.write_text("test-only", encoding="utf-8")
+    calls: list[tuple[str, Path]] = []
+
+    monkeypatch.setattr(runtime_module, "os", SimpleNamespace(name="nt"))
+    monkeypatch.setattr(
+        runtime_module,
+        "_verify_windows_acl_no_untrusted_writers",
+        lambda target: calls.append(("verify-parent", target)),
+    )
+    monkeypatch.setattr(
+        runtime_module,
+        "_restrict_windows_acl",
+        lambda target, *, directory: calls.append(("restrict-file", target)),
+    )
+
+    runtime_module._check_private_file(path, "PGPASSFILE")
+
+    assert calls == [
+        ("verify-parent", path.parent),
+        ("restrict-file", path),
+    ]
+
+
+def test_windows_private_file_fails_closed_when_parent_acl_is_untrusted(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from types import SimpleNamespace
+
+    from geelark_master_admin import runtime as runtime_module
+
+    path = tmp_path / "pgpass"
+    path.write_text("test-only", encoding="utf-8")
+    restricted: list[Path] = []
+
+    def reject_parent(target: Path) -> None:
+        raise PermissionError("ACL NTFS no confiable")
+
+    monkeypatch.setattr(runtime_module, "os", SimpleNamespace(name="nt"))
+    monkeypatch.setattr(runtime_module, "_verify_windows_acl_no_untrusted_writers", reject_parent)
+    monkeypatch.setattr(
+        runtime_module,
+        "_restrict_windows_acl",
+        lambda target, *, directory: restricted.append(target),
+    )
+
+    with pytest.raises(PermissionError, match="ACL NTFS no confiable"):
+        runtime_module._check_private_file(path, "PGPASSFILE")
+
+    assert restricted == []
+
