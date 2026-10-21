@@ -16,6 +16,9 @@ from urllib.request import HTTPRedirectHandler, HTTPSHandler, Request, build_ope
 from .network import is_private_lan_address
 
 
+MAX_REQUEST_BYTES = 16_384
+
+
 class AgentTransportError(Exception):
     """Error de transporte sin exponer secretos ni detalles TLS al llamador."""
 
