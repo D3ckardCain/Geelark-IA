@@ -82,3 +82,47 @@ def test_database_connector_rejects_loopback_hostname_for_remote_hostaddr(monkey
     )
     with pytest.raises(RuntimeError, match="host DNS/IP no-loopback"):
         _database_connector()
+
+
+def test_database_connector_rejects_hostaddr_list_with_wrong_length(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=db1.example.test,db2.example.test hostaddr=203.0.113.10 "
+        "user=geelark_master_reader dbname=geelark sslmode=verify-full",
+    )
+    with pytest.raises(RuntimeError, match="misma cantidad"):
+        _database_connector()
+
+
+def test_database_connector_rejects_remote_address_paired_with_loopback_host(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost,db.example.test hostaddr=203.0.113.10,127.0.0.1 "
+        "user=geelark_master_reader dbname=geelark sslmode=verify-full",
+    )
+    with pytest.raises(RuntimeError, match="host DNS/IP no-loopback"):
+        _database_connector()
+
+
+def test_database_connector_rejects_non_ip_hostaddr(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=db.example.test hostaddr=not-an-ip "
+        "user=geelark_master_reader dbname=geelark sslmode=verify-full",
+    )
+    with pytest.raises(RuntimeError, match="direcciones IP válidas"):
+        _database_connector()
+
+
+def test_database_connector_accepts_matching_remote_hostaddr_pairs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=db1.example.test,db2.example.test "
+        "hostaddr=203.0.113.10,203.0.113.11 "
+        "user=geelark_master_reader dbname=geelark sslmode=verify-full",
+    )
+    assert callable(_database_connector())
