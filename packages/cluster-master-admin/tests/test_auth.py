@@ -94,11 +94,18 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
             return SimpleNamespace(stdout=f"{target} PC-MASTER\\operator:{flags}\n", stderr="")
         return SimpleNamespace(stdout="ACL updated\n", stderr="")
 
+    verified: list[Path] = []
     monkeypatch.setattr(Path, "is_file", fake_is_file)
     monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        auth_module,
+        "_verify_windows_acl_no_untrusted_writers",
+        lambda path: verified.append(path),
+    )
 
     auth_module._restrict_windows_acl(target, directory=directory)
 
+    assert verified == [target]
     expected_grant = r"PC-MASTER\operator:(OI)(CI)F" if directory else r"PC-MASTER\operator:F"
     assert len(calls) == 5
     assert calls[0][0].lower().endswith("whoami.exe")

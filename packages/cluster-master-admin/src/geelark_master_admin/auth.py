@@ -227,6 +227,9 @@ def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
             raise PermissionError(
                 "La ACL NTFS resultante no quedó limitada al usuario actual con control total."
             )
+        # La ACE visible no muestra el propietario; el propietario puede cambiar
+        # la DACL incluso si no aparece como ACE. Verificarlo también.
+        _verify_windows_acl_no_untrusted_writers(path)
     except PermissionError:
         raise
     except (OSError, subprocess.SubprocessError) as exc:

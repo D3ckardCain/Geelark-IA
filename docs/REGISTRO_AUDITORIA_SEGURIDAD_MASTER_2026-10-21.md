@@ -92,3 +92,8 @@ Se detectó una diferencia de defensa en profundidad: `SessionStore` verificaba 
 ## Revisión de ancestros de archivos privados y CA — 2026-10-21
 
 La auditoría encontró que el runtime comprobaba el archivo y su directorio inmediato, pero no siempre el ancestro del directorio. En POSIX se verifica ahora también el propietario y la escritura de grupo/otros en el ancestro, permitiendo solo el caso seguro de sticky bit en directorio raíz. En Windows se verifican ACL del directorio y su ancestro antes de restringir el archivo. La misma regla se aplica a la CA TLS. Se añadieron pruebas negativas para `PGPASSFILE` y `sslrootcert` dentro de ancestros grupalmente modificables. Pendiente de CI sobre el HEAD actualizado.
+
+
+## Verificación de propietario tras aplicar ACL NTFS — 2026-10-21
+
+La ACL visible no basta para demostrar que el archivo/directorio es seguro: el propietario de un objeto NTFS puede modificar su DACL aunque no aparezca como ACE. `_restrict_windows_acl` ahora verifica también propietario y ACE mediante el verificador PowerShell después de aplicar los cambios. La prueba de argumentos confirma que la verificación posterior es obligatoria. Pendiente de CI sobre el HEAD actualizado.
