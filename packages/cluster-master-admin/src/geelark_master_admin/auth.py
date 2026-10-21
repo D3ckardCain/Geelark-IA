@@ -104,6 +104,7 @@ def _verify_windows_acl_no_untrusted_writers(path: Path) -> None:
             raise FileNotFoundError("No se encontró Windows PowerShell.")
         script = r"""
 $ErrorActionPreference = 'Stop'
+Import-Module Microsoft.PowerShell.Security -ErrorAction Stop
 $target = $env:GEELARK_ACL_TARGET
 $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $trustedSids = @(
@@ -139,6 +140,12 @@ foreach ($entry in $acl.Access) {
 [Console]::Out.WriteLine('OK')
 """
         env = os.environ.copy()
+        env["PSModulePath"] = ";".join(
+            [
+                str(system_root / "System32" / "WindowsPowerShell" / "v1.0" / "Modules"),
+                str(Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "WindowsPowerShell" / "Modules"),
+            ]
+        )
         env["GEELARK_ACL_TARGET"] = str(path)
         result = subprocess.run(
             [str(powershell), "-NoProfile", "-NonInteractive", "-Command", script],
@@ -166,6 +173,7 @@ def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
             raise FileNotFoundError("No se encontraron las herramientas del sistema Windows.")
         script = r"""
 $ErrorActionPreference = 'Stop'
+Import-Module Microsoft.PowerShell.Security -ErrorAction Stop
 $target = $env:GEELARK_ACL_TARGET
 $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
 $acl = Get-Acl -LiteralPath $target
@@ -191,6 +199,12 @@ Set-Acl -LiteralPath $target -AclObject $acl
 [Console]::Out.WriteLine([System.Security.Principal.WindowsIdentity]::GetCurrent().Name)
 """
         env = os.environ.copy()
+        env["PSModulePath"] = ";".join(
+            [
+                str(system_root / "System32" / "WindowsPowerShell" / "v1.0" / "Modules"),
+                str(Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "WindowsPowerShell" / "Modules"),
+            ]
+        )
         env["GEELARK_ACL_TARGET"] = str(path)
         env["GEELARK_ACL_DIRECTORY"] = "1" if directory else "0"
         result = subprocess.run(
