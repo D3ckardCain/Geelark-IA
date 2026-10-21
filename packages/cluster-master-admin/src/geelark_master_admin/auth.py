@@ -171,9 +171,9 @@ def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
         # /grant:r solo reemplaza las ACE de la identidad indicada; no elimina
         # permisos explícitos de otras identidades. /reset elimina esas ACE
         # preexistentes restaurando primero la ACL heredada; después se corta
-        # la herencia con /inheritancelevel:r y se concede acceso únicamente al usuario actual.
+        # la herencia con /inheritancelevel r y se concede acceso únicamente al usuario actual.
         subprocess.run(
-            [str(icacls), str(path), "/reset", "/inheritancelevel:r", "/grant:r", grant],
+            [str(icacls), str(path), "/reset", "/inheritancelevel", "r", "/grant:r", grant],
             check=True, capture_output=True, text=True, timeout=5,
         )
         verification = subprocess.run(

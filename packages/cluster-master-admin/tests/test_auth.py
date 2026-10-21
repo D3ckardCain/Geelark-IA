@@ -108,7 +108,7 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
     assert calls[0][0].lower().endswith("whoami.exe")
     acl_call = calls[1]
     assert acl_call[0].lower().endswith("icacls.exe")
-    assert acl_call[2:] == ["/reset", "/inheritancelevel:r", "/grant:r", expected_grant]
+    assert acl_call[2:] == ["/reset", "/inheritancelevel", "r", "/grant:r", expected_grant]
     assert calls[2] == [acl_call[0], str(target)]
 
 
