@@ -58,6 +58,9 @@ def _check_private_file(path: Path, label: str) -> None:
                 f"El directorio contenedor de {label} no puede permitir escritura a grupo u otros."
             )
     elif os.name == "nt":
+        # Protect the containing directory too: its DELETE_CHILD permission can
+        # otherwise allow replacing a protected file such as PGPASSFILE.
+        _verify_windows_acl_no_untrusted_writers(path.parent)
         _restrict_windows_acl(path, directory=False)
 
 
