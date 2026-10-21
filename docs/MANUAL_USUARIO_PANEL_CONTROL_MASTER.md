@@ -73,7 +73,11 @@ El botón **Ver ejemplo ficticio** permite probar navegación sin iniciar sesió
 - La interfaz sirve desde el mismo origen que la API, evitando tener que habilitar CORS.
 - El servidor escucha en loopback por defecto; no lo expongas a la LAN sin revisión de seguridad específica.
 
-## 8. Funciones offline
+## 8. Validación de snapshots
+
+Antes de renderizar datos reales, el navegador valida el sobre de respuesta y cada snapshot frente a las restricciones del contrato v1: estructura y campos exactos, UUID, fechas, enumeraciones permitidas, capacidades y módulos admitidos, límites de tamaño, tipos y coherencia entre frescura y salud. Si la respuesta no cumple, se rechaza y el panel muestra el error; no cambia automáticamente al ejemplo ficticio. Esta validación del cliente es defensiva y complementa —no sustituye— la validación y construcción del snapshot en el backend.
+
+## 9. Funciones offline
 
 | Función | ¿Funciona sin conexión? |
 |---|---|
@@ -87,7 +91,7 @@ El botón **Ver ejemplo ficticio** permite probar navegación sin iniciar sesió
 
 Si PostgreSQL está alojado remotamente, consultar datos reales requiere Internet y depende de la disponibilidad/límites del proveedor. Para mayor autonomía y coste controlado, PostgreSQL local es preferible.
 
-## 9. Limitaciones conocidas
+## 10. Limitaciones conocidas
 
 - Una sola instancia de servidor; el limitador de login es en memoria.
 - La sesión se guarda en SQLite local y expira en ocho horas.
