@@ -187,7 +187,7 @@ def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
                 str(icacls),
                 str(path),
                 "/reset",
-                "/inheritancelevel:r",
+                "/inheritance:r",
                 "/grant:r",
                 grant,
             ],
