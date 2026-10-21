@@ -242,7 +242,7 @@ def test_panel_payload_validator_covers_contract_constraints() -> None:
         "snapshot_id", "uuid(s.snapshot_id)", "dt(s.generated_at)",
         "authorization_state", "authStates", "healthStates", "freshnessStates",
         "caps", "n.capabilities.length>32", "n.modules.length>128",
-        "threshold_seconds>86400", "Object.keys(v)",
+        "threshold_seconds>86400", "Object.keys(v)", "Object.prototype.hasOwnProperty.call", "days[month-1]",
         "un snapshot sin frescura", "un nodo sin heartbeat",
     ):
         assert marker in validator, f"Falta una validación del contrato en el panel: {marker}"
@@ -351,6 +351,10 @@ def test_panel_payload_validator_rejects_malformed_payloads() -> None:
     bad_date = copy.deepcopy(valid)
     bad_date["generated_at"] = "not-a-date"
     malformed.append(bad_date)
+
+    impossible_calendar_date = copy.deepcopy(valid)
+    impossible_calendar_date["generated_at"] = "2026-02-31T12:00:00Z"
+    malformed.append(impossible_calendar_date)
 
     duplicate_capability = copy.deepcopy(valid)
     duplicate_capability["snapshots"][0]["node"]["capabilities"].append("heartbeat-v1")
