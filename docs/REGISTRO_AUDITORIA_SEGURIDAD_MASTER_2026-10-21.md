@@ -65,3 +65,11 @@ Los commits, resultados CI, errores detectados durante las iteraciones y sus cor
 ## Incidencia detectada en la primera ejecución Windows real — 2026-10-21
 
 La validación con `windows-latest` detectó que las variantes compactas de `icacls` no eran aceptadas por ese runner. La alternativa de modificar la DACL mediante `Set-Acl` se descartó después de que una prueba real excediera el timeout. El código vuelve a usar `icacls`, pasando el nivel de herencia como argumentos separados (`/inheritancelevel`, `r`), conserva la verificación de propietario/ACE mediante PowerShell y prepara explícitamente `PSModulePath`. También se corrigieron las rutas CA de pruebas para que sean portables en Windows. La aceptación final de NTFS queda pendiente de una nueva ejecución Windows sobre el HEAD sincronizado con la PR; no se declara aprobada hasta entonces.
+
+
+## Corrección del ciclo CI Windows — 2026-10-21
+
+- El job Windows estaba condicionado a un evento de etiquetado, por lo que quedaba omitido al actualizar la PR aunque la etiqueta estuviera presente. Se cambió a ejecutarse en cada evento `pull_request` de esta familia de cambios.
+- Se corrigió la doble codificación de las rutas CA en DSN URI de prueba. En DSN keyword/value, las rutas se entrecomillan como valores, no se codifican como URL.
+- La estrategia ACL elegida ejecuta por separado `icacls /reset`, `icacls /inheritance:r` y `icacls /grant:r`, falla ante cualquier código distinto de cero y comprueba después que solo queda la ACE de control total del usuario actual.
+- No aceptar la corrección hasta que el job Windows de la PR #98 termine en verde y el resto de CI de ese HEAD finalice.
