@@ -105,6 +105,8 @@ def test_private_lan_classifier_is_explicit(address: str, expected: bool) -> Non
         "/a/../admin",
         "/%2e%2e/admin",
         "/a/%2E%2E/admin",
+        "/%252e%252e/admin",
+        "/a/%255c..%255cadmin",
         "/admin#fragment",
         "relative/path",
     ],
