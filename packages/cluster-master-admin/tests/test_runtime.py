@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from urllib.parse import quote
 
 import pytest
 
@@ -53,7 +54,7 @@ def test_database_connector_requires_tls_verification_for_remote_db(monkeypatch:
 def test_database_connector_accepts_remote_verified_tls_without_connecting(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(
         "GEELARK_ADMIN_DATABASE_URL",
-        f"postgresql://geelark_master_reader@db.example.test:5432/geelark?sslmode=verify-full&sslrootcert='{os.environ['TEST_PG_CA_CERT']}'",
+        f"postgresql://geelark_master_reader@db.example.test:5432/geelark?sslmode=verify-full&sslrootcert={quote(os.environ['TEST_PG_CA_CERT'], safe='/')}",
     )
     connector = _database_connector()
     assert callable(connector)
@@ -95,7 +96,7 @@ def test_database_connector_allows_loopback_hostaddr_without_remote_tls(monkeypa
 def test_database_connector_accepts_remote_hostaddr_with_explicit_hostname(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(
         "GEELARK_ADMIN_DATABASE_URL",
-        f"postgresql://geelark_master_reader@db.example.test:5432/geelark?hostaddr=203.0.113.10&sslmode=verify-full&sslrootcert='{os.environ['TEST_PG_CA_CERT']}'",
+        f"postgresql://geelark_master_reader@db.example.test:5432/geelark?hostaddr=203.0.113.10&sslmode=verify-full&sslrootcert={quote(os.environ['TEST_PG_CA_CERT'], safe='/')}",
     )
     connector = _database_connector()
     assert callable(connector)
