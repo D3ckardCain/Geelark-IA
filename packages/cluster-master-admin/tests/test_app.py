@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from contextlib import AbstractContextManager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -8,6 +10,7 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from geelark_master_admin import create_admin_app, hash_operator_password
+from geelark_master_admin.app import BodyLimitMiddleware
 from geelark_master_admin.app import SESSION_COOKIE, _panel_csp
 
 
@@ -76,6 +79,37 @@ def test_packaged_panel_has_local_login_and_strict_script_csp() -> None:
     csp = _panel_csp(panel)
     assert "script-src 'self' 'sha256-" in csp
     assert "script-src 'self' 'unsafe-inline'" not in csp
+
+
+def test_body_limit_replays_body_once_then_delegates_disconnect() -> None:
+    messages = iter(
+        [
+            {"type": "http.request", "body": b"a", "more_body": True},
+            {"type": "http.request", "body": b"b", "more_body": False},
+            {"type": "http.disconnect"},
+        ]
+    )
+    sent: list[dict[str, object]] = []
+
+    async def receive() -> dict[str, object]:
+        return next(messages)
+
+    async def send(message: dict[str, object]) -> None:
+        sent.append(message)
+
+    async def downstream(scope, receive_next, send_next) -> None:
+        request = await receive_next()
+        disconnect = await receive_next()
+        assert request == {"type": "http.request", "body": b"ab", "more_body": False}
+        assert disconnect == {"type": "http.disconnect"}
+        await send_next({"type": "http.response.start", "status": 200, "headers": []})
+        await send_next({"type": "http.response.body", "body": b"ok", "more_body": False})
+
+    scope = {"type": "http", "method": "POST", "path": "/", "headers": []}
+    asyncio.run(BodyLimitMiddleware(downstream, max_bytes=8)(scope, receive, send))
+
+    assert sent[0]["status"] == 200
+    assert sent[1]["body"] == b"ok"
 
 
 def test_root_serves_login_panel_same_origin(tmp_path: Path) -> None:
