@@ -31,7 +31,6 @@ concurrency:
 
 jobs:
   integration:
-    if: github.event.action != 'labeled' || github.event.label.name != 'enhancement'
     name: Python 3.11 — PostgreSQL assignment service
     runs-on: ubuntu-latest
     services:
