@@ -81,17 +81,14 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
     target = tmp_path / ("sessions" if directory else "sessions.sqlite3")
 
     def fake_is_file(path: Path) -> bool:
-        return path.name.lower() in {"powershell.exe", "icacls.exe"}
+        return path.name.lower() in {"whoami.exe", "icacls.exe"}
 
     def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
         calls.append(command)
-        if command[0].lower().endswith("powershell.exe"):
-            script = command[-1]
-            assert "SetAccessRuleProtection" in script
-            assert "RemoveAccessRuleSpecific" in script
-            assert kwargs["env"]["GEELARK_ACL_TARGET"] == str(target)
-            assert kwargs["env"]["GEELARK_ACL_DIRECTORY"] == ("1" if directory else "0")
+        if command[0].lower().endswith("whoami.exe"):
             return SimpleNamespace(stdout=r"PC-MASTER\operator")
+        if len(calls) == 2:
+            return SimpleNamespace(stdout="ACL updated")
         flags = "(OI)(CI)(F)" if directory else "(F)"
         return SimpleNamespace(stdout=f"{target} PC-MASTER\\operator:{flags}\n")
 
@@ -100,10 +97,17 @@ def test_windows_acl_resets_old_explicit_entries_before_grant(
 
     auth_module._restrict_windows_acl(target, directory=directory)
 
-    assert len(calls) == 2
-    assert calls[0][0].lower().endswith("powershell.exe")
+    expected_grant = r"PC-MASTER\operator:(OI)(CI)F" if directory else r"PC-MASTER\operator:F"
+    assert len(calls) == 3
     assert calls[1][0].lower().endswith("icacls.exe")
-    assert calls[1] == [calls[1][0], str(target)]
+    assert calls[1][2:] == [
+        "/reset",
+        "/inheritancelevel",
+        "r",
+        "/grant:r",
+        expected_grant,
+    ]
+    assert calls[2] == [calls[1][0], str(target)]
 
 
 def test_windows_acl_verification_rejects_unexpected_identity(
@@ -117,11 +121,13 @@ def test_windows_acl_verification_rejects_unexpected_identity(
     target = tmp_path / "sessions.sqlite3"
 
     def fake_is_file(path: Path) -> bool:
-        return path.name.lower() in {"powershell.exe", "icacls.exe"}
+        return path.name.lower() in {"whoami.exe", "icacls.exe"}
 
     def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
-        if command[0].lower().endswith("powershell.exe"):
+        if command[0].lower().endswith("whoami.exe"):
             return SimpleNamespace(stdout=r"PC-MASTER\operator")
+        if "/grant:r" in command:
+            return SimpleNamespace(stdout="ACL updated")
         return SimpleNamespace(
             stdout=(
                 f"{target} PC-MASTER\\operator:(F)\n"
@@ -147,11 +153,13 @@ def test_windows_acl_verification_rejects_empty_acl(
     target = tmp_path / "sessions.sqlite3"
 
     def fake_is_file(path: Path) -> bool:
-        return path.name.lower() in {"powershell.exe", "icacls.exe"}
+        return path.name.lower() in {"whoami.exe", "icacls.exe"}
 
     def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
-        if command[0].lower().endswith("powershell.exe"):
+        if command[0].lower().endswith("whoami.exe"):
             return SimpleNamespace(stdout=r"PC-MASTER\operator")
+        if "/grant:r" in command:
+            return SimpleNamespace(stdout="ACL updated")
         return SimpleNamespace(stdout=f"{target}\n")
 
     monkeypatch.setattr(Path, "is_file", fake_is_file)
@@ -170,7 +178,7 @@ def test_windows_acl_failure_fails_closed(
     from geelark_master_admin import auth as auth_module
 
     def fake_is_file(path: Path) -> bool:
-        return path.name.lower() in {"powershell.exe", "icacls.exe"}
+        return path.name.lower() in {"whoami.exe", "icacls.exe"}
 
     def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
         raise subprocess.CalledProcessError(1, command)

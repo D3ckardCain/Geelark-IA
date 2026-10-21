@@ -164,60 +164,39 @@ foreach ($entry in $acl.Access) {
 
 
 def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
-    """Restringe ACL NTFS al usuario actual mediante PowerShell y verifica con icacls."""
+    """Restringe ACL NTFS con icacls y verifica que no queden ACE adicionales."""
     try:
         system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
-        powershell = system_root / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+        whoami = system_root / "System32" / "whoami.exe"
         icacls = system_root / "System32" / "icacls.exe"
-        if not powershell.is_file() or not icacls.is_file():
+        if not whoami.is_file() or not icacls.is_file():
             raise FileNotFoundError("No se encontraron las herramientas del sistema Windows.")
-        script = r"""
-$ErrorActionPreference = 'Stop'
-Import-Module Microsoft.PowerShell.Security -ErrorAction Stop
-$target = $env:GEELARK_ACL_TARGET
-$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
-$acl = Get-Acl -LiteralPath $target
-$acl.SetAccessRuleProtection($true, $false)
-foreach ($entry in @($acl.Access)) {
-    [void]$acl.RemoveAccessRuleSpecific($entry)
-}
-$acl.SetOwner($identity)
-$inheritance = [System.Security.AccessControl.InheritanceFlags]::None
-if ($env:GEELARK_ACL_DIRECTORY -eq '1') {
-    $inheritance = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor
-                   [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
-}
-$rule = [System.Security.AccessControl.FileSystemAccessRule]::new(
-    $identity,
-    [System.Security.AccessControl.FileSystemRights]::FullControl,
-    $inheritance,
-    [System.Security.AccessControl.PropagationFlags]::None,
-    [System.Security.AccessControl.AccessControlType]::Allow
-)
-[void]$acl.AddAccessRule($rule)
-Set-Acl -LiteralPath $target -AclObject $acl
-[Console]::Out.WriteLine([System.Security.Principal.WindowsIdentity]::GetCurrent().Name)
-"""
-        env = os.environ.copy()
-        env["PSModulePath"] = ";".join(
-            [
-                str(system_root / "System32" / "WindowsPowerShell" / "v1.0" / "Modules"),
-                str(Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "WindowsPowerShell" / "Modules"),
-            ]
-        )
-        env["GEELARK_ACL_TARGET"] = str(path)
-        env["GEELARK_ACL_DIRECTORY"] = "1" if directory else "0"
-        result = subprocess.run(
-            [str(powershell), "-NoProfile", "-NonInteractive", "-Command", script],
+        identity_result = subprocess.run(
+            [str(whoami)],
             check=True,
             capture_output=True,
             text=True,
-            timeout=8,
-            env=env,
+            timeout=3,
         )
-        identity = result.stdout.strip()
-        if not identity:
+        identity = identity_result.stdout.strip()
+        if not identity or any(char in identity for char in "\r\n"):
             raise PermissionError("No se pudo identificar al usuario actual para ACL NTFS.")
+        grant = f"{identity}:(OI)(CI)F" if directory else f"{identity}:F"
+        subprocess.run(
+            [
+                str(icacls),
+                str(path),
+                "/reset",
+                "/inheritancelevel",
+                "r",
+                "/grant:r",
+                grant,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
         verification = subprocess.run(
             [str(icacls), str(path)],
             check=True,

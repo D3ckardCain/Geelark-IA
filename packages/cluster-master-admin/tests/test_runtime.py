@@ -23,7 +23,7 @@ def isolated_libpq_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
     monkeypatch.setenv("PGPASSFILE", str(passfile))
     ca_file = tmp_path / "test-root.crt"
     ca_file.write_text("test-only public CA placeholder\\n", encoding="utf-8")
-    monkeypatch.setenv("TEST_PG_CA_CERT", str(ca_file))
+    monkeypatch.setenv("TEST_PG_CA_CERT", ca_file.as_posix())
 
 
 def test_database_connector_requires_dedicated_reader_role(monkeypatch: pytest.MonkeyPatch) -> None:
