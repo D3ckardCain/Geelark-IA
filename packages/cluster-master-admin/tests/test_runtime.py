@@ -396,3 +396,26 @@ def test_database_connector_rejects_missing_remote_ca_file(
     )
     with pytest.raises(RuntimeError, match="archivo CA existente"):
         _database_connector()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="La prueba de modos POSIX no aplica en Windows.")
+@pytest.mark.parametrize("unsafe_target", ["file", "directory"])
+def test_database_connector_rejects_mutable_remote_ca_trust_path(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, unsafe_target: str
+) -> None:
+    ca_dir = tmp_path / "ca-store"
+    ca_dir.mkdir()
+    ca_file = ca_dir / "root.crt"
+    ca_file.write_text("test-only public CA placeholder\\n", encoding="utf-8")
+    ca_file.chmod(0o644)
+    if unsafe_target == "file":
+        ca_file.chmod(0o666)
+    else:
+        ca_dir.chmod(0o777)
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        f"host=db.example.test user=geelark_master_reader dbname=geelark "
+        f"sslmode=verify-full sslrootcert={ca_file}",
+    )
+    with pytest.raises(RuntimeError, match="sslrootcert|directorio contenedor"):
+        _database_connector()

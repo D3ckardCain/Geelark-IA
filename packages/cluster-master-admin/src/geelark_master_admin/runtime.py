@@ -187,6 +187,17 @@ def _database_connector():
         ca_path = Path(raw_sslrootcert).expanduser().resolve()
         if not ca_path.is_file():
             raise RuntimeError("sslrootcert debe apuntar a un archivo CA existente.")
+        if os.name == "posix":
+            ca_mode = stat.S_IMODE(ca_path.stat().st_mode)
+            if ca_mode & 0o022:
+                raise RuntimeError(
+                    "El archivo sslrootcert no puede ser modificable por grupo u otros."
+                )
+            ca_parent_mode = stat.S_IMODE(ca_path.parent.stat().st_mode)
+            if ca_parent_mode & 0o022:
+                raise RuntimeError(
+                    "El directorio contenedor de sslrootcert no puede permitir escritura a grupo u otros."
+                )
         sslrootcert_path = str(ca_path)
 
     if details.get("user", "") != "geelark_master_reader":
