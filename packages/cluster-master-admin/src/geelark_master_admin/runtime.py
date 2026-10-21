@@ -177,6 +177,11 @@ def _database_connector():
     if os.environ.get("PGPASSWORD", "").strip():
         raise RuntimeError("No se admite PGPASSWORD; usa un archivo PGPASSFILE protegido.")
 
+    # libpq may otherwise fall back to a platform-default password file whose
+    # location and permissions are outside this service's explicit configuration.
+    passfile = _required_path("PGPASSFILE")
+    _check_private_file(passfile, "El archivo de contraseñas PostgreSQL (PGPASSFILE)")
+
     if details.get("password"):
         raise RuntimeError(
             "No incluyas la contraseña en GEELARK_ADMIN_DATABASE_URL; "
