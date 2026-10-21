@@ -46,7 +46,12 @@ def _check_private_file(path: Path, label: str) -> None:
             raise PermissionError(
                 f"{label} debe tener permisos 0600; permisos actuales: {mode:04o}."
             )
-        parent_mode = stat.S_IMODE(path.parent.stat().st_mode)
+        parent_info = path.parent.stat()
+        if parent_info.st_uid not in {os.geteuid(), 0}:
+            raise PermissionError(
+                f"El directorio contenedor de {label} debe pertenecer al usuario actual o a root."
+            )
+        parent_mode = stat.S_IMODE(parent_info.st_mode)
         if parent_mode & 0o022:
             raise PermissionError(
                 f"El directorio contenedor de {label} no puede permitir escritura a grupo u otros."
@@ -188,12 +193,22 @@ def _database_connector():
         if not ca_path.is_file():
             raise RuntimeError("sslrootcert debe apuntar a un archivo CA existente.")
         if os.name == "posix":
-            ca_mode = stat.S_IMODE(ca_path.stat().st_mode)
+            ca_info = ca_path.stat()
+            if ca_info.st_uid not in {os.geteuid(), 0}:
+                raise RuntimeError(
+                    "El archivo sslrootcert debe pertenecer al usuario actual o a root."
+                )
+            ca_mode = stat.S_IMODE(ca_info.st_mode)
             if ca_mode & 0o022:
                 raise RuntimeError(
                     "El archivo sslrootcert no puede ser modificable por grupo u otros."
                 )
-            ca_parent_mode = stat.S_IMODE(ca_path.parent.stat().st_mode)
+            ca_parent_info = ca_path.parent.stat()
+            if ca_parent_info.st_uid not in {os.geteuid(), 0}:
+                raise RuntimeError(
+                    "El directorio contenedor de sslrootcert debe pertenecer al usuario actual o a root."
+                )
+            ca_parent_mode = stat.S_IMODE(ca_parent_info.st_mode)
             if ca_parent_mode & 0o022:
                 raise RuntimeError(
                     "El directorio contenedor de sslrootcert no puede permitir escritura a grupo u otros."

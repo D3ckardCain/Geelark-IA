@@ -70,10 +70,18 @@ class AgentHTTPSClient:
         if not ca_path.is_file():
             raise ValueError("No existe el certificado público de la CA local.")
         if os.name == "posix":
-            ca_mode = stat.S_IMODE(ca_path.stat().st_mode)
+            ca_info = ca_path.stat()
+            if ca_info.st_uid not in {os.geteuid(), 0}:
+                raise ValueError("El archivo CA debe pertenecer al usuario actual o a root.")
+            ca_mode = stat.S_IMODE(ca_info.st_mode)
             if ca_mode & 0o022:
                 raise ValueError("El archivo CA no puede ser modificable por grupo u otros.")
-            ca_parent_mode = stat.S_IMODE(ca_path.parent.stat().st_mode)
+            ca_parent_info = ca_path.parent.stat()
+            if ca_parent_info.st_uid not in {os.geteuid(), 0}:
+                raise ValueError(
+                    "El directorio contenedor del archivo CA debe pertenecer al usuario actual o a root."
+                )
+            ca_parent_mode = stat.S_IMODE(ca_parent_info.st_mode)
             if ca_parent_mode & 0o022:
                 raise ValueError(
                     "El directorio contenedor del archivo CA no puede permitir escritura a grupo u otros."
@@ -136,8 +144,8 @@ class AgentHTTPSClient:
         data = None
         if payload is not None:
             data = json.dumps(payload, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
-            if len(data) > 1_048_576:
-                raise ValueError("El cuerpo de la solicitud excede 1 MiB.")
+            if len(data) > MAX_REQUEST_BYTES:
+                raise ValueError("El cuerpo de la solicitud excede 16 KiB, límite del servidor agente.")
             request_headers["Content-Type"] = "application/json"
 
         request = Request(self.base_url + path, data=data, headers=request_headers, method=method)

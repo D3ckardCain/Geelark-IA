@@ -148,8 +148,8 @@ def test_request_rejects_non_finite_json_and_large_body(tmp_path: Path) -> None:
     instance = client(tmp_path)
     with pytest.raises(ValueError):
         instance.request("POST", "/status", payload={"value": float("nan")})
-    with pytest.raises(ValueError, match="excede 1 MiB"):
-        instance.request("POST", "/status", payload={"value": "x" * (1024 * 1024)})
+    with pytest.raises(ValueError, match="excede 16 KiB"):
+        instance.request("POST", "/status", payload={"value": "x" * (16 * 1024)})
 
 
 class FakeResponse:

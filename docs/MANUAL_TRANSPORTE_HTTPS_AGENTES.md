@@ -88,7 +88,7 @@ Verificar que el SAN coincide exactamente con la IP de conexión. Transferir al 
 ## 6. Distribuir confianza y restringir red
 
 1. Instalar el certificado público `geelark-agent-ca.crt` en cada agente mediante un canal autenticado.
-2. Usar el cliente `AgentHTTPSClient` del paquete `cluster_agent_transport`: valida cadena y SAN, exige TLS 1.2+, rechaza HTTP, redirects y hosts fuera de la LAN privada. En POSIX comprueba que el archivo CA y su directorio no permitan escritura a grupo/otros; en Windows, proteger ambos con ACL NTFS para que otras identidades no puedan sustituir la raíz de confianza. No desactivar la verificación TLS ni aceptar certificados autofirmados arbitrarios.
+2. Usar el cliente `AgentHTTPSClient` del paquete `cluster_agent_transport`: valida cadena y SAN, exige TLS 1.2+, rechaza HTTP, redirects y hosts fuera de la LAN privada. En POSIX comprueba que el archivo CA y su directorio pertenezcan al usuario actual o a root y no permitan escritura a grupo/otros; en Windows, proteger ambos con ACL NTFS para que otras identidades no puedan sustituir la raíz de confianza. El cuerpo JSON de cada solicitud se limita a 16 KiB, igual que el límite del servidor agente. No desactivar la verificación TLS ni aceptar certificados autofirmados arbitrarios.
 3. Permitir en el firewall solo el puerto privado elegido desde las IP de los agentes autorizados.
 4. No configurar NAT/port forwarding, túneles públicos ni DNS público para este listener.
 5. Comprobar que el proceso no escucha en interfaces adicionales.
