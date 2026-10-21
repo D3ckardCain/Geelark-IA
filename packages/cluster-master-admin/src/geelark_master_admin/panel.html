@@ -52,7 +52,37 @@ function text(value){return value===null||value===undefined||value===""?"—":St
 function esc(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function pill(value){const k=String(value??"unknown");return '<span class="pill '+(classes[k]||"gray")+'">'+esc(labels[k]||k)+'</span>'}
 function date(value){if(!value)return "Sin reporte";const d=new Date(value);return Number.isNaN(d.getTime())?"Fecha inválida":d.toLocaleString("es-MX",{dateStyle:"short",timeStyle:"medium"})}
-function validatePayload(data){if(!data||data.schema_version!=="1.0"||!Array.isArray(data.snapshots)||data.snapshots.length>500)throw new Error("Respuesta inválida: se esperaba schema_version 1.0 y snapshots[] (máximo 500).");for(const s of data.snapshots){if(!s||!s.node||typeof s.node.node_id!=="string"||typeof s.node.display_name!=="string"||!s.freshness||!Array.isArray(s.node.modules)||!Array.isArray(s.node.capabilities))throw new Error("Snapshot inválido: faltan campos obligatorios del contrato.");}return data.snapshots}
+function validatePayload(data){
+  const fail=m=>{throw new Error("Respuesta inválida: "+m)};
+  const obj=v=>v!==null&&typeof v==="object"&&!Array.isArray(v);
+  const keys=(v,want)=>obj(v)&&Object.keys(v).sort().join("|")===want.slice().sort().join("|");
+  const uuid=v=>typeof v==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+  const dt=v=>typeof v==="string"&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(v)&&Number.isFinite(Date.parse(v));
+  const nd=v=>v===null||dt(v); const nt=(v,max=64)=>v===null||(typeof v==="string"&&v.length<=max);
+  const one=(v,a)=>typeof v==="string"&&a.includes(v);
+  const snapKeys=["schema_version","snapshot_id","generated_at","source","node","freshness"];
+  const nodeKeys=["node_id","display_name","authorization_state","health_state","last_heartbeat_at","agent_version","capabilities","modules","reported_health_state"];
+  const freshKeys=["state","age_seconds","threshold_seconds","observed_at"]; const modKeys=["module_id","state","version","checked_at","source","error_code"];
+  const authStates=["pending","active","revoked","unknown"]; const healthStates=["healthy","degraded","offline","unknown"];
+  const freshnessStates=["fresh","stale","missing","unknown"]; const moduleIds=["agent-guard","agent-supervisor","agent-transport","android-engine","task-journal"];
+  const moduleStates=["operational","degraded","not-installed","unknown"]; const moduleSources=["agent-report","master-check","unknown"];
+  const caps=["heartbeat-v1","self-status-v1","capability-report-v1","module-inventory-v1","resource-telemetry-v1"];
+  if(!keys(data,["schema_version","generated_at","snapshots"])||data.schema_version!=="1.0"||!dt(data.generated_at)||!Array.isArray(data.snapshots)||data.snapshots.length>500)fail("sobre, versión, fecha o cantidad de snapshots inválidos.");
+  for(const s of data.snapshots){
+    if(!keys(s,snapKeys)||s.schema_version!=="1.0"||!uuid(s.snapshot_id)||!dt(s.generated_at)||!one(s.source,["master-live","master-cache"]))fail("estructura, UUID, fecha o fuente de snapshot inválidos.");
+    const n=s.node;
+    if(!keys(n,nodeKeys)||!uuid(n.node_id)||typeof n.display_name!=="string"||n.display_name.length<1||n.display_name.length>64||!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(n.display_name))fail("identidad de nodo inválida.");
+    if(!one(n.authorization_state,authStates)||!one(n.health_state,healthStates)||!nd(n.last_heartbeat_at)||!nt(n.agent_version)||!(n.reported_health_state===null||one(n.reported_health_state,["healthy","degraded","unhealthy","unknown"])))fail("estado o campos temporales del nodo inválidos.");
+    if(!Array.isArray(n.capabilities)||n.capabilities.length>32||n.capabilities.some(c=>!one(c,caps))||new Set(n.capabilities).size!==n.capabilities.length)fail("capacidades inválidas, duplicadas o fuera de límite.");
+    if(!Array.isArray(n.modules)||n.modules.length>128)fail("lista de módulos inválida o fuera de límite.");
+    for(const m of n.modules){if(!keys(m,modKeys)||!one(m.module_id,moduleIds)||!one(m.state,moduleStates)||!nt(m.version)||!nd(m.checked_at)||!one(m.source,moduleSources)||(m.error_code!==null&&!(typeof m.error_code==="string"&&/^[A-Z0-9_]{1,64}$/.test(m.error_code))))fail("módulo fuera del contrato v1.");}
+    const f=s.freshness;
+    if(!keys(f,freshKeys)||!one(f.state,freshnessStates)||!(f.age_seconds===null||(Number.isInteger(f.age_seconds)&&f.age_seconds>=0))||!Number.isInteger(f.threshold_seconds)||f.threshold_seconds<1||f.threshold_seconds>86400||!nd(f.observed_at))fail("frescura o fecha inválida.");
+    if(["stale","missing","unknown"].includes(f.state)&&!["degraded","offline","unknown"].includes(n.health_state))fail("un snapshot sin frescura no puede declarar salud saludable.");
+    if(n.last_heartbeat_at===null&&(!["offline","unknown"].includes(n.health_state)||!["missing","unknown","stale"].includes(f.state)))fail("un nodo sin heartbeat no puede declararse saludable ni fresco.");
+  }
+  return data.snapshots;
+}
 function currentSnapshots(){return state.demo?demoSnapshots:state.snapshots}
 function updateNotice(kind,title,message){const box=el("connection-notice");box.className="notice "+kind;box.replaceChildren();const icon=document.createElement("span");icon.setAttribute("aria-hidden","true");icon.textContent=kind==="ok"?"✓":kind==="error"?"!":"ⓘ";const body=document.createElement("div"),strong=document.createElement("strong"),p=document.createElement("p");strong.textContent=title;p.textContent=message;body.append(strong,p);box.append(icon,body);const chip=el("connection-chip");chip.replaceChildren();const dot=document.createElement("span");dot.className="dot "+(kind==="ok"?"good":kind==="error"?"bad":"warn");const label=document.createElement("span");label.textContent=state.demo?"Ejemplo ficticio":state.connected?"Servicio conectado":"Sin conectar";chip.append(dot,label)}
 function nodeRows(s){const n=s.node;return '<tr><td><strong>'+esc(n.display_name)+'</strong><div class="muted">'+esc(n.node_id)+'</div></td><td>'+pill(n.authorization_state)+'</td><td>'+pill(n.health_state)+'</td><td>'+pill(s.freshness.state)+'<div class="muted">'+esc(text(s.freshness.age_seconds))+' s</div></td><td>'+esc(date(n.last_heartbeat_at))+'</td></tr>'}
