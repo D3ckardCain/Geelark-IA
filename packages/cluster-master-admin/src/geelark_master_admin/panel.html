@@ -56,9 +56,10 @@ function validatePayload(data){
   const fail=m=>{throw new Error("Respuesta inválida: "+m)};
   const obj=v=>v!==null&&typeof v==="object"&&!Array.isArray(v);
   const keys=(v,want)=>obj(v)&&Object.keys(v).length===want.length&&want.every(k=>Object.prototype.hasOwnProperty.call(v,k));
-  const uuid=v=>typeof v==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f  const dt=v=>{
+  const uuid=v=>typeof v==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+  const dt=v=>{
     if(typeof v!=="string") return false;
-    const match=/^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d+)?(Z|([+-])(\\d{2}):(\\d{2}))$/.exec(v);
+    const match=/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|([+-])(\d{2}):(\d{2}))$/.exec(v);
     if(!match||!Number.isFinite(Date.parse(v))) return false;
     const year=Number(match[1]), month=Number(match[2]), day=Number(match[3]);
     const hour=Number(match[4]), minute=Number(match[5]), second=Number(match[6]);
@@ -66,7 +67,7 @@ function validatePayload(data){
     if(month<1||month>12||day<1||day>days[month-1]||hour>23||minute>59||second>59) return false;
     if(match[9]&&(Number(match[10])>23||Number(match[11])>59)) return false;
     return true;
-  };umber.isFinite(Date.parse(v));
+  };
   const nd=v=>v===null||dt(v); const nt=(v,max=64)=>v===null||(typeof v==="string"&&v.length<=max);
   const one=(v,a)=>typeof v==="string"&&a.includes(v);
   const snapKeys=["schema_version","snapshot_id","generated_at","source","node","freshness"];
