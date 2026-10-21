@@ -13,7 +13,7 @@ import uvicorn
 from psycopg.conninfo import conninfo_to_dict
 
 from .app import create_admin_app
-from .auth import _restrict_windows_acl
+from .auth import _restrict_windows_acl, _verify_windows_acl_no_untrusted_writers
 
 
 def _required_path(name: str) -> Path:
