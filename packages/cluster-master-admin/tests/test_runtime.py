@@ -333,6 +333,31 @@ def test_database_connector_rejects_passfile_in_group_writable_directory(
         _database_connector()
 
 
+@pytest.mark.skipif(os.name != "posix", reason="Los permisos POSIX no aplican en Windows.")
+def test_database_connector_rejects_passfile_in_group_writable_ancestor(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    shared_dir = tmp_path / "shared"
+    shared_dir.mkdir()
+    shared_dir.chmod(0o777)
+    private_dir = shared_dir / "private"
+    private_dir.mkdir(mode=0o700)
+    private_dir.chmod(0o700)
+    passfile = private_dir / "pgpass"
+    passfile.write_text(
+        "localhost:5432:geelark:geelark_master_reader:test-only\n",
+        encoding="utf-8",
+    )
+    passfile.chmod(0o600)
+    monkeypatch.setenv("PGPASSFILE", str(passfile))
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark",
+    )
+    with pytest.raises(PermissionError, match="directorio superior"):
+        _database_connector()
+
+
 def test_database_connector_rejects_passfile_override_in_dsn(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -452,6 +477,28 @@ def test_database_connector_rejects_tls_key_logging_dsn(
 
 
 @pytest.mark.skipif(os.name != "posix", reason="Los permisos POSIX no aplican en Windows.")
+@pytest.mark.skipif(os.name != "posix", reason="Los permisos POSIX no aplican en Windows.")
+def test_database_connector_rejects_ca_in_group_writable_ancestor(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    shared_dir = tmp_path / "shared-ca"
+    shared_dir.mkdir()
+    shared_dir.chmod(0o777)
+    private_dir = shared_dir / "private"
+    private_dir.mkdir(mode=0o700)
+    private_dir.chmod(0o700)
+    ca_file = private_dir / "root.crt"
+    ca_file.write_text("test-only public CA placeholder\n", encoding="utf-8")
+    ca_file.chmod(0o644)
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        f"host=db.example.test user=geelark_master_reader dbname=geelark "
+        f"sslmode=verify-full sslrootcert='{ca_file}'",
+    )
+    with pytest.raises(RuntimeError, match="sslrootcert"):
+        _database_connector()
+
+
 def test_database_connector_rejects_unreadable_passfile(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

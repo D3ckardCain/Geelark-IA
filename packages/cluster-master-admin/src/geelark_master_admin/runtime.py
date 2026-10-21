@@ -36,6 +36,21 @@ def _required_directory(name: str) -> Path:
     return path
 
 
+def _check_private_ancestor(path: Path, label: str) -> None:
+    """Rechaza ancestros que un tercero pueda sustituir o modificar."""
+    info = path.stat()
+    if info.st_uid not in {os.geteuid(), 0}:
+        raise PermissionError(
+            f"El directorio superior de {label} debe pertenecer al usuario actual o a root."
+        )
+    mode = stat.S_IMODE(info.st_mode)
+    if mode & 0o022 and not (mode & stat.S_ISVTX and info.st_uid == 0):
+        raise PermissionError(
+            f"El directorio superior de {label} no puede permitir escritura a grupo/otros, "
+            "salvo un directorio raíz con sticky bit."
+        )
+
+
 def _check_private_file(path: Path, label: str) -> None:
     if os.name == "posix":
         info = path.stat()
@@ -57,7 +72,10 @@ def _check_private_file(path: Path, label: str) -> None:
             raise PermissionError(
                 f"El directorio contenedor de {label} no puede permitir escritura a grupo u otros."
             )
+        _check_private_ancestor(path.parent.parent, label)
     elif os.name == "nt":
+        _verify_windows_acl_no_untrusted_writers(path.parent.parent)
+        _verify_windows_acl_no_untrusted_writers(path.parent)
         _restrict_windows_acl(path, directory=False)
 
 
@@ -223,9 +241,14 @@ def _database_connector():
                 raise RuntimeError(
                     "El directorio contenedor de sslrootcert no puede permitir escritura a grupo u otros."
                 )
+            try:
+                _check_private_ancestor(ca_path.parent.parent, "sslrootcert")
+            except PermissionError as exc:
+                raise RuntimeError(str(exc)) from exc
         elif os.name == "nt":
-            _verify_windows_acl_no_untrusted_writers(ca_path)
+            _verify_windows_acl_no_untrusted_writers(ca_path.parent.parent)
             _verify_windows_acl_no_untrusted_writers(ca_path.parent)
+            _verify_windows_acl_no_untrusted_writers(ca_path)
         sslrootcert_path = str(ca_path)
 
     if details.get("user", "") != "geelark_master_reader":

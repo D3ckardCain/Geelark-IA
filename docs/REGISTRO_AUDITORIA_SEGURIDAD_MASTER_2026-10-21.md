@@ -87,3 +87,8 @@ La validación cubre las pruebas automatizadas del código en CI. No equivale a 
 ## Revisión adicional del inicializador de credenciales — 2026-10-21
 
 Se detectó una diferencia de defensa en profundidad: `SessionStore` verificaba que el directorio superior no permitiera escritura a identidades no confiables, pero el inicializador de credenciales solo restringía el directorio final. El bootstrap ahora verifica primero las ACL del directorio superior en Windows y, en POSIX, valida propietario y permisos del directorio de destino y su ancestro (incluida la excepción segura de sticky bit de root). Falla cerrado antes de escribir el hash. Se añadieron pruebas de orden y rechazo de ancestros inseguros. Pendiente de CI sobre el HEAD actualizado.
+
+
+## Revisión de ancestros de archivos privados y CA — 2026-10-21
+
+La auditoría encontró que el runtime comprobaba el archivo y su directorio inmediato, pero no siempre el ancestro del directorio. En POSIX se verifica ahora también el propietario y la escritura de grupo/otros en el ancestro, permitiendo solo el caso seguro de sticky bit en directorio raíz. En Windows se verifican ACL del directorio y su ancestro antes de restringir el archivo. La misma regla se aplica a la CA TLS. Se añadieron pruebas negativas para `PGPASSFILE` y `sslrootcert` dentro de ancestros grupalmente modificables. Pendiente de CI sobre el HEAD actualizado.
