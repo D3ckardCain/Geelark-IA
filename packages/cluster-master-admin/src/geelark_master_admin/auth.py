@@ -164,44 +164,46 @@ foreach ($entry in $acl.Access) {
 
 
 def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
-    """Restringe ACL NTFS con icacls y verifica que no queden ACE adicionales."""
+    """Restringe ACL NTFS al usuario actual; verifica el resultado y falla cerrado."""
     try:
         system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
         whoami = system_root / "System32" / "whoami.exe"
         icacls = system_root / "System32" / "icacls.exe"
         if not whoami.is_file() or not icacls.is_file():
             raise FileNotFoundError("No se encontraron las herramientas del sistema Windows.")
+        # La salida de herramientas nativas puede usar una página de códigos local.
+        # errors=replace conserva el diagnóstico sin ignorar códigos de salida.
+        output_options = {
+            "capture_output": True,
+            "text": True,
+            "encoding": "utf-8",
+            "errors": "replace",
+        }
         identity_result = subprocess.run(
             [str(whoami)],
             check=True,
-            capture_output=True,
-            text=True,
             timeout=10,
+            **output_options,
         )
         identity = identity_result.stdout.strip()
         if not identity or any(char in identity for char in "\r\n"):
             raise PermissionError("No se pudo identificar al usuario actual para ACL NTFS.")
         grant = f"{identity}:(OI)(CI)F" if directory else f"{identity}:F"
-        subprocess.run(
-            [
-                str(icacls),
-                str(path),
-                "/reset",
-                "/inheritance:r",
-                "/grant:r",
-                grant,
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=10,
+        # El runner Windows devuelve ERROR_INVALID_PARAMETER (87) al combinar
+        # /reset, /inheritance:r y /grant:r en una sola llamada. Cada paso se
+        # ejecuta por separado; cualquier fallo impide crear/usar el almacén.
+        commands = (
+            [str(icacls), str(path), "/reset"],
+            [str(icacls), str(path), "/inheritance:r"],
+            [str(icacls), str(path), "/grant:r", grant],
         )
+        for command in commands:
+            subprocess.run(command, check=True, timeout=10, **output_options)
         verification = subprocess.run(
             [str(icacls), str(path)],
             check=True,
-            capture_output=True,
-            text=True,
             timeout=10,
+            **output_options,
         ).stdout
         entries: list[tuple[str, str]] = []
         target_text = str(path)
