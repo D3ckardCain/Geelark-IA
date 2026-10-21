@@ -83,3 +83,20 @@ def test_windows_bootstrap_fails_closed_when_parent_acl_is_untrusted(
     assert error.value.code == 2
     assert restricted == []
     assert not target.exists()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="La comprobación POSIX no aplica en Windows.")
+def test_posix_bootstrap_rejects_writable_parent_directory(
+    tmp_path: Path, monkeypatch
+) -> None:
+    target = tmp_path / "private" / "operator-auth.json"
+    tmp_path.chmod(0o777)
+    monkeypatch.setattr(bootstrap, "getpass", lambda _prompt: "a-long-test-password")
+    monkeypatch.setattr(bootstrap, "hash_operator_password", lambda _password: "test-only-hash")
+    monkeypatch.setattr(sys, "argv", ["geelark-master-admin-bootstrap", "--output", str(target)])
+
+    with pytest.raises(SystemExit) as error:
+        bootstrap.main()
+
+    assert error.value.code == 2
+    assert not target.exists()

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import stat
 from getpass import getpass
 from pathlib import Path
 
@@ -26,8 +27,20 @@ def main() -> int:
     except ValueError as exc:
         parser.error(str(exc))
     target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if os.name == "posix" and target.parent.stat().st_mode & 0o077:
-        parser.error("El directorio de destino debe ser privado (0700); corrige sus permisos antes de continuar.")
+    if os.name == "posix":
+        state_dir_info = target.parent.stat()
+        if state_dir_info.st_uid != os.geteuid():
+            parser.error("El directorio de destino debe pertenecer al usuario que ejecuta el inicializador.")
+        if stat.S_IMODE(state_dir_info.st_mode) & 0o077:
+            parser.error("El directorio de destino debe ser privado (0700); corrige sus permisos antes de continuar.")
+        parent_info = target.parent.parent.stat()
+        if parent_info.st_uid not in {os.geteuid(), 0}:
+            parser.error("El directorio superior debe pertenecer al usuario actual o a root.")
+        parent_mode = stat.S_IMODE(parent_info.st_mode)
+        if parent_mode & 0o022 and not (
+            parent_mode & stat.S_ISVTX and parent_info.st_uid == 0
+        ):
+            parser.error("El directorio superior permite escritura a grupo/otros y no es un directorio raíz con sticky bit.")
     if os.name == "nt":
         try:
             _verify_windows_acl_no_untrusted_writers(target.parent.parent)
