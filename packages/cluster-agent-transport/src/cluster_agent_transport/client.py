@@ -58,8 +58,12 @@ class AgentHTTPSClient:
             or not 0.1 <= timeout_seconds <= 60
         ):
             raise ValueError("timeout_seconds debe estar entre 0.1 y 60.")
-        if isinstance(max_response_bytes, bool) or not 1 <= max_response_bytes <= 16 * 1024 * 1024:
-            raise ValueError("max_response_bytes debe estar entre 1 byte y 16 MiB.")
+        if (
+            isinstance(max_response_bytes, bool)
+            or not isinstance(max_response_bytes, int)
+            or not 1 <= max_response_bytes <= 16 * 1024 * 1024
+        ):
+            raise ValueError("max_response_bytes debe ser un entero entre 1 byte y 16 MiB.")
         if not Path(ca_cert).is_file():
             raise ValueError("No existe el certificado público de la CA local.")
 
