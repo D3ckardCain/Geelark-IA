@@ -167,7 +167,7 @@ jobs:
 
 
   windows-acl:
-    if: github.event_name == 'pull_request' && github.head_ref == 'fix/windows-icacls-sequential-acl'
+    if: github.event_name == 'pull_request' && github.head_ref == 'fix/windows-icacls-sequential-acl-v2'
     name: Windows — ACL NTFS reales y autenticación local
     runs-on: windows-latest
     timeout-minutes: 10
@@ -190,7 +190,7 @@ jobs:
         run: python -m pip check
 
   root-suite:
-    if: github.event_name == 'pull_request' && github.head_ref == 'fix/windows-icacls-sequential-acl'
+    if: github.event_name == 'pull_request' && github.head_ref == 'fix/windows-icacls-sequential-acl-v2'
     name: Python 3.11 — suite completa desde la raíz
     runs-on: ubuntu-latest
     timeout-minutes: 10
