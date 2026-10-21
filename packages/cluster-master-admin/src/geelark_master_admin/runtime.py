@@ -223,6 +223,9 @@ def _database_connector():
                 raise RuntimeError(
                     "El directorio contenedor de sslrootcert no puede permitir escritura a grupo u otros."
                 )
+        elif os.name == "nt":
+            _verify_windows_acl_no_untrusted_writers(ca_path)
+            _verify_windows_acl_no_untrusted_writers(ca_path.parent)
         sslrootcert_path = str(ca_path)
 
     if details.get("user", "") != "geelark_master_reader":

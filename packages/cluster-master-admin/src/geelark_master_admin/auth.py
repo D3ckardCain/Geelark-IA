@@ -94,6 +94,58 @@ class LoginRateLimiter:
         self._attempts.pop(key, None)
 
 
+
+def _verify_windows_acl_no_untrusted_writers(path: Path) -> None:
+    """Comprueba ACL de una ruta sin modificarla; solo usuario/SYSTEM/admin pueden escribir."""
+    try:
+        system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
+        powershell = system_root / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+        if not powershell.is_file():
+            raise FileNotFoundError("No se encontró Windows PowerShell.")
+        script = r"""
+$ErrorActionPreference = 'Stop'
+$target = $env:GEELARK_ACL_TARGET
+$currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$trustedSids = @($currentSid, 'S-1-5-18', 'S-1-5-32-544')
+$writeMask = [int]([System.Security.AccessControl.FileSystemRights]::WriteData) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::AppendData) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::WriteExtendedAttributes) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::WriteAttributes) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::Delete) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::DeleteSubdirectoriesAndFiles) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::ChangePermissions) -bor
+             [int]([System.Security.AccessControl.FileSystemRights]::TakeOwnership)
+$acl = Get-Acl -LiteralPath $target
+foreach ($entry in $acl.Access) {
+    if ($entry.AccessControlType -ne [System.Security.AccessControl.AccessControlType]::Allow) { continue }
+    if (($entry.PropagationFlags -band [System.Security.AccessControl.PropagationFlags]::InheritOnly) -ne 0) { continue }
+    $sid = $entry.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value
+    $rights = [int]$entry.FileSystemRights
+    if (($trustedSids -notcontains $sid) -and (($rights -band $writeMask) -ne 0)) {
+        [Console]::Error.WriteLine('UNTRUSTED_WRITE_ACE')
+        exit 13
+    }
+}
+[Console]::Out.WriteLine('OK')
+"""
+        env = os.environ.copy()
+        env["GEELARK_ACL_TARGET"] = str(path)
+        result = subprocess.run(
+            [str(powershell), "-NoProfile", "-NonInteractive", "-Command", script],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=8,
+            env=env,
+        )
+    except Exception:
+        raise PermissionError("No se pudieron verificar las ACL NTFS de la ruta protegida.") from None
+    if result.returncode != 0 or result.stdout.strip() != "OK":
+        raise PermissionError(
+            "Las ACL NTFS permiten escritura por identidades no confiables o no pudieron verificarse."
+        )
+
+
 def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
     """Restringe ACL NTFS al usuario actual; falla cerrado si icacls no funciona."""
     try:
@@ -174,6 +226,7 @@ class SessionStore:
                     "salvo un directorio raíz con sticky bit."
                 )
         elif os.name == "nt":
+            _verify_windows_acl_no_untrusted_writers(self.path.parent.parent)
             _restrict_windows_acl(self.path.parent, directory=True)
         with self._connect() as conn:
             conn.execute("""

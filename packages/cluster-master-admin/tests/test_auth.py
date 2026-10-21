@@ -259,3 +259,55 @@ def test_session_directory_rejects_replaceable_parent(tmp_path: Path) -> None:
     state_dir.mkdir(mode=0o700)
     with pytest.raises(PermissionError, match="directorio superior de sesiones"):
         SessionStore(state_dir / "sessions.sqlite3")
+
+
+def test_windows_parent_acl_verifier_accepts_trusted_acl(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess
+    from types import SimpleNamespace
+
+    from geelark_master_admin import auth as auth_module
+
+    system_root = tmp_path / "windows"
+    powershell = system_root / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    powershell.parent.mkdir(parents=True)
+    powershell.write_text("test placeholder", encoding="utf-8")
+    target = tmp_path / "private"
+    target.mkdir()
+    monkeypatch.setenv("SystemRoot", str(system_root))
+    calls: list[list[str]] = []
+
+    def fake_run(command: list[str], **kwargs: object) -> SimpleNamespace:
+        calls.append(command)
+        assert kwargs["env"]["GEELARK_ACL_TARGET"] == str(target)
+        assert "Get-Acl" in command[-1]
+        return SimpleNamespace(returncode=0, stdout="OK\\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    auth_module._verify_windows_acl_no_untrusted_writers(target)
+    assert len(calls) == 1
+
+
+def test_windows_parent_acl_verifier_fails_closed_on_untrusted_writer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess
+    from types import SimpleNamespace
+
+    from geelark_master_admin import auth as auth_module
+
+    system_root = tmp_path / "windows"
+    powershell = system_root / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    powershell.parent.mkdir(parents=True)
+    powershell.write_text("test placeholder", encoding="utf-8")
+    target = tmp_path / "private"
+    target.mkdir()
+    monkeypatch.setenv("SystemRoot", str(system_root))
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=13, stdout="", stderr="UNTRUSTED_WRITE_ACE"),
+    )
+    with pytest.raises(PermissionError, match="ACL NTFS"):
+        auth_module._verify_windows_acl_no_untrusted_writers(target)
