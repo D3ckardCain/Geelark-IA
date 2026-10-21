@@ -6,6 +6,7 @@ import hmac
 import os
 import secrets
 import sqlite3
+import stat
 import subprocess
 import time
 from collections import deque
@@ -152,8 +153,26 @@ class SessionStore:
         self.clock = clock
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         if os.name == "posix":
-            if self.path.parent.stat().st_mode & 0o077:
+            state_dir_info = self.path.parent.stat()
+            if state_dir_info.st_uid != os.geteuid():
+                raise PermissionError(
+                    "El directorio de sesiones debe pertenecer al usuario que ejecuta PC-MASTER."
+                )
+            if stat.S_IMODE(state_dir_info.st_mode) & 0o077:
                 raise PermissionError("El directorio de sesiones debe tener permisos privados (0700).")
+            parent_info = self.path.parent.parent.stat()
+            if parent_info.st_uid not in {os.geteuid(), 0}:
+                raise PermissionError(
+                    "El directorio superior de sesiones debe pertenecer al usuario actual o a root."
+                )
+            parent_mode = stat.S_IMODE(parent_info.st_mode)
+            if parent_mode & 0o022 and not (
+                parent_mode & stat.S_ISVTX and parent_info.st_uid == 0
+            ):
+                raise PermissionError(
+                    "El directorio superior de sesiones no puede permitir escritura a grupo/otros, "
+                    "salvo un directorio raíz con sticky bit."
+                )
         elif os.name == "nt":
             _restrict_windows_acl(self.path.parent, directory=True)
         with self._connect() as conn:

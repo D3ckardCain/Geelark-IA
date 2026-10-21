@@ -227,3 +227,35 @@ def test_login_rate_limiter_caps_tracked_addresses_fail_closed(
     now[0] += auth_module.LOGIN_WINDOW_SECONDS
     assert limiter.allowed("client-c")
     assert len(limiter._attempts) == 1
+
+
+@pytest.mark.skipif(os.name != "posix", reason="La propiedad POSIX no aplica en Windows.")
+def test_session_directory_must_belong_to_process_user(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from types import SimpleNamespace
+
+    path = tmp_path / "private" / "sessions.sqlite3"
+    path.parent.mkdir(mode=0o700)
+    original_stat = Path.stat
+
+    def fake_stat(target: Path, *args: object, **kwargs: object):
+        result = original_stat(target, *args, **kwargs)
+        if target == path.parent:
+            return SimpleNamespace(st_uid=os.geteuid() + 1, st_mode=result.st_mode)
+        return result
+
+    monkeypatch.setattr(Path, "stat", fake_stat)
+    with pytest.raises(PermissionError, match="pertenecer al usuario"):
+        SessionStore(path)
+
+
+@pytest.mark.skipif(os.name != "posix", reason="Los permisos POSIX no aplican en Windows.")
+def test_session_directory_rejects_replaceable_parent(tmp_path: Path) -> None:
+    shared = tmp_path / "shared"
+    shared.mkdir()
+    shared.chmod(0o777)
+    state_dir = shared / "private"
+    state_dir.mkdir(mode=0o700)
+    with pytest.raises(PermissionError, match="directorio superior de sesiones"):
+        SessionStore(state_dir / "sessions.sqlite3")
