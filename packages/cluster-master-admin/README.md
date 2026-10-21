@@ -2,7 +2,7 @@
 
 ## Estado
 
-La PR implementa una API FastAPI, formulario de acceso en el panel del mismo origen, sesiones locales y una consulta de snapshots. El proceso de arranque exige TLS y configuración explícita. No se ha iniciado en el PC-MASTER del usuario ni se ha desplegado. El proyecto Supabase vinculado aparece actualmente como INACTIVE en el plan Free; no se restauró ni modificó para evitar cualquier riesgo de coste. Por ello no se pudieron verificar grants ni conectividad reales.
+La PR implementa una API FastAPI, formulario de acceso en el panel del mismo origen, sesiones locales y una consulta de snapshots. El proceso de arranque exige TLS y configuración explícita. En el estado inicial de esta documentación todavía no se había iniciado en el PC-MASTER ni desplegado. La actualización del 2026-10-14 registra pruebas locales posteriores; no implica despliegue ni aceptación completa. El proyecto Supabase vinculado aparece actualmente como INACTIVE en el plan Free; no se restauró ni modificó para evitar cualquier riesgo de coste. Por ello no se pudieron verificar grants ni conectividad reales.
 
 ## Rutas
 
@@ -227,8 +227,8 @@ No se recomienda exponerlo a la LAN. El arranque rechaza un bind no-loopback sal
 - Pasaron 33 pruebas de persistencia, 12 de guardia, 54 de autenticación de agentes y 26 pruebas administrativas; la verificación del rol lector en PostgreSQL desechable, las pruebas negativas de privilegios y `pip check` también pasaron.
 - Las pruebas usan `httpx2` para el cliente Starlette; la advertencia deprecatoria anterior desapareció.
 - El repositorio es público y se usa el workflow de integración existente, sin crear un workflow paralelo. No se añadieron APIs de pago, SaaS ni runners especiales.
-- Los commits posteriores al HEAD validado actualizan únicamente documentación; no modifican el código cubierto por la ejecución indicada.
-- La CI desechable no valida las ACL NTFS/TLS del Windows real ni los grants de la base de datos objetivo. No se ha instalado ni ejecutado en PC-MASTER. La aceptación física está registrada en [issue #77](https://github.com/D3ckardCain/Geelark-IA/issues/77).
+- En el momento de esa ejecución, los commits posteriores al HEAD validado actualizaban únicamente documentación; esta afirmación describe ese estado histórico y no cubre los cambios locales actuales, que incluyen archivos de código modificados.
+- La CI desechable no valida las ACL NTFS/TLS del Windows real ni los grants de la base de datos objetivo. No se ha completado la instalación y aceptación de producción en PC-MASTER. Las pruebas locales del 2026-10-14 se describen en la actualización de validación de este README. La aceptación física está registrada en [issue #77](https://github.com/D3ckardCain/Geelark-IA/issues/77).
 - El objetivo operativo sigue siendo $0 USD; una base remota puede introducir límites o costes, por lo que se prefiere PostgreSQL local.
 
 ## Límites conocidos
@@ -238,4 +238,20 @@ No se recomienda exponerlo a la LAN. El arranque rechaza un bind no-loopback sal
 - SQLite guarda sesiones localmente; una pérdida del archivo cierra sesiones.
 - No hay rutas para tareas, ADB, shell, reconciliación ni cambios de estado.
 - Consulta real requiere PostgreSQL disponible; si es remoto, requiere Internet.
-- No se ha instalado ni ejecutado en el PC-MASTER real, ni se ha validado el certificado/ACL de la máquina del usuario.
+- La aceptación de producción en PC-MASTER sigue pendiente; tampoco se han validado por completo el certificado TLS y las ACL de la máquina objetivo.
+
+## Actualizacion de validacion local — 2026-10-14
+
+La nota de estado inicial de este README precede a las pruebas locales recientes. En la revision del 14 de octubre se ejecuto el backend desde la aplicacion Windows, se obtuvo HTTP 200 en la comprobacion HTTPS local y se comprobo que, al cerrar la aplicacion, el proceso y el puerto 8765 quedaban libres.
+
+La suite combinada de pruebas del backend administrativo y de la aplicacion Windows termino con 39 pruebas aprobadas. Esta cifra corresponde a esos dos conjuntos de pruebas, no a la totalidad de las pruebas del repositorio.
+
+El lanzador Windows guarda la salida del backend en `%LOCALAPPDATA%\GeeLark-IA\pc-master\runtime.log`. El cierre coordinado utiliza la entrada privada del proceso y el comando `STOP`; la terminacion forzada del arbol de procesos es una alternativa de emergencia.
+
+Estas comprobaciones no verifican por si solas los privilegios de una base de datos de produccion, las ACL efectivas de todos los archivos, la confianza del certificado en todos los navegadores ni la seguridad de una configuracion remota. La escucha local en loopback debe mantenerse como valor predeterminado.
+
+## Estado de pruebas actualizado — 2026-10-20
+
+La suite completa del repositorio terminó con 133 pruebas aprobadas, 39 omitidas y 0 fallidas. Las pruebas específicas del panel Windows y del runtime administrativo terminaron con 24 aprobadas. Los resultados históricos de 39 pruebas aprobadas corresponden a una ejecución anterior de los dos conjuntos indicados y no deben confundirse con la suite completa actual.
+
+Estos resultados automatizados no certifican por sí solos los permisos efectivos de la instancia objetivo, la confianza del certificado en el navegador ni la aceptación de producción. Mantener la escucha en loopback hasta completar la aceptación de seguridad.

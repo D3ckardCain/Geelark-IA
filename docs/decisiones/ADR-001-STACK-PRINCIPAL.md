@@ -4,7 +4,7 @@
 - **Fecha:** 2026-10-09
 - **Contexto:** Geelark-IA debe operar sin costes obligatorios, localmente, con Android virtualizado, automatización, API/CLI y opción offline. El usuario permite elegir el mejor hardware y sistema operativo; no hace falta optimizar para un equipo existente.
 - **Decisión:**
-  1. Usar **Linux Ubuntu LTS x86_64 como sistema operativo de referencia para el anfitrión Android**. Permite controlar kernel, virtualización, contenedores, ADB y aislamiento con herramientas abiertas. La versión exacta LTS se fijará al preparar la imagen reproducible.
+  1. Mantener **PC-MASTER como aplicación Windows** y utilizar **Debian 13 directamente en los PC WORKER físicos** como sistema base previsto para ejecutar Android. GeeLark-IA administrará los nodos y desplegará las herramientas locales necesarias desde PC-MASTER.
   2. Usar **Tauri 2 + React + TypeScript + Vite** para la aplicación de escritorio de control.
   3. Usar **Python + FastAPI + Pydantic** para la API y el dominio local.
   4. Usar **SQLite con migraciones** para la instalación de un solo anfitrión; no introducir PostgreSQL, Redis ni servicios adicionales hasta que pruebas de concurrencia justifiquen la complejidad.
@@ -29,6 +29,5 @@ La propuesta original de backend local se mantiene para el dominio y la API, per
 Referencias:
 - [ADR-003 — Arquitectura distribuida](ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md)
 - [Contrato de agente y planificador](../CONTRATO_AGENTE_NODO_PLANIFICADOR.md)
-- [Comparativa de infraestructura](../COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md)
 
-Ubuntu LTS/Linux directo queda como opción de nodo candidata, no como decisión final para todos los equipos. Proxmox VE también se evaluará. La interfaz, API y modelo de dominio deben mantenerse desacoplados de ambos.
+La decisión operativa vigente es Debian 13 directamente en los PC WORKER y PC-MASTER en Windows. El aprovisionamiento desatendido por red, la instalación del agente y la preparación del runtime Android requieren pruebas en hardware físico. La interfaz, API y modelo de dominio deben mantener contratos claros entre el plano de control y los agentes.
