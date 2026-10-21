@@ -477,7 +477,6 @@ def test_database_connector_rejects_tls_key_logging_dsn(
 
 
 @pytest.mark.skipif(os.name != "posix", reason="Los permisos POSIX no aplican en Windows.")
-@pytest.mark.skipif(os.name != "posix", reason="Los permisos POSIX no aplican en Windows.")
 def test_database_connector_rejects_ca_in_group_writable_ancestor(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -499,6 +498,7 @@ def test_database_connector_rejects_ca_in_group_writable_ancestor(
         _database_connector()
 
 
+@pytest.mark.skipif(os.name != "posix", reason="Los permisos POSIX no aplican en Windows.")
 def test_database_connector_rejects_unreadable_passfile(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
