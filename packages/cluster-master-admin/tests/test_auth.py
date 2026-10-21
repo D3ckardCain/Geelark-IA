@@ -187,3 +187,43 @@ def test_windows_acl_failure_fails_closed(
 
     with pytest.raises(PermissionError, match="ACL NTFS"):
         auth_module._restrict_windows_acl(tmp_path / "sessions.sqlite3", directory=False)
+
+
+def test_login_rate_limiter_enforces_window_and_success_resets() -> None:
+    from geelark_master_admin.auth import (
+        LOGIN_MAX_ATTEMPTS,
+        LOGIN_WINDOW_SECONDS,
+        LoginRateLimiter,
+    )
+
+    now = [100.0]
+    limiter = LoginRateLimiter(clock=lambda: now[0])
+    key = "127.0.0.1"
+    for _ in range(LOGIN_MAX_ATTEMPTS):
+        assert limiter.allowed(key)
+        limiter.failed(key)
+    assert not limiter.allowed(key)
+    now[0] += LOGIN_WINDOW_SECONDS
+    assert limiter.allowed(key)
+    limiter.succeeded(key)
+    assert limiter.allowed(key)
+
+
+def test_login_rate_limiter_caps_tracked_addresses_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from geelark_master_admin import auth as auth_module
+
+    monkeypatch.setattr(auth_module, "LOGIN_MAX_TRACKED_CLIENTS", 2)
+    now = [100.0]
+    limiter = auth_module.LoginRateLimiter(clock=lambda: now[0])
+    for key in ("client-a", "client-b"):
+        assert limiter.allowed(key)
+        limiter.failed(key)
+    assert len(limiter._attempts) == 2
+    assert not limiter.allowed("client-c")
+    assert len(limiter._attempts) == 2
+
+    now[0] += auth_module.LOGIN_WINDOW_SECONDS
+    assert limiter.allowed("client-c")
+    assert len(limiter._attempts) == 1

@@ -8,7 +8,7 @@ import secrets
 import sqlite3
 import subprocess
 import time
-from collections import defaultdict, deque
+from collections import deque
 from pathlib import Path
 from typing import Callable
 
@@ -18,6 +18,7 @@ PBKDF2_ITERATIONS = PBKDF2_MIN_ITERATIONS
 SESSION_TTL_SECONDS = 8 * 60 * 60
 LOGIN_WINDOW_SECONDS = 15 * 60
 LOGIN_MAX_ATTEMPTS = 5
+LOGIN_MAX_TRACKED_CLIENTS = 1024
 
 
 def hash_operator_password(password: str, *, salt: bytes | None = None, iterations: int = PBKDF2_ITERATIONS) -> str:
@@ -46,20 +47,47 @@ def verify_operator_password(password: str, encoded: str) -> bool:
 
 
 class LoginRateLimiter:
-    """Limitador en memoria por dirección; pensado para un proceso local único."""
+    """Limitador local con ventana temporal y número máximo de direcciones rastreadas."""
     def __init__(self, *, clock: Callable[[], float] = time.monotonic) -> None:
         self._clock = clock
-        self._attempts: dict[str, deque[float]] = defaultdict(deque)
+        self._attempts: dict[str, deque[float]] = {}
+
+    def _prune_expired(self, now: float) -> None:
+        for key, bucket in list(self._attempts.items()):
+            while bucket and now - bucket[0] >= LOGIN_WINDOW_SECONDS:
+                bucket.popleft()
+            if not bucket:
+                self._attempts.pop(key, None)
 
     def allowed(self, key: str) -> bool:
         now = self._clock()
-        bucket = self._attempts[key]
-        while bucket and now - bucket[0] >= LOGIN_WINDOW_SECONDS:
-            bucket.popleft()
-        return len(bucket) < LOGIN_MAX_ATTEMPTS
+        bucket = self._attempts.get(key)
+        if bucket is not None:
+            while bucket and now - bucket[0] >= LOGIN_WINDOW_SECONDS:
+                bucket.popleft()
+            if bucket:
+                return len(bucket) < LOGIN_MAX_ATTEMPTS
+            self._attempts.pop(key, None)
+
+        if len(self._attempts) >= LOGIN_MAX_TRACKED_CLIENTS:
+            self._prune_expired(now)
+            if len(self._attempts) >= LOGIN_MAX_TRACKED_CLIENTS:
+                # Fail closed instead of allocating unbounded per-address state.
+                return False
+
+        self._attempts[key] = deque()
+        return True
 
     def failed(self, key: str) -> None:
-        self._attempts[key].append(self._clock())
+        bucket = self._attempts.get(key)
+        if bucket is None:
+            now = self._clock()
+            self._prune_expired(now)
+            if len(self._attempts) >= LOGIN_MAX_TRACKED_CLIENTS:
+                return
+            bucket = deque()
+            self._attempts[key] = bucket
+        bucket.append(self._clock())
 
     def succeeded(self, key: str) -> None:
         self._attempts.pop(key, None)
