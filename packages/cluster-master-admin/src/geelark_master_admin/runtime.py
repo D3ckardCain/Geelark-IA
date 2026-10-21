@@ -81,12 +81,21 @@ def _database_connector():
         raise RuntimeError(
             "Falta GEELARK_ADMIN_DATABASE_URL; no se usa una base de datos por defecto."
         )
+    if os.environ.get("PGSSLKEYLOGFILE", "").strip():
+        raise RuntimeError(
+            "No se permite registrar claves de sesión TLS; elimina PGSSLKEYLOGFILE."
+        )
     try:
         details = conninfo_to_dict(dsn)
     except Exception as exc:
         raise RuntimeError(
             "GEELARK_ADMIN_DATABASE_URL no es un DSN PostgreSQL válido."
         ) from exc
+
+    if details.get("sslkeylogfile"):
+        raise RuntimeError(
+            "No se permite registrar claves de sesión TLS mediante sslkeylogfile."
+        )
 
     # No se admiten perfiles libpq externos: podrían ocultar host/SSL reales
     # en un archivo de servicio y eludir la validación de este runtime.

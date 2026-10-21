@@ -11,7 +11,7 @@ from geelark_master_admin.runtime import _database_connector, main
 @pytest.fixture(autouse=True)
 def isolated_libpq_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     # Keep developer/runner libpq settings from silently changing unit-test behavior.
-    for name in ("PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR", "PGPORT", "PGSSLROOTCERT", "PGPASSWORD", "PGOPTIONS"):
+    for name in ("PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR", "PGPORT", "PGSSLROOTCERT", "PGPASSWORD", "PGOPTIONS", "PGSSLKEYLOGFILE"):
         monkeypatch.delenv(name, raising=False)
     passfile = tmp_path / "pgpass"
     passfile.write_text("localhost:5432:geelark:geelark_master_reader:test-only\n", encoding="utf-8")
@@ -419,4 +419,16 @@ def test_database_connector_rejects_mutable_remote_ca_trust_path(
         f"sslmode=verify-full sslrootcert={ca_file}",
     )
     with pytest.raises(RuntimeError, match="sslrootcert|directorio contenedor"):
+        _database_connector()
+
+
+def test_database_connector_rejects_tls_key_logging_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PGSSLKEYLOGFILE", "/tmp/geelark-tls-session-keys.log")
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark",
+    )
+    with pytest.raises(RuntimeError, match="claves de sesión TLS"):
         _database_connector()
