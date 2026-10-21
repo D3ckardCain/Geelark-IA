@@ -6,8 +6,9 @@ import os
 import stat
 from pathlib import Path
 
-from .network import is_private_lan_address
 from typing import Any
+
+from .network import is_private_lan_address
 
 
 class TransportConfigurationError(ValueError):
