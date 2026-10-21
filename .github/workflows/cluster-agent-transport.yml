@@ -49,12 +49,12 @@ jobs:
         uses: actions/checkout@v5
 
       # PR #48 is stacked on auth-service while the journal API lives in PR #38.
-      # Pin the journal commit so the cross-branch integration test is reproducible.
+      # Pin the journal API that supports ACK by exact status/result so this test matches runtime fencing.
       - name: Checkout journal API from PR #38
         uses: actions/checkout@v5
         with:
           repository: D3ckardCain/Geelark-IA
-          ref: e37e5aaef72837c19837eb5b648c29f05ae9b3c3
+          ref: 5815bc6e8f4146099e5fff028008fdf9f0ede5d6
           path: guard-source
 
       - name: Set up Python

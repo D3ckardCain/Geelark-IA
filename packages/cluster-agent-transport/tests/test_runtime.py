@@ -33,8 +33,9 @@ class FakeJournal:
     def list_pending_receipts(self, *, limit=100):
         return self.pending[:limit]
 
-    def mark_receipt_synced(self, operation_id):
+    def mark_receipt_synced(self, operation_id, *, expected_status=None, expected_result=None):
         self.synced.append(operation_id)
+        return True
 
     def record_result(self, **kwargs):
         self.events.append("journal")
@@ -220,8 +221,13 @@ def test_runtime_uses_fenced_journal_ack_api_when_available():
             super().__init__()
             self.delivered = []
 
-        def mark_receipt_delivered(self, operation_id, assignment_epoch):
-            self.delivered.append((operation_id, assignment_epoch))
+        def mark_receipt_delivered(
+            self, operation_id, assignment_epoch, *, expected_status=None, expected_result=None
+        ):
+            self.delivered.append(
+                (operation_id, assignment_epoch, expected_status, expected_result)
+            )
+            return True
 
     node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
     journal = FencedJournal()
@@ -234,5 +240,5 @@ def test_runtime_uses_fenced_journal_ack_api_when_available():
     runtime = make_runtime(FakeClient(), journal, node_id)
 
     assert runtime.sync_pending_receipts(limit=1) == (1, 1)
-    assert journal.delivered == [(operation_id, 7)]
+    assert journal.delivered == [(operation_id, 7, "succeeded", {"ok": True})]
     assert journal.synced == []
