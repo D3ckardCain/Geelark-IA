@@ -65,3 +65,11 @@ Los commits, resultados CI, errores detectados durante las iteraciones y sus cor
 ## Incidencia detectada en la primera ejecución Windows real — 2026-10-21
 
 La validación con `windows-latest` detectó que las variantes compactas de `icacls` no eran aceptadas por ese runner. La alternativa de modificar la DACL mediante `Set-Acl` se descartó después de que una prueba real excediera el timeout. El código usa `icacls` con `/inheritance:r` para desactivar la herencia y retirar las ACE heredadas, conserva la verificación de propietario/ACE mediante PowerShell y prepara explícitamente `PSModulePath`. También se corrigieron las rutas CA de pruebas para que sean portables en Windows. La aceptación final de NTFS queda pendiente de una nueva ejecución Windows sobre el HEAD sincronizado con la PR; no se declara aprobada hasta entonces.
+
+
+## Seguimiento de CI Windows — 2026-10-21, iteración 2
+
+- La ejecución Windows del commit `95e88ed` falló en tres pruebas: una por inicialización lenta de PowerShell (límite de 8 s) y dos porque el valor de `sslrootcert` se estaba codificando como URL en DSN de estilo keyword/value.
+- Se elevó el límite de inicialización de PowerShell a 30 s y se cambió la aplicación de ACL a una DACL protegida que elimina las ACE existentes, concede control total solo al usuario del proceso y verifica el resultado con `icacls`.
+- Las pruebas ACL se adaptaron al flujo PowerShell + verificación `icacls`. Los DSN de pruebas con sintaxis keyword/value ahora entrecomillan la ruta local; los DSN URI codifican la ruta una sola vez.
+- Commits de trabajo en la rama: `5785007`, `16ac0c8`, `d7da2a1`. La rama sigue sin fusionar. No declarar resuelto hasta que CI ejecute estos cambios y el job Windows termine en verde.
