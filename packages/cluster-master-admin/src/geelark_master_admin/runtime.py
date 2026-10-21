@@ -161,6 +161,8 @@ def _database_connector():
     def connect():
         return psycopg.connect(
             dsn,
+            # libpq may prefer GSS encryption over TLS even with sslmode=verify-full.
+            gssencmode="disable",
             connect_timeout=3,
             options=(
                 "-c default_transaction_read_only=on "
