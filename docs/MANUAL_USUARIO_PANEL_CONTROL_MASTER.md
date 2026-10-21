@@ -1,6 +1,6 @@
 # Manual de usuario — Panel de control PC-MASTER
 
-**Estado:** panel y autenticación están implementados en la PR #104, abierta en draft y sin fusionar. En el HEAD reconciliado `09d6a5ba322b636fd5d277c1cdb366416e057845`, los workflows de persistencia/PostgreSQL + ACL NTFS de Windows y transporte HTTPS terminaron correctamente. Esto valida la CI, no la configuración del PC-MASTER real. La aceptación manual de la issue #77 sigue pendiente: completar el checklist de este manual en el equipo Windows del proyecto y registrar evidencia sanitizada antes de declarar operativo el panel.
+**Estado:** panel y autenticación están implementados en la PR #104, abierta en draft y sin fusionar. En el HEAD actual de la PR #104, la suite integral desde la raíz pasó **293 pruebas, 3 omitidas**, `pip check` limpio; el job Windows ACL pasó **50 pruebas, 8 omitidas**, y el job PostgreSQL/persistencia, incluido el verificador del rol lector, terminó correctamente. Transporte HTTPS también pasó. Esto valida CI automatizada, no la configuración del PC-MASTER real. La aceptación manual de la issue #77 sigue pendiente: completar el checklist de este manual en el equipo Windows del proyecto y registrar evidencia sanitizada antes de declarar operativo el panel.
 
 ## 1. Acceso inicial
 
