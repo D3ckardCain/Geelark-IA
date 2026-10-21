@@ -152,7 +152,7 @@ foreach ($entry in $acl.Access) {
             check=False,
             capture_output=True,
             text=True,
-            timeout=8,
+            timeout=30,
             env=env,
         )
     except Exception:
@@ -176,7 +176,7 @@ def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
             check=True,
             capture_output=True,
             text=True,
-            timeout=3,
+            timeout=10,
         )
         identity = identity_result.stdout.strip()
         if not identity or any(char in identity for char in "\r\n"):
@@ -195,7 +195,7 @@ def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
             check=True,
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=10,
         )
         verification = subprocess.run(
             [str(icacls), str(path)],
