@@ -202,7 +202,7 @@ def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
             check=True,
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=10,
         ).stdout
         entries: list[tuple[str, str]] = []
         target_text = str(path)
