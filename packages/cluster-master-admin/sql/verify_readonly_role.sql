@@ -24,7 +24,7 @@ $preflight$;
 
 BEGIN READ ONLY;
 
-DO $
+DO $$
 DECLARE
     forbidden_object text;
     role_oid oid;
