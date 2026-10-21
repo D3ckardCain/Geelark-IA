@@ -38,10 +38,18 @@ def _required_directory(name: str) -> Path:
 
 def _check_private_file(path: Path, label: str) -> None:
     if os.name == "posix":
-        mode = stat.S_IMODE(path.stat().st_mode)
+        info = path.stat()
+        if info.st_uid != os.geteuid():
+            raise PermissionError(f"{label} debe pertenecer al usuario que ejecuta PC-MASTER.")
+        mode = stat.S_IMODE(info.st_mode)
         if mode & 0o077:
             raise PermissionError(
                 f"{label} debe tener permisos 0600; permisos actuales: {mode:04o}."
+            )
+        parent_mode = stat.S_IMODE(path.parent.stat().st_mode)
+        if parent_mode & 0o022:
+            raise PermissionError(
+                f"El directorio contenedor de {label} no puede permitir escritura a grupo u otros."
             )
     elif os.name == "nt":
         _restrict_windows_acl(path, directory=False)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -14,7 +15,7 @@ def isolated_libpq_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
         monkeypatch.delenv(name, raising=False)
     passfile = tmp_path / "pgpass"
     passfile.write_text("localhost:5432:geelark:geelark_master_reader:test-only\n", encoding="utf-8")
-    if __import__("os").name == "posix":
+    if os.name == "posix":
         passfile.chmod(0o600)
     monkeypatch.setenv("PGPASSFILE", str(passfile))
 
@@ -272,17 +273,39 @@ def test_database_connector_rejects_password_environment(
     assert secret not in str(exc.value)
 
 
-@pytest.mark.skipif(__import__("os").name != "posix", reason="Los permisos POSIX no aplican en Windows.")
+@pytest.mark.skipif(os.name != "posix", reason="Los permisos POSIX no aplican en Windows.")
 def test_database_connector_rejects_group_or_world_readable_passfile(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from pathlib import Path
 
-    passfile = Path(__import__("os").environ["PGPASSFILE"])
+    passfile = Path(os.environ["PGPASSFILE"])
     passfile.chmod(0o644)
     monkeypatch.setenv(
         "GEELARK_ADMIN_DATABASE_URL",
         "host=localhost user=geelark_master_reader dbname=geelark",
     )
     with pytest.raises(PermissionError, match="permisos 0600"):
+        _database_connector()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="Los permisos POSIX no aplican en Windows.")
+def test_database_connector_rejects_passfile_in_group_writable_directory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    shared_dir = tmp_path / "shared"
+    shared_dir.mkdir()
+    shared_dir.chmod(0o777)
+    passfile = shared_dir / "pgpass"
+    passfile.write_text(
+        "localhost:5432:geelark:geelark_master_reader:test-only\\n",
+        encoding="utf-8",
+    )
+    passfile.chmod(0o600)
+    monkeypatch.setenv("PGPASSFILE", str(passfile))
+    monkeypatch.setenv(
+        "GEELARK_ADMIN_DATABASE_URL",
+        "host=localhost user=geelark_master_reader dbname=geelark",
+    )
+    with pytest.raises(PermissionError, match="directorio contenedor"):
         _database_connector()
