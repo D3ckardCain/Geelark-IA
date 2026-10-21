@@ -357,7 +357,7 @@ def test_panel_payload_validator_rejects_malformed_payloads() -> None:
     malformed.append(duplicate_capability)
 
     too_many = copy.deepcopy(valid)
-    too_many["snapshots"] = too_many["snapshots"] * 501
+    too_many["snapshots"] = [None] * 501
     malformed.append(too_many)
 
     for payload in malformed:
