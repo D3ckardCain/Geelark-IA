@@ -65,9 +65,9 @@ Este mapa sustituye la instantánea temporal de PR #45 del 2026-10-10/14; la PR 
 ## Nueva colisión ADR y solapamiento del panel (#107)
 
 - Orden propuesto y documentado en comentarios: ADR-005 autenticación de agentes (#40), ADR-006 lectura de estado Master/Worker (#70), ADR-007 autenticación local PC-MASTER (#104).
-- En #70 se renombró `ADR-005-LECTURA-ESTADO-CLUSTER.md` a `ADR-006-LECTURA-ESTADO-CLUSTER.md` y se actualizó la referencia del módulo. En #104 se renombró la decisión PC-MASTER de ADR-006 a ADR-007. Los dos cambios están en ramas draft, sin merge.
+- En #70 se renombró `ADR-005-LECTURA-ESTADO-CLUSTER.md` a `ADR-006-LECTURA-ESTADO-CLUSTER.md`, se actualizó la referencia del módulo, se separó el manual y se eliminó un filtro redundante de workflow. La CI #44 pasó en el HEAD final. En #104 se renombró la decisión PC-MASTER de ADR-006 a ADR-007; CI #473/#602 pasó. Los cambios están en ramas draft, sin merge.
 - Se separó el manual del prototipo de #70 en `docs/MANUAL_PROTOTIPO_PANEL_CONTROL_MASTER.md`; #104 conserva `docs/MANUAL_USUARIO_PANEL_CONTROL_MASTER.md` para la aplicación autenticada. El schema/example v1 compartido entre #70 y #74 tiene los mismos blobs, así que no hay divergencia de contenido en esos archivos.
-- CI final: PR #70 HEAD `4e428bc714e3e2459a1b552bc35c495b439f7560`, workflow prototipo #43 `success`; PR #104 HEAD `75764c435f488f617a07c0003ce088829e6dbd41`, transporte #473 `success` y persistencia #602 `success`. Issue #107 quedó cerrada como completada; ambas PR siguen en draft.
+- CI final: PR #70 HEAD `fd0365d579a815d2a39f1213ed11af891dfe91d6`, workflow prototipo #44 `success` tras quitar un filtro redundante de ruta manual; PR #104 HEAD `75764c435f488f617a07c0003ce088829e6dbd41`, transporte #473 `success` y persistencia #602 `success`. Issue #107 quedó cerrada como completada; ambas PR siguen en draft.
 
 ## Dependencia heredada de la aplicación de escritorio Windows
 
