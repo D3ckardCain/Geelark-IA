@@ -1,6 +1,6 @@
 # Estado del proyecto Geelark-IA
 
-**Actualizado:** 2026-10-09  
+**Actualizado:** 2026-10-21  
 **Fase:** A — inventario funcional de GeeLark y estudio de viabilidad de Android virtualizado local.  
 **Implementación:** no hay módulos declarados como terminados o verificados.
 
@@ -302,3 +302,15 @@ Prioridad actual, todavía sin motor aprobado:
 4. Waydroid: alternativa secundaria; falta demostrar la topología multiinstancia requerida.
 
 La investigación también define los componentes de producto para perfiles/instancias, RPA Builder/Runner, Synchronizer, API/eventos, ADB restringido, Library y registros. No se ha instalado un nuevo motor ni se ha validado rendimiento en hardware físico. La documentación no equivale a prueba técnica.
+
+
+## Auditoría de higiene del repositorio — 2026-10-21
+
+Registro detallado: [AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md).
+
+- Se cerraron como supersedidas las PR #90 y #102 (versiones anteriores de la corrección ACL/ciclo ASGI, sustituidas por #103) y la PR #99 (rama anterior del panel administrativo, sustituida por #104).
+- Las PR #103 y #104 siguen en draft; ninguna de ellas se considera integrada o aceptada.
+- La PR #104 documenta CI verde para un SHA concreto, pero la aceptación manual del panel en el PC-MASTER Windows real sigue pendiente en Issue #77.
+- La auditoría encontró que `main` contiene documentación, no el código de los paquetes, migraciones, pruebas o workflows que están siendo validados en ramas de PR. Mantener explícita esta distinción.
+- No se cerraron Issues solo por antigüedad ni por pruebas ejecutadas en ramas no fusionadas.
+- La vía QEMU + Android-x86 + VNC está retirada como estrategia de producto; la limpieza local de WSL sigue pendiente de ejecución manual del usuario.
