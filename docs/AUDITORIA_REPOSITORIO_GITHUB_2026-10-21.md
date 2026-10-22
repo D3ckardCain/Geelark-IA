@@ -83,7 +83,7 @@ Este mapa sustituye la instantánea temporal de PR #45 del 2026-10-10/14; la PR 
 
 ## Conflictos de numeración ADR detectados y corregidos en ramas candidatas
 
-La colisión inicial entre #40 y #104 se resolvió en #104 al renombrar autenticación PC-MASTER a ADR-006, pero la auditoría posterior detectó que #70 también asignaba ADR-005 a lectura de estado. El orden propuesto ahora es ADR-005 (#40 agentes), ADR-006 (#70 estado Master/Worker) y ADR-007 (#104 autenticación PC-MASTER). Los cambios se han aplicado en sus respectivas ramas; no se fusionaron PR. Issue #105 cubría la colisión inicial y está cerrada; la revisión global del stack sigue en #107.
+La colisión inicial entre #40 y #104 se resolvió primero al renombrar autenticación PC-MASTER a ADR-006; la auditoría posterior detectó que #70 también asignaba ADR-005 a lectura de estado. El orden final propuesto y aplicado en ramas es ADR-005 (#40 agentes), ADR-006 (#70 estado Master/Worker) y ADR-007 (#104 autenticación PC-MASTER). Los cambios se han aplicado en sus respectivas ramas; no se fusionaron PR. Las Issues #105 y #107 están cerradas con alcance limitado a las colisiones/solapamientos revisados.
 
 ## PR que deben seguir abiertas por ahora
 
@@ -109,14 +109,14 @@ Las ramas de transporte, autenticación, persistencia, journal, supervisor y pla
 
 Se consultaron los workflows asociados a los SHA actuales de las PR, sin lanzar ejecuciones nuevas:
 
-- **#104:** workflows de transporte HTTPS y persistencia completados en `success`. El run #597 tiene tres jobs en éxito: suite raíz **293 passed, 3 skipped**; servicio PostgreSQL/persistencia con grupos de pruebas en éxito y `pip check` limpio; Windows ACL NTFS **50 passed, 8 skipped** y `pip check` limpio. El run #468 de transporte también terminó en éxito.
+- **#104:** el HEAD renumerado `75764c435f488f617a07c0003ce088829e6dbd41` tiene transporte HTTPS #473 y persistencia #602 en `success`. Los conteos detallados 293 passed/3 skipped en suite raíz y 50 passed/8 skipped en Windows ACL proceden del HEAD anterior `bcdf090a25b4a4e966a8d9ad5eb512f5aeb9ba32` (runs #599/#470); no atribuir esos conteos al SHA renumerado sin revisar los logs de #602.
 - **#103:** run #574 en éxito. Suite raíz **180 passed, 3 skipped**; Windows ACL **16 passed, 2 skipped**; `pip check` limpio. Esto valida el SHA actual de #103, no la aceptación de la aplicación completa #87. Su diff se solapa con #104 en `app.py`, `auth.py`, tests y workflow; la base de #103 es la app #87, mientras que #104 parte de la pila de snapshots. Reconciliar ambas líneas antes de integrar.
 - **#101:** HEAD `f338d63abdf18ab2c7d833d01ff4cf085457ce0b`, transporte run #444 `success`, **58 passed**, `pip check` limpio. **#74:** HEAD `df34e00ec18eb99ef3d53e99513ef625b42d2a58`, transporte run #449 `success` (**58 passed**, `pip check` limpio) y persistencia #575 `success`. **#52:** transporte #313 `success` (**63 passed**, `pip check` limpio). **#57:** transporte #354 `success` (**83 passed**, `pip check` limpio). **#67:** transporte #344 `success` (**130 passed**, `pip check` limpio) y pruebas de persistencia exitosas. Para #85 y las demás PR listadas se encontraron workflows con `success` en los HEAD consultados; los workflows disponibles varían según filtros y no prueban integración/aceptación.
 - **#48:** la ejecución histórica #295 falló por una API de journal incompatible. Se corrigió el pin al journal versionado y el test double de ACK; HEAD actual `f2301e9b1673c57b74a9d625f3f4788f603a83ed` pasó transporte en run #471 (**54 passed, 1 warning**) y `pip check` limpio; esquema #303 y persistencia #600 también `success`. La falla histórica se conserva; la PR sigue abierta por integración ordenada, revisión de seguridad y aceptación del stack.
 - **#87:** el único workflow encontrado para su HEAD actual terminó **cancelled** (#578). No cuenta como CI verde de la aplicación de escritorio. La PR #103 prueba una rama de correcciones basada en #87, pero no reemplaza la validación final de la aplicación completa.
 - **#86, #40, #26, #23 y #21:** no se encontraron workflows asociados a sus HEADs en la consulta; son PR documentales y esto no se debe etiquetar como CI aprobada.
 
-La consulta de logs confirmó los conteos indicados para #104, #103 y #48. No se iniciaron workflows manualmente durante la auditoría inicial; las correcciones de código posteriores activaron CI automáticamente en las PR #48 y #104. La CI demuestra el estado de un SHA, no aceptación manual, integración en `main`, despliegue ni funcionamiento en Workers físicos.
+La consulta de logs confirmó los conteos históricos indicados para #104 antes de la renumeración, los conteos de #103 y el run #471 de #48. Para el HEAD renumerado de #104 se confirma estado `success` de workflows #473/#602, sin trasladar conteos de un SHA anterior. No se iniciaron workflows manualmente durante la auditoría inicial; las correcciones de código posteriores activaron CI automáticamente en las PR #48 y #104. La CI demuestra el estado de un SHA, no aceptación manual, integración en `main`, despliegue ni funcionamiento en Workers físicos.
 
 ## Issues: criterio de limpieza
 
