@@ -153,6 +153,12 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 5. Actualizar fechas de encabezado solo cuando el contenido se haya revisado realmente, no para ocultar antigüedad.
 6. Confirmar al final el recuento de PR/Issues, las acciones realizadas y los pendientes que requieren al usuario.
 
+## Comprobaciones de documentación realizadas
+
+- Se comprobaron los enlaces Markdown relativos de los 29 archivos que había en `main` al completar esta pasada: **no se encontraron rutas internas rotas** hacia archivos inexistentes en el árbol de `main`. Esto no verifica la disponibilidad de enlaces externos ni todos los fragmentos/anchors.
+- Se revisaron encabezados en `ESTADO_PROYECTO.md`, `PLAN_TRABAJO.md`, `ARQUITECTURA_TECNOLOGICA_PROPUESTA.md`, `MODELO_AMENAZAS_SEGURIDAD.md`, `CONTRATO_API_CLUSTER.md` y `CONTRATO_MENSAJES_AGENTE_CLUSTER.md`; no se encontraron encabezados Markdown idénticos repetidos en esos documentos.
+- Los nombres de archivos del árbol principal son diferenciados por función. Las similitudes entre catálogo/investigación/matriz o entre contratos de API/mensajes son complementarias y no se borraron como duplicados sin evidencia de contenido redundante.
+
 ## Límites de esta auditoría
 
 La consulta de GitHub permite revisar el contenido del repositorio, metadatos, PR e Issues, pero no confirma el estado del PC-MASTER local, los procesos de WSL, la aceptación manual, el panel de facturación de la cuenta ni las pruebas que no tengan artefacto verificable. No se ha usado GitHub Actions para lanzar pruebas adicionales ni se ha habilitado ningún runner de pago.
