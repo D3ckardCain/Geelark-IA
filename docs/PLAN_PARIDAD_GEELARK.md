@@ -1,8 +1,11 @@
 # Plan maestro de paridad funcional con GeeLark (solo Android, local y gratuito)
 
 **Estado:** borrador de planificación basado en investigación pública inicial; requiere validación del usuario y pruebas prácticas.  
-**Fecha:** 2026-10-09  
+**Fecha inicial:** 2026-10-09  
+**Revisión de estado:** 2026-10-21  
 **Objetivo:** construir desde cero una plataforma de gestión y automatización de entornos Android virtualizados/emulados localmente en hardware anfitrión físico, con software gratuito y sin servicios de pago obligatorios, tomando GeeLark como referencia funcional. No se copiará código, marca, contenido privado ni activos propietarios de GeeLark; se hará una implementación independiente basada en requisitos observables.
+
+> **Estado actual del motor (2026-10-21):** la ruta manual QEMU + Android-x86 9.0-r2 + VNC en WSL2 está retirada. AOSP Cuttlefish es el primer candidato para laboratorio Debian físico, todavía no aprobado; redroid está bloqueado por Issue #27; Android Emulator es referencia de compatibilidad y Waydroid alternativa secundaria. Consultar la [investigación actualizada](INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md) y la [comparativa](COMPARATIVA_MOTORES_ANDROID.md). Ninguna capacidad de paridad se considera implementada solo por esta prioridad documental.
 
 ## 1. Objetivo y límites no negociables
 
