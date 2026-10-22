@@ -12,9 +12,9 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 - Árbol recursivo de `main` al inicio de la auditoría: 28 archivos de texto/Markdown contando README y documentos; no aparecen `.github/workflows/`, `packages/`, `db/`, `tests/` ni `prototypes/`.
 - Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos: 40 en la última consulta global (2026-10-22); #105 se cerró tras resolver su colisión inicial, #64 se cerró como decisión resuelta y #107 se cerró después de confirmar CI y separar los manuales.
 - PR abiertas encontradas antes de esta limpieza: 32.
-- PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #45, #90, #99 y #102.
-- PR abiertas en la última consulta global del 2026-10-22: 24. Este número puede cambiar cuando se actualicen PRs; no se han fusionado PR durante esta continuación.
-- No se han fusionado PR, eliminado ramas ni cambiado configuraciones de facturación. Se renumeraron documentos solo en ramas de PR: #70 ahora propone ADR-006 para lectura de estado y separa su manual como `MANUAL_PROTOTIPO_PANEL_CONTROL_MASTER.md`; #104 propone ADR-007 para autenticación PC-MASTER. No se perdió contenido ni se fusionó ninguna rama.
+- PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #45, #49, #90, #99 y #102.
+- PR abiertas en la última consulta global del 2026-10-22: 23. Este número puede cambiar cuando se actualicen PRs; no se han fusionado PR durante esta continuación.
+- No se han fusionado PR, eliminado ramas ni cambiado configuraciones de facturación. La PR #49 se cerró como supersedida por #38 después de confirmar que el journal actual ya cubre su función con un ACK más seguro. Se renumeraron documentos solo en ramas de PR: #70 ahora propone ADR-006 para lectura de estado y separa su manual como `MANUAL_PROTOTIPO_PANEL_CONTROL_MASTER.md`; #104 propone ADR-007 para autenticación PC-MASTER. No se perdió contenido ni se fusionó ninguna rama.
 
 ## Acciones realizadas
 
