@@ -10,10 +10,10 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 
 - Rama predeterminada: `main`.
 - Árbol recursivo de `main` al inicio de la auditoría: 28 archivos de texto/Markdown contando README y documentos; no aparecen `.github/workflows/`, `packages/`, `db/`, `tests/` ni `prototypes/`.
-- Issues abiertos encontrados en la consulta: 43.
+- Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos restantes en la instantánea: 42.
 - PR abiertas encontradas antes de esta limpieza: 32.
-- PR cerradas durante esta auditoría por duplicación/supersesión documentada: #90, #99 y #102.
-- PR abiertas tras esas tres acciones: 29, pendiente de volver a consultar el estado global al terminar la auditoría.
+- PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #90, #99 y #102.
+- PR abiertas tras esas cuatro acciones: 28, pendiente de volver a consultar el estado global al terminar la auditoría.
 - No se han fusionado PR, eliminado ramas, borrado archivos ni cambiado configuraciones de facturación.
 
 ## Acciones realizadas
@@ -36,7 +36,13 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 - La PR #104 continúa esa línea con correcciones posteriores, pruebas y CI documentada para el HEAD actual.
 - Cierre: https://github.com/D3ckardCain/Geelark-IA/pull/99
 
-Los tres cierres conservan el historial de GitHub; no se borró el trabajo histórico.
+Los cierres conservan el historial de GitHub; no se borró el trabajo histórico.
+
+### PR #25 — evaluación preliminar del motor Android, cerrada como supersedida
+
+- La propuesta del 2026-10-09 se quedó obsoleta frente a la investigación y comparativa ampliadas, el ADR-002 y el Issue #8.
+- La vía QEMU + Android-x86 + VNC está retirada; redroid sigue bloqueado por #27 y Cuttlefish es solo candidato de laboratorio.
+- No se fusionó ni se borró la rama histórica.
 
 ## PR que deben seguir abiertas por ahora
 
@@ -59,6 +65,10 @@ Los tres cierres conservan el historial de GitHub; no se borró el trabajo hist�
 Las ramas de transporte, autenticación, persistencia, journal, supervisor y planificador están apiladas entre sí. No se cerraron automáticamente por antigüedad: varias declaran dependencias explícitas y cerrar una podría descartar trabajo que no está integrado en `main`. Se requiere una auditoría de grafo PR por PR, comparando bases, HEAD, archivos y referencias de supersesión antes de consolidarlas.
 
 ## Issues: criterio de limpieza
+
+### Issue #2 — cerrado como completado
+
+El acuerdo inicial (desarrollo desde cero, coste obligatorio $0, local/offline cuando sea viable, documentación/manuales, aceptación por módulo y registro en GitHub) ya está documentado en README, requisitos, estado y plan. Las tareas concretas de inventario/paridad siguen en #3, #4 y #6; se cerró únicamente el issue general de arranque.
 
 No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad o una prueba verde en una rama sin fusionar.
 
