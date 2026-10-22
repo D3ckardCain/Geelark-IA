@@ -1,9 +1,13 @@
 # Plan de trabajo — Geelark-IA
 
-**Actualizado:** 2026-10-09  
+**Actualizado:** 2026-10-21  
 **Fase activa:** A — inventario funcional de GeeLark y viabilidad de Android virtualizado local.
 
 El plan maestro está en [PLAN_PARIDAD_GEELARK.md](PLAN_PARIDAD_GEELARK.md). La investigación documental está en [INVESTIGACION_FUNCIONAL_GEELARK.md](INVESTIGACION_FUNCIONAL_GEELARK.md), la matriz en [MATRIZ_PARIDAD_GEELARK.md](MATRIZ_PARIDAD_GEELARK.md) y la comparativa de motores en [COMPARATIVA_MOTORES_ANDROID.md](COMPARATIVA_MOTORES_ANDROID.md).
+
+## Higiene y estado de integración — 2026-10-21
+
+Antes de avanzar en nuevas funciones, revisar la [auditoría de higiene del repositorio](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md). La rama `main` conserva requisitos y documentación; el código que se está validando sigue en PR abiertas. Las PR #90 y #102 se cerraron en favor de #103, y la PR #99 se cerró en favor de #104. No fusionar ni declarar aceptado un módulo hasta revisar dependencias, CI del HEAD actual y criterios de aceptación manual.
 
 ## Objetivo confirmado
 
