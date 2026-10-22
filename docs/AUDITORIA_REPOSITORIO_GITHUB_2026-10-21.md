@@ -84,6 +84,19 @@ Esto es una colisión documental real que debe resolverse antes de fusionar amba
 
 Las ramas de transporte, autenticación, persistencia, journal, supervisor y planificador están apiladas entre sí. No se cerraron automáticamente por antigüedad: varias declaran dependencias explícitas y cerrar una podría descartar trabajo que no está integrado en `main`. Se requiere una auditoría de grafo PR por PR, comparando bases, HEAD, archivos y referencias de supersesión antes de consolidarlas.
 
+## Auditoría de CI por HEAD de las PR abiertas
+
+Se consultaron los workflows asociados a los SHA actuales de las PR, sin lanzar ejecuciones nuevas:
+
+- **#104:** workflows de transporte HTTPS y persistencia completados en `success`. El run #597 tiene tres jobs en éxito: suite raíz **293 passed, 3 skipped**; servicio PostgreSQL/persistencia con grupos de pruebas en éxito y `pip check` limpio; Windows ACL NTFS **50 passed, 8 skipped** y `pip check` limpio. El run #468 de transporte también terminó en éxito.
+- **#103:** run #574 en éxito. Suite raíz **180 passed, 3 skipped**; Windows ACL **16 passed, 2 skipped**; `pip check` limpio. Esto valida el SHA actual de #103, no la aceptación de la aplicación completa #87.
+- **#101, #74, #85, #70, #67, #57, #52, #49, #47, #44, #42, #38, #36, #34, #32, #30, #28 y #16:** se encontraron ejecuciones de workflows asociadas con resultado `success` para sus HEAD consultados; los workflows disponibles varían según los filtros de cada rama. No inferir que todos los módulos estén integrados ni que cada PR tenga todos los jobs posibles.
+- **#48:** se encontró una ejecución anterior fallida del transporte (#295) y otra ejecución posterior en éxito (#364), además de checks de esquema/persistencia en éxito. La existencia de la falla histórica debe conservarse; revisar el estado de los checks asociados al HEAD inmediatamente antes de fusionar.
+- **#87:** el único workflow encontrado para su HEAD actual terminó **cancelled** (#578). No cuenta como CI verde de la aplicación de escritorio. La PR #103 prueba una rama de correcciones basada en #87, pero no reemplaza la validación final de la aplicación completa.
+- **#86, #40, #26, #23 y #21:** no se encontraron workflows asociados a sus HEADs en la consulta; son PR documentales y esto no se debe etiquetar como CI aprobada.
+
+La consulta de logs confirmó los conteos indicados para #104 y #103. No se lanzaron workflows nuevos para evitar ejecuciones redundantes. La CI demuestra el estado de un SHA, no aceptación manual, integración en `main`, despliegue ni funcionamiento en Workers físicos.
+
 ## Issues: criterio de limpieza
 
 ### Issue #2 — cerrado como completado
