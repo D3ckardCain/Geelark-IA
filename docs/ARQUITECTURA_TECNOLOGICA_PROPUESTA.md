@@ -1,8 +1,11 @@
 # Arquitectura tecnológica objetivo — Geelark-IA
 
-**Fecha:** 2026-10-09  
+**Fecha de propuesta inicial:** 2026-10-09  
+**Revisión de estado:** 2026-10-21  
 **Estado:** propuesta de arquitectura; no implica que el software esté implementado.  
 **Objetivo:** maximizar funcionalidad local y extensible inspirada en las capacidades públicas de GeeLark, con coste obligatorio de operación de 0 USD, sin cloud phones ni APIs pagadas.
+
+> **Aclaración de estado (2026-10-21):** esta arquitectura sigue siendo una propuesta, no una decisión final de stack. PC-MASTER debe permanecer como aplicación Windows; la candidata de escritorio actual es Python/Tkinter en la PR #87, todavía sin merge ni aceptación. Tauri 2 no debe interpretarse como tecnología aprobada ni como autorización para reescribir el lanzador. Los WORKERS previstos son equipos físicos con Debian 13. Cuttlefish es el primer candidato Android para prueba de laboratorio, no un motor aprobado; redroid continúa bloqueado por el Issue #27. Consultar la [investigación ampliada](INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md) y la [auditoría del repositorio](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md) antes de implementar.
 
 ## 1. Decisión ejecutiva
 
