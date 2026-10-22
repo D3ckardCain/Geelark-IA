@@ -314,3 +314,7 @@ Registro detallado: [AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md](AUDITORIA_REPOS
 - La auditoría encontró que `main` contiene documentación, no el código de los paquetes, migraciones, pruebas o workflows que están siendo validados en ramas de PR. Mantener explícita esta distinción.
 - El Issue #2 de alcance inicial se cerró como completado porque las reglas generales están documentadas; las tareas específicas siguen en #3, #4 y #6. No se cerraron Issues solo por antigüedad ni por pruebas ejecutadas en ramas no fusionadas.
 - La vía QEMU + Android-x86 + VNC está retirada como estrategia de producto; la limpieza local de WSL sigue pendiente de ejecución manual del usuario.
+- Conteo de auditoría tras limpieza: 27 PR abiertas y 42 Issues abiertas. Se cerraron como supersedidas #25, #45, #90, #99 y #102; el Issue #2 se cerró como completado.
+- CI consultada por SHA: PR #104 tiene suite raíz 293 passed/3 skipped, Windows ACL 50 passed/8 skipped y transporte en success; PR #103 tiene suite raíz 180 passed/3 skipped y Windows ACL 16 passed/2 skipped. Ambas siguen en draft. La PR #87 tiene su workflow asociado al HEAD actual cancelado, por lo que no cuenta como CI verde de la aplicación completa.
+- Hallazgo pendiente de resolver antes de fusionar: colisión de numeración ADR-005 entre autenticación de agentes (PR #40) y autenticación del panel PC-MASTER (PR #104). Ver [auditoría del repositorio](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md).
+
