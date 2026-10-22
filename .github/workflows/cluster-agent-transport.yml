@@ -1,0 +1,85 @@
+name: Cluster agent HTTPS transport
+
+on:
+  pull_request:
+    paths:
+      - "packages/cluster-agent-transport/**"
+      - "packages/cluster-agent-auth/**"
+      - "db/migrations/**"
+      - ".github/workflows/cluster-agent-transport.yml"
+  push:
+    branches: [main]
+    paths:
+      - "packages/cluster-agent-transport/**"
+      - "packages/cluster-agent-auth/**"
+      - "db/migrations/**"
+      - ".github/workflows/cluster-agent-transport.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Keep only the newest validation for a given PR/ref; stale runs waste minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  transport-tests:
+    name: Python 3.11 — transporte y seguridad del agente
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: geelark_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d geelark_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:test-only-password@127.0.0.1:5432/geelark_test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      # PR #48 is stacked on auth-service while the journal API lives in PR #38.
+      # Pin the current journal API commit so the cross-branch integration test is reproducible.
+      - name: Checkout journal API from PR #38
+        uses: actions/checkout@v5
+        with:
+          repository: D3ckardCain/Geelark-IA
+          ref: 5815bc6e8f4146099e5fff028008fdf9f0ede5d6
+          path: guard-source
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Apply schema migrations to disposable PostgreSQL
+        shell: bash
+        run: |
+          container_id="$(docker ps --filter 'ancestor=postgres:16-alpine' --format '{{.ID}}' | head -n 1)"
+          test -n "$container_id"
+          for migration in db/migrations/*.sql; do
+            test -f "$migration" || continue
+            docker exec -i "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 < "$migration"
+          done
+
+      - name: Install local journal and transport packages
+        run: |
+          python -m pip install -e "guard-source/packages/cluster-agent-guard[test]"
+          python -m pip install -e "packages/cluster-agent-auth[test]"
+          python -m pip install -e "packages/cluster-agent-transport[test]"
+
+      - name: Run transport security tests
+        run: python -m pytest packages/cluster-agent-transport/tests -q
+
+      - name: Check dependency consistency
+        run: python -m pip check
