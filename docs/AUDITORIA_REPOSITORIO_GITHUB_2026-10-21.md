@@ -56,6 +56,12 @@ Las PR abiertas no son una lista plana: varias se apilan unas sobre otras. El or
 
 Este mapa sustituye la instantánea temporal de PR #45 del 2026-10-10/14; la PR #45 se cerró como supersedida sin merge. Los metadatos pueden cambiar si se actualizan las bases de las ramas.
 
+## Nueva colisión ADR y solapamiento del panel (#107)
+
+- La PR #40 asigna ADR-005 a autenticación de agentes; la PR #70 asigna ADR-005 a lectura del estado Master/Worker. Ambas ramas parten de `main`, que actualmente contiene ADR-001..004. Es una colisión real si ambas se integran.
+- La PR #104 ya usa ADR-006 para autenticación local de PC-MASTER en una rama apilada separada. No asumir que basta con renumerar: hay que definir el orden final y actualizar referencias.
+- #70 no es duplicado total: aporta el prototipo HTML y pruebas de navegador, pero comparte manual del panel y schema/example de estado con #74/#104. Se añadió etiqueta `needs-review` y comentario a #70; la nueva Issue #107 sigue el conflicto. Mantener las PR en draft hasta reconciliar contenido; no cerrar #70 como duplicada.
+
 ## Dependencia heredada de la aplicación de escritorio Windows
 
 - La PR #87 tiene base `feat/master-control-readonly-api-local-auth`, que es la rama de la PR #76 cerrada sin merge. La PR #104 es la línea más reciente del panel/API autenticado y tiene como base `feat/master-status-snapshot-provider-v1`.
