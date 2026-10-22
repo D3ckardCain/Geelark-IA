@@ -139,7 +139,7 @@ El panel actual solo cubre el primer esqueleto visual de observabilidad. Antes d
 
 ## 12. Decisión de integración de solo lectura
 
-La arquitectura propuesta y sus puertas de seguridad están documentadas en [ADR-005](decisiones/ADR-005-LECTURA-ESTADO-CLUSTER.md). Este ADR no autoriza conectar datos reales ni añadir listeners; la interfaz sigue usando datos ficticios hasta confirmar la fuente de verdad y la identidad del operador.
+La arquitectura propuesta y sus puertas de seguridad están documentadas en [ADR-006](decisiones/ADR-006-LECTURA-ESTADO-CLUSTER.md). Este ADR no autoriza conectar datos reales ni añadir listeners; la interfaz sigue usando datos ficticios hasta confirmar la fuente de verdad y la identidad del operador.
 
 
 ## 13. Avance del proveedor de snapshots (10-oct-2026)
