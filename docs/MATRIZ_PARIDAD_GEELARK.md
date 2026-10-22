@@ -120,7 +120,8 @@ La comparación documental y el protocolo de pruebas están en [COMPARATIVA_MOTO
 
 | Candidato | Evaluación inicial | Prueba que falta | Estado de decisión |
 |---|---|---|---|
-| AOSP Cuttlefish | Primera prioridad de laboratorio por soporte documentado de multiinstancia, overlays y control WebRTC | Licencias exactas de imagen, requisitos host, seguridad, aislamiento y prueba de 1/2 instancias | Candidato no aprobado |\n| redroid | Potencial para múltiples instancias Linux, pero el ejemplo upstream usa privilegios elevados y requiere revisión de seguridad | Resolver #27, revisar privilegios, imagen y exposición ADB antes de cualquier instalación | Bloqueado por seguridad |
+| AOSP Cuttlefish | Primera prioridad de laboratorio por soporte documentado de multiinstancia, overlays y control WebRTC | Licencias exactas de imagen, requisitos host, seguridad, aislamiento y prueba de 1/2 instancias | Candidato no aprobado |
+| redroid | Potencial para múltiples instancias Linux, pero el ejemplo upstream usa privilegios elevados y requiere revisión de seguridad | Resolver #27, revisar privilegios, imagen y exposición ADB antes de cualquier instalación | Bloqueado por seguridad |
 | Android Emulator oficial | Referencia útil de AVD/ADB; la licencia del SDK e imágenes debe revisarse para el uso concreto del producto | Licencia aplicable, multiinstancia, automatización y rendimiento | Condicionado |
 | Waydroid | Alternativa de contenedor para GNU/Linux; investigar el manejo de instancias separadas y licencias de todos los componentes | Control independiente, aislamiento, estabilidad y compatibilidad de apps | No seleccionado |
 | Android-x86/derivado | La ruta manual QEMU + Android-x86 + VNC de WSL2 está retirada; no reabrir ese experimento como ruta de producto | No se planifica prueba por esa ruta; reconsiderar solo con decisión explícita y entorno distinto | Retirado |
