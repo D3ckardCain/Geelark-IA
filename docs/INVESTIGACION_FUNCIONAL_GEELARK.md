@@ -169,9 +169,19 @@ La ayuda también lista una guía para usar la cámara del cloud phone: https://
 
 ## 9. Investigación preliminar de motores Android local
 
+> **Estado actualizado de decisión — 2026-10-22 (prevalece sobre la prioridad preliminar del 12-oct):** la ruta manual QEMU + Android-x86 9.0-r2 + VNC en WSL2 está retirada y no debe reabrirse como ruta de producto. **AOSP Cuttlefish** es el primer candidato para una prueba controlada en un WORKER Debian físico, pero aún no está aprobado ni probado en hardware. **redroid está bloqueado por la Issue #27** hasta completar revisión de seguridad/privilegios. Android Emulator oficial queda como referencia de compatibilidad; Waydroid es alternativa secundaria. No instalar ningún motor hasta revisar licencia exacta de imágenes/componentes, seguridad y coste operativo obligatorio de $0 USD.
+
 Esta sección es una comparación de candidatos, no una selección definitiva. El motor final debe probarse con aplicaciones Android objetivo, identidad por instancia, ADB, automatización, persistencia, aislamiento, gráficos y consumo de recursos.
 
-### Candidato A — redroid
+### Candidato prioritario de laboratorio — AOSP Cuttlefish
+
+Fuentes oficiales: https://source.android.com/docs/devices/cuttlefish/get-started y https://source.android.com/docs/devices/cuttlefish/multi-tenancy
+
+Cuttlefish es el candidato inicial para evaluar en Debian físico porque la documentación oficial describe multiinstancia, overlays copy-on-write por instancia, puertos ADB separados y control remoto del display mediante WebRTC. No es una instalación ligera tipo escritorio: requiere revisar KVM, paquetes del host, permisos/grupos, red, imágenes y procedimiento de actualización.
+
+**Riesgos/pendientes:** confirmar licencia y términos de la imagen exacta, requisitos de CPU/RAM/almacenamiento por instancia, instalación reproducible, seguridad de WebRTC/ADB y compatibilidad real con las apps objetivo. La documentación de capacidad publicada incluye configuraciones de recursos altas; no extrapolar densidad al hardware del proyecto. La prueba debe empezar con una instancia y después dos, midiendo recursos y aislamiento.
+
+### Candidato B — redroid
 
 Fuente: https://github.com/remote-android/redroid-doc y https://github.com/Nredroid
 
@@ -180,7 +190,7 @@ La documentación pública describe Android en contenedores para hosts Linux, ac
 **Ventajas potenciales:** orientado a múltiples instancias, automatización y operación tipo servicio; puede ajustarse al requisito de instancias locales.  
 **Riesgos/preguntas:** requisitos de kernel y GPU, configuración de contenedores privilegiados, compatibilidad de apps y Play Services, manejo de identidad, estabilidad y seguridad del host. Verificar licencia de cada repositorio e imagen antes de distribuir o usar comercialmente. No asumir que la imagen Android base equivale a un teléfono real.
 
-### Candidato B — Android Emulator oficial
+### Candidato C — Android Emulator oficial
 
 Fuentes: https://developer.android.com/studio/run/emulator-acceleration y https://developer.android.google.cn/studio/run/emulator?hl=es-419
 
@@ -189,7 +199,7 @@ La documentación oficial explica aceleración de virtualización mediante el hi
 **Ventajas potenciales:** herramientas oficiales Android, compatibilidad de desarrollo, imágenes de distintas versiones y herramientas de prueba conocidas.  
 **Riesgos/preguntas:** está orientado principalmente a desarrollo y pruebas; la densidad de instancias, control centralizado, rendimiento prolongado y personalización de identidad deben medirse. En Windows, la documentación indica que Android Emulator Hypervisor Driver (AEHD) dejará de mantenerse el 31 de diciembre de 2026 y recomienda migrar a Windows Hypervisor Platform.
 
-### Candidato C — Waydroid
+### Candidato D — Waydroid
 
 Fuentes: https://github.com/waydroid/waydroid y https://github.com/waydroid/docs
 
@@ -198,14 +208,11 @@ Waydroid usa contenedores Linux para ejecutar un sistema Android basado en Linea
 **Ventajas potenciales:** software libre, integración con Linux y ejecución local.  
 **Riesgos/preguntas:** su modelo de contenedor e integración de escritorio puede no ofrecer aislamiento de dispositivo completo ni una granja de perfiles independientes de forma directa. Debe comprobarse si puede sostener la semántica de perfiles y aislamiento que requiere GeeLark.
 
-### Candidato D — Android-x86 en máquina virtual
+### Ruta retirada — Android-x86 manual en QEMU + VNC
 
 Fuentes: https://www.android-x86.org/source.html y https://www.android-x86.org/
 
-Android-x86 permite ejecutar compilaciones Android para x86 en hardware compatible y máquinas virtuales como QEMU o VirtualBox. El proyecto declara Apache License 2.0 para el proyecto base y GPL para algunos componentes.
-
-**Ventajas potenciales:** aislamiento por máquina virtual y compatibilidad con hipervisores comunes.  
-**Riesgos/preguntas:** versiones y mantenimiento disponibles, sensores simulados, arquitectura x86 frente a aplicaciones que requieren ARM, Play Services, gráficos y costes de recursos por instancia.
+Esta combinación se probó como experimento manual en WSL2 y se retiró tras no resolver el problema de pantalla negra por VNC. No se considera candidata activa para producto. No confundir este cierre de ruta con una afirmación de que Android-x86 sea técnicamente inviable en todos los entornos; simplemente no se continuará por este experimento.
 
 ### Criterios de selección obligatorios
 
@@ -224,13 +231,14 @@ Android-x86 permite ejecutar compilaciones Android para x86 en hardware compatib
 
 ### Conclusión provisional
 
-No se selecciona todavía un motor. redroid parece especialmente relevante para investigar escenarios de múltiples instancias Linux; Android Emulator es el candidato de referencia para herramientas oficiales; Waydroid y Android-x86 cubren alternativas de contenedor y máquina virtual. La elección requiere una prueba comparativa en el hardware real del usuario y un inventario más preciso de las funciones de GeeLark.
+No se ha aprobado todavía ningún motor. La prioridad de laboratorio es Cuttlefish en Debian físico; redroid permanece bloqueado por #27; Android Emulator sirve como referencia de compatibilidad; Waydroid es alternativa secundaria. La ruta manual QEMU + Android-x86 + VNC está retirada. La selección final requiere revisión de licencias/seguridad y pruebas reproducibles de una y dos instancias en el hardware real.
 
 ## 10. Registro de cambios
 
 - 2026-10-09: primera investigación documental consolidada; se aclara que GeeLark es una plataforma integrada de cloud phones, gestión, automatización, sincronización, API y recursos, no solo un emulador.
 - 2026-10-09: se fija el alcance de nuestro proyecto en Android virtualizado/emulado localmente en hardware anfitrión; no se presupone el uso de teléfonos físicos.
 - 2026-10-09: se añade comparación preliminar de redroid, Android Emulator, Waydroid y Android-x86, sin seleccionar stack definitivo.
+- 2026-10-22: se reordena la prioridad tras retirar QEMU/Android-x86/VNC, se añade Cuttlefish como candidato de laboratorio no aprobado y se registra el bloqueo de seguridad de redroid (#27).
 
 
 ## 11. Revalidación de fuentes oficiales (2026-10-12)
