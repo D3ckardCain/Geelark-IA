@@ -56,6 +56,12 @@ Las PR abiertas no son una lista plana: varias se apilan unas sobre otras. El or
 
 Este mapa sustituye la instantánea temporal de PR #45 del 2026-10-10/14; la PR #45 se cerró como supersedida sin merge. Los metadatos pueden cambiar si se actualizan las bases de las ramas.
 
+## Dependencia heredada de la aplicación de escritorio Windows
+
+- La PR #87 tiene base `feat/master-control-readonly-api-local-auth`, que es la rama de la PR #76 cerrada sin merge. La PR #104 es la línea más reciente del panel/API autenticado y tiene como base `feat/master-status-snapshot-provider-v1`.
+- La PR #103 se apila sobre #87. No se cerraron #87/#103 porque aportan el lanzador de escritorio y correcciones específicas de Windows; sin embargo, deben reconciliar la ascendencia antes de integrar para no reintroducir la versión anterior del backend ni producir una base de integración incompleta.
+- Se dejaron comentarios en ambas PR. No se cambió la base automáticamente, porque un retarget/rebase sin comparar el diff podría perder cambios exclusivos.
+
 ## Duplicación parcial de artefactos del panel
 
 - PR #70 (prototipo) y PR #74 (proveedor de snapshots) contienen los mismos blobs SHA para `docs/contracts/master-worker-status-v1.schema.json` y `docs/contracts/examples/master-worker-status-v1.example.json`; no se detectó divergencia de contenido en esos dos archivos. Al integrar, conservar una sola copia canónica del contrato.
