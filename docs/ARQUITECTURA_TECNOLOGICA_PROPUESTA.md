@@ -18,9 +18,10 @@ Diseñar primero una aplicación **desktop-first, local-first y modular**, con u
 | Persistencia local inicial | SQLite + migraciones versionadas | Cero coste, local y transaccional | Evaluar PostgreSQL local si la concurrencia multiusuario lo exige |
 | Estado de tareas | Cola persistente en SQLite, IDs idempotentes y recuperación | Evita añadir infraestructura prematura | Valorar PostgreSQL o Valkey solo si pruebas lo justifican |
 | Contrato API | OpenAPI generado desde FastAPI | Contratos verificables y cliente UI desacoplado | Versionar API y errores |
-| Motor Android baseline | Android Emulator oficial | Referencia de compatibilidad y pruebas Android | No necesariamente el motor final |
-| Motor de densidad candidato | redroid en Linux | Android en contenedores, potencialmente eficiente | Riesgos de privilegios/ADB; no aprobar sin endurecimiento |
-| Motor Linux alternativo | Waydroid | Android containerizado en Linux | No asumir equivalencia con un gestor multiinstancia |
+| Primera prioridad de evaluación | AOSP Cuttlefish | Multiinstancia documentada, overlays independientes y control WebRTC | Requiere preparar host/imágenes y medir recursos; no aprobado hasta pruebas |
+| Candidato de densidad bloqueado | redroid en Linux | Android en contenedores, potencialmente eficiente | No probar hasta resolver issue #27 y demostrar aislamiento con privilegios mínimos |
+| Referencia de compatibilidad | Android Emulator oficial | AVD, ADB y herramientas maduras para probar APK/UI | Revisar términos del SDK/imágenes; variante de contenedores experimental |
+| Alternativa Linux secundaria | Waydroid | Android containerizado en Linux | Multiinstancia independiente/headless no demostrada |
 | Control de dispositivos | ADB oficial/platform-tools detrás de adaptador interno | Estándar para dispositivos autorizados | Nunca exponer ADB públicamente |
 | RPA | Motor propio de máquina de estados + adaptadores ADB/UIAutomator2 | Control, límites, recuperación y trazabilidad | Appium como apoyo de pruebas, no dependencia ciega |
 | Pruebas UI web | Playwright | Pruebas E2E reproducibles | No usar como motor RPA Android de producción |
@@ -30,16 +31,20 @@ Diseñar primero una aplicación **desktop-first, local-first y modular**, con u
 | Registro | Logs estructurados locales con redacción y rotación | Diagnóstico sin filtrar secretos | Sin telemetría obligatoria |
 | Distribución | Instaladores por SO y compilación reproducible | Descarga sencilla | Debe ser posible compilar localmente |
 
-## 2. Decisión sobre Android virtualizado
+## 2. Decisión actual sobre Android virtualizado (2026-10-21)
 
-No hay un motor ganador hasta probarlo. Se recomienda una estrategia de dos candidatos:
+La ruta manual **QEMU + Android-x86 9.0-r2 + VNC en WSL2 queda retirada**. No se continuará depurando ese prototipo ni se usará como base del producto.
 
-1. **Baseline:** Android Emulator oficial para validar instalación de apps, ADB, capturas, entradas, persistencia, versiones Android y automatización.
-2. **Experimento de densidad:** redroid en Linux para medir recursos, arranque, persistencia y aislamiento.
+No hay motor ganador hasta completar pruebas. La prioridad documental/técnica actual es:
 
-La selección final comparará compatibilidad con apps/ABI, versiones Android, persistencia, proxy por instancia, configuración admitida, aislamiento, ADB/captura, sensores/cámara, privilegios, licencias y seguridad.
+1. **AOSP Cuttlefish:** primera opción a evaluar por multiinstancia, overlays de disco por instancia, puertos ADB diferenciados y control WebRTC desde navegador. Su instalación requiere preparar el host Debian, paquetes/módulos/grupos e imágenes; no se debe confundir con el servicio Cloud Orchestrator. La densidad debe medirse: la documentación de AOSP da ejemplos de perfiles con consumo alto.
+2. **redroid:** posible candidato de densidad, bloqueado por la issue #27 hasta revisar el riesgo upstream, versión/mitigación y un modelo de privilegios/red aceptable.
+3. **Android Emulator oficial:** referencia para compatibilidad de APK, ADB y UI; revisar licencias de SDK e imágenes. Los scripts de contenedores son experimentales.
+4. **Waydroid:** alternativa secundaria; multiinstancia independiente y operación headless no demostradas para nuestro uso.
 
-No se promete reproducción exacta de identidad física ni compatibilidad universal de aplicaciones. No se implementarán técnicas para falsificar claves de hardware, attestation o evadir controles de seguridad.
+La investigación completa y las fuentes se mantienen en [docs/INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md](INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md) y la [comparativa](COMPARATIVA_MOTORES_ANDROID.md).
+
+La selección final comparará compatibilidad de APK/ABI, versiones Android, persistencia, configuración de red por instancia, aislamiento, ADB/captura/entrada, sensores/cámara, privilegios, licencias, automatización y coste de mantenimiento. No se promete reproducción exacta de identidad física ni compatibilidad universal de aplicaciones. No se implementarán técnicas para falsificar claves de hardware, attestation o evadir controles de seguridad.
 
 ## 3. Arquitectura de procesos
 
@@ -121,11 +126,13 @@ Requiere conectividad: descargar imágenes/actualizaciones o APK remotos; proxie
 - [ ] Logs redactados y pruebas reproducibles.
 
 ### Fase 2 — primera instancia Android
-- [ ] Probar Android Emulator como baseline.
-- [ ] Crear, iniciar, detener, reiniciar y eliminar instancia.
-- [ ] Captura, entrada básica, ADB y persistencia.
-- [ ] Backup/restauración.
-- [ ] Documentar diferencias respecto a GeeLark.
+- [ ] Superar revisión de licencias/seguridad del candidato de prueba.
+- [ ] Probar Cuttlefish como primera prioridad documental/técnica; no se aprueba por documentación.
+- [ ] Crear, iniciar, detener, reiniciar y eliminar una instancia en Debian físico de laboratorio.
+- [ ] Captura WebRTC, entrada básica, ADB restringido y persistencia.
+- [ ] Instalar APK de referencia y medir CPU/RAM/disco/arranque.
+- [ ] Repetir con dos instancias y comprobar aislamiento.
+- [ ] Documentar diferencias respecto a GeeLark y límites reales.
 
 ### Fase 3 — gestión de perfiles
 - [ ] Perfiles, grupos, clonación segura y operaciones masivas.
@@ -147,8 +154,8 @@ Requiere conectividad: descargar imágenes/actualizaciones o APK remotos; proxie
 - [ ] Verificar persistencia y registrar diferencias.
 
 ### Fase 6 — motor alternativo, Library, API/CLI y distribución
-- [ ] Probar redroid en Linux aislado.
-- [ ] Comparar compatibilidad y recursos contra baseline.
+- [ ] Evaluar redroid en Linux aislado solo después de resolver issue #27.
+- [ ] Comparar compatibilidad y recursos contra Cuttlefish y Android Emulator.
 - [ ] API/CLI local estable.
 - [ ] Library de archivos/medios.
 - [ ] Empaquetado reproducible para los sistemas operativos incluidos en alcance.
