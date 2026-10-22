@@ -10,10 +10,10 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 
 - Rama predeterminada: `main`.
 - Árbol recursivo de `main` al inicio de la auditoría: 28 archivos de texto/Markdown contando README y documentos; no aparecen `.github/workflows/`, `packages/`, `db/`, `tests/` ni `prototypes/`.
-- Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos: 39 en la última consulta global (2026-10-22); #105 se cerró tras resolver su colisión inicial y #64 se cerró como decisión resuelta. La #107 permanece abierta para confirmar CI final tras renumerar ADR y revisar la separación documental.
+- Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos: 40 en la última consulta global (2026-10-22); #105 se cerró tras resolver su colisión inicial, #64 se cerró como decisión resuelta y #107 se cerró después de confirmar CI y separar los manuales.
 - PR abiertas encontradas antes de esta limpieza: 32.
 - PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #45, #90, #99 y #102.
-- PR abiertas en la última consulta global del 2026-10-22: 27. Este número puede cambiar cuando se actualicen PRs; no se han fusionado PR durante esta continuación.
+- PR abiertas en la última consulta global del 2026-10-22: 24. Este número puede cambiar cuando se actualicen PRs; no se han fusionado PR durante esta continuación.
 - No se han fusionado PR, eliminado ramas ni cambiado configuraciones de facturación. Se renumeraron documentos solo en ramas de PR: #70 ahora propone ADR-006 para lectura de estado y separa su manual como `MANUAL_PROTOTIPO_PANEL_CONTROL_MASTER.md`; #104 propone ADR-007 para autenticación PC-MASTER. No se perdió contenido ni se fusionó ninguna rama.
 
 ## Acciones realizadas
@@ -67,7 +67,7 @@ Este mapa sustituye la instantánea temporal de PR #45 del 2026-10-10/14; la PR 
 - Orden propuesto y documentado en comentarios: ADR-005 autenticación de agentes (#40), ADR-006 lectura de estado Master/Worker (#70), ADR-007 autenticación local PC-MASTER (#104).
 - En #70 se renombró `ADR-005-LECTURA-ESTADO-CLUSTER.md` a `ADR-006-LECTURA-ESTADO-CLUSTER.md` y se actualizó la referencia del módulo. En #104 se renombró la decisión PC-MASTER de ADR-006 a ADR-007. Los dos cambios están en ramas draft, sin merge.
 - Se separó el manual del prototipo de #70 en `docs/MANUAL_PROTOTIPO_PANEL_CONTROL_MASTER.md`; #104 conserva `docs/MANUAL_USUARIO_PANEL_CONTROL_MASTER.md` para la aplicación autenticada. El schema/example v1 compartido entre #70 y #74 tiene los mismos blobs, así que no hay divergencia de contenido en esos archivos.
-- CI: el workflow #42 de #70 pasó en un HEAD previo; aún no se encontró una ejecución para el último HEAD `4e428bc714e3e2459a1b552bc35c495b439f7560`. Para #104, transporte #473 está en `success`, persistencia #602 seguía `in_progress` en la última consulta. Mantener #107 abierta hasta confirmar CI en los HEAD finales y revisar dependencias; ambas PR siguen en draft.
+- CI final: PR #70 HEAD `4e428bc714e3e2459a1b552bc35c495b439f7560`, workflow prototipo #43 `success`; PR #104 HEAD `75764c435f488f617a07c0003ce088829e6dbd41`, transporte #473 `success` y persistencia #602 `success`. Issue #107 quedó cerrada como completada; ambas PR siguen en draft.
 
 ## Dependencia heredada de la aplicación de escritorio Windows
 
@@ -78,7 +78,7 @@ Este mapa sustituye la instantánea temporal de PR #45 del 2026-10-10/14; la PR 
 ## Duplicación parcial de artefactos del panel
 
 - PR #70 (prototipo) y PR #74 (proveedor de snapshots) contienen los mismos blobs SHA para `docs/contracts/master-worker-status-v1.schema.json` y `docs/contracts/examples/master-worker-status-v1.example.json`; no se detectó divergencia de contenido en esos dos archivos. Al integrar, conservar una sola copia canónica del contrato.
-- El manual `docs/MANUAL_USUARIO_PANEL_CONTROL_MASTER.md` de #70 es una versión anterior (7,341 bytes); #104 contiene una versión más actualizada (9,919 bytes) que declara autenticación y estado draft. No fusionar el manual antiguo encima del actualizado.
+- El manual de #70 se separó y renombró como `docs/MANUAL_PROTOTIPO_PANEL_CONTROL_MASTER.md` para documentar la maqueta offline/demo; #104 conserva `docs/MANUAL_USUARIO_PANEL_CONTROL_MASTER.md` para la app autenticada. Se evita el conflicto de ruta y se preserva el contenido específico de ambas.
 - #70 se mantiene abierta por el prototipo visual y documentación contractual; su CI del prototipo está en éxito, pero los datos de demo no representan el estado real del clúster.
 
 ## Conflictos de numeración ADR detectados y corregidos en ramas candidatas
