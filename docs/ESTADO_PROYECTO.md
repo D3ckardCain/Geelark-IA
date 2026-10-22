@@ -308,7 +308,7 @@ La investigación también define los componentes de producto para perfiles/inst
 
 Registro detallado: [AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md).
 
-- Se cerraron como supersedidas las PR #25 (evaluación Android preliminar obsoleta por la investigación actual), #90 y #102 (versiones anteriores de la corrección ACL/ciclo ASGI, sustituidas por #103) y #99 (rama anterior del panel administrativo, sustituida por #104).
+- Se cerraron como supersedidas las PR #25 (evaluación Android preliminar obsoleta), #45 (instantánea de auditoría reemplazada por el informe actualizado), #90 y #102 (versiones anteriores de la corrección ACL/ciclo ASGI, sustituidas por #103) y #99 (rama anterior del panel administrativo, sustituida por #104).
 - Las PR #103 y #104 siguen en draft; ninguna de ellas se considera integrada o aceptada.
 - La PR #104 documenta CI verde para un SHA concreto, pero la aceptación manual del panel en el PC-MASTER Windows real sigue pendiente en Issue #77.
 - La auditoría encontró que `main` contiene documentación, no el código de los paquetes, migraciones, pruebas o workflows que están siendo validados en ramas de PR. Mantener explícita esta distinción.
