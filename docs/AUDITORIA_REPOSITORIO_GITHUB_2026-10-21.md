@@ -10,7 +10,7 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 
 - Rama predeterminada: `main`.
 - Árbol recursivo de `main` al inicio de la auditoría: 28 archivos de texto/Markdown contando README y documentos; no aparecen `.github/workflows/`, `packages/`, `db/`, `tests/` ni `prototypes/`.
-- Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos restantes en la instantánea: 40 tras cerrar también las Issues #18 y #22 como duplicadas/supersedidas.
+- Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos restantes al cierre de esta pasada: 41; se cerraron #2, #18 y #22, y se abrió la #105 para dar seguimiento al bloqueo real de numeración ADR.
 - PR abiertas encontradas antes de esta limpieza: 32.
 - PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #45, #90, #99 y #102.
 - PR abiertas tras esas cinco acciones: 27, pendiente de volver a consultar el estado global al terminar la auditoría.
@@ -62,7 +62,7 @@ En las ramas abiertas hay dos documentos diferentes con el número **ADR-005**:
 - `docs/decisiones/ADR-005-AUTENTICACION-AGENTES.md` en PR #40.
 - `docs/decisiones/ADR-005-AUTENTICACION-LOCAL-PC-MASTER.md` en PR #104.
 
-Esto es una colisión documental real que debe resolverse antes de fusionar ambas líneas. La ADR de agentes se aceptó el 2026-10-09 y tiene dependencias con la pila de autenticación del Worker; no renumerarla sin revisar sus referencias. La del panel PC-MASTER debe recibir un número único (probablemente ADR-006) y sus enlaces/nombre deben actualizarse en la rama de la PR correspondiente. La modificación directa de esa rama no se pudo completar desde esta sesión, por lo que la colisión queda **abierta y documentada**, no resuelta.
+Esto es una colisión documental real que debe resolverse antes de fusionar ambas líneas. Se abrió [Issue #105](https://github.com/D3ckardCain/Geelark-IA/issues/105) para seguimiento con criterios de cierre. La ADR de agentes se aceptó el 2026-10-09 y tiene dependencias con la pila de autenticación del Worker; no renumerarla sin revisar sus referencias. La del panel PC-MASTER debe recibir un número único (probablemente ADR-006) y sus enlaces/nombre deben actualizarse en la rama de la PR correspondiente. La modificación directa de esa rama no se pudo completar desde esta sesión, por lo que la colisión queda **abierta y documentada**, no resuelta.
 
 ## PR que deben seguir abiertas por ahora
 
