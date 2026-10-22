@@ -15,8 +15,8 @@ Diseñar primero una aplicación **desktop-first, local-first y modular**, con u
 
 | Capa | Tecnología preferida | Motivo | Condición/alternativa |
 |---|---|---|---|
-| UI escritorio | Tauri 2 + React + TypeScript + Vite | Aplicación multiplataforma, UI moderna y puente al sistema | Revisar plugins/permisos; UI web local separada posible |
-| Diseño UI | Tailwind CSS + componentes accesibles propios o Radix UI | Consistencia, velocidad y accesibilidad | Fijar versiones y revisar licencias |
+| UI de escritorio PC-MASTER | Python 3 + Tkinter (candidata actual en PR #87; no integrada) | Coincide con la aplicación Windows v0.1 en revisión | Tauri 2 + React/Vite permanece alternativa no aprobada; no reescribir sin decisión explícita |
+| Diseño UI web | HTML/CSS accesible; el prototipo GitHub Dark está en PR #70 y el panel autenticado en PR #104 | Permite evolución visual sin declarar funciones ficticias | Tailwind/Radix solo si se elige explícitamente; revisar licencias |
 | API y dominio | Python 3 + FastAPI + Pydantic | Ecosistema maduro para automatización, procesos y tooling Android | Mantener el dominio desacoplado del framework |
 | Persistencia local inicial | SQLite + migraciones versionadas | Cero coste, local y transaccional | Evaluar PostgreSQL local si la concurrencia multiusuario lo exige |
 | Estado de tareas | Cola persistente en SQLite, IDs idempotentes y recuperación | Evita añadir infraestructura prematura | Valorar PostgreSQL o Valkey solo si pruebas lo justifican |
@@ -53,7 +53,9 @@ La selección final comparará compatibilidad de APK/ABI, versiones Android, per
 
 En el MVP pueden compartir un backend modular; separar procesos solo cuando una frontera de seguridad o pruebas lo justifiquen.
 
-- **desktop-ui:** interfaz Tauri; no ejecuta shell arbitrario.
+- **pc-master-windows:** aplicación de escritorio Python/Tkinter candidata en PR #87; no integrada ni aceptada.
+- **master-admin-web:** panel/API local autenticado de solo lectura candidato en PR #104; no integrado ni aceptado. No expone shell, ADB ni ejecución de tareas.
+- **Tauri/React:** alternativa anterior no aprobada; no iniciar esa reescritura sin decisión explícita.
 - **geelark-api:** FastAPI local con autenticación y autorización por recurso.
 - **instance-manager:** adaptador de ciclo de vida para cada motor.
 - **adb-manager:** lista permitida de comandos, selección explícita, timeout y salida limitada.
@@ -122,7 +124,7 @@ Requiere conectividad: descargar imágenes/actualizaciones o APK remotos; proxie
 - [ ] Definir capacidades del adaptador y matriz de soporte.
 
 ### Fase 1 — núcleo mínimo
-- [ ] Esqueleto Tauri + React + TypeScript.
+- [ ] Resolver la integración entre el lanzador Windows #87 y el panel/API #104; decidir la tecnología UI definitiva antes de iniciar una reescritura Tauri/React.
 - [ ] Backend FastAPI local.
 - [ ] SQLite y migraciones.
 - [ ] Autenticación local y permisos.
@@ -182,7 +184,7 @@ La arquitectura se acepta cuando las licencias son compatibles; no hay pago ni s
 
 ## 11. Requisito transversal: clúster heterogéneo de varios PC
 
-**Esta arquitectura queda corregida para contemplar varios equipos desde el inicio.** La UI Tauri/React y la API FastAPI pueden seguir siendo el plano de administración, pero no se presupone que el backend y todas las instancias Android residan en un único anfitrión.
+**Esta arquitectura queda corregida para contemplar varios equipos desde el inicio.** El lanzador Windows y el panel/API local autenticado están en PRs distintas y deben reconciliarse antes de integrarse. Tauri/React sigue sin aprobarse. No se presupone que el backend y todas las instancias Android residan en un único anfitrión.
 
 Documentos que definen esta parte:
 - [Arquitectura de clúster heterogéneo](ARQUITECTURA_CLUSTER_HETEROGENEO.md).
