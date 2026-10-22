@@ -165,6 +165,13 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 - Se revisaron encabezados en `ESTADO_PROYECTO.md`, `PLAN_TRABAJO.md`, `ARQUITECTURA_TECNOLOGICA_PROPUESTA.md`, `MODELO_AMENAZAS_SEGURIDAD.md`, `CONTRATO_API_CLUSTER.md` y `CONTRATO_MENSAJES_AGENTE_CLUSTER.md`; no se encontraron encabezados Markdown idénticos repetidos en esos documentos.
 - Los nombres de archivos del árbol principal son diferenciados por función. Las similitudes entre catálogo/investigación/matriz o entre contratos de API/mensajes son complementarias y no se borraron como duplicados sin evidencia de contenido redundante.
 
+## Continuación de auditoría — transporte HTTPS (#48), 2026-10-22
+
+- Inspeccionado el log del run de transporte #295 (ID `38193127429`): fallaron exactamente dos pruebas de `test_runtime.py` relacionadas con la sincronización/ACK real del journal. El workflow instalaba el SHA histórico `e37e5aaef72837c19837eb5b648c29f05ae9b3c3`, cuya firma `mark_receipt_synced(operation_id)` no implementa los argumentos versionados `expected_status` y `expected_result`.
+- La PR #38 en su HEAD `5815bc6e8f4146099e5fff028008fdf9f0ede5d6` sí contiene el método versionado. Corregí el pin en `.github/workflows/cluster-agent-transport.yml` dentro de la rama de la PR #48; commit `cbede919af6242c9d874a6eead3596e0144d81ec`.
+- **Estado de validación:** la corrección está en el HEAD actual de #48, pero al consultar todavía no había una ejecución de CI asociada a ese SHA. No se declara resuelta hasta comprobar el resultado de las pruebas.
+- **Límite de la corrección:** el pin permite que la prueba cruzada instale la API compatible, pero no cambia la base de #48 ni integra la historia de #38. La topología de ramas y las migraciones siguen requiriendo integración ordenada; no hacer merge por el mero hecho de que el workflow pase.
+
 ## Límites de esta auditoría
 
 La consulta de GitHub permite revisar el contenido del repositorio, metadatos, PR e Issues, pero no confirma el estado del PC-MASTER local, los procesos de WSL, la aceptación manual, el panel de facturación de la cuenta ni las pruebas que no tengan artefacto verificable. No se ha usado GitHub Actions para lanzar pruebas adicionales ni se ha habilitado ningún runner de pago.
