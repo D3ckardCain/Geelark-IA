@@ -12,8 +12,8 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 - Árbol recursivo de `main` al inicio de la auditoría: 28 archivos de texto/Markdown contando README y documentos; no aparecen `.github/workflows/`, `packages/`, `db/`, `tests/` ni `prototypes/`.
 - Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos restantes en la instantánea: 42.
 - PR abiertas encontradas antes de esta limpieza: 32.
-- PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #90, #99 y #102.
-- PR abiertas tras esas cuatro acciones: 28, pendiente de volver a consultar el estado global al terminar la auditoría.
+- PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #45, #90, #99 y #102.
+- PR abiertas tras esas cinco acciones: 27, pendiente de volver a consultar el estado global al terminar la auditoría.
 - No se han fusionado PR, eliminado ramas, borrado archivos ni cambiado configuraciones de facturación.
 
 ## Acciones realizadas
@@ -54,7 +54,7 @@ Las PR abiertas no son una lista plana: varias se apilan unas sobre otras. El or
 - **Aplicación de escritorio Windows:** #87 se apoya en una rama anterior del panel local; #103 se apoya en #87. Mantener separados el envoltorio de escritorio y el panel/API web mientras se aclara su integración.
 - **Documentación independiente:** #21 (inventario de hardware), #23 (manual de operación), #26 (caché de artefactos), #40 (ADR de autenticación de agentes), #70 (prototipo dashboard), #86 (actualización de evidencia GeeLark).
 
-Este mapa sustituye la instantánea temporal de PR #45 del 2026-10-10/14; los metadatos pueden cambiar si se actualizan las bases de las ramas.
+Este mapa sustituye la instantánea temporal de PR #45 del 2026-10-10/14; la PR #45 se cerró como supersedida sin merge. Los metadatos pueden cambiar si se actualizan las bases de las ramas.
 
 ## Conflicto de numeración ADR detectado
 
