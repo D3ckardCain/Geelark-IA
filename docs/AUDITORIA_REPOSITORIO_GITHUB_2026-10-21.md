@@ -103,6 +103,7 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 
 - `docs/ESTADO_PROYECTO.md` y `docs/PLAN_TRABAJO.md` tenían encabezado de actualización del 2026-10-09 aunque había decisiones y pruebas posteriores hasta 2026-10-21; ambos se actualizaron.
 - `docs/CATALOGO_FUNCIONAL_GEELARK.md`, `docs/INVESTIGACION_FUNCIONAL_GEELARK.md` y `docs/MATRIZ_PARIDAD_GEELARK.md` en `main` siguen fechados 2026-10-09. La PR #86 contiene versiones más extensas fechadas 2026-10-12 (por ejemplo, el catálogo pasa de ~63 KB a ~79 KB), por lo que no se debe cerrar como duplicada; debe reconciliarse con el estado actual y revisarse antes de integrar.
+- `docs/INVENTARIO_LICENCIAS_COSTE.md` y `docs/PLAN_PARIDAD_GEELARK.md` conservan la fecha inicial 2026-10-09. El inventario de licencias sigue siendo preliminar y debe reconciliarse con los candidatos actuales antes de instalar cualquier motor. `docs/ARQUITECTURA_TECNOLOGICA_PROPUESTA.md` se revisó el 2026-10-21 para aclarar que Tauri no está aprobado, PC-MASTER sigue en Windows y la candidata actual de escritorio es Python/Tkinter en PR #87.
 - Los documentos centrales deben distinguir explícitamente:
   1. contenido presente en `main`;
   2. implementación en PR abierta;
