@@ -14,7 +14,7 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 - PR abiertas encontradas antes de esta limpieza: 32.
 - PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #45, #90, #99 y #102.
 - PR abiertas tras esas cinco acciones: 27, confirmado en la consulta global final.
-- No se han fusionado PR, eliminado ramas, borrado archivos ni cambiado configuraciones de facturación.
+- No se han fusionado PR, eliminado ramas ni cambiado configuraciones de facturación. Se renombró un documento en la rama de PR #104 como corrección de numeración ADR: se creó ADR-006 con el contenido actualizado y se eliminó únicamente la copia antigua con nombre ADR-005; no se perdió contenido.
 
 ## Acciones realizadas
 
