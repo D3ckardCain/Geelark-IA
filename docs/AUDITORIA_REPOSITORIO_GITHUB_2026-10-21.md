@@ -50,13 +50,13 @@ Las PR abiertas no son una lista plana: varias se apilan unas sobre otras. El or
 
 - **Contratos:** #16 (base `main`) → #30; #28 también se apoya en la rama de contratos #16.
 - **Persistencia/outbox/journal:** #32 (base `main`) → #34 → #36 → #38 → #42 → #44 → #47 → #48 → #101 → #74 → #104. Esta cadena se debe revisar como conjunto y no fusionar fuera de orden.
-- **Entrega de tareas y ciclo de agente:** #52 se apoya en #74; #57 se apoya en #52; #67 se apoya en #57; #85 se apoya en #67. #49 se apoya en #38.
+- **Entrega de tareas y ciclo de agente:** #52 se apoya en #74; #57 se apoya en #52; #67 se apoya en #57; #85 se apoya en #67. La PR #49, que se apoyaba en #38, se cerró como supersedida después de confirmar que el journal de #38 ya ofrece ACK durable versionado más seguro.
 - **Aplicación de escritorio Windows:** #87 se apoya en una rama anterior del panel local; #103 se apoya en #87. Mantener separados el envoltorio de escritorio y el panel/API web mientras se aclara su integración.
 - **Documentación independiente:** #21 (inventario de hardware), #23 (manual de operación), #26 (caché de artefactos), #40 (ADR de autenticación de agentes), #70 (prototipo dashboard), #86 (actualización de evidencia GeeLark).
 
 Este mapa sustituye la instantánea temporal de PR #45 del 2026-10-10/14; la PR #45 se cerró como supersedida sin merge. Los metadatos pueden cambiar si se actualizan las bases de las ramas.
 
-## PR #49: posible rama de journal/ACK fuera de la cadena de transporte
+## PR #49 — cerrada como supersedida por #38
 
 - La PR #49 (`feat/agent-journal-delivery-ack`) está basada en `feat/cluster-agent-guard` (#38); la PR #48 (`feat/agent-https-transport`) parte de `feat/agent-operation-authorization`, y #101 parte de #48. La cadena descrita en Issue #50 no incluye #49.
 - #49 modifica el journal local y su entrega de recibos. Debe compararse con el contrato `mark_receipt_delivered` y el ACK esperado por #48/#101 para decidir si es dependencia faltante o implementación reemplazada.
