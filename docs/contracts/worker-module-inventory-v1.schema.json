@@ -73,7 +73,8 @@
             ]
           },
           "maxContains": 1,
-          "description": "At most one entry may declare module_id agent-guard."
+          "description": "At most one entry may declare module_id agent-guard.",
+          "minContains": 0
         },
         {
           "contains": {
@@ -88,7 +89,8 @@
             ]
           },
           "maxContains": 1,
-          "description": "At most one entry may declare module_id agent-supervisor."
+          "description": "At most one entry may declare module_id agent-supervisor.",
+          "minContains": 0
         },
         {
           "contains": {
@@ -103,7 +105,8 @@
             ]
           },
           "maxContains": 1,
-          "description": "At most one entry may declare module_id agent-transport."
+          "description": "At most one entry may declare module_id agent-transport.",
+          "minContains": 0
         },
         {
           "contains": {
@@ -118,7 +121,8 @@
             ]
           },
           "maxContains": 1,
-          "description": "At most one entry may declare module_id android-engine."
+          "description": "At most one entry may declare module_id android-engine.",
+          "minContains": 0
         },
         {
           "contains": {
@@ -133,7 +137,8 @@
             ]
           },
           "maxContains": 1,
-          "description": "At most one entry may declare module_id task-journal."
+          "description": "At most one entry may declare module_id task-journal.",
+          "minContains": 0
         }
       ]
     }
