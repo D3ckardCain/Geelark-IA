@@ -81,7 +81,7 @@ La colisión de numeración quedó corregida en la rama de PR #104 el 2026-10-22
 ### PR #104 — panel PC-MASTER autenticado, solo lectura y seguridad Windows
 
 - Sigue en draft y **no está fusionada**.
-- Su descripción registra CI verde en el HEAD `3b71c7979f068e5759d263dd9af13f65fc1161fd`: suite raíz 293 passed / 3 skipped, Windows ACL 50 passed / 8 skipped, y transporte HTTPS success.
+- HEAD actualizado tras renumerar ADR: `bcdf090a25b4a4e966a8d9ad5eb512f5aeb9ba32`. Persistencia run #599: suite raíz **293 passed / 3 skipped**, Windows ACL **50 passed / 8 skipped**, servicio de asignaciones **33 passed** más guard **12 passed**, auth **70 passed / 2 skipped**; `pip check` limpio en los tres jobs. Transporte HTTPS run #470 también `success`. Estos checks validan este SHA, no la aceptación manual ni la integración.
 - La propia PR declara pendientes revisión final de diffs y aceptación manual en el PC-MASTER real: TLS/certificados, login/logout y permisos efectivos contra PostgreSQL local desechable.
 - Issue de aceptación manual: #77.
 - No marcar el módulo como aceptado solo por CI.
@@ -107,7 +107,7 @@ Se consultaron los workflows asociados a los SHA actuales de las PR, sin lanzar 
 - **#87:** el único workflow encontrado para su HEAD actual terminó **cancelled** (#578). No cuenta como CI verde de la aplicación de escritorio. La PR #103 prueba una rama de correcciones basada en #87, pero no reemplaza la validación final de la aplicación completa.
 - **#86, #40, #26, #23 y #21:** no se encontraron workflows asociados a sus HEADs en la consulta; son PR documentales y esto no se debe etiquetar como CI aprobada.
 
-La consulta de logs confirmó los conteos indicados para #104 y #103. No se iniciaron workflows manualmente durante la auditoría inicial; las correcciones de código posteriores activaron CI automáticamente en las PR #48 y #104. La CI demuestra el estado de un SHA, no aceptación manual, integración en `main`, despliegue ni funcionamiento en Workers físicos.
+La consulta de logs confirmó los conteos indicados para #104, #103 y #48. No se iniciaron workflows manualmente durante la auditoría inicial; las correcciones de código posteriores activaron CI automáticamente en las PR #48 y #104. La CI demuestra el estado de un SHA, no aceptación manual, integración en `main`, despliegue ni funcionamiento en Workers físicos.
 
 ## Issues: criterio de limpieza
 
