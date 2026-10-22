@@ -1,6 +1,6 @@
 # Estado del proyecto Geelark-IA
 
-**Actualizado:** 2026-10-21  
+**Actualizado:** 2026-10-22  
 **Fase:** A — inventario funcional de GeeLark y estudio de viabilidad de Android virtualizado local.  
 **Implementación:** no hay módulos declarados como terminados o verificados.
 
@@ -314,7 +314,8 @@ Registro detallado: [AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md](AUDITORIA_REPOS
 - La auditoría encontró que `main` contiene documentación, no el código de los paquetes, migraciones, pruebas o workflows que están siendo validados en ramas de PR. Mantener explícita esta distinción.
 - Los Issues #2 (alcance inicial), #18 (duplicado de #29) y #22 (duplicado de #33) se cerraron con motivo registrado. Las tareas específicas siguen en #3, #4, #6, #29 y #33. No se cerraron Issues solo por antigüedad ni por pruebas ejecutadas en ramas no fusionadas.
 - La vía QEMU + Android-x86 + VNC está retirada como estrategia de producto; la limpieza local de WSL sigue pendiente de ejecución manual del usuario.
-- Conteo de auditoría tras limpieza: 27 PR abiertas y 41 Issues abiertas (incluye la nueva Issue #105 para resolver la colisión ADR-005). Se cerraron como supersedidas #25, #45, #90, #99 y #102; el Issue #2 se cerró como completado.
+- Conteo de auditoría tras limpieza: 27 PR abiertas y 41 Issues abiertas (incluye la nueva Issue #105 para resolver la colisión ADR-005).
+- Continuación de auditoría (22-oct): en la rama de PR #104, ADR de autenticación del panel se renumeró como ADR-006; Issue #105 sigue abierta hasta revisar referencias y CI del HEAD nuevo. En la PR #48 se corrigió el pin del workflow al journal versionado de PR #38 (commit `cbede919af6242c9d874a6eead3596e0144d81ec`); la CI de ese HEAD aún no se había observado al registrar el cambio. Se cerraron como supersedidas #25, #45, #90, #99 y #102; el Issue #2 se cerró como completado.
 - CI consultada por SHA: PR #104 tiene suite raíz 293 passed/3 skipped, Windows ACL 50 passed/8 skipped y transporte en success; PR #103 tiene suite raíz 180 passed/3 skipped y Windows ACL 16 passed/2 skipped. Ambas siguen en draft. La PR #87 tiene su workflow asociado al HEAD actual cancelado, por lo que no cuenta como CI verde de la aplicación completa.
 - Hallazgo pendiente de resolver antes de fusionar: colisión de numeración ADR-005 entre autenticación de agentes (PR #40) y autenticación del panel PC-MASTER (PR #104). Ver [auditoría del repositorio](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md).
 
