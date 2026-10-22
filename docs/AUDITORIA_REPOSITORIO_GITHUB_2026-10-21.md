@@ -101,7 +101,8 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 
 ## Documentación envejecida detectada
 
-- `docs/ESTADO_PROYECTO.md` y `docs/PLAN_TRABAJO.md` tenían encabezado de actualización del 2026-10-09 aunque había decisiones y pruebas posteriores hasta 2026-10-21.
+- `docs/ESTADO_PROYECTO.md` y `docs/PLAN_TRABAJO.md` tenían encabezado de actualización del 2026-10-09 aunque había decisiones y pruebas posteriores hasta 2026-10-21; ambos se actualizaron.
+- `docs/CATALOGO_FUNCIONAL_GEELARK.md`, `docs/INVESTIGACION_FUNCIONAL_GEELARK.md` y `docs/MATRIZ_PARIDAD_GEELARK.md` en `main` siguen fechados 2026-10-09. La PR #86 contiene versiones más extensas fechadas 2026-10-12 (por ejemplo, el catálogo pasa de ~63 KB a ~79 KB), por lo que no se debe cerrar como duplicada; debe reconciliarse con el estado actual y revisarse antes de integrar.
 - Los documentos centrales deben distinguir explícitamente:
   1. contenido presente en `main`;
   2. implementación en PR abierta;
