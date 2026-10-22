@@ -56,6 +56,12 @@ Las PR abiertas no son una lista plana: varias se apilan unas sobre otras. El or
 
 Este mapa sustituye la instantánea temporal de PR #45 del 2026-10-10/14; la PR #45 se cerró como supersedida sin merge. Los metadatos pueden cambiar si se actualizan las bases de las ramas.
 
+## Duplicación parcial de artefactos del panel
+
+- PR #70 (prototipo) y PR #74 (proveedor de snapshots) contienen los mismos blobs SHA para `docs/contracts/master-worker-status-v1.schema.json` y `docs/contracts/examples/master-worker-status-v1.example.json`; no se detectó divergencia de contenido en esos dos archivos. Al integrar, conservar una sola copia canónica del contrato.
+- El manual `docs/MANUAL_USUARIO_PANEL_CONTROL_MASTER.md` de #70 es una versión anterior (7,341 bytes); #104 contiene una versión más actualizada (9,919 bytes) que declara autenticación y estado draft. No fusionar el manual antiguo encima del actualizado.
+- #70 se mantiene abierta por el prototipo visual y documentación contractual; su CI del prototipo está en éxito, pero los datos de demo no representan el estado real del clúster.
+
 ## Conflicto de numeración ADR detectado
 
 En las ramas abiertas hay dos documentos diferentes con el número **ADR-005**:
