@@ -61,3 +61,18 @@ La evaluación preliminar todavía presenta Android-x86/Bliss OS en QEMU/KVM com
 ## Alcance de esta auditoría
 
 No se fusionaron PR, no se borraron ramas, no se modificaron los binarios ni se ejecutaron pruebas en los equipos físicos. Se publicaron comentarios de continuidad en las issues #88, #91 y #93 y se registraron las decisiones de retirada de QEMU en #8 y #24.
+
+
+## Hallazgo adicional — documentación histórica de motores Android
+
+La rama `docs/android-engine-evaluation` contiene documentación útil, pero no debe confundirse con una decisión vigente:
+
+- `docs/ACTUALIZACION_SEGURIDAD_REDROID_2026-10-09.md` registra un riesgo de redroid privilegiado y propone QEMU/Bliss OS como alternativa si no se demuestra una mitigación.
+- `docs/EVALUACION_PRELIMINAR_MOTOR_ANDROID_CLUSTER.md` todavía presenta redroid como candidato prioritario y QEMU/KVM como plan alternativo.
+- Esa recomendación de QEMU/Android-x86/Bliss OS está **obsoleta y descartada por decisión del usuario**. No ejecutar ni reactivar ese plan, ni convertir el descarte en una selección automática de redroid u otro motor.
+- La información de seguridad histórica de redroid y los requisitos de aislamiento siguen siendo referencias documentales, pero cualquier evaluación futura debe partir de una nueva decisión explícita y evidencia actualizada. Hasta entonces, el motor Android queda **sin seleccionar**.
+- No se ha copiado esta rama completa a `main`: sigue divergida y contiene documentos únicos. La reconciliación debe ser selectiva y preservar las evidencias no obsoletas.
+
+## Próxima unidad de auditoría
+
+Priorizar una reconciliación documental selectiva de la PR #86 por archivo, sin fusionar su rama divergida completa; después clasificar los documentos únicos de `docs/android-engine-evaluation` y `docs/cluster-os-poc-decision` como vigentes, históricos o pendientes. La limpieza de ramas solo se hará después de verificar que no queda contenido único sin migrar.
