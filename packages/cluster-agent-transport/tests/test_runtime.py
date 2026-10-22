@@ -222,8 +222,13 @@ def test_runtime_uses_fenced_journal_ack_api_when_available():
             super().__init__()
             self.delivered = []
 
-        def mark_receipt_delivered(self, operation_id, assignment_epoch):
-            self.delivered.append((operation_id, assignment_epoch))
+        def mark_receipt_delivered(
+            self, operation_id, assignment_epoch, *, expected_status, expected_result
+        ):
+            self.delivered.append(
+                (operation_id, assignment_epoch, expected_status, expected_result)
+            )
+            return self.ack_result
 
     node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
     journal = FencedJournal()
@@ -236,7 +241,7 @@ def test_runtime_uses_fenced_journal_ack_api_when_available():
     runtime = make_runtime(FakeClient(), journal, node_id)
 
     assert runtime.sync_pending_receipts(limit=1) == (1, 1)
-    assert journal.delivered == [(operation_id, 7)]
+    assert journal.delivered == [(operation_id, 7, "succeeded", {"ok": True})]
     assert journal.synced == []
 
 
