@@ -142,7 +142,7 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 - **PR #87:** se registró la superposición de archivos backend con #104 y que el workflow del HEAD actual aparece cancelado.
 - **Issue #88:** documentada la evidencia de GitHub: `main` no contiene la aplicación PC-MASTER; la candidata de escritorio está en #87, basada en la rama de la PR #76 cerrada sin merge, y el panel/API actual está en #104. La procedencia exacta del acceso directo local no puede confirmarse sin comparar el archivo ejecutado en el PC-MASTER; la issue permanece abierta.
 - **Issue #64:** se verificó que la decisión de sistema base y separación de roles está cerrada como decisión resuelta; el texto distingue expresamente que Debian/PXE, aprovisionamiento y runtime Android aún no están implementados ni probados.
-- **PR #86:** se conserva abierta porque tiene contenido funcional más amplio aún no integrado; requiere reconciliar fechas y el plan antiguo antes de fusionar.
+- **PR #86:** se conserva abierta porque tiene contenido funcional más amplio aún no integrado. En su rama se actualizaron `INVESTIGACION_FUNCIONAL_GEELARK.md` y `MATRIZ_PARIDAD_GEELARK.md` con el estado actual de motores; el `PLAN_TRABAJO.md` de esa rama sigue anterior a la higiene de `main` y no debe sobrescribirlo sin reconciliar las secciones únicas de RPA.
 
 ## Documentación envejecida detectada
 
