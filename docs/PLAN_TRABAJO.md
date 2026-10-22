@@ -63,9 +63,9 @@ No se inicia implementación de producto ni se selecciona stack definitivo duran
 
 ## Comparativa documental de motores (2026-10-09)
 
-Se completó una primera comparación documental de redroid, Android Emulator oficial, Waydroid y Android-x86/derivados. La revisión detecta que no basta con comparar funciones: las condiciones de licencia de SDK/imágenes, las funciones del kernel Linux, el aislamiento entre instancias y los privilegios/puertos ADB son criterios de bloqueo.
+Se amplió la investigación documental de redroid, Android Emulator, Waydroid, Cuttlefish y automatización. La vía manual QEMU + Android-x86 9.0-r2 + VNC en WSL2 se retiró como ruta de producto. La prioridad actual de evaluación es Cuttlefish por su multiinstancia y control WebRTC documentados; redroid queda bloqueado por seguridad en issue #27; Android Emulator es referencia de compatibilidad y Waydroid una alternativa secundaria.
 
-La issue [#8 — Comparar y validar motores Android locales](https://github.com/D3ckardCain/Geelark-IA/issues/8) controla los siguientes entregables. redroid queda como primer candidato a probar si el anfitrión resulta ser Linux compatible; no es aún el motor aprobado. La selección permanece bloqueada hasta obtener las especificaciones del anfitrión y completar una prueba reproducible.
+La issue [#8 — Seleccionar y validar motores Android locales y automatización](https://github.com/D3ckardCain/Geelark-IA/issues/8) controla los entregables. No hay motor aprobado: la selección requiere revisión de licencias/seguridad y pruebas reproducibles en Debian físico.
 
 
 ## Actualización del orden de auditoría — 2026-10-09
@@ -196,3 +196,18 @@ Se añadió [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSIST
 ### Próxima tarea técnica registrada
 
 La issue [#17 — persistencia transaccional de asignaciones y outbox](https://github.com/D3ckardCain/Geelark-IA/issues/17) queda preparada con criterios de aceptación para exclusión de doble propietario, idempotencia durable, epoch, reservas, outbox, recuperación y backups. No se empezará esa implementación hasta cerrar la revisión de contratos del PR #16.
+
+
+## Actualización del plan de motores — 2026-10-21
+
+La ruta manual QEMU + Android-x86 9.0-r2 + VNC queda retirada. La investigación ampliada está en [INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md](INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md).
+
+Nuevo orden:
+1. Revisar licencias, imágenes, host y seguridad de Cuttlefish; después realizar una prueba de una instancia y otra de dos en Debian físico de laboratorio.
+2. Mantener redroid bloqueado hasta resolver issue #27 y demostrar aislamiento con privilegios mínimos.
+3. Usar Android Emulator oficial como referencia de compatibilidad únicamente después de revisar los términos del SDK/imágenes.
+4. Mantener Waydroid como alternativa secundaria.
+5. Diseñar RPA Builder/Runner, Synchronizer, API/eventos y control de instancias detrás de un contrato agnóstico del motor.
+6. Medir recursos y escalar progresivamente; no prometer 50 instancias sin resultados.
+
+Estas decisiones documentales no autorizan todavía instalación en WORKERS físicos ni demuestran rendimiento.
