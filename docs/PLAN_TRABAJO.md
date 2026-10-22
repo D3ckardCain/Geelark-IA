@@ -1,9 +1,13 @@
 # Plan de trabajo — Geelark-IA
 
-**Actualizado:** 2026-10-12  
+**Actualizado:** 2026-10-22  
 **Fase activa:** A — inventario funcional de GeeLark y viabilidad de Android virtualizado local.
 
 El plan maestro está en [PLAN_PARIDAD_GEELARK.md](PLAN_PARIDAD_GEELARK.md). La investigación documental está en [INVESTIGACION_FUNCIONAL_GEELARK.md](INVESTIGACION_FUNCIONAL_GEELARK.md), la matriz en [MATRIZ_PARIDAD_GEELARK.md](MATRIZ_PARIDAD_GEELARK.md) y la comparativa de motores en [COMPARATIVA_MOTORES_ANDROID.md](COMPARATIVA_MOTORES_ANDROID.md).
+
+## Higiene y estado de integración — 2026-10-22
+
+Antes de avanzar en nuevas funciones, revisar la [auditoría de higiene del repositorio](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md). La rama `main` conserva requisitos y documentación; el código que se está validando sigue en PR abiertas. Las PR #90 y #102 se cerraron en favor de #103, la PR #99 se cerró en favor de #104 y la evaluación preliminar obsoleta #25 se cerró en favor de la investigación actual y la instantánea de auditoría #45 se cerró en favor del informe actualizado. El Issue #2 de alcance inicial quedó completado; los Issues #18 y #22 se cerraron como duplicados tras trasladar sus criterios únicos a #29 y #33. Los Issues #3/#4/#6 siguen cubriendo inventario y paridad. No fusionar ni declarar aceptado un módulo hasta revisar dependencias, CI del HEAD actual y criterios de aceptación manual. La PR #48 pasó transporte HTTPS (54 passed, 1 warning; `pip check` limpio) en su HEAD `f2301e9b1673c57b74a9d625f3f4788f603a83ed`; esto no sustituye integrar el journal #38 ni validar el grafo de ramas. Bloqueos de auditoría vigentes: la PR #87 tiene CI cancelada en su HEAD actual; la colisión ADR-005 entre #40 y #104 ya se corrigió renumerando la ADR de PC-MASTER como ADR-006 y cerrando la Issue #105. La PR #104 sigue en draft y requiere aceptación manual antes de integrar. Además, #87/#103 se apoyan en la rama de #76 cerrada sin merge; su ascendencia debe reconciliarse con #104 antes de integrar.
 
 ## Objetivo confirmado
 
@@ -63,9 +67,9 @@ No se inicia implementación de producto ni se selecciona stack definitivo duran
 
 ## Comparativa documental de motores (2026-10-09)
 
-Se completó una primera comparación documental de redroid, Android Emulator oficial, Waydroid y Android-x86/derivados. La revisión detecta que no basta con comparar funciones: las condiciones de licencia de SDK/imágenes, las funciones del kernel Linux, el aislamiento entre instancias y los privilegios/puertos ADB son criterios de bloqueo.
+Se amplió la investigación documental de redroid, Android Emulator, Waydroid, Cuttlefish y automatización. La vía manual QEMU + Android-x86 9.0-r2 + VNC en WSL2 se retiró como ruta de producto. La prioridad actual de evaluación es Cuttlefish por su multiinstancia y control WebRTC documentados; redroid queda bloqueado por seguridad en issue #27; Android Emulator es referencia de compatibilidad y Waydroid una alternativa secundaria.
 
-La issue [#8 — Comparar y validar motores Android locales](https://github.com/D3ckardCain/Geelark-IA/issues/8) controla los siguientes entregables. redroid queda como primer candidato a probar si el anfitrión resulta ser Linux compatible; no es aún el motor aprobado. La selección permanece bloqueada hasta obtener las especificaciones del anfitrión y completar una prueba reproducible.
+La issue [#8 — Seleccionar y validar motores Android locales y automatización](https://github.com/D3ckardCain/Geelark-IA/issues/8) controla los entregables. No hay motor aprobado: la selección requiere revisión de licencias/seguridad y pruebas reproducibles en Debian físico.
 
 
 ## Actualización del orden de auditoría — 2026-10-09
@@ -128,14 +132,14 @@ La arquitectura de clúster heterogéneo queda incorporada como línea prioritar
 Documentos nuevos:
 - [Arquitectura de clúster heterogéneo](ARQUITECTURA_CLUSTER_HETEROGENEO.md).
 - [Contrato del agente de nodo y planificador distribuido](CONTRATO_AGENTE_NODO_PLANIFICADOR.md).
-- [Comparativa Proxmox VE frente a Linux directo](COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md).
+- [Arquitectura de clúster físico heterogéneo](ARQUITECTURA_CLUSTER_HETEROGENEO.md).
 - [ADR-003 — Arquitectura distribuida](decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md).
 - [Issue #14 — Integrar clúster y planificador](https://github.com/D3ckardCain/Geelark-IA/issues/14).
 
 Orden de trabajo actualizado:
 1. Cerrar el contrato del agente de nodo, alta/autorización, heartbeat, capacidades, tareas, leases, seguridad y reconciliación.
 2. Diseñar el modelo de recursos y la asignación explicable para CPU, RAM, disco, ABI, motor Android y salud.
-3. Mantener Proxmox VE y Linux directo como candidatos hasta comparar licencias, mantenimiento, aislamiento y rendimiento.
+3. Mantener Debian 13 como sistema base previsto de los WORKER y validar la compatibilidad de virtualización Android, licencias, seguridad y rendimiento.
 4. Definir una prueba reproducible de dos nodos heterogéneos y un workload Android común.
 5. Solo después de la prueba, decidir infraestructura y motor; luego implementar el núcleo distribuido con pruebas y manual en español.
 
@@ -147,7 +151,7 @@ La especificación de agente/planificador ya está documentada, pero no implemen
 Se añadieron dos documentos para convertir el diseño del clúster en criterios comprobables:
 
 - [Especificación del planificador de recursos](ESPECIFICACION_PLANIFICADOR_RECURSOS.md): filtros de elegibilidad, reservas, puntuación explicable, leases/epochs, reconciliación, seguridad y pruebas de aceptación.
-- [Plan de prueba de concepto del clúster](PLAN_PRUEBA_CONCEPTO_CLUSTER.md): protocolo reproducible para comparar Linux directo y Proxmox VE con dos nodos heterogéneos, medir cargas Android y comprobar desconexión, recuperación y backups.
+- [Plan de prueba de concepto del aprovisionamiento](PLAN_PRUEBA_CONCEPTO_CLUSTER.md): protocolo para validar descubrimiento, adopción aprobada, instalación desatendida de Debian por red, despliegue del agente y preparación del entorno Android.
 
 Orden inmediato:
 1. Revisar la persistencia autoritativa y las garantías de consistencia del plano de control antes de implementar asignaciones distribuidas.
@@ -197,6 +201,24 @@ Se añadió [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSIST
 
 La issue [#17 — persistencia transaccional de asignaciones y outbox](https://github.com/D3ckardCain/Geelark-IA/issues/17) queda preparada con criterios de aceptación para exclusión de doble propietario, idempotencia durable, epoch, reservas, outbox, recuperación y backups. No se empezará esa implementación hasta cerrar la revisión de contratos del PR #16.
 
+
+## Actualización del plan de motores — 2026-10-21
+
+La ruta manual QEMU + Android-x86 9.0-r2 + VNC queda retirada. La investigación ampliada está en [INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md](INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md).
+
+Nuevo orden:
+1. Revisar licencias, imágenes, host y seguridad de Cuttlefish; después realizar una prueba de una instancia y otra de dos en Debian físico de laboratorio.
+2. Mantener redroid bloqueado hasta resolver issue #27 y demostrar aislamiento con privilegios mínimos.
+3. Usar Android Emulator oficial como referencia de compatibilidad únicamente después de revisar los términos del SDK/imágenes.
+4. Mantener Waydroid como alternativa secundaria.
+5. Diseñar RPA Builder/Runner, Synchronizer, API/eventos y control de instancias detrás de un contrato agnóstico del motor.
+6. Medir recursos y escalar progresivamente; no prometer 50 instancias sin resultados.
+
+Estas decisiones documentales no autorizan todavía instalación en WORKERS físicos ni demuestran rendimiento.
+
+## Evidencia histórica de revalidación funcional — 2026-10-12
+
+> Esta evidencia documental se conserva como historial. La prioridad vigente de motores y la higiene de integración están registradas en las secciones anteriores de este plan.
 
 ### Revalidación documental de GeeLark (2026-10-12)
 
