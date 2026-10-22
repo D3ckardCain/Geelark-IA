@@ -169,7 +169,7 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 
 - Inspeccionado el log del run de transporte #295 (ID `38193127429`): fallaron exactamente dos pruebas de `test_runtime.py` relacionadas con la sincronización/ACK real del journal. El workflow instalaba el SHA histórico `e37e5aaef72837c19837eb5b648c29f05ae9b3c3`, cuya firma `mark_receipt_synced(operation_id)` no implementa los argumentos versionados `expected_status` y `expected_result`.
 - La PR #38 en su HEAD `5815bc6e8f4146099e5fff028008fdf9f0ede5d6` sí contiene el método versionado. Corregí el pin en `.github/workflows/cluster-agent-transport.yml` dentro de la rama de la PR #48; commit `cbede919af6242c9d874a6eead3596e0144d81ec`.
-- **Estado de validación:** la corrección está en el HEAD actual de #48, pero al consultar todavía no había una ejecución de CI asociada a ese SHA. No se declara resuelta hasta comprobar el resultado de las pruebas.
+- La CI del commit de pin `cbede919af6242c9d874a6eead3596e0144d81ec` (#469) eliminó las dos fallas anteriores del journal real, pero expuso una falla adicional del test double `FencedJournal.mark_receipt_delivered`: la firma del fixture no aceptaba `expected_status/expected_result` ni devolvía el ACK booleano esperado. Ajusté el fixture y la aserción en commit `f2301e9b1673c57b74a9d625f3f4788f603a83ed`. **Aún no hay CI observada para ese SHA**, por lo que el arreglo sigue pendiente de validación.
 - **Límite de la corrección:** el pin permite que la prueba cruzada instale la API compatible, pero no cambia la base de #48 ni integra la historia de #38. La topología de ramas y las migraciones siguen requiriendo integración ordenada; no hacer merge por el mero hecho de que el workflow pase.
 
 ## Límites de esta auditoría
