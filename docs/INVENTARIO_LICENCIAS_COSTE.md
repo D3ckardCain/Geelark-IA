@@ -1,6 +1,7 @@
 # Inventario inicial de licencias y coste — Geelark-IA
 
-**Fecha:** 2026-10-09  
+**Fecha de evaluación inicial:** 2026-10-09  
+**Revisión de estado:** 2026-10-21  
 **Estado:** evaluación preliminar de componentes principales. No sustituye el inventario automático de dependencias transitivas ni la revisión legal de las imágenes/aplicaciones redistribuidas.
 
 ## Criterios
@@ -13,15 +14,15 @@
 
 | Componente | Uso previsto | Licencia/evidencia pública | Evaluación de coste | Decisión |
 |---|---|---|---|---|
-| Tauri 2 | Aplicación escritorio | MIT y MIT/Apache-2.0 según componente: https://github.com/tauri-apps/tauri | Sin cuota de licencia; hay que revisar cada plugin | Aprobado como candidato |
-| React | UI | MIT: https://github.com/facebook/react/blob/main/LICENSE | Sin cuota de licencia | Candidato aprobado |
-| Vite | Herramientas de frontend | MIT: https://github.com/vitejs/vite/blob/main/LICENSE | Sin cuota de licencia | Candidato aprobado |
+| Tauri 2 | Alternativa de UI de escritorio | MIT y MIT/Apache-2.0 según componente: https://github.com/tauri-apps/tauri | Sin cuota de licencia; revisar cada plugin | No seleccionado; no reescribir PC-MASTER sin decisión explícita |
+| React | UI web opcional | MIT: https://github.com/facebook/react/blob/main/LICENSE | Sin cuota de licencia | Candidato técnico; no implica selección del stack |
+| Vite | Herramientas de frontend opcional | MIT: https://github.com/vitejs/vite/blob/main/LICENSE | Sin cuota de licencia | Candidato técnico; no implica selección del stack |
 | Python | Backend | Distribución disponible gratuitamente; términos PSF: https://www.python.org/psf/about/legal-and-policies/ | Sin cuota de licencia | Candidato aprobado |
 | FastAPI | API local | MIT: https://github.com/fastapi/fastapi | Sin cuota de licencia | Candidato aprobado |
 | SQLite | Persistencia local | Dominio público: https://www.sqlite.org/copyright.html | Sin cuota de licencia/servidor | Candidato aprobado |
 | Android Emulator/SDK | Baseline Android | Condiciones del SDK de Google: https://developer.android.com/studio/terms | No asumir redistribución irrestricta; aceptar términos al descargar y revisar distribución de imágenes | Solo herramienta de desarrollo/prueba hasta revisar |
-| redroid | Motor Android en contenedores | Repositorio/documentación pública: https://github.com/remote-android/redroid-doc | Sin cuota de uso indicada en el proyecto; revisar licencia exacta de cada imagen y componentes AOSP | Candidato experimental, no aprobado todavía |
-| Waydroid | Alternativa Android Linux | Documentación y repositorio: https://github.com/waydroid/docs | Revisar licencias de imágenes/componentes | Alternativa experimental |
+| redroid | Motor Android en contenedores | Repositorio/documentación pública: https://github.com/remote-android/redroid-doc | Revisar licencia exacta de imagen/componentes AOSP y riesgos upstream | Bloqueado por Issue #27; no instalar hasta revisión de seguridad |
+| AOSP Cuttlefish | Primer candidato para laboratorio Debian físico | Documentación AOSP: https://source.android.com/docs/devices/cuttlefish/get-started; licencias exactas de imagen/componentes aún por confirmar | No se ha identificado cuota de licencia obligatoria; revisar paquetes, imagen y términos antes de instalar | Candidato prioritario de prueba; no aprobado |\n| Waydroid | Alternativa Android Linux | Documentación y repositorio: https://github.com/waydroid/docs | Revisar licencias de imágenes/componentes | Alternativa secundaria; no aprobada |
 | Appium | Automatización de pruebas Android | Apache-2.0: https://github.com/appium/appium | Sin cuota de licencia | Herramienta de pruebas |
 | Playwright | Pruebas E2E de UI | Proyecto público y aviso de licencia: https://github.com/microsoft/playwright | Sin cuota de licencia; revisar dependencias y navegadores instalados | Herramienta de pruebas |
 | n8n | Motor general de workflows | Sustainable Use License y licencia Enterprise: https://docs.n8n.io/sustainable-use-license/ | Restricciones para ofrecer editor/automatización en un producto | No usar como motor integrado |
