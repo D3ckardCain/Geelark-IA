@@ -2,7 +2,7 @@
 
 Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la referencia funcional para las capacidades que decidamos implementar. Este repositorio documenta requisitos y decisiones confirmados durante este proyecto; no se importará código, arquitectura, datos ni soluciones de proyectos o conversaciones anteriores.
 
-> **Estado actual:** fase A — auditoría funcional de GeeLark y viabilidad de Android virtualizado local. La documentación y matriz están en construcción. No hay módulos implementados ni se ha seleccionado un motor Android.
+> **Estado actual:** auditoría funcional de GeeLark, investigación de motores Android locales y arquitectura de automatización. No hay motor Android aprobado para producción. La vía manual QEMU + Android-x86 9.0-r2 + VNC se retiró como ruta de producto.
 
 ## Reglas de trabajo
 
@@ -33,12 +33,13 @@ Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la refer
 - `docs/CATALOGO_FUNCIONAL_GEELARK.md`: inventario funcional por módulos, evidencia, adaptaciones y límites.
 - `docs/MATRIZ_PARIDAD_GEELARK.md`: requisitos de paridad, estados y pruebas pendientes.
 - `docs/INVESTIGACION_FUNCIONAL_GEELARK.md`: fuentes y análisis documental.
-- `docs/COMPARATIVA_MOTORES_ANDROID.md`: candidatos Android locales y protocolo de prueba; sin motor seleccionado.
+- `docs/COMPARATIVA_MOTORES_ANDROID.md`: comparativa ejecutiva y estado de selección.
+- `docs/INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md`: investigación ampliada de motores, licencias, seguridad, RPA, Synchronizer, API y pruebas.
 - `docs/MODELO_AMENAZAS_SEGURIDAD.md`: controles de seguridad requeridos, aún no implementados.
 - `docs/GUIA_INVENTARIO_EQUIPO.md`: guía opcional para validación final en hardware real.
 - `docs/ARQUITECTURA_TECNOLOGICA_PROPUESTA.md`: combinación tecnológica local-first propuesta.
 - `docs/decisiones/ADR-001-STACK-PRINCIPAL.md`: decisión inicial de stack y anfitrión de referencia.
-- `docs/decisiones/ADR-002-ESTRATEGIA-MOTOR-ANDROID.md`: criterios para elegir motor Android sin asumir paridad.
+- `docs/decisiones/ADR-002-ESTRATEGIA-MOTOR-ANDROID.md`: decisión actual de selección del motor; retira el prototipo QEMU manual y prioriza la evaluación de Cuttlefish.
 - `docs/INVENTARIO_LICENCIAS_COSTE.md`: licencias, costes y restricciones de redistribución.
 - `docs/CONTRATO_ADAPTADOR_ANDROID.md`: contrato agnóstico para motores Android.
 - `docs/ESPECIFICACION_MOTOR_RPA.md`: diseño de automatización por bloques tipados.
@@ -48,22 +49,31 @@ Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la refer
 
 El PC-MASTER se mantiene como aplicación Windows. Los PC WORKER son equipos físicos con Debian 13 como sistema base previsto; PC-MASTER deberá descubrirlos, solicitar aprobación de adopción y automatizar el aprovisionamiento del agente y del entorno Android. Las capacidades y el rendimiento se validarán paso a paso.
 
+## Investigación actual de motores
+
+- **Primera prioridad de evaluación:** AOSP Cuttlefish, por la documentación oficial de multiinstancia y control WebRTC.
+- **Candidato bloqueado:** redroid, hasta resolver la revisión de seguridad registrada en issue #27.
+- **Referencia de compatibilidad:** Android Emulator oficial, sujeto a revisión de términos del SDK e imágenes.
+- **Alternativa secundaria:** Waydroid, pendiente de demostrar multiinstancia independiente y operación headless.
+- **Retirado:** prototipo manual QEMU + Android-x86 9.0-r2 + VNC en WSL2. No se seguirá depurando ni se utilizará como base de producto.
+
+Estas son prioridades documentales, no resultados de pruebas. Ningún motor ha sido aprobado para producción y no hay estimación validada de instancias por WORKER. La prueba técnica deberá ejecutarse en Debian físico de laboratorio después de revisar licencias y seguridad.
+
 ## Seguridad
 
-No guardar contraseñas, tokens, claves privadas ni otros secretos en el repositorio, commits o incidencias. Las automatizaciones deberán respetar las condiciones aplicables de los servicios y plataformas utilizados.
-
+No guardar contraseñas, tokens, claves privadas ni otros secretos en el repositorio, commits o incidencias. Las automatizaciones deberán respetar las condiciones aplicables de los servicios y plataformas utilizados. ADB no debe exponerse a redes públicas y la API del producto no ejecutará shell arbitrario.
 
 ## Issues principales
 
 - [#3 — Inventario funcional y matriz de paridad](https://github.com/D3ckardCain/Geelark-IA/issues/3)
 - [#6 — Completar el catálogo funcional](https://github.com/D3ckardCain/Geelark-IA/issues/6)
 - [#7 — Importación selectiva desde Android físico por USB/ADB](https://github.com/D3ckardCain/Geelark-IA/issues/7)
-- [#8 — Comparar y validar motores Android locales](https://github.com/D3ckardCain/Geelark-IA/issues/8)
+- [#8 — Seleccionar y validar motores Android locales y automatización GeeLark-IA](https://github.com/D3ckardCain/Geelark-IA/issues/8)
 - [#9 — Controles de seguridad local, ADB, RPA e importación](https://github.com/D3ckardCain/Geelark-IA/issues/9)
 - [#10 — Recopilar especificaciones del equipo anfitrión](https://github.com/D3ckardCain/Geelark-IA/issues/10)
 - [#11 — Validar combinación tecnológica y arquitectura local-first](https://github.com/D3ckardCain/Geelark-IA/issues/11)
-
-
+- [#12 — Implementar contrato del motor Android y pruebas de conformidad](https://github.com/D3ckardCain/Geelark-IA/issues/12)
+- [#27 — Bloqueo de seguridad de redroid](https://github.com/D3ckardCain/Geelark-IA/issues/27)
 
 ## Arquitectura de clúster heterogéneo
 
@@ -71,39 +81,24 @@ El diseño contempla una PC principal para administrar y varios nodos físicos d
 
 - [Arquitectura del clúster](docs/ARQUITECTURA_CLUSTER_HETEROGENEO.md)
 - [Contrato del agente y planificador](docs/CONTRATO_AGENTE_NODO_PLANIFICADOR.md)
-- [Arquitectura de clúster heterogéneo](docs/ARQUITECTURA_CLUSTER_HETEROGENEO.md)
 - [Plan de prueba de concepto del aprovisionamiento](docs/PLAN_PRUEBA_CONCEPTO_CLUSTER.md)
 - [ADR-003 — Arquitectura distribuida](docs/decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md)
 - [Issue #14 — Integrar clúster y planificador](https://github.com/D3ckardCain/Geelark-IA/issues/14)
 
 La documentación describe decisiones y criterios, no implementación terminada. No se declaran probados el rendimiento, la recuperación, la migración en vivo ni la cantidad de instancias.
 
-
 ## Planificador y validación del clúster
 
 - [Especificación del planificador de recursos](docs/ESPECIFICACION_PLANIFICADOR_RECURSOS.md)
 - [Plan de prueba de concepto del clúster](docs/PLAN_PRUEBA_CONCEPTO_CLUSTER.md)
+- [ADR-004 — Persistencia y consistencia del clúster](docs/decisiones/ADR-004-PERSISTENCIA-CONSISTENCIA-CLUSTER.md)
 
-Ambos documentos son criterios de diseño y validación; no indican que el clúster esté implementado o probado.
-
-- [ADR-004 — Persistencia y consistencia del clúster](docs/decisiones/ADR-004-PERSISTENCIA-CONSISTENCIA-CLUSTER.md) (propuesta para el MVP, pendiente de pruebas).
-
-
-### Contrato de mensajes del clúster
-
-- [Contrato de mensajes del agente y scheduler](docs/CONTRATO_MENSAJES_AGENTE_CLUSTER.md)
-
-Define el contrato esperado y pruebas de conformidad; no es todavía una API desplegada.
-
+Son criterios de diseño y validación; no indican que el clúster esté validado en hardware físico.
 
 ## Regla de continuidad del trabajo
 
 Avanzar de forma autónoma por la siguiente tarea técnicamente justificada y registrar en GitHub el resultado, decisiones, incidencias, soluciones y pruebas. No interrumpir el avance para pedir confirmación de pasos rutinarios ni decisiones reversibles que puedan resolverse con evidencia. Consultar al usuario únicamente cuando falte una credencial/acceso, una decisión de producto no inferible, una aprobación que solo él pueda otorgar o una prueba física que requiera su intervención. Explicar claramente cualquier bloqueo real y dar instrucciones paso a paso cuando su participación sea necesaria.
 
+## Implementación técnica en revisión
 
-### Implementación técnica en revisión
-
-- [PR #16 — contratos tipados y máquina de estados](https://github.com/D3ckardCain/Geelark-IA/pull/16) (borrador; no integrado).
-
-
-- [Especificación de persistencia segura de asignaciones](docs/ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md) (diseño, no implementación).
+Los contratos y componentes existentes pueden estar en ramas/PR en borrador. No confundir código en una rama, pruebas de CI y documentación con integración en la rama principal ni con validación en equipos físicos. No fusionar ni desplegar sin revisar las dependencias, los controles de seguridad y los criterios de aceptación.
