@@ -10,7 +10,7 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 
 - Rama predeterminada: `main`.
 - Árbol recursivo de `main` al inicio de la auditoría: 28 archivos de texto/Markdown contando README y documentos; no aparecen `.github/workflows/`, `packages/`, `db/`, `tests/` ni `prototypes/`.
-- Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos restantes al cierre de esta pasada: 41; se cerraron #2, #18 y #22, y se abrió la #105 para dar seguimiento al bloqueo real de numeración ADR.
+- Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos restantes al cierre de esta pasada: 40 tras cerrar también la #105 como completada después de verificar la corrección de numeración ADR.
 - PR abiertas encontradas antes de esta limpieza: 32.
 - PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #45, #90, #99 y #102.
 - PR abiertas tras esas cinco acciones: 27, confirmado en la consulta global final.
@@ -169,7 +169,7 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 
 - Inspeccionado el log del run de transporte #295 (ID `38193127429`): fallaron exactamente dos pruebas de `test_runtime.py` relacionadas con la sincronización/ACK real del journal. El workflow instalaba el SHA histórico `e37e5aaef72837c19837eb5b648c29f05ae9b3c3`, cuya firma `mark_receipt_synced(operation_id)` no implementa los argumentos versionados `expected_status` y `expected_result`.
 - La PR #38 en su HEAD `5815bc6e8f4146099e5fff028008fdf9f0ede5d6` sí contiene el método versionado. Corregí el pin en `.github/workflows/cluster-agent-transport.yml` dentro de la rama de la PR #48; commit `cbede919af6242c9d874a6eead3596e0144d81ec`.
-- La CI del commit de pin `cbede919af6242c9d874a6eead3596e0144d81ec` (#469) eliminó las dos fallas anteriores del journal real, pero expuso una falla adicional del test double `FencedJournal.mark_receipt_delivered`: la firma del fixture no aceptaba `expected_status/expected_result` ni devolvía el ACK booleano esperado. Ajusté el fixture y la aserción en commit `f2301e9b1673c57b74a9d625f3f4788f603a83ed`. **Aún no hay CI observada para ese SHA**, por lo que el arreglo sigue pendiente de validación.
+- La CI del commit de pin `cbede919af6242c9d874a6eead3596e0144d81ec` (#469) eliminó las dos fallas anteriores del journal real, pero expuso una falla adicional del test double `FencedJournal.mark_receipt_delivered`. Ajusté el fixture y la aserción en commit `f2301e9b1673c57b74a9d625f3f4788f603a83ed`. La CI del HEAD final `f2301e9b1673c57b74a9d625f3f4788f603a83ed` pasó en run #471: **54 passed, 1 warning**, `pip check` limpio; los workflows de esquema (#303) y persistencia (#600) también terminaron `success`. La PR #48 sigue abierta por su posición en la cadena de dependencias y la integración real del journal, no por esa suite de transporte.
 - **Límite de la corrección:** el pin permite que la prueba cruzada instale la API compatible, pero no cambia la base de #48 ni integra la historia de #38. La topología de ramas y las migraciones siguen requiriendo integración ordenada; no hacer merge por el mero hecho de que el workflow pase.
 
 ## Límites de esta auditoría
