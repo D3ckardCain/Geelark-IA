@@ -101,7 +101,7 @@ Se consultaron los workflows asociados a los SHA actuales de las PR, sin lanzar 
 - **#87:** el único workflow encontrado para su HEAD actual terminó **cancelled** (#578). No cuenta como CI verde de la aplicación de escritorio. La PR #103 prueba una rama de correcciones basada en #87, pero no reemplaza la validación final de la aplicación completa.
 - **#86, #40, #26, #23 y #21:** no se encontraron workflows asociados a sus HEADs en la consulta; son PR documentales y esto no se debe etiquetar como CI aprobada.
 
-La consulta de logs confirmó los conteos indicados para #104 y #103. No se lanzaron workflows nuevos para evitar ejecuciones redundantes. La CI demuestra el estado de un SHA, no aceptación manual, integración en `main`, despliegue ni funcionamiento en Workers físicos.
+La consulta de logs confirmó los conteos indicados para #104 y #103. No se iniciaron workflows manualmente durante la auditoría inicial; las correcciones de código posteriores activaron CI automáticamente en las PR #48 y #104. La CI demuestra el estado de un SHA, no aceptación manual, integración en `main`, despliegue ni funcionamiento en Workers físicos.
 
 ## Issues: criterio de limpieza
 
@@ -174,4 +174,4 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 
 ## Límites de esta auditoría
 
-La consulta de GitHub permite revisar el contenido del repositorio, metadatos, PR e Issues, pero no confirma el estado del PC-MASTER local, los procesos de WSL, la aceptación manual, el panel de facturación de la cuenta ni las pruebas que no tengan artefacto verificable. No se ha usado GitHub Actions para lanzar pruebas adicionales ni se ha habilitado ningún runner de pago.
+La consulta de GitHub permite revisar el contenido del repositorio, metadatos, PR e Issues, pero no confirma el estado del PC-MASTER local, los procesos de WSL, la aceptación manual, el panel de facturación de la cuenta ni las pruebas que no tengan artefacto verificable. No se iniciaron ejecuciones manuales de GitHub Actions ni se habilitó ningún runner de pago; los commits de corrección sí dispararon las validaciones automáticas configuradas para las PR.
