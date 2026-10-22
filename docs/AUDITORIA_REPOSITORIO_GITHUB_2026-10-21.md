@@ -68,7 +68,7 @@ En las ramas abiertas hay dos documentos diferentes con el número **ADR-005**:
 - `docs/decisiones/ADR-005-AUTENTICACION-AGENTES.md` en PR #40.
 - `docs/decisiones/ADR-005-AUTENTICACION-LOCAL-PC-MASTER.md` en PR #104.
 
-Esto es una colisión documental real que debe resolverse antes de fusionar ambas líneas. Se abrió [Issue #105](https://github.com/D3ckardCain/Geelark-IA/issues/105) para seguimiento con criterios de cierre. La ADR de agentes se aceptó el 2026-10-09 y tiene dependencias con la pila de autenticación del Worker; no renumerarla sin revisar sus referencias. La del panel PC-MASTER debe recibir un número único (probablemente ADR-006) y sus enlaces/nombre deben actualizarse en la rama de la PR correspondiente. La modificación directa de esa rama no se pudo completar desde esta sesión, por lo que la colisión queda **abierta y documentada**, no resuelta.
+La colisión se corrigió parcialmente en la rama de PR #104 el 2026-10-22: la decisión del panel se renombró a ADR-006 y se eliminó de esa rama el archivo PC-MASTER con nombre ADR-005. La ADR-005 de agentes en #40 se conserva. Issue #105 sigue abierta hasta revisar referencias globales y confirmar CI en el HEAD actualizado; no fusionar las PR por este cambio aislado.
 
 ## PR que deben seguir abiertas por ahora
 
