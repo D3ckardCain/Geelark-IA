@@ -68,7 +68,7 @@ En las ramas abiertas hay dos documentos diferentes con el número **ADR-005**:
 - `docs/decisiones/ADR-005-AUTENTICACION-AGENTES.md` en PR #40.
 - `docs/decisiones/ADR-005-AUTENTICACION-LOCAL-PC-MASTER.md` en PR #104.
 
-La colisión se corrigió parcialmente en la rama de PR #104 el 2026-10-22: la decisión del panel se renombró a ADR-006 y se eliminó de esa rama el archivo PC-MASTER con nombre ADR-005. La ADR-005 de agentes en #40 se conserva. Issue #105 sigue abierta hasta revisar referencias globales y confirmar CI en el HEAD actualizado; no fusionar las PR por este cambio aislado.
+La colisión de numeración quedó corregida en la rama de PR #104 el 2026-10-22: la decisión del panel se renombró a ADR-006 y se eliminó de esa rama el archivo PC-MASTER con nombre ADR-005. La ADR-005 de agentes en #40 se conserva. Issue #105 se cerró como completada tras comprobar los archivos y los workflows del HEAD actualizado; PR #104 sigue en draft y no se ha fusionado.
 
 ## PR que deben seguir abiertas por ahora
 
