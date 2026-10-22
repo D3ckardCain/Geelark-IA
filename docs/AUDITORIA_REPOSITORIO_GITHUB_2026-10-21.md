@@ -13,7 +13,7 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 - Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos restantes al cierre de esta pasada: 41; se cerraron #2, #18 y #22, y se abrió la #105 para dar seguimiento al bloqueo real de numeración ADR.
 - PR abiertas encontradas antes de esta limpieza: 32.
 - PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #45, #90, #99 y #102.
-- PR abiertas tras esas cinco acciones: 27, pendiente de volver a consultar el estado global al terminar la auditoría.
+- PR abiertas tras esas cinco acciones: 27, confirmado en la consulta global final.
 - No se han fusionado PR, eliminado ramas, borrado archivos ni cambiado configuraciones de facturación.
 
 ## Acciones realizadas
