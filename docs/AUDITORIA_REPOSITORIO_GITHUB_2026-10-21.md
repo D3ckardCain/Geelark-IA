@@ -10,7 +10,7 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 
 - Rama predeterminada: `main`.
 - Árbol recursivo de `main` al inicio de la auditoría: 28 archivos de texto/Markdown contando README y documentos; no aparecen `.github/workflows/`, `packages/`, `db/`, `tests/` ni `prototypes/`.
-- Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos restantes en la instantánea: 42.
+- Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos restantes en la instantánea: 40 tras cerrar también las Issues #18 y #22 como duplicadas/supersedidas.
 - PR abiertas encontradas antes de esta limpieza: 32.
 - PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #45, #90, #99 y #102.
 - PR abiertas tras esas cinco acciones: 27, pendiente de volver a consultar el estado global al terminar la auditoría.
@@ -98,6 +98,13 @@ Se consultaron los workflows asociados a los SHA actuales de las PR, sin lanzar 
 La consulta de logs confirmó los conteos indicados para #104 y #103. No se lanzaron workflows nuevos para evitar ejecuciones redundantes. La CI demuestra el estado de un SHA, no aceptación manual, integración en `main`, despliegue ni funcionamiento en Workers físicos.
 
 ## Issues: criterio de limpieza
+
+### Issues #18 y #22 — cerradas como duplicadas
+
+- **#18** se cerró como duplicada de #29. Los criterios únicos de #18 (diferenciar sobre administrativo/protocolo privado y probar mensajes duplicados, epoch antiguo y telemetría caducada) se trasladaron a #29 antes del cierre.
+- **#22** se cerró como duplicada de #33. La Issue #33 es la referencia detallada para la capa transaccional de asignación, idempotencia, fencing, capacidad y concurrencia sobre el esquema de la PR #32.
+
+
 
 ### Issue #2 — cerrado como completado
 
