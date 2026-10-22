@@ -51,9 +51,15 @@ La edición gratuita de GeeLark no es una alternativa para cumplir el coste tota
 Fuentes:
 - https://source.android.com/docs/devices/cuttlefish
 - https://source.android.com/docs/devices/cuttlefish/multi-tenancy
+- https://source.android.com/docs/devices/cuttlefish/get-started
+- https://source.android.com/docs/devices/cuttlefish/on-premises (solo para distinguir la vía Orchestrator; no se asume como dependencia local)
 - https://source.android.com/docs/setup/create/cuttlefish-ref-webrtc
 - https://github.com/google/android-cuttlefish
 - https://github.com/google/android-cuttlefish/blob/main/LICENSE
+
+**Coste de instalación/operación técnica:** la guía oficial no es simplemente instalar una app de escritorio: requiere preparar paquetes Debian del host (compilarlos o instalarlos desde el repositorio oficial), pertenencia a grupos KVM/red/render, módulos/reglas del sistema y reinicio del host. Las imágenes de dispositivo se descargan por separado desde Android Continuous Integration. Esto es gratuito en software, pero añade mantenimiento y debe automatizarse con cuidado en el aprovisionamiento. No se requiere usar Google Cloud/Cloud Orchestrator para la prueba local por WORKER; la guía de servidor on-premise que usa Orchestrator es una vía distinta y no será una dependencia obligatoria.
+
+La documentación oficial también advierte que los recursos dependen del perfil y la carga: su ejemplo de 40 instancias con 4 CPU y 8 GB RAM por instancia requiere 160 núcleos y 320 GB RAM. Es un ejemplo de configuración, no un mínimo universal, pero deja claro que no debemos inferir densidad por el mero soporte multiinstancia. En nuestros WORKERS de 6 núcleos/32 GB, habrá que medir perfiles mucho más modestos y comprobar si las aplicaciones objetivo funcionan con ellos.
 
 **Evaluación:** primera opción para una prueba controlada de una y dos instancias, porque ya documenta multiinstancia y control web. No es todavía el motor aprobado.
 
