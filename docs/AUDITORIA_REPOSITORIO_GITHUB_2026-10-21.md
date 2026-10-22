@@ -10,7 +10,7 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 
 - Rama predeterminada: `main`.
 - Árbol recursivo de `main` al inicio de la auditoría: 28 archivos de texto/Markdown contando README y documentos; no aparecen `.github/workflows/`, `packages/`, `db/`, `tests/` ni `prototypes/`.
-- Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos restantes al último recuento (2026-10-22): 40; la #105 se cerró como completada y la nueva #107 se abrió para una colisión ADR distinta detectada después.
+- Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos: 41 en el recuento posterior a crear la #107 (2026-10-22); la #105 se cerró como completada y la #107 se abrió para una colisión ADR distinta detectada después.
 - PR abiertas encontradas antes de esta limpieza: 32.
 - PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #45, #90, #99 y #102.
 - PR abiertas en la consulta actualizada del 2026-10-22: 24. Este número puede cambiar cuando se actualicen PRs; no se han fusionado PR durante esta continuación.
