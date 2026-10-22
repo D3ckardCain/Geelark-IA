@@ -140,6 +140,7 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 - **Issue #58:** actualizado el estado del supervisor; PR #67 es candidata sobre #57, pero ambas siguen en draft y no están integradas.
 - **Issues #89 y #91:** se registró que la CI de #104 pasa para su SHA, pero los issues siguen abiertos hasta integrar/revalidar la corrección.
 - **PR #87:** se registró la superposición de archivos backend con #104 y que el workflow del HEAD actual aparece cancelado.
+- **Issue #88:** documentada la evidencia de GitHub: `main` no contiene la aplicación PC-MASTER; la candidata de escritorio está en #87, basada en la rama de la PR #76 cerrada sin merge, y el panel/API actual está en #104. La procedencia exacta del acceso directo local no puede confirmarse sin comparar el archivo ejecutado en el PC-MASTER; la issue permanece abierta.
 - **PR #86:** se conserva abierta porque tiene contenido funcional más amplio aún no integrado; requiere reconciliar fechas y el plan antiguo antes de fusionar.
 
 ## Documentación envejecida detectada
