@@ -34,7 +34,7 @@ Desde PowerShell:
 
 ```powershell
 wsl.exe -l -q
-wsl.exe -d Debian13 -u root -- sh -lc 'pgrep -af qemu || true'
+wsl.exe -d Debian13 -u root -- sh -lc "pgrep -af qemu || true"
 ```
 
 Revisa la línea completa de cada proceso. Si el proceso no corresponde claramente al Android-01 de esta prueba, no lo detengas.
