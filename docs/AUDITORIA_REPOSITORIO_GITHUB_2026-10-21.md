@@ -44,6 +44,26 @@ Los cierres conservan el historial de GitHub; no se borró el trabajo histórico
 - La vía QEMU + Android-x86 + VNC está retirada; redroid sigue bloqueado por #27 y Cuttlefish es solo candidato de laboratorio.
 - No se fusionó ni se borró la rama histórica.
 
+## Mapa de dependencias de PR observado el 2026-10-21
+
+Las PR abiertas no son una lista plana: varias se apilan unas sobre otras. El orden de base observado en los metadatos de GitHub es:
+
+- **Contratos:** #16 (base `main`) → #30; #28 también se apoya en la rama de contratos #16.
+- **Persistencia/outbox/journal:** #32 (base `main`) → #34 → #36 → #38 → #42 → #44 → #47 → #48 → #101 → #74 → #104. Esta cadena se debe revisar como conjunto y no fusionar fuera de orden.
+- **Entrega de tareas y ciclo de agente:** #52 se apoya en #74; #57 se apoya en #52; #67 se apoya en #57; #85 se apoya en #67. #49 se apoya en #38.
+- **Aplicación de escritorio Windows:** #87 se apoya en una rama anterior del panel local; #103 se apoya en #87. Mantener separados el envoltorio de escritorio y el panel/API web mientras se aclara su integración.
+- **Documentación independiente:** #21 (inventario de hardware), #23 (manual de operación), #26 (caché de artefactos), #40 (ADR de autenticación de agentes), #70 (prototipo dashboard), #86 (actualización de evidencia GeeLark).
+
+Este mapa sustituye la instantánea temporal de PR #45 del 2026-10-10/14; los metadatos pueden cambiar si se actualizan las bases de las ramas.
+
+## Conflicto de numeración ADR detectado
+
+En las ramas abiertas hay dos documentos diferentes con el número **ADR-005**:
+- `docs/decisiones/ADR-005-AUTENTICACION-AGENTES.md` en PR #40.
+- `docs/decisiones/ADR-005-AUTENTICACION-LOCAL-PC-MASTER.md` en PR #104.
+
+Esto es una colisión documental real que debe resolverse antes de fusionar ambas líneas. La ADR de agentes se aceptó el 2026-10-09 y tiene dependencias con la pila de autenticación del Worker; no renumerarla sin revisar sus referencias. La del panel PC-MASTER debe recibir un número único (probablemente ADR-006) y sus enlaces/nombre deben actualizarse en la rama de la PR correspondiente. La modificación directa de esa rama no se pudo completar desde esta sesión, por lo que la colisión queda **abierta y documentada**, no resuelta.
+
 ## PR que deben seguir abiertas por ahora
 
 ### PR #104 — panel PC-MASTER autenticado, solo lectura y seguridad Windows
