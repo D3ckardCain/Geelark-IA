@@ -287,3 +287,18 @@ El PR borrador #16 ahora incluye validación de coherencia entre `status` y `obs
 ### Persistencia de asignaciones documentada (2026-10-09)
 
 Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md). Define transacciones, restricciones para un único propietario, idempotencia durable, outbox y pruebas de caída/concurrencia. No hay DDL, migraciones ni código de persistencia implementados; PostgreSQL local sigue siendo una propuesta pendiente de validar.
+
+
+## Actualización de motores y automatización — 2026-10-21
+
+Se retiró como ruta de producto el prototipo manual QEMU + Android-x86 9.0-r2 + VNC en WSL2. No se continuará depurando esa combinación ni se utilizará como base de GeeLark-IA.
+
+Se creó la [investigación ampliada de motores y automatización](INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md), se actualizó la [comparativa](COMPARATIVA_MOTORES_ANDROID.md), el [ADR-002](decisiones/ADR-002-ESTRATEGIA-MOTOR-ANDROID.md), la [arquitectura tecnológica propuesta](ARQUITECTURA_TECNOLOGICA_PROPUESTA.md) y el README.
+
+Prioridad actual, todavía sin motor aprobado:
+1. AOSP Cuttlefish: primera opción para prueba local por multiinstancia y control WebRTC documentados; la instalación y el consumo de recursos requieren validación.
+2. redroid: bloqueado por revisión de seguridad en issue #27.
+3. Android Emulator oficial: referencia de compatibilidad, sujeto a revisión de términos de SDK/imágenes.
+4. Waydroid: alternativa secundaria; falta demostrar la topología multiinstancia requerida.
+
+La investigación también define los componentes de producto para perfiles/instancias, RPA Builder/Runner, Synchronizer, API/eventos, ADB restringido, Library y registros. No se ha instalado un nuevo motor ni se ha validado rendimiento en hardware físico. La documentación no equivale a prueba técnica.
