@@ -84,7 +84,9 @@ Fuentes:
 
 **Tipo:** emulador oficial del SDK Android; AVD, CLI, ADB y aceleración KVM en Linux. Algunas imágenes incluyen Google Play.  
 **Ventajas:** herramientas maduras para arrancar dispositivos, instalar APK, probar versiones Android y automatizar UI. Es un buen punto de comparación para compatibilidad y depuración.  
-**Limitaciones:** consume recursos por AVD y está orientado principalmente a desarrollo/pruebas; no se debe asumir densidad ni equivalencia con GeeLark. El SDK, los binarios, las imágenes y las imágenes Google Play tienen términos distintos que deben revisarse antes de redistribuirlos o integrarlos en un producto. El proyecto oficial de contenedores para emulador declara explícitamente que es experimental.  
+**Limitaciones:** consume recursos por AVD y está orientado principalmente a desarrollo/pruebas; no se debe asumir densidad ni equivalencia con GeeLark. El SDK, los binarios, las imágenes y las imágenes Google Play tienen términos distintos que deben revisarse antes de redistribuirlos o integrarlos en un producto.
+
+La variante oficial en contenedores es una opción técnica separada que merece un experimento documental: el repositorio proporciona contenedores con `/dev/kvm`, ADB por puerto, gRPC/WebRTC y una demo React para control desde navegador. Algunas imágenes son publicadas en Google Artifact Registry, pero depender de ese registro no es lo mismo que tener una solución completamente local/offline; se debe fijar versión, revisar condiciones de SDK y avisos de imagen, comprobar telemetría y preparar caché/redistribución local solo si la licencia lo permite. El proyecto declara explícitamente que esta función en contenedores es experimental. Docker Desktop en Windows no sirve para esta aceleración; el destino previsto es Debian físico.  
 **Licencia/coste:** no tratar “descarga gratuita” como permiso ilimitado para redistribuir imágenes o incluirlo en un producto. Revisar los términos exactos para el uso planeado; no usar servicios de pago ni suscripciones.
 
 Fuentes:
@@ -149,6 +151,7 @@ GeeLark combina plantillas, RPA visual, Synchronizer y API/Webhooks. No existe u
 - **UI Automator oficial:** API de Android para pruebas e interacción con apps/sistema; buena referencia para acciones y árbol semántico, pero la integración como servicio multiinstancia necesita desarrollo propio.
 - **scrcpy:** visor/controlador libre de pantalla mediante ADB, multiplataforma, sin cuenta ni servicio cloud; útil para una consola de operador y depuración, no crea instancias ni es el motor RPA completo.
 - **Maestro:** framework abierto de automatización UI declarativa mediante YAML. Evaluar como herramienta auxiliar para pruebas y flujos; verificar licencia exacta, compatibilidad, concurrencia y capacidades antes de integrarlo en el producto.
+- **DeviceFarmer STF:** proyecto de gestión de una granja de dispositivos Android con acceso por navegador. Puede servir como referencia de consola/dispositivo, pero no crea por sí solo instancias Android virtuales; la documentación del contenedor advierte que el proyecto tiene carga de hardware alta y carencias de seguridad/aislamiento entre usuarios. No adoptarlo como plano de control de GeeLark-IA sin una auditoría y endurecimiento; en principio no cubre nuestro requisito principal de motor de emulación.
 
 Fuentes:
 - https://developer.android.com/tools/adb
@@ -156,6 +159,7 @@ Fuentes:
 - https://github.com/appium/appium-uiautomator2-driver
 - https://github.com/Genymobile/scrcpy
 - https://docs.maestro.dev/get-started/what-is-maestro
+- https://github.com/DeviceFarmer/stf (referencia de gestión de dispositivos, no motor de emulación; revisar seguridad y estado actual)
 
 ### B. Componentes propios que replican el producto
 
