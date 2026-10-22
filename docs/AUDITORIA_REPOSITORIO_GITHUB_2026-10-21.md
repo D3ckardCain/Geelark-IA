@@ -119,6 +119,17 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 - #27 permanece como bloqueo de seguridad para redroid.
 - #6 mantiene la auditoría de paridad funcional pendiente; no declarar terminado el catálogo sin contrastar fuentes y registrar evidencias.
 
+## Registros envejecidos corregidos durante la auditoría
+
+- **Issue #11:** actualizada la combinación tecnológica a decisiones vigentes: PC-MASTER Windows, WORKERS físicos Debian 13, Cuttlefish candidato de laboratorio, redroid bloqueado por #27, Android Emulator como referencia y Waydroid secundario. Tauri permanece sin aprobación.
+- **Issue #50:** corregida la referencia obsoleta a PR #73; la línea candidata actual es #52 → #74 → #101 → #48 y #101 reemplazó a #73.
+- **Issue #72:** actualizada la referencia de inventario de módulos a PR #101, sucesora de #73.
+- **Issue #20:** se aclaró que las pruebas marcadas corresponden al prototipo histórico de PR #19, cerrada sin merge, y no validan automáticamente la rama actual #32.
+- **Issue #58:** actualizado el estado del supervisor; PR #67 es candidata sobre #57, pero ambas siguen en draft y no están integradas.
+- **Issues #89 y #91:** se registró que la CI de #104 pasa para su SHA, pero los issues siguen abiertos hasta integrar/revalidar la corrección.
+- **PR #87:** se registró la superposición de archivos backend con #104 y que el workflow del HEAD actual aparece cancelado.
+- **PR #86:** se conserva abierta porque tiene contenido funcional más amplio aún no integrado; requiere reconciliar fechas y el plan antiguo antes de fusionar.
+
 ## Documentación envejecida detectada
 
 - `docs/ESTADO_PROYECTO.md` y `docs/PLAN_TRABAJO.md` tenían encabezado de actualización del 2026-10-09 aunque había decisiones y pruebas posteriores hasta 2026-10-21; ambos se actualizaron.
