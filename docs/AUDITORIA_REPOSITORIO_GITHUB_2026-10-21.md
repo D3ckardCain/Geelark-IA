@@ -56,6 +56,12 @@ Las PR abiertas no son una lista plana: varias se apilan unas sobre otras. El or
 
 Este mapa sustituye la instantánea temporal de PR #45 del 2026-10-10/14; la PR #45 se cerró como supersedida sin merge. Los metadatos pueden cambiar si se actualizan las bases de las ramas.
 
+## PR #49: posible rama de journal/ACK fuera de la cadena de transporte
+
+- La PR #49 (`feat/agent-journal-delivery-ack`) está basada en `feat/cluster-agent-guard` (#38); la PR #48 (`feat/agent-https-transport`) parte de `feat/agent-operation-authorization`, y #101 parte de #48. La cadena descrita en Issue #50 no incluye #49.
+- #49 modifica el journal local y su entrega de recibos. Debe compararse con el contrato `mark_receipt_delivered` y el ACK esperado por #48/#101 para decidir si es dependencia faltante o implementación reemplazada.
+- Se dejó comentario en #50. No cambiar bases, cerrar #49 ni declarar redundancia hasta comparar el diff y pruebas específicas.
+
 ## Nueva colisión ADR y solapamiento del panel (#107)
 
 - La PR #40 asigna ADR-005 a autenticación de agentes; la PR #70 asigna ADR-005 a lectura del estado Master/Worker. Ambas ramas parten de `main`, que actualmente contiene ADR-001..004. Es una colisión real si ambas se integran.
