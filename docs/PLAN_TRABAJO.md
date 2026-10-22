@@ -7,7 +7,7 @@ El plan maestro está en [PLAN_PARIDAD_GEELARK.md](PLAN_PARIDAD_GEELARK.md). La 
 
 ## Higiene y estado de integración — 2026-10-21
 
-Antes de avanzar en nuevas funciones, revisar la [auditoría de higiene del repositorio](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md). La rama `main` conserva requisitos y documentación; el código que se está validando sigue en PR abiertas. Las PR #90 y #102 se cerraron en favor de #103, y la PR #99 se cerró en favor de #104. No fusionar ni declarar aceptado un módulo hasta revisar dependencias, CI del HEAD actual y criterios de aceptación manual.
+Antes de avanzar en nuevas funciones, revisar la [auditoría de higiene del repositorio](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md). La rama `main` conserva requisitos y documentación; el código que se está validando sigue en PR abiertas. Las PR #90 y #102 se cerraron en favor de #103, la PR #99 se cerró en favor de #104 y la evaluación preliminar obsoleta #25 se cerró en favor de la investigación actual. El Issue #2 de alcance inicial quedó completado; los Issues #3/#4/#6 siguen cubriendo inventario y paridad. No fusionar ni declarar aceptado un módulo hasta revisar dependencias, CI del HEAD actual y criterios de aceptación manual.
 
 ## Objetivo confirmado
 
