@@ -3,6 +3,8 @@
 Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la referencia funcional para las capacidades que decidamos implementar. Este repositorio documenta requisitos y decisiones confirmados durante este proyecto; no se importará código, arquitectura, datos ni soluciones de proyectos o conversaciones anteriores.
 
 > **Estado actual:** auditoría funcional de GeeLark, investigación de motores Android locales y arquitectura de automatización. No hay motor Android aprobado para producción. La vía manual QEMU + Android-x86 9.0-r2 + VNC se retiró como ruta de producto.
+>
+> **Higiene del repositorio (2026-10-21):** [auditoría de GitHub](docs/AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md). Las implementaciones siguen en PR abiertas; el contenido de una rama no se considera integrado ni aceptado.
 
 ## Reglas de trabajo
 
