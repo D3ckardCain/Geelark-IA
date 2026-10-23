@@ -20,7 +20,7 @@ Imagen pública: https://hub.docker.com/r/redroid/redroid
 
 ## Bloqueo crítico de seguridad
 
-La guía upstream muestra ejemplos con Docker `--privileged`. La incidencia [redroid-doc #932](https://github.com/remote-android/redroid-doc/issues/932) describe una escritura de `/proc/sys/kernel/modprobe` que puede escapar al host debido a que el sysctl no está aislado por namespaces. La incidencia aparece cerrada, pero eso no prueba que una etiqueta/digest concreta tenga una corrección.
+La guía upstream muestra ejemplos con Docker `--privileged`. La incidencia [redroid-doc #932](https://github.com/remote-android/redroid-doc/issues/932) describe una escritura de `/proc/sys/kernel/modprobe` que puede escapar al host debido a que el sysctl no está aislado por namespaces. La incidencia aparece cerrada, pero eso no prueba que una etiqueta/digest concreta tenga una corrección. La rama upstream actual de AOSP también conserva la escritura en init.rc: https://chromium.googlesource.com/aosp/platform/system/core/+/refs/heads/upstream/rootdir/init.rc. Esta fuente confirma que la instrucción sigue presente en AOSP, no el comportamiento de cada imagen redroid concreta.
 
 No ejecutar redroid en hardware físico hasta que la issue interna [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27) contenga evidencia verificable de la mitigación sobre la imagen exacta. No basta con restaurar el valor del sysctl después del arranque. Si no se encuentra una mitigación efectiva, detener el despliegue físico.
 
