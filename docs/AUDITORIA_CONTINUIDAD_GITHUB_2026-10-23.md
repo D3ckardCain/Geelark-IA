@@ -16,7 +16,7 @@ Revisión de solo lectura de `D3ckardCain/Geelark-IA` para priorizar limpieza e 
 
 ## Fotografía de GitHub
 
-La consulta inicial del día devolvió 21 PR abiertas; la revalidación posterior del 2026-10-23 devuelve **38 Issues abiertas, 10 cerradas y 23 PR abiertas**, todas en draft. Estos números son fotografías temporales y pueden cambiar; confirmar estado antes de cualquier cierre.
+La consulta inicial del día devolvió 21 PR abiertas; la revalidación posterior del 2026-10-23 devuelve **39 Issues abiertas, 10 cerradas y 23 PR abiertas**, todas en draft. Estos números son fotografías temporales y pueden cambiar; confirmar estado antes de cualquier cierre.
 
 ## Bloqueos principales
 
