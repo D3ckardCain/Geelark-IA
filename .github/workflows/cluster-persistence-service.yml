@@ -7,6 +7,7 @@ on:
       - "packages/cluster-persistence/**"
       - "packages/cluster-agent-guard/**"
       - "packages/cluster-agent-auth/**"
+      - "packages/cluster-agent-transport/**"
       - ".github/workflows/cluster-persistence-service.yml"
   push:
     branches: [main]
@@ -15,6 +16,7 @@ on:
       - "packages/cluster-persistence/**"
       - "packages/cluster-agent-guard/**"
       - "packages/cluster-agent-auth/**"
+      - "packages/cluster-agent-transport/**"
       - ".github/workflows/cluster-persistence-service.yml"
   workflow_dispatch:
 
@@ -90,6 +92,14 @@ jobs:
         if: hashFiles('packages/cluster-agent-auth/pyproject.toml') != ''
         run: python -m pytest packages/cluster-agent-auth/tests -q
 
+      - name: Install agent transport and tests when present
+        if: hashFiles('packages/cluster-agent-transport/pyproject.toml') != ''
+        run: python -m pip install -e "packages/cluster-agent-transport[test]"
+
+      - name: Run task inbox PostgreSQL integration tests when present
+        if: hashFiles('packages/cluster-agent-transport/tests/test_task_inbox_postgres.py') != ''
+        run: python -m pytest packages/cluster-agent-transport/tests/test_task_inbox_postgres.py -q
+
       - name: Check dependency consistency
-        if: hashFiles('packages/cluster-persistence/pyproject.toml') != '' || hashFiles('packages/cluster-agent-guard/pyproject.toml') != '' || hashFiles('packages/cluster-agent-auth/pyproject.toml') != ''
+        if: hashFiles('packages/cluster-persistence/pyproject.toml') != '' || hashFiles('packages/cluster-agent-guard/pyproject.toml') != '' || hashFiles('packages/cluster-agent-auth/pyproject.toml') != '' || hashFiles('packages/cluster-agent-transport/pyproject.toml') != ''
         run: python -m pip check
