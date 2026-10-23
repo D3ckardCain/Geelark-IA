@@ -10,7 +10,7 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 
 - Rama predeterminada: `main`.
 - Árbol recursivo de `main` al inicio de la auditoría: 28 archivos de texto/Markdown contando README y documentos; no aparecen `.github/workflows/`, `packages/`, `db/`, `tests/` ni `prototypes/`.
-- Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos: 40 en la última consulta global (2026-10-22); #105 se cerró tras resolver su colisión inicial, #64 se cerró como decisión resuelta y #107 se cerró después de confirmar CI y separar los manuales.
+- Issues abiertos encontrados en la consulta inicial: 43; el Issue #2 se cerró como completado tras confirmar que el alcance/reglas generales están documentados. Issues abiertos: 39 en la consulta global más reciente (2026-10-22); 9 Issues están cerradas. #105 se cerró tras resolver su colisión inicial, #64 se cerró como decisión resuelta y #107 se cerró después de confirmar CI y separar los manuales.
 - PR abiertas encontradas antes de esta limpieza: 32.
 - PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #45, #49, #90, #99 y #102.
 - PR abiertas en la última consulta global del 2026-10-22: 23. Este número puede cambiar cuando se actualicen PRs; la única PR fusionada en esta auditoría fue la documental #106, sin cambios de implementación.
@@ -200,7 +200,7 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 
 ## Revisión final de Issues abiertas — 22-oct-2026
 
-- Se consultaron las 40 Issues abiertas directamente por la API del repositorio. Tener todas las casillas marcadas, o no tener checklist, no basta por sí solo para cerrar: los issues #24, #11, #10 y #4 siguen teniendo criterios explícitos pendientes de medición, prueba física o contraste funcional; #20 conserva cuatro tareas sin completar; #63 conserva pendiente confirmar el costo real de GitHub Actions, dato que no está disponible desde esta auditoría.
+- En el corte de auditoría anterior se consultaron 40 Issues abiertas directamente por la API del repositorio; la consulta global posterior registra 39 abiertas. Tener todas las casillas marcadas, o no tener checklist, no basta por sí solo para cerrar: los issues #24, #11, #10 y #4 siguen teniendo criterios explícitos pendientes de medición, prueba física o contraste funcional; #20 conserva cuatro tareas sin completar; #63 conserva pendiente confirmar el costo real de GitHub Actions, dato que no está disponible desde esta auditoría.
 - Se mantienen abiertas las tareas que requieren intervención local del usuario (#77 aceptación Windows, #88 confirmar el archivo/acceso directo local), pruebas en hardware físico (#8/#10/#12/#24) o revisión de seguridad (#9/#27/#65). No se cerraron por antigüedad ni por CI verde en ramas no integradas.
 
 ## Preparación para retirar localmente el experimento QEMU — 2026-10-22
@@ -223,7 +223,7 @@ Consulta de metadatos actual de GitHub (la mergeabilidad puede cambiar con cada 
 
 ## Continuación — panel y recuento verificado (22-oct-2026)
 
-- Recuento mediante API GitHub al 22-oct: **23 PR abiertas**, todas en draft; **40 Issues abiertas** y 8 cerradas. El recuento previo de 27 PR estaba desactualizado y se corrige aquí.
+- Recuento mediante API GitHub al 22-oct, consulta más reciente: **23 PR abiertas**, todas en draft; **39 Issues abiertas** y **9 cerradas**. El recuento previo de 27 PR y 40 Issues estaba desactualizado y se corrige aquí.
 - PR #70: HEAD `fd0365d579a815d2a39f1213ed11af891dfe91d6`, workflow de prototipo #44 (`39872433379`) completado con `success`. Mantener draft: es el prototipo visual y los contratos de estado, no el panel autenticado de producción.
 - PR #104: HEAD `75764c435f488f617a07c0003ce088829e6dbd41`; transporte #473 y persistencia #602 `success`. Persistencia: suite raíz **293 passed / 3 skipped**; asignaciones **33**, guard/journal **12**, integración de transporte **54**, autenticación **70 passed / 2 skipped**; Windows ACL **50 passed / 8 skipped**; `pip check` limpio en los tres jobs.
 - La colisión documental queda resuelta: #40 usa ADR-005 (autenticación de agentes), #70 ADR-006 (lectura de estado Master/Worker), #104 ADR-007 (autenticación local PC-MASTER). El prototipo conserva `MANUAL_PROTOTIPO_PANEL_CONTROL_MASTER.md`; el panel autenticado conserva `MANUAL_USUARIO_PANEL_CONTROL_MASTER.md`. Issue #107 cerrada tras verificar CI de los HEAD actuales.
