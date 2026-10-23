@@ -15,8 +15,8 @@
 
 ## Estado de cambios documentales
 
-- PR #108: preparación de WORKER-01 y diagnóstico de solo lectura.
-- PR #109: README, ADRs, arquitectura, plan de trabajo y documentos de alcance actualizados.
+- PR #108: fusionada; preparación de WORKER-01 y diagnóstico de solo lectura integrados.
+- PR #109: fusionada; README, ADRs, arquitectura, plan de trabajo y documentos de alcance actualizados.
 - Issue #8: cerrada como decisión de alcance completada.
 - Issue #27: abierta y bloqueante.
 - PR #86: cerrada anteriormente; su historial se conserva y no se considera una fuente operativa vigente.
