@@ -61,6 +61,7 @@ class AgentCommand:
     assignment_epoch: int
     lease_expires_at: datetime
     payload: dict[str, Any]
+    task_id: UUID | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,13 +72,14 @@ class OperationReceipt:
     assignment_epoch: int
     status: str
     result: dict[str, Any] | None
+    task_id: UUID | None = None
     duplicate: bool = False
 
 
 class AgentJournal:
     """Journal durable de un solo nodo; usar archivo en disco local, no NFS."""
 
-    _SCHEMA_VERSION = 1
+    _SCHEMA_VERSION = 2
     _STATUSES = {"accepted", "running", "succeeded", "failed", "unknown"}
     _TERMINAL_STATUSES = {"succeeded", "failed"}
 
@@ -134,6 +136,7 @@ class AgentJournal:
                 """
                 CREATE TABLE IF NOT EXISTS operation_receipts (
                     operation_id TEXT PRIMARY KEY,
+                    task_id TEXT,
                     instance_id TEXT NOT NULL,
                     node_id TEXT NOT NULL,
                     assignment_epoch INTEGER NOT NULL CHECK (assignment_epoch >= 1),
@@ -145,6 +148,9 @@ class AgentJournal:
                 )
                 """
             )
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(operation_receipts)").fetchall()}
+            if "task_id" not in columns:
+                conn.execute("ALTER TABLE operation_receipts ADD COLUMN task_id TEXT")
             version = conn.execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations").fetchone()[0]
             if version > self._SCHEMA_VERSION:
                 raise AgentGuardError("La versión del journal es más nueva que este agente")
@@ -165,7 +171,7 @@ class AgentJournal:
             conn.execute("BEGIN IMMEDIATE")
             existing = conn.execute(
                 """
-                SELECT operation_id, instance_id, node_id, assignment_epoch,
+                SELECT operation_id, task_id, instance_id, node_id, assignment_epoch,
                        payload_sha256, status, result_json
                   FROM operation_receipts
                  WHERE operation_id = ?
@@ -218,12 +224,13 @@ class AgentJournal:
             conn.execute(
                 """
                 INSERT INTO operation_receipts
-                    (operation_id, instance_id, node_id, assignment_epoch, payload_sha256,
+                    (operation_id, task_id, instance_id, node_id, assignment_epoch, payload_sha256,
                      status, result_json, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 'accepted', NULL, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, 'accepted', NULL, ?, ?)
                 """,
                 (
                     str(command.operation_id),
+                    str(command.task_id) if command.task_id else None,
                     str(command.instance_id),
                     str(command.node_id),
                     command.assignment_epoch,
@@ -240,6 +247,7 @@ class AgentJournal:
                 assignment_epoch=command.assignment_epoch,
                 status="accepted",
                 result=None,
+                task_id=command.task_id,
                 duplicate=False,
             )
         except Exception:
@@ -329,6 +337,7 @@ class AgentJournal:
                 assignment_epoch=assignment_epoch,
                 status=status,
                 result=result,
+                task_id=UUID(row["task_id"]) if row["task_id"] else None,
                 duplicate=False,
             )
         except Exception:
@@ -410,6 +419,10 @@ class AgentJournal:
             "lease_expires_at": command.lease_expires_at.astimezone(timezone.utc).isoformat(),
             "payload": command.payload,
         }
+        if command.task_id is not None:
+            if not isinstance(command.task_id, UUID):
+                raise InvalidAgentCommand("task_id debe ser UUID si se proporciona")
+            canonical["task_id"] = str(command.task_id)
         canonical_json = self._canonical_json(canonical)
         if len(canonical_json.encode("utf-8")) > 1_000_000:
             raise InvalidAgentCommand("El payload del comando supera 1 MB")
@@ -426,5 +439,6 @@ class AgentJournal:
             assignment_epoch=row["assignment_epoch"],
             status=row["status"],
             result=result,
+            task_id=UUID(row["task_id"]) if row["task_id"] else None,
             duplicate=duplicate,
         )
