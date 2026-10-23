@@ -240,8 +240,8 @@ def test_pending_receipts_are_bounded_stable_and_acknowledged_versions_requeue(t
         pending[0].operation_id
     ]
 
-    journal.mark_receipt_synced(terminal.operation_id, expected_status="succeeded", expected_result={"ok": True})
-    journal.mark_receipt_synced(running.operation_id, expected_status="running", expected_result={"progress": 25})
+    journal.mark_receipt_synced(terminal.operation_id, expected_assignment_epoch=terminal.assignment_epoch, expected_status="succeeded", expected_result={"ok": True})
+    journal.mark_receipt_synced(running.operation_id, expected_assignment_epoch=running.assignment_epoch, expected_status="running", expected_result={"progress": 25})
     assert journal.list_pending_receipts(limit=10) == []
 
     # Una actualización posterior del mismo progreso debe volver a la cola.
@@ -278,7 +278,7 @@ def test_synced_receipt_ack_survives_journal_reopen(tmp_path):
         status="succeeded",
         result={"ok": True},
     )
-    journal.mark_receipt_synced(cmd.operation_id, expected_status="succeeded", expected_result={"ok": True})
+    journal.mark_receipt_synced(cmd.operation_id, expected_assignment_epoch=cmd.assignment_epoch, expected_status="succeeded", expected_result={"ok": True})
 
     reopened = AgentJournal(path, LOCAL_NODE)
     reopened.initialize()
@@ -301,7 +301,7 @@ def test_rejected_is_terminal_and_can_be_acknowledged(tmp_path):
     )
     assert rejected.status == "rejected"
     assert [item.operation_id for item in journal.list_pending_receipts(limit=10)] == [cmd.operation_id]
-    journal.mark_receipt_synced(cmd.operation_id, expected_status="rejected", expected_result={"error_code": "CAPABILITY_MISSING"})
+    journal.mark_receipt_synced(cmd.operation_id, expected_assignment_epoch=cmd.assignment_epoch, expected_status="rejected", expected_result={"error_code": "CAPABILITY_MISSING"})
     assert journal.list_pending_receipts(limit=10) == []
     with pytest.raises(OperationResultConflict):
         journal.record_result(
@@ -392,14 +392,14 @@ def test_late_ack_does_not_mark_a_newer_receipt_version_synced(tmp_path):
         result={"progress": 50},
     )
     assert journal.mark_receipt_synced(
-        cmd.operation_id, expected_status="running", expected_result={"progress": 25}
+        cmd.operation_id, expected_assignment_epoch=cmd.assignment_epoch, expected_status="running", expected_result={"progress": 25}
     ) is False
     pending = journal.list_pending_receipts(limit=10)
     assert len(pending) == 1
     assert pending[0].result == {"progress": 50}
 
     assert journal.mark_receipt_synced(
-        cmd.operation_id, expected_status="running", expected_result={"progress": 50}
+        cmd.operation_id, expected_assignment_epoch=cmd.assignment_epoch, expected_status="running", expected_result={"progress": 50}
     ) is True
     assert journal.list_pending_receipts(limit=10) == []
 
@@ -420,6 +420,7 @@ def test_unknown_receipt_can_be_acknowledged_without_resolving_uncertainty(tmp_p
 
     assert journal.mark_receipt_synced(
         cmd.operation_id,
+        expected_assignment_epoch=cmd.assignment_epoch,
         expected_status="unknown",
         expected_result={"reason_code": "NETWORK_TIMEOUT"},
     ) is True
@@ -449,6 +450,7 @@ def test_task_id_survives_acceptance_progress_and_offline_receipt_retry(tmp_path
     assert pending[0].task_id == task_id
     assert journal.mark_receipt_synced(
         operation_id,
+        expected_assignment_epoch=1,
         expected_status="running",
         expected_result={"progress_percent": 25},
     ) is True
@@ -457,3 +459,27 @@ def test_task_id_survives_acceptance_progress_and_offline_receipt_retry(tmp_path
     reopened = AgentJournal(path, LOCAL_NODE)
     reopened.initialize()
     assert reopened.get_receipt(operation_id).task_id == task_id
+
+
+
+def test_ack_from_old_assignment_epoch_cannot_sync_current_receipt(tmp_path):
+    journal = AgentJournal(tmp_path / "journal.sqlite3", LOCAL_NODE)
+    journal.initialize()
+    cmd = command()
+    journal.accept_command(cmd)
+    journal.record_result(
+        operation_id=cmd.operation_id,
+        instance_id=cmd.instance_id,
+        node_id=cmd.node_id,
+        assignment_epoch=cmd.assignment_epoch,
+        status="running",
+        result={"progress": 25},
+    )
+
+    assert journal.mark_receipt_synced(
+        cmd.operation_id,
+        expected_assignment_epoch=cmd.assignment_epoch + 1,
+        expected_status="running",
+        expected_result={"progress": 25},
+    ) is False
+    assert [r.operation_id for r in journal.list_pending_receipts(limit=10)] == [cmd.operation_id]
