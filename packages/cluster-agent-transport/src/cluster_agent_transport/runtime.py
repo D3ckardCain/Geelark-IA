@@ -206,7 +206,8 @@ class AgentTransportRuntime:
                 )
             else:
                 acknowledged = marker(
-                    operation_id, expected_status=state, expected_result=result,
+                    operation_id, expected_assignment_epoch=assignment_epoch,
+                    expected_status=state, expected_result=result,
                 )
         except TypeError:
             raise AgentTransportError(
