@@ -49,3 +49,7 @@ Durante la continuidad de auditoría se detectaron textos contradictorios en las
 - No se instalaron ni ejecutaron motores ni se hicieron cambios en equipos físicos. No se lanzaron workflows manuales para esta corrección.
 
 La búsqueda posterior de las issues abiertas ya no encuentra una decisión vigente que ponga Cuttlefish por delante de redroid; los resultados de búsqueda pueden conservar fragmentos indexados anteriores. La verificación de contenido actualizado se hizo leyendo de nuevo los cuerpos de #3, #10, #11, #12, #24, #27 y #92.
+
+## PR de prototipo y solapamiento de contratos — 2026-10-23
+
+La PR #70 sigue abierta en draft, sin integración independiente recomendada. Es un HTML estático de datos ficticios y no controla Workers. El schema y el ejemplo `master-worker-status-v1` se solapan con #74; el manual `MANUAL_USUARIO_PANEL_CONTROL_MASTER.md` también se modifica en #87/#104. #74 contiene el proveedor interno de snapshots y #104 el panel autenticado. Se dejó comentario en #70: antes de decidir cierre como supersedida, reconciliar su prototipo y documentación exclusiva con las issues #69/#71 y confirmar si `MASTER_CONTROL_STATUS_API_V1.md` aporta contrato aún necesario. No se cerró a ciegas ni se fusionó para evitar perder contenido o sobrescribir archivos más actuales.
