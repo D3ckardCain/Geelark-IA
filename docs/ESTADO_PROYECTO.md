@@ -22,8 +22,8 @@ Construir una plataforma local que administre instancias Android ejecutadas en P
 
 ## Estado comprobable
 
-- La preparación documental y el diagnóstico de solo lectura para el primer worker están en la [PR #108](https://github.com/D3ckardCain/Geelark-IA/pull/108).
-- La limpieza del alcance y de la documentación está en la [PR #109](https://github.com/D3ckardCain/Geelark-IA/pull/109).
+- La preparación documental del primer worker está en [PREPARACION_WORKER_REDROID.md](PREPARACION_WORKER_REDROID.md) y el diagnóstico de solo lectura en [GUIA_DIAGNOSTICO_PREVIO_REDROID.md](GUIA_DIAGNOSTICO_PREVIO_REDROID.md); ambos se integraron mediante la PR #108.
+- La limpieza de alcance/documentación se integró mediante la PR #109.
 - El bloqueo de seguridad sigue abierto: [issue #27](https://github.com/D3ckardCain/Geelark-IA/issues/27).
 - No se ha instalado redroid en los workers físicos ni se han modificado sus discos durante esta preparación.
 - Las PR abiertas no equivalen a cambios integrados; revisar dependencia, CI del HEAD actual y aceptación manual antes de cerrar módulos.
