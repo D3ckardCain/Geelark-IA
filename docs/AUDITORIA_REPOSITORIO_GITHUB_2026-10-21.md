@@ -1,8 +1,8 @@
 ## Revalidación final de PRs y CI — 2026-10-23
 
 Consulta en vivo de GitHub:
-- **38 Issues abiertas, 10 cerradas y 21 PR abiertas**; las 21 PR abiertas están en draft.
-- **#101** HEAD `b84da93881f5869e8832e5888e5dce02433e85cc`, base `feat/agent-https-transport`: `mergeable=false` y no se encontraron workflows asociados al SHA actual. Los 58 tests del SHA anterior no validan este HEAD.
+- **38 Issues abiertas, 10 cerradas y 23 PR abiertas** en la consulta más reciente del 2026-10-23; todas las PR abiertas están en draft.
+- **#101 (observación histórica, 2026-10-23 temprano):** HEAD `b84da93881f5869e8832e5888e5dce02433e85cc` no tenía workflows asociados en esa consulta. Fue reemplazado por HEAD `043a4e23efd063949577f758eacc326d74bb7ce5`, que posteriormente pasó transporte #479/#478, esquema #308 y persistencia #607.
 - **#74** HEAD `df34e00ec18eb99ef3d53e99513ef625b42d2a58`, base #101: GitHub la muestra mergeable, pero no integrar mientras #101 siga en conflicto.
 - **#52** HEAD `20e618aaeadc1866457f637522b755540f795dfa`: `mergeable=false`; resultados CI anteriores exitosos no eliminan el conflicto.
 - **#57** HEAD `a27922c2e773b3e3b01f368931e14b389490c2f6`: mergeable en metadatos, pero depende de #52 y no debe integrarse antes de resolver la cadena.
@@ -59,12 +59,12 @@ Mantener el repositorio GeeLark-IA alineado con el alcance vigente: PC-MASTER Wi
 - PR #106 (auditoría de continuidad), #108 (preparación segura de WORKER-01) y #109 (consolidación del alcance PC-MASTER/redroid) están fusionadas en `main`.
 - PR #86 se cerró sin merge por cambio de alcance; su documentación histórica se conserva, pero no es fuente operativa vigente. Su valor funcional debe recuperarse solo si el alcance de producto vuelve a exigirlo.
 - Issue #64 se cerró como decisión resuelta: Windows en PC-MASTER y Debian 13 previsto para WORKERS. No significa que PXE, instalación o pruebas físicas estén implementadas.
-- Recuento consultado el 2026-10-23: **38 Issues abiertas, 10 cerradas, 21 PR abiertas**. El recuento cambia con nuevas acciones; no es criterio de aceptación.
+- Recuento consultado el 2026-10-23 por la mañana: **38 Issues abiertas, 10 cerradas, 21 PR abiertas**. La revalidación posterior encontró 23 PR abiertas tras crear #112 y #113; el recuento cambia con nuevas acciones y no es criterio de aceptación.
 - La cadena de PR de clúster sigue mayormente en draft. La CI de una rama no acredita que el stack esté integrado, aceptado manualmente ni probado en hardware.
 - #24 se limita a caché local de artefactos; #92 a aprovisionamiento Debian 13. Se añadieron comentarios para evitar duplicación. #27 sigue bloqueando la ejecución física de redroid.
 - La auditoría de origen PC-MASTER (#88) sigue pendiente de comparar el archivo/acceso directo local; GitHub identifica la rama candidata, pero no prueba qué ejecutable se inició en Windows.
 - Revalidación de CI en ramas apiladas: #104 HEAD `75764c435f488f617a07c0003ce088829e6dbd41` pasó transporte (#473, 125 pruebas) y persistencia/suite raíz (#602: 293 passed/3 skipped; Windows ACL 50/8 skipped; `pip check` limpio). Esto no sustituye aceptación manual (#77).
-- #101 HEAD `b84da93881f5866e8832e5888e5dce02433e85cc` no devolvió workflows asociados en la consulta; no declarar CI verde. #87 HEAD `386da22f1dca3f2a1f489e2d9a898d30350d3eb0` solo devolvió persistencia cancelada (#578). #103 HEAD `31ec5abceae6e38279d6be1e19e94683e0ea00ea` devolvió persistencia exitosa (#574), pero no transporte en esa consulta. Las tres PR siguen en draft.
+- Observación histórica de HEADs consultados el 2026-10-23 temprano: #101 `b84da93881f5866e8832e5888e5dce02433e85cc` no tenía workflows; #87 `386da22f1dca3f2a1f489e2d9a898d30350d3eb0` solo devolvió persistencia cancelada (#578); #103 `31ec5abceae6e38279d6be1e19e94683e0ea00ea` devolvió persistencia exitosa (#574) pero no transporte en esa consulta. No extrapolar esos resultados a HEADs posteriores.
 - #87/#103 heredan una base vinculada a la PR #76 cerrada sin merge; reconciliar la ascendencia con #104 antes de integrar. No retargetear automáticamente sin comparar diffs.
 
 ## Registro
@@ -75,7 +75,7 @@ Esta actualización reemplaza recuentos históricos de Issues/PR que podrían ha
 
 ### Conteo actual y alcance
 
-- Consulta global de GitHub: **21 PR abiertas, todas en draft**. La cifra previa de 27 y la consulta intermedia de 23 quedan supersedidas por este recuento.
+- Consulta global de GitHub más reciente del 2026-10-23: **23 PR abiertas, todas en draft**. Los recuentos anteriores de 21 y 27 corresponden a consultas previas.
 - Issues abiertas: **38**. Issues cerradas consultadas: **10**.
 - No se fusionó ni eliminó ninguna PR durante esta continuación; no se borraron ramas. No se lanzaron workflows manuales.
 - PR #108 y #109 ya están fusionadas en `main`; PR #106 también aparece registrada como fusionada en la auditoría previa. No tratarlas como pendientes.
@@ -129,5 +129,5 @@ Esta actualización reemplaza recuentos históricos de Issues/PR que podrían ha
 ## Revalidación del stack de tareas — 2026-10-23
 - PR #101 y #74 cambiaron de HEAD tras la auditoría anterior. Se verificó CI actual: #101 HEAD `043a4e23efd063949577f758eacc326d74bb7ce5` con transporte #479/#478, esquema #308 y persistencia #607 en `success`; #74 HEAD `406936ecef181eb4a7a34d6e25316079ee8b29ea` con transporte #480 y persistencia #608 en `success`.
 - PR #112 intenta sincronizar el proveedor de snapshots a la rama de bandeja; la API de GitHub informa `mergeable=false`. No fusionar hasta resolver conflictos y revisar el diff completo.
-- PR #113 corrige el uso de lease de entrega tras aceptación. Transporte #481 pasa **63 pruebas** y `pip check` limpio; la CI PostgreSQL del mismo HEAD aún debe confirmarse.
+- PR #113 corrige el uso de lease de entrega tras aceptación. HEAD `21a5b4915086959eaf7dece15b6095de333612ce`: transporte #482 `success` (**63 passed**, `pip check` limpio); persistencia #609 `success` (prueba PostgreSQL de bandeja **1 passed**, suites persistencia/guard/auth **32 + 12 + 54 passed**, `pip check` limpio). Se amplió el filtro del workflow para que los cambios de `cluster-agent-transport` ejecuten esta prueba PostgreSQL.
 - La cadena no se considera integrada: mantener #52/#57/#67/#85 y #112/#113 en draft hasta resolver dependencias, CI completa y aceptación manual. No se despliega ni se ejecuta Android.
