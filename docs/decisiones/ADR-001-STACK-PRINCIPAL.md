@@ -1,5 +1,8 @@
 # ADR-001: Stack principal y sistema operativo de referencia
 
+> **Nota de vigencia — 2026-10-22:** conservar este ADR como registro de la propuesta del 9-oct, pero no tratar todos sus puntos como decisiones vigentes. Tauri/React no está seleccionado; la candidata de escritorio es Python/Tkinter en PR #87 y el panel autenticado está en PR #104, ambos sin integrar. El plano de control y la persistencia PostgreSQL local se están validando en ramas/PRs separadas, por lo que la elección inicial de SQLite no debe imponerse a la arquitectura del clúster sin reconciliar ADR-004 y las pruebas. Android Emulator sigue siendo referencia de compatibilidad, redroid está bloqueado por #27 y Cuttlefish es candidato de laboratorio sin aprobación; QEMU + Android-x86 + VNC está retirado. No instalar ni desplegar por este ADR histórico.
+
+
 - **Estado:** propuesta adoptada para prototipo, pendiente de validación experimental.
 - **Fecha:** 2026-10-09
 - **Contexto:** Geelark-IA debe operar sin costes obligatorios, localmente, con Android virtualizado, automatización, API/CLI y opción offline. El usuario permite elegir el mejor hardware y sistema operativo; no hace falta optimizar para un equipo existente.
