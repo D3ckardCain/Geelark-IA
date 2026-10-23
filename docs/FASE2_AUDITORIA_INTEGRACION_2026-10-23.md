@@ -37,6 +37,18 @@ Los SHA abreviados de la tabla sirven para orientación; usar SHA completos en o
 
 No usar `mergeable=true` como sustituto de revisión, CI del HEAD exacto, integración de dependencias y aceptación manual.
 
+### Divergencia de las PR raíz contra `main`
+
+La revalidación de Compare API encontró tres PR raíz con ascendencia muy atrasada respecto a `main`:
+
+| PR | Compare `main...head` | Diff visible | Acción segura |
+|---|---|---|---|
+| #16 contratos | `diverged`, 20 commits exclusivos de rama / 254 de main no presentes | 8 archivos nuevos de contratos y workflow; `mergeable=false` | Reconciliar la rama con main y revalidar CI antes de aceptar #28/#30 descendientes |
+| #32 esquema | `diverged`, 18 commits exclusivos de rama / 242 de main no presentes | 5 archivos de migración/workflows/manual; `mergeable=false` | Reconciliar esquema/migraciones sin perder cambios y validar #34/#36/#38 descendientes |
+| #40 ADR autenticación agentes | `diverged`, 2 commits exclusivos de rama / 242 de main no presentes | ADR-005 única, no integrada en main; `mergeable=false` | Conservar la decisión y reconciliar referencias con #42/#44/#47/#48 |
+
+Los contadores de commits describen la divergencia del historial, no que todos esos commits formen parte del diff de la PR. No fusionar ni cambiar bases automáticamente. Los comentarios de auditoría se añadieron en las tres PR.
+
 ## Issues: evitar cierres incorrectos
 
 - **#29 sigue abierta correctamente:** quedan pruebas negativas de contratos, unicidad, timestamps, semántica de recursos, compatibilidad de versiones y revisión de seguridad. CI histórica de #16 no satisface estos criterios.
