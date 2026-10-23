@@ -29,6 +29,8 @@ Plataforma local para administrar instancias Android en equipos WORKER físicos 
 
 - [Alcance vigente PC-MASTER + motor intercambiable](docs/ALCANCE_PC_MASTER_REDROID.md)
 - [Estado del proyecto](docs/ESTADO_PROYECTO.md)
+- [Auditoría de continuidad GitHub (2026-10-23)](docs/AUDITORIA_CONTINUIDAD_GITHUB_2026-10-23.md)
+- [Auditoría de integración Fase 2 (2026-10-23)](docs/FASE2_AUDITORIA_INTEGRACION_2026-10-23.md)
 - [Requisitos](docs/REQUISITOS.md)
 - [Plan de trabajo](docs/PLAN_TRABAJO.md)
 - [Arquitectura del clúster físico](docs/ARQUITECTURA_CLUSTER_HETEROGENEO.md)
