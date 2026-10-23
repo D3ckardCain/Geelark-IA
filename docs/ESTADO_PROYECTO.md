@@ -1,6 +1,6 @@
 # Estado del proyecto GeeLark-IA
 
-**Actualizado:** 2026-10-22  
+**Actualizado:** 2026-10-23  
 **Alcance vigente:** PC-MASTER Windows + redroid en PC-WORKERS Debian 13 + agregados del plano de control.  
 **Estado:** preparación y auditoría; redroid bloqueado para despliegue físico por la issue #27. No declarar producción ni capacidad validada.
 
