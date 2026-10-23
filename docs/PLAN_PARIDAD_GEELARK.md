@@ -1,11 +1,11 @@
-# Plan maestro de paridad funcional con GeeLark (solo Android, local y gratuito)
+# Plan  de paridad funcional con GeeLark (solo Android, local y gratuito)
 
 **Estado:** borrador de planificación basado en investigación pública inicial; requiere validación del usuario y pruebas prácticas.  
 **Fecha inicial:** 2026-10-09  
 **Revisión de estado:** 2026-10-21  
 **Objetivo:** construir desde cero una plataforma de gestión y automatización de entornos Android virtualizados/emulados localmente en hardware anfitrión físico, con software gratuito y sin servicios de pago obligatorios, tomando GeeLark como referencia funcional. No se copiará código, marca, contenido privado ni activos propietarios de GeeLark; se hará una implementación independiente basada en requisitos observables.
 
-> **Estado actual del motor (2026-10-22):** redroid es el único motor Android en preparación; el despliegue físico permanece bloqueado por la issue #27 hasta demostrar una mitigación de seguridad para la imagen exacta. La ruta QEMU + Android-x86 + VNC en WSL2 está retirada y no se mantienen otros motores como alternativas activas. Esta planificación de funciones no implica que exista paridad implementada.
+> **Estado actual del motor (2026-10-22):** redroid es el único motor Android en preparación; el despliegue físico permanece bloqueado por la issue #27 hasta demostrar una mitigación de seguridad para la imagen exacta. La ruta la ruta experimental anterior está retirada y no se mantienen otros motores como alternativas activas. Esta planificación de funciones no implica que exista paridad implementada.
 
 ## 1. Objetivo y límites no negociables
 
