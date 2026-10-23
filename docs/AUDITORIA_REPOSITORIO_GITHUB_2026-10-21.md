@@ -14,7 +14,7 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 - PR abiertas encontradas antes de esta limpieza: 32.
 - PR cerradas durante esta auditoría por duplicación/supersesión documentada: #25, #45, #49, #90, #99 y #102.
 - PR abiertas en la última consulta global del 2026-10-22: 23. Este número puede cambiar cuando se actualicen PRs; no se han fusionado PR durante esta continuación.
-- No se han fusionado PR, eliminado ramas ni cambiado configuraciones de facturación. La PR #49 se cerró como supersedida por #38 después de confirmar que el journal actual ya cubre su función con un ACK más seguro. Se renumeraron documentos solo en ramas de PR: #70 ahora propone ADR-006 para lectura de estado y separa su manual como `MANUAL_PROTOTIPO_PANEL_CONTROL_MASTER.md`; #104 propone ADR-007 para autenticación PC-MASTER. No se perdió contenido ni se fusionó ninguna rama.
+- La PR #106 (auditoría de continuidad documental) sí se fusionó en `main` el 2026-10-22; fue una PR documental explícita y su contenido es esta auditoría. No se fusionaron otras PR de implementación, no se eliminaron ramas ni se cambiaron configuraciones de facturación. La PR #49 se cerró como supersedida por #38 después de confirmar que el journal actual ya cubre su función con un ACK más seguro. Se renumeraron documentos solo en ramas de PR: #70 ahora propone ADR-006 para lectura de estado y separa su manual como `MANUAL_PROTOTIPO_PANEL_CONTROL_MASTER.md`; #104 propone ADR-007 para autenticación PC-MASTER. No se perdió contenido ni se fusionó ninguna rama.
 
 ## Acciones realizadas
 
