@@ -14,7 +14,7 @@ Mantener el repositorio GeeLark-IA alineado con el alcance vigente: PC-MASTER Wi
 - No cerrar un bloqueo de seguridad por tener documentación escrita; exigir evidencia reproducible.
 - No borrar ramas o historial de commits para ocultar decisiones anteriores. La documentación operativa sí debe reflejar el alcance actual.
 - Las tareas de autenticación, enrolamiento, transporte, persistencia, despacho, reconciliación, observabilidad y automatización permanecen porque son componentes necesarios del plano de control.
-- La estrategia de motor se reabrió a nivel de investigación tras retirar el experimento manual QEMU + Android-x86 + VNC en WSL2. AOSP Cuttlefish es el primer candidato de laboratorio, no aprobado; Android Emulator es referencia de compatibilidad; redroid sigue bloqueado por #27. El contrato permanece agnóstico y no se permite instalación física hasta revisar licencias, seguridad y plan de pruebas.
+- La estrategia vigente es redroid primero y como único motor Android en preparación. La ruta manual QEMU + Android-x86 + VNC en WSL2 está retirada; Android Emulator es referencia de compatibilidad y Cuttlefish queda como contingencia, no como candidato activo. El contrato permanece agnóstico y no se permite instalación física de redroid hasta resolver #27 con mitigación verificable para la imagen/digest exactos.
 - No se han instalado paquetes ni modificado discos de los WORKERS durante esta limpieza documental.
 
 ## Cambios realizados en la rama de limpieza
@@ -95,5 +95,5 @@ Esta actualización reemplaza recuentos históricos de Issues/PR que podrían ha
 
 - Se actualizaron Issues #3, #10, #11, #12, #24 y #92 para retirar afirmaciones envejecidas que nombraban redroid como motor único/seleccionado. Ahora reflejan que Cuttlefish es candidato de laboratorio, no aprobado, y que el contrato del adaptador es agnóstico.
 - #24 mantiene únicamente la caché local de artefactos verificados; #92 mantiene únicamente el aprovisionamiento Debian 13. No ejecutar instalación de runtime hasta superar las puertas de licencia, seguridad y aceptación.
-- #27 permanece abierta como bloqueo específico de redroid; no se cierra porque la estrategia haya cambiado, ya que sigue siendo evidencia de riesgo relevante si se reconsidera ese motor.
+- #27 permanece abierta como bloqueo obligatorio del motor prioritario redroid. La prioridad no implica aprobación de seguridad ni autoriza instalación física; la puerta solo se levanta con evidencia reproducible sobre la imagen/digest exactos.
 - Se cerró #64 como decisión resuelta (Windows en PC-MASTER, Debian 13 previsto en WORKERS). No se cerró ninguna tarea de implementación física por inferencia.
