@@ -455,7 +455,7 @@ class AgentJournal:
         try:
             rows = conn.execute(
                 """
-                SELECT r.operation_id, r.instance_id, r.node_id, r.assignment_epoch,
+                SELECT r.operation_id, r.task_id, r.instance_id, r.node_id, r.assignment_epoch,
                        r.payload_sha256, r.status, r.result_json
                   FROM operation_receipts AS r
                  WHERE r.node_id = ?
