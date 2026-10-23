@@ -245,6 +245,8 @@ Se añadieron avisos, sin eliminar el análisis original, a cuatro documentos de
 
 ## Cierre de la pasada de auditoría — 2026-10-22
 
+**Actualización adicional:** la Issue #39 se cerró con alcance limitado a la decisión de autenticación/enrolamiento ya registrada en ADR-005 de la PR #40. Las pruebas, implementación y habilitación de red siguen pendientes en #41, #46–#48 y #65; no se consideran terminadas.
+
 ### Acciones finales de organización
 
 - Se corrigieron referencias contradictorias sobre el estado de merge: la PR documental #106 sí se integró; no se integró ninguna PR de implementación durante esta pasada.
@@ -263,7 +265,7 @@ Se añadieron avisos, sin eliminar el análisis original, a cuatro documentos de
 
 ### Recuento final consultado
 
-- 40 Issues abiertas; 8 cerradas.
-- 23 PR abiertas, todas en draft.
+- Recuento actualizado tras cerrar #39 como decisión de diseño completada (22-oct-2026): **39 Issues abiertas; 9 cerradas**.
+- **23 PR abiertas, todas en draft; 36 PR cerradas** según la consulta actual de GitHub.
 - PR #101, #52 y #67 aparecen con conflictos de integración; el HEAD actual de #101 no tiene workflows asociados. #86 también tiene conflicto documental. No se cambió ninguna base ni se resolvieron conflictos a ciegas.
 - No se identificó otra Issue que pudiera cerrarse con seguridad sin confundir una decisión documental con implementación, CI de una rama con integración, o trabajo de software con aceptación/prueba física. Las Issues #64, #105 y #107 ya se cerraron con alcance limitado y evidencia.
