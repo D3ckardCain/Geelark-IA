@@ -146,7 +146,7 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 - **Issue #50:** corregida la referencia obsoleta a PR #73; la cadena de dependencias, en dirección base → descendiente, es #48 → #101 → #74 → #52 → #57 → #67 → #85. #101 reemplaza a #73. Se añadieron conteos de CI de los HEADs consultados el 22-oct; la revisión manual de seguridad sigue pendiente.
 - **Issue #72:** actualizada la referencia de inventario de módulos a PR #101, sucesora de #73.
 - **Issue #20:** se aclaró que las pruebas marcadas corresponden al prototipo histórico de PR #19, cerrada sin merge, y no validan automáticamente la rama actual #32.
-- **Issue #58:** actualizado el estado del supervisor; PR #67 es candidata sobre #57, pero ambas siguen en draft y no están integradas.
+- **Issue #58:** actualizado el estado del supervisor; PR #67 es candidata sobre #57, pero ambas siguen en draft y no están integradas. Revalidación 22-oct: GitHub marca #67 `mergeable=false`; sus runs #344/#436 son success en el SHA actual, pero no resuelven el conflicto ni la dependencia de #52.
 - **Issues #89 y #91:** se registró que la CI de #104 pasa para su SHA, pero los issues siguen abiertos hasta integrar/revalidar la corrección.
 - **PR #87:** se registró la superposición de archivos backend con #104 y que el workflow del HEAD actual aparece cancelado.
 - **Issue #88:** documentada la evidencia de GitHub: `main` no contiene la aplicación PC-MASTER; la candidata de escritorio está en #87, basada en la rama de la PR #76 cerrada sin merge, y el panel/API actual está en #104. La procedencia exacta del acceso directo local no puede confirmarse sin comparar el archivo ejecutado en el PC-MASTER; la issue permanece abierta.
