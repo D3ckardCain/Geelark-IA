@@ -4,7 +4,7 @@ Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la refer
 
 > **Estado actual:** auditoría funcional de GeeLark, investigación de motores Android locales y arquitectura de automatización. No hay motor Android aprobado para producción. La vía manual QEMU + Android-x86 9.0-r2 + VNC se retiró como ruta de producto.
 >
-> **Higiene del repositorio (2026-10-21):** [auditoría de GitHub](docs/AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md). Las implementaciones siguen en PR abiertas; el contenido de una rama no se considera integrado ni aceptado.
+> **Auditoría de GitHub (21–22 oct 2026):** [auditoría principal](docs/AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md) y [continuidad/CI y ramas históricas](docs/AUDITORIA_GITHUB_CONTINUIDAD_2026-10-22.md). Recuento consultado: 23 PR abiertas (todas draft), 40 Issues abiertas y 8 cerradas. Las implementaciones siguen en ramas/PR; el contenido de una rama no se considera integrado ni aceptado.
 
 ## Reglas de trabajo
 
