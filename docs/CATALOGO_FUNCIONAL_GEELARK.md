@@ -764,4 +764,4 @@ No se afirma compatibilidad universal a partir de esta guía: cada fabricante/ve
 
 ## Nota de vigencia estratégica — 2026-10-22
 
-Este documento se conserva como evidencia funcional histórica/preliminar; la fecha de las fuentes funcionales originales no se actualiza por esta nota. La estrategia técnica se revisó el 2026-10-22: la ruta manual QEMU + Android-x86 + VNC está retirada; AOSP Cuttlefish es solo candidato de laboratorio y no está aprobado; redroid permanece bloqueado por la Issue #27; Android Emulator es referencia de compatibilidad y Waydroid sigue como alternativa secundaria. No se ha completado una prueba en WORKER físico ni se ha medido densidad de instancias. Antes de implementar paridad, reconciliar con la investigación ampliada de la PR #86 y distinguir evidencia documentada, inferencia, código en PR, CI por SHA y prueba real.
+Este catálogo conserva evidencia funcional pública de GeeLark. El alcance técnico vigente es PC-MASTER Windows + redroid en workers Debian 13; el despliegue físico sigue bloqueado por la issue #27. No se mantienen otros motores Android como alternativas activas.
