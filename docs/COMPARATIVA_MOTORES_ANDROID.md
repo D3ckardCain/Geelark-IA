@@ -1,49 +1,53 @@
-# Motor Android seleccionado para evaluación: redroid
+# Evaluación del motor Android en preparación: redroid
 
-**Actualizado:** 2026-10-22. **Estado:** preparación documental; bloqueado para despliegue físico por la issue #27. No aprobado para producción ni validado en workers físicos.
+**Actualizado:** 2026-10-22. **Estado:** preparación documental; bloqueado para despliegue físico por la issue #27. No aprobado para producción ni validado en WORKERS físicos.
 
-## Alcance
-- PC-MASTER Windows permanece como panel y coordinador central.
-- Los PC-WORKERS serán equipos físicos con Debian 13 como sistema base previsto.
-- redroid es el único motor Android de este ciclo.
-- No reabrir la vía manual QEMU + Android-x86 + VNC en WSL2.
-- Agente, transporte autenticado, persistencia y reconciliación son agregados necesarios para que PC-MASTER controle los workers.
+## Alcance vigente
 
-## Motor
-redroid ejecuta Android en contenedores sobre un host Linux y está diseñado para varias instancias. El rendimiento real depende del kernel, los módulos/dispositivos disponibles y las aplicaciones objetivo.
+- PC-MASTER Windows es el panel web y coordinador central.
+- Los PC-WORKERS serán equipos físicos; Debian 13 es el sistema base previsto.
+- redroid es el único motor Android en preparación.
+- No reabrir QEMU + Android-x86 + VNC en WSL2 ni mantener otros motores como alternativas activas.
+- Agente, autenticación, transporte, persistencia, despacho y reconciliación son componentes del plano de control, no motores Android alternativos.
 
-Repositorio oficial: https://github.com/remote-android/redroid-doc
+## Qué ofrece redroid
 
-## Bloqueo de seguridad
-La documentación oficial muestra un contenedor privilegiado y advierte contra exponer ADB públicamente. La incidencia upstream [redroid-doc #932](https://github.com/remote-android/redroid-doc/issues/932) describe una escritura de `/proc/sys/kernel/modprobe` que puede afectar al host. El cierre upstream no demuestra por sí solo que exista una imagen corregida.
+redroid ejecuta Android en contenedores sobre un host Linux y documenta soporte para arquitecturas amd64 y arm64 y varias instancias. La densidad y compatibilidad reales dependen del kernel, Binder/BinderFS, recursos, aplicaciones objetivo y configuración. Ninguna cifra de capacidad se considera validada para nuestro hardware.
 
-Antes de la prueba física:
-1. Fijar etiqueta y digest concretos.
-2. Inspeccionar el init de la imagen exacta y las instrucciones de kernel relevantes.
-3. Identificar una mitigación efectiva y reproducible; no basta con restaurar el sysctl después.
-4. Determinar capacidades, dispositivos y montajes mínimos.
-5. Restringir ADB y no publicar el socket Docker al panel.
-6. Verificar aislamiento y persistencia por instancia.
-7. Registrar evidencia en la issue interna #27.
+Documentación oficial: https://github.com/remote-android/redroid-doc  
+Módulos del kernel: https://github.com/remote-android/redroid-modules  
+Imagen pública: https://hub.docker.com/r/redroid/redroid
 
-Mientras la puerta no esté cerrada con evidencia, no arrancar redroid en workers físicos.
+## Bloqueo crítico de seguridad
 
-## Preparación
-1. Instalar Debian 13 en WORKER-01 mediante el procedimiento aprobado.
-2. Ejecutar el diagnóstico de solo lectura para CPU, RAM, kernel, Binder/BinderFS, disco, red y puertos.
-3. Verificar licencias y procedencia de imágenes, paquetes y APK.
-4. Fijar versiones y digests; no usar `latest`.
-5. Aprobar seguridad antes de iniciar el contenedor.
-6. Probar una instancia: arranque, ADB restringido, APK autorizada, captura, entrada, persistencia y parada.
-7. Probar dos instancias independientes y medir CPU, RAM, disco, latencia y estabilidad.
-8. Integrar agente autenticado con PC-MASTER: adopción, heartbeat, capacidades, órdenes tipadas, errores y reconciliación.
+La guía upstream muestra ejemplos con Docker `--privileged`. La incidencia [redroid-doc #932](https://github.com/remote-android/redroid-doc/issues/932) describe una escritura de `/proc/sys/kernel/modprobe` que puede escapar al host debido a que el sysctl no está aislado por namespaces. La incidencia aparece cerrada, pero eso no prueba que una etiqueta/digest concreta tenga una corrección.
 
-## Coste y capacidad
-Objetivo de coste obligatorio: 0 USD. Confirmar licencias, redistribución y dependencias. No estimar capacidad máxima hasta medirla en hardware real.
+No ejecutar redroid en hardware físico hasta que la issue interna [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27) contenga evidencia verificable de la mitigación sobre la imagen exacta. No basta con restaurar el valor del sysctl después del arranque. Si no se encuentra una mitigación efectiva, detener el despliegue físico.
 
-## Fuentes
-- https://github.com/remote-android/redroid-doc
-- https://github.com/remote-android/redroid-doc/issues/932
-- https://github.com/remote-android/redroid-modules
-- https://github.com/D3ckardCain/Geelark-IA/issues/27
-- https://github.com/D3ckardCain/Geelark-IA/issues/24
+## Lista de verificación previa
+
+- [ ] Elegir una etiqueta fija y registrar digest; no usar `latest` en pruebas reproducibles.
+- [ ] Inspeccionar init y parches de la versión exacta.
+- [ ] Probar una mitigación efectiva del riesgo `kernel.modprobe`.
+- [ ] Determinar privilegios, capacidades, dispositivos y montajes mínimos.
+- [ ] Mantener ADB en loopback o canal administrativo explícitamente protegido.
+- [ ] No exponer el socket Docker a PC-MASTER ni a la LAN.
+- [ ] Verificar Binder/BinderFS y módulos requeridos en el kernel real.
+- [ ] Revisar licencias y condiciones de distribución de imagen, módulos y dependencias.
+- [ ] Documentar recuperación, logs redactados y reversión.
+- [ ] Obtener aprobación de la puerta #27 antes de arrancar en WORKER físico.
+
+## Plan de pruebas después de aprobar seguridad
+
+1. Diagnóstico de solo lectura en WORKER-01 (CPU, RAM, kernel, disco, Binder/BinderFS, red y puertos).
+2. Instancia única: ciclo de vida, ADB restringido, APK autorizada, captura/entrada, archivos, persistencia y métricas.
+3. Dos instancias simultáneas: independencia de datos, puertos, almacenamiento y control.
+4. Reinicios y fallos: recuperación, reconciliación y ausencia de operaciones duplicadas.
+5. Integración por agente autenticado con PC-MASTER Windows.
+6. Medición de CPU, RAM, almacenamiento, latencia y estabilidad antes de cualquier estimación de escala.
+
+## Capacidad y coste
+
+El hardware de referencia inicial de cada worker es i5-11400, 32 GB de RAM, NVMe de 500 GB y sin GPU dedicada. Esto no determina cuántas instancias son viables. Medir primero una y dos; ampliar solo con datos observados.
+
+Objetivo obligatorio: 0 USD. Verificar cada dependencia y su licencia; no depender de un servicio cloud pagado.
