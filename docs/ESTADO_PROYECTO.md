@@ -11,9 +11,9 @@ Construir una plataforma local que administre instancias Android ejecutadas en P
 ## Decisiones vigentes
 
 1. PC-MASTER significa el panel web central, no su lanzador/configurador de escritorio.
-2. El contrato del motor Android es agnóstico; AOSP Cuttlefish es el primer candidato de laboratorio, todavía no aprobado.
+2. El contrato del motor Android es agnóstico; redroid es el primer candidato a evaluar, todavía bloqueado por seguridad #27 y no aprobado para ejecución física.
 3. Debian 13 es el sistema base previsto para los workers; no se ha instalado ni aprobado aún mediante este registro.
-4. La ruta manual QEMU + Android-x86 + VNC en WSL2 está retirada. Android Emulator es referencia de compatibilidad; redroid permanece bloqueado por #27.
+4. La ruta manual QEMU + Android-x86 + VNC en WSL2 está retirada. redroid es la prioridad de evaluación, pero no se ejecuta en Workers físicos hasta resolver #27. Android Emulator queda como referencia de compatibilidad y Cuttlefish como contingencia.
 5. Se conservan agente, enrolamiento, autenticación/autorización, HTTPS privado, heartbeat, capacidades, estado, persistencia, despacho durable, auditoría, reconciliación, captura/entrada y automatización.
 6. Los nodos pendientes pueden enviar telemetría y consultar estado limitado; no reciben ni ejecutan tareas hasta ser autorizados.
 7. No arrancar ningún motor Android en hardware físico hasta aprobar la selección, licencias, seguridad y plan de pruebas; #27 sigue bloqueando específicamente redroid.
@@ -35,7 +35,7 @@ La consulta final registra **38 Issues abiertas, 10 cerradas y 22 PR abiertas**,
 ## Próximas etapas
 
 1. Completar la limpieza de referencias y enlaces obsoletos en GitHub.
-2. Evaluar Cuttlefish: requisitos de host, KVM, licencias, disponibilidad de imágenes y operación multiinstancia.
+2. Evaluar redroid primero: seguridad de la imagen/digest, requisitos kernel/Binder, licencia, compatibilidad de APK, operación multiinstancia y recursos. Cuttlefish solo si redroid se descarta.
 3. Mantener #27 abierta mientras redroid no tenga mitigación verificable para la imagen exacta.
 4. Aprobar el procedimiento de aprovisionamiento Debian 13 para WORKER-01.
 5. Ejecutar diagnóstico de solo lectura cuando el worker esté preparado.
