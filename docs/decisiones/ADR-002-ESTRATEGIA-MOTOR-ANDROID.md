@@ -13,7 +13,7 @@ GeeLark-IA necesita un panel web central PC-MASTER en Windows y un plano de ejec
 
 1. redroid es el único motor Android que se prepara en este ciclo.
 2. No se mantendrán alternativas activas ni comparativas de otros motores Android en la documentación operativa.
-3. Se retira definitivamente como ruta de producto el experimento la ruta experimental anterior.
+3. La ruta experimental anterior queda retirada y no forma parte del producto.
 4. PC-MASTER significa el panel web central; su lanzador/configurador de Windows es un componente separado.
 5. Se conservan los agregados imprescindibles: agente de worker, enrolamiento, autenticación/autorización, transporte HTTPS privado, heartbeat, inventario de capacidades, persistencia transaccional, despacho durable, límites de recursos, auditoría, reconciliación, captura/entrada remota y automatización.
 6. Un nodo pendiente solo puede informar telemetría y consultar estado limitado; no puede aceptar ni ejecutar tareas.
