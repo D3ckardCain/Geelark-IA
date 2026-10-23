@@ -141,3 +141,13 @@ HEAD actualizado de #113: `21a5b4915086959eaf7dece15b6095de333612ce`.
 - Persistencia #609: `success`; prueba PostgreSQL de bandeja **1 passed**, suites de persistencia/guard/auth **32 + 12 + 54 passed**, `pip check` limpio.
 
 La corrección y su cobertura de CI quedan validadas en esta rama, pero #113 sigue en draft. La sincronización #112 continúa `mergeable=false`; no fusionar ni ejecutar Android hasta reconciliar las dos ramas y validar el SHA integrado.
+
+## Corrección de estado documental de #113 — 2026-10-23
+
+La reconsulta del HEAD actual de la rama `fix/task-delivery-lease-after-accept-v1` confirma que la PR auxiliar #113 está **3 commits adelante y 0 detrás** de `feat/agent-task-inbox-v2`. El HEAD vigente es `21a5b4915086959eaf7dece15b6095de333612ce` (no el SHA inicial `3f096d0f...`).
+
+Los dos workflows para el HEAD vigente terminaron `completed/success`:
+- Transporte HTTPS [#40030143045](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40030143045): **63 passed**, comprobación de dependencias limpia.
+- Persistencia [#40030143221](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40030143221): prueba PostgreSQL de bandeja **1 passed**, además de suites de persistencia/guard/auth **32 + 12 + 54 passed** y comprobación de dependencias limpia.
+
+La ampliación del workflow de persistencia es parte de la PR y hace que cambios bajo `packages/cluster-agent-transport/**` ejecuten también la prueba PostgreSQL de bandeja. Queda corregida la nota anterior que decía que faltaba comprobar este workflow: ya está validado en el mismo HEAD. #113 permanece en draft porque la integración combinada con #74/#52 aún requiere reconciliar runtime, ACK cercado, task_id/endpoints, esquema, pruebas y workflows. No se ha fusionado la cadena ni se ha ejecutado Android.
