@@ -8,7 +8,7 @@
 
 - PC-MASTER es el panel web central; el lanzador/configurador de escritorio es separado.
 - redroid es el único motor Android en preparación.
-- La ruta QEMU + Android-x86 + VNC en WSL2 está retirada y no se reabre.
+- Las rutas técnicas retiradas no forman parte del alcance vigente.
 - El despliegue físico de redroid está bloqueado por la issue #27 hasta demostrar una mitigación efectiva para el riesgo de `/proc/sys/kernel/modprobe`.
 - Los componentes de agente, enrolamiento, autenticación/autorización, HTTPS privado, heartbeat, persistencia, despacho, reconciliación, observabilidad y automatización siguen dentro del alcance.
 - Una PR abierta no significa que el código esté integrado ni aceptado.
