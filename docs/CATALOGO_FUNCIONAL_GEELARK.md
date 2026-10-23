@@ -5,6 +5,8 @@
 **Estado:** parcial; basado en documentación pública oficial y notas de versión. No equivale a inspección exhaustiva del cliente ni a pruebas prácticas.  
 **Idioma:** español.
 
+**Revalidación de alcance — 2026-10-23:** el motor en preparación es redroid sobre WORKERS Debian 13, con ejecución física bloqueada por #27. La evidencia funcional de este catálogo conserva su corte documental del 2026-10-09; no se ha refrescado exhaustivamente contra la versión pública actual de GeeLark. No declarar paridad ni usar este catálogo como prueba de compatibilidad sin una nueva revisión de fuentes y criterios de aceptación.
+
 ## 1. Propósito y reglas
 
 Este catálogo convierte las áreas generales de la investigación en funciones verificables que después se implementarán o se marcarán como no equivalentes en Geelark-IA. GeeLark es la referencia observable. Ninguna capacidad se considerará replicada solo porque exista una función con nombre parecido.
