@@ -195,6 +195,13 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 La consulta de GitHub permite revisar el contenido del repositorio, metadatos, PR e Issues, pero no confirma el estado del PC-MASTER local, los procesos de WSL, la aceptación manual, el panel de facturación de la cuenta ni las pruebas que no tengan artefacto verificable. No se iniciaron ejecuciones manuales de GitHub Actions ni se habilitó ningún runner de pago; los commits de corrección sí dispararon las validaciones automáticas configuradas para las PR.
 
 
+## Estado de mergeabilidad de las ramas apiladas — 22-oct-2026
+
+Consulta de metadatos actual de GitHub (la mergeabilidad puede cambiar con cada push):
+- GitHub marca `mergeable=false` en #101 (ACK/inventario), #52 (bandeja durable), #67 (supervisor), #70 (prototipo del panel) y #86 (documentación funcional). No asumir que CI verde equivale a que el diff pueda integrarse; reconciliar conflictos/base y volver a revisar el HEAD antes de cualquier merge.
+- #87, #103 y #104 aparecen `mergeable=true` en la consulta, pero siguen en draft y tienen dependencias/aceptación pendientes. En particular, #87/#103 heredan una base de #76 cerrada sin merge; la mergeabilidad técnica no elimina ese problema de ascendencia.
+- No cambié bases ni forcé resoluciones de conflicto porque podrían descartar cambios exclusivos.
+
 ## Continuación — panel y recuento verificado (22-oct-2026)
 
 - Recuento mediante API GitHub al 22-oct: **23 PR abiertas**, todas en draft; **40 Issues abiertas** y 8 cerradas. El recuento previo de 27 PR estaba desactualizado y se corrige aquí.
