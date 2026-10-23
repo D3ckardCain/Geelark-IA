@@ -21,7 +21,7 @@
 En la terminal de Debian/WSL, ejecutar:
 
 ```bash
-pgrep -a -f 'qemu-system|android-x86_64-9.0-r2.iso'
+pgrep -a -f '[q]emu-system|[a]ndroid-x86_64-9.0-r2.iso'
 ps -fp 19
 ss -ltnp | grep ':5900'
 ```
@@ -39,7 +39,7 @@ Después de identificar y verificar el PID real, enviar primero una terminación
 kill -TERM <PID_QEMU_VERIFICADO>
 ```
 
-Sustituir `<PID_QEMU_VERIFICADO>` por el PID comprobado, no copiar literalmente el marcador. Verificar después con `pgrep -a -f 'qemu-system|android-x86_64-9.0-r2.iso'` y `ss -ltnp | grep ':5900'`. No usar `kill -9` salvo que el proceso siga activo y se haya vuelto a confirmar su identidad.
+Sustituir `<PID_QEMU_VERIFICADO>` por el PID comprobado, no copiar literalmente el marcador. Verificar después con `pgrep -a -f '[q]emu-system|[a]ndroid-x86_64-9.0-r2.iso'` y `ss -ltnp | grep ':5900'`. No usar `kill -9` salvo que el proceso siga activo y se haya vuelto a confirmar su identidad.
 
 ### 3. Verificar y eliminar únicamente la ISO del experimento
 
@@ -79,7 +79,7 @@ Revisar cada resultado y confirmar que se instaló exclusivamente para este expe
 Después de la limpieza:
 
 ```bash
-pgrep -a -f 'qemu-system|android-x86_64-9.0-r2.iso'
+pgrep -a -f '[q]emu-system|[a]ndroid-x86_64-9.0-r2.iso'
 ss -ltnp | grep ':5900'
 test ! -e /var/lib/geelark-ia/images/android-x86_64-9.0-r2.iso && echo 'ISO retirada'
 ```
