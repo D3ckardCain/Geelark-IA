@@ -1,3 +1,5 @@
+> **Plan retirado; no ejecutar — 2026-10-22:** La propuesta antigua de usar QEMU/KVM como primera prueba y descargar Bliss OS ya no está vigente. El experimento QEMU + Android-x86 + VNC en WSL2 se retiró y no se debe repetir. No instalar software ni modificar BIOS/discos/particiones siguiendo este documento sin un nuevo plan aprobado. El motor Android continúa sin seleccionar; Cuttlefish requiere una nueva puerta de licencia/seguridad y redroid sigue bloqueado por #27. Este archivo se conserva como registro histórico, no como instrucción operativa actual.
+
 # Plan de prueba no destructiva: WORKER-01
 
 **Fecha:** 2026-10-09  
