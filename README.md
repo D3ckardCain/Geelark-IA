@@ -2,14 +2,14 @@
 
 Plataforma local para administrar instancias Android en equipos WORKER físicos desde el **panel web PC-MASTER Windows**. GeeLark se usa como referencia funcional pública; la implementación será independiente.
 
-> **Alcance vigente:** PC-MASTER Windows + redroid en PC-WORKERS Debian 13 + los componentes de control distribuido necesarios. No se mantienen otros motores Android como alternativas activas. La instalación física de redroid permanece bloqueada por seguridad hasta que la issue [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27) tenga evidencia reproducible de mitigación.
+> **Alcance vigente:** PC-MASTER Windows + redroid en PC-WORKERS Debian 13 + los componentes de control distribuido necesarios. Solo se prepara el motor definido en el alcance vigente. La instalación física de redroid permanece bloqueada por seguridad hasta que la issue [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27) tenga evidencia reproducible de mitigación.
 
 ## Reglas obligatorias
 
 - Coste operativo objetivo: **0 USD**; sin dependencia crítica de servicios de pago, tarjetas, pruebas temporales ni cargos automáticos.
 - PC-MASTER significa el panel web de control, no el lanzador/configurador de escritorio.
 - PC-MASTER Windows coordina workers físicos. Los workers ejecutarán Debian 13 como base prevista y redroid como único motor Android en preparación.
-- No reabrir la ruta retirada QEMU + Android-x86 + VNC en WSL2 ni documentar otros motores como candidatos activos.
+- No reabrir la ruta retirada la ruta experimental anterior ni documentar otros motores como candidatos activos.
 - Conservar agente, enrolamiento, autenticación/autorización, transporte seguro, heartbeat, estado, persistencia, despacho, reconciliación, observabilidad y automatización: son agregados del producto, no motores alternativos.
 - Los nodos pendientes solo pueden enviar telemetría y consultar estado limitado; no reciben ni ejecutan tareas hasta ser autorizados.
 - No exponer ADB a Internet ni abrir el socket Docker al panel. No ejecutar shell arbitrario desde la API.
