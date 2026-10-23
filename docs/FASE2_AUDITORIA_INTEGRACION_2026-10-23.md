@@ -47,7 +47,7 @@ La revalidación de Compare API encontró tres PR raíz con ascendencia muy atra
 | #32 esquema | `diverged`, 18 commits exclusivos de rama / 242 de main no presentes | 5 archivos de migración/workflows/manual; `mergeable=false` | Reconciliar esquema/migraciones sin perder cambios y validar #34/#36/#38 descendientes |
 | #40 ADR autenticación agentes | `diverged`, 2 commits exclusivos de rama / 242 de main no presentes | ADR-005 única, no integrada en main; `mergeable=false` | Conservar la decisión y reconciliar referencias con #42/#44/#47/#48 |
 
-Los contadores de commits describen la divergencia del historial, no que todos esos commits formen parte del diff de la PR. No fusionar ni cambiar bases automáticamente. Los comentarios de auditoría se añadieron en las tres PR.
+Los contadores de commits describen la divergencia del historial, no que todos esos commits formen parte del diff de la PR. CI en los HEAD actuales consultados: #16 run #1 `success`; #32 esquema #28 y persistencia #44 `success`; #40 no tiene workflow asociado (es documental). Estos resultados no resuelven la divergencia ni sustituyen revisar el SHA integrado. No fusionar ni cambiar bases automáticamente. Los comentarios de auditoría se añadieron en las tres PR.
 
 ## Issues: evitar cierres incorrectos
 
