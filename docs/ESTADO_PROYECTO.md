@@ -22,7 +22,7 @@ Construir una plataforma local que administre instancias Android ejecutadas en P
 
 ## Estado comprobable
 
-- La preparación documental del primer worker está en [PREPARACION_WORKER_REDROID.md](PREPARACION_WORKER_REDROID.md) y el diagnóstico de solo lectura en [GUIA_DIAGNOSTICO_PREVIO_REDROID.md](GUIA_DIAGNOSTICO_PREVIO_REDROID.md); ambos se integraron mediante la PR #108.
+- El plan de aprovisionamiento Debian 13 está en [PLAN_APROVISIONAMIENTO_WORKER_DEBIAN13.md](PLAN_APROVISIONAMIENTO_WORKER_DEBIAN13.md); la preparación de redroid y el diagnóstico de solo lectura están en [PREPARACION_WORKER_REDROID.md](PREPARACION_WORKER_REDROID.md) y [GUIA_DIAGNOSTICO_PREVIO_REDROID.md](GUIA_DIAGNOSTICO_PREVIO_REDROID.md), integrados mediante la PR #108.
 - La limpieza de alcance/documentación se integró mediante la PR #109.
 - El bloqueo de seguridad sigue abierto: [issue #27](https://github.com/D3ckardCain/Geelark-IA/issues/27).
 - No se ha instalado redroid en los workers físicos ni se han modificado sus discos durante esta preparación.
