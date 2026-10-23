@@ -221,3 +221,8 @@ Consulta de metadatos actual de GitHub (la mergeabilidad puede cambiar con cada 
 ## Rama histórica `docs/android-engine-evaluation` — actualización 22-oct-2026
 
 Se añadieron avisos de vigencia, preservando el análisis original, a cinco documentos de esta rama: actualización de seguridad redroid, evaluación preliminar de motor, plan de prueba Worker-01, contrato de adaptador runtime histórico y revisión de disponibilidad de imágenes. Los avisos declaran no ejecutable la recomendación antigua QEMU/KVM + Bliss OS, mantienen redroid bloqueado por #27 y aclaran que Cuttlefish no está aprobado. La rama continúa divergida y no se fusionó; estos commits documentales no alteran `main` ni ejecutan CI.
+
+
+## Rama histórica `docs/cluster-os-poc-decision` — avisos de revalidación (22-oct-2026)
+
+Se añadieron avisos, sin eliminar el análisis original, a cuatro documentos de esa rama divergida: evaluación de sistema base, matriz de decisión, hoja de ejecución de POC y POC Debian 13 primer nodo. Los avisos prohíben ejecutarlos como si fueran un plan aprobado: Debian 13 es base prevista pero la instalación requiere autorización específica; QEMU + Android-x86 + VNC está retirado, redroid bloqueado por #27 y Cuttlefish no aprobado. No se fusionó la rama ni se ejecutó CI.
