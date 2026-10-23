@@ -209,3 +209,12 @@ HEAD de la ronda: `c90e4960e55c08f512443ae49282503eac0c3468`. Ambos workflows te
 Se verificó en el mismo HEAD: journal ACK requiere `expected_assignment_epoch` + `expected_status` + `expected_result`; runtime transmite epoch; hay prueba de ACK de epoch antiguo y se mantiene la cobertura de `task_id` distinto de `operation_id`. El workflow de transporte ya no instala el journal desde un SHA fijo antiguo.
 
 Límite que permanece: los pasos de `cluster-master-admin` y la prueba del rol PostgreSQL readonly se omitieron porque el paquete no existe en esta rama base. No afirmar seguridad readonly de PC-MASTER validada hasta integrar ese paquete desde la rama de Master apropiada y ejecutar sus pruebas. #115 permanece draft y no se fusiona con #52/#74/#112 todavía.
+
+## Inclusión de corrección de lease de entrega de #113 en #115 — 2026-10-23
+
+Se detectó que el primer HEAD de #115 todavía no llevaba la corrección de lease de entrega de la PR auxiliar #113. Se incorporó explícitamente:
+- `domain_handlers.py`: la lease de entrega solo se exige si la tarea permanece en estado `delivered`; después de aceptar, la operación sigue protegida por propietario, `assignment_epoch` y lease de instancia.
+- `test_task_inbox_postgres.py`: prueba PostgreSQL que acepta la tarea, hace expirar la lease de entrega y verifica que el progreso sigue permitido.
+- Commits de integración: `62aab2e5424c0bd23c7f3a2ad6f7ae04c5477530` (handler) y `64f4a7f344ac94f15c75313171bdc2dc9218cd8f` (test).
+
+CI #499/#626 validó el HEAD anterior, no este nuevo HEAD. La PR #113 sigue abierta como referencia hasta que #115 pase CI actualizado y se apruebe; no cerrar aún.
