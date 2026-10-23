@@ -200,8 +200,8 @@ class AgentJournal:
                         INSERT INTO operation_receipts_v2
                             (operation_id, instance_id, node_id, assignment_epoch,
                              payload_sha256, status, result_json, created_at, updated_at)
-                        SELECT operation_id, task_id, instance_id, node_id, assignment_epoch,
-                       payload_sha256, status, result_json, created_at, updated_at
+                        SELECT operation_id, instance_id, node_id, assignment_epoch,
+                               payload_sha256, status, result_json, created_at, updated_at
                           FROM operation_receipts
                         """
                     )
