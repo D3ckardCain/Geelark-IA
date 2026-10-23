@@ -44,7 +44,7 @@
 | P-023 | Android versions | Páginas consultadas enumeran Android 9–15 y Synchronizer menciona Android 9–16; fuentes no coinciden | Seleccionar imágenes locales compatibles tras investigar | Página Synchronizer/precios | Pendiente de aclarar | Confirmar soporte vigente y requisitos por versión |
 | P-024 | Perfiles clonados | Nota v3.9.0 documenta clonado de perfiles; el detalle actual requiere confirmación | Clonar configuración declarada y datos seleccionados, con identidad nueva por defecto y sin copiar secretos | Nota v3.9.0 y catálogo sección 30 | Investigación inicial | Probar independencia de datos, identidad, aplicaciones, archivos y credenciales; rollback ante fallo |
 | P-025 | Operaciones masivas | Creación de perfiles por lotes, apps por grupo, sincronización y operaciones históricas de lotes | Cola persistente, validación previa, límite por recursos, idempotencia y resultado por elemento | Guías Profile/Applications/Synchronizer y notas v3.6–v3.9; catálogo sección 30 | Investigación inicial | Pruebas de fallos parciales, cancelación, reinicio, duplicados y límites de concurrencia |
-| P-026 | Motor Android local | Candidatos: redroid, Android Emulator, Waydroid, Android-x86/derivados | Seleccionar motor según compatibilidad, aislamiento, automatización, rendimiento y coste | [Comparativa de motores](COMPARATIVA_MOTORES_ANDROID.md) y documentación oficial | Investigación documental inicial | Benchmark y prueba de paridad en el anfitrión real; ver issue #8 |
+| P-026 | Motor Android local | redroid es el único motor en preparación; su ejecución física está bloqueada por seguridad | Validar imagen/digest, mitigación de kernel, Binder/BinderFS, aislamiento, ADB, persistencia y recursos | [Evaluación de redroid](COMPARATIVA_MOTORES_ANDROID.md), [issue #27](https://github.com/D3ckardCain/Geelark-IA/issues/27) | Bloqueado por seguridad | No iniciar en WORKER físico hasta que #27 tenga evidencia reproducible; luego probar una y dos instancias |
 
 ## Reglas para completar cada fila
 
@@ -112,19 +112,9 @@ Se aprueban dos vías de configuración por instancia: **identidad sintética** 
 **Límite de paridad:** no afirmar que se clona íntegramente una identidad física. Los identificadores protegidos, claves de hardware, attestation, SIM/módem y señales derivadas del host pueden no ser accesibles o reproducibles. No se eludirán mecanismos de seguridad ni antiabuso.
 
 
-## 2.4 Comparativa de motores Android locales (2026-10-09)
+## 2.4 Motor Android en preparación (actualizado 2026-10-22)
 
-La comparación documental y el protocolo de pruebas están en [COMPARATIVA_MOTORES_ANDROID.md](COMPARATIVA_MOTORES_ANDROID.md). No se ha aprobado ningún motor. Se revisarán licencias, componentes de terceros, requisitos de host, ADB, gráficos, persistencia, aislamiento, APK, sensores y seguridad.
-
-| Candidato | Evaluación inicial | Prueba que falta | Estado de decisión |
-|---|---|---|---|
-| redroid | Prioridad para probar si el host es Linux compatible; orientado a múltiples instancias; requiere funciones de kernel y atención especial a privilegios/ADB | Arranque, aislamiento, persistencia, control, recursos y revisión de componentes | No seleccionado |
-| Android Emulator oficial | Referencia útil de AVD/ADB; la licencia del SDK e imágenes debe revisarse para el uso concreto del producto | Licencia aplicable, multiinstancia, automatización y rendimiento | Condicionado |
-| Waydroid | Alternativa de contenedor para GNU/Linux; investigar el manejo de instancias separadas y licencias de todos los componentes | Control independiente, aislamiento, estabilidad y compatibilidad de apps | No seleccionado |
-| Android-x86/derivado | Solo evaluable al seleccionar una distribución concreta con mantenimiento verificable | Versión, licencia, gráficos, ADB y soporte de aplicaciones | Pendiente de concretar |
-
-Issue de seguimiento: [#8 — Comparar y validar motores Android locales](https://github.com/D3ckardCain/Geelark-IA/issues/8). Las conclusiones documentales no sustituyen las pruebas del hardware anfitrión.
-
+redroid es el único motor en preparación. No se ejecutará en un WORKER físico hasta resolver el bloqueo de seguridad #27 con evidencia reproducible para la imagen exacta. La preparación debe fijar etiqueta/digest, revisar init/parches, probar mitigación de `kernel.modprobe`, limitar privilegios, restringir ADB y comprobar aislamiento y persistencia. La guía está en [COMPARATIVA_MOTORES_ANDROID.md](COMPARATIVA_MOTORES_ANDROID.md).
 
 ## 2.5 Criterios de aceptación preliminares derivados del contraste documental (2026-10-09)
 
@@ -162,4 +152,4 @@ Las notas históricas v3.6–v3.9 se documentaron en el catálogo, sección 30. 
 
 ## Nota de vigencia estratégica — 2026-10-22
 
-Este documento se conserva como evidencia funcional histórica/preliminar; la fecha de las fuentes funcionales originales no se actualiza por esta nota. La estrategia técnica se revisó el 2026-10-22: la ruta manual QEMU + Android-x86 + VNC está retirada; AOSP Cuttlefish es solo candidato de laboratorio y no está aprobado; redroid permanece bloqueado por la Issue #27; Android Emulator es referencia de compatibilidad y Waydroid sigue como alternativa secundaria. No se ha completado una prueba en WORKER físico ni se ha medido densidad de instancias. Antes de implementar paridad, reconciliar con la investigación ampliada de la PR #86 y distinguir evidencia documentada, inferencia, código en PR, CI por SHA y prueba real.
+La matriz sigue midiendo paridad funcional con GeeLark. El alcance técnico vigente es PC-MASTER Windows + redroid en workers Debian 13; la instalación física está bloqueada por la issue #27. No se mantienen otros motores como alternativas activas.
