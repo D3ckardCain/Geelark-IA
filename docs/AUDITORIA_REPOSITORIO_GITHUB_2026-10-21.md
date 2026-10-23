@@ -91,7 +91,7 @@ Esta actualización reemplaza recuentos históricos de Issues/PR que podrían ha
 - **#88 — permanece abierta:** GitHub identifica las ramas/PR candidatas, pero no demuestra qué acceso directo/archivo ejecutó el equipo Windows. La comparación local sigue pendiente; no instalar ni iniciar el panel desde esta issue.
 - **#89/#91 — permanecen abiertas:** la corrección candidata de Windows/suite está verde en el HEAD de #104, pero no está integrada en la rama base; #77 conserva la aceptación manual.
 - **#77 — permanece abierta:** aceptación manual en el PC-MASTER real pendiente; CI no sustituye la inspección de ACL/certificados/rutas del equipo.
-- **#86 — cerrada sin merge:** su rama contiene documentación histórica de investigación funcional/RPA que no debe borrarse del historial. Sus documentos exclusivos no se consideran integrados por defecto. Reconciliar el catálogo, investigación funcional, matriz de paridad y especificación RPA con el alcance vigente PC-MASTER Windows + Debian 13 + motor intercambiable; Cuttlefish es candidato no aprobado y redroid permanece bloqueado por #27.
+- **#86 — cerrada sin merge:** su rama contiene documentación histórica de investigación funcional/RPA que no debe borrarse del historial. Sus documentos exclusivos no se consideran integrados por defecto. Reconciliar el catálogo, investigación funcional, matriz de paridad y especificación RPA con el alcance vigente PC-MASTER Windows + Debian 13 + motor intercambiable; redroid es el primer motor en preparación y permanece bloqueado por #27; Cuttlefish solo queda como contingencia futura.
 
 ### Duplicados, prototipos y ramas apiladas
 
