@@ -7,9 +7,9 @@
 ## 1. Decisión de alcance
 
 - PC-MASTER es el panel web central y su servicio de control en Windows. El lanzador/configurador de escritorio es un componente separado, no el panel.
-- redroid es el único motor Android en preparación. No mantener otros motores como alternativas activas.
+- redroid es el único motor Android en preparación. La evaluación técnica se limita al motor definido en el alcance vigente.
 - Debian 13 es el sistema base previsto para los workers.
-- Se retira QEMU + Android-x86 + VNC en WSL2 como ruta de producto.
+- Las rutas técnicas retiradas quedan fuera del alcance de producto.
 - La instalación física de redroid permanece bloqueada por la issue #27 hasta que se demuestre una mitigación verificable del riesgo de `/proc/sys/kernel/modprobe`.
 - GeeLark es referencia funcional pública; la implementación será independiente y local-first.
 
