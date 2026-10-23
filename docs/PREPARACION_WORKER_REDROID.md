@@ -38,6 +38,17 @@ La issue upstream aparece cerrada por quien la abrió como “completed”, pero
 
 Un laboratorio temporal dentro de una VM desechable puede considerarse para estudiar el comportamiento con una frontera de kernel separada, pero no se considera prueba de despliegue bare-metal ni sustituye la puerta de seguridad para producción.
 
+## Compatibilidad de aplicaciones y ABI
+
+La incidencia upstream [redroid-doc #933](https://github.com/remote-android/redroid-doc/issues/933) informa de un caso en imágenes x86_64 donde se anuncia soporte arm64-v8a, pero la biblioteca de traducción nativa puede faltar y algunas APK exclusivas de ARM se instalan y después fallan al abrirse. Es un reporte upstream abierto, no una garantía de que todas las etiquetas se comporten igual.
+
+Antes de fijar la imagen:
+- [ ] Inventariar las APK objetivo y sus ABI requeridas.
+- [ ] No inferir compatibilidad ARM a partir de la lista ABI declarada por Android.
+- [ ] Probar cada APK objetivo en la etiqueta/digest exactos, incluyendo apertura, operaciones críticas y reinicio.
+- [ ] Registrar incompatibilidades sin redistribuir componentes propietarios ni extraerlos de otras imágenes sin revisar sus términos.
+- [ ] Separar este criterio funcional de la puerta de seguridad #27; pasar la prueba de APK no autoriza el despliegue físico.
+
 ## 3. Requisitos que debe confirmar WORKER-01
 
 Lectura primero; no instalar paquetes hasta aprobar la puerta de seguridad.
