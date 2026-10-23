@@ -1,5 +1,7 @@
 # Auditoría de continuidad GitHub — 2026-10-22
 
+> **Documento histórico:** esta fotografía corresponde al 2026-10-22 y no debe usarse como estado actual de PR/CI. La revalidación vigente está en [AUDITORIA_CONTINUIDAD_GITHUB_2026-10-23.md](AUDITORIA_CONTINUIDAD_GITHUB_2026-10-23.md) y [FASE2_AUDITORIA_INTEGRACION_2026-10-23.md](FASE2_AUDITORIA_INTEGRACION_2026-10-23.md).
+
 **Estado:** actualización documental; no implica fusión ni aceptación de implementación.  
 **Coste:** no se lanzaron workflows manuales durante esta actualización.  
 **Alcance vigente:** PC-MASTER Windows + redroid en PC-WORKERS Debian 13 + componentes de control distribuido.
