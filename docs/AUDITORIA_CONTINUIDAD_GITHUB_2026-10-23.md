@@ -54,7 +54,7 @@ Orden de dependencia documentado: **#101 → #74 → #52 → #57 → #67 → #85
 
 - No cerrar Issues de implementación por tener documentación o CI histórica.
 - No borrar documentos históricos complementarios ni ramas/PR sin confirmar que sus cambios únicos están integrados.
-- La issue #29 describe brechas de contrato que se solapan parcialmente con #15/#16, pero no debe cerrarse como duplicada hasta reconciliar cada criterio pendiente; su cuerpo conserva tareas no marcadas completas.
+- La issue #29 conserva brechas de contrato pendientes y ahora distingue su alcance de #15/#16: endurecimiento/consistencia frente a fixtures/paquete inicial. La issue #20 sigue abierta porque sus criterios de autenticación, entrega, recuperación y permisos están incompletos; se enlazaron las líneas canónicas (#39/#41/#43/#44, #35/#36, #50/#55/#58, #32/#33) para evitar duplicación.
 - La issue #89 describe una corrección candidata en #104, pero no debe cerrarse antes de integrar la corrección o confirmar formalmente que el criterio de issue está satisfecho.
 - No lanzar re-runs manuales solo para refrescar una auditoría. Usar resultados existentes únicamente para el SHA exacto al que pertenecen.
 
