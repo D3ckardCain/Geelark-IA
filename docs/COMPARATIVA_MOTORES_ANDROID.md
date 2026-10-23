@@ -6,17 +6,17 @@
 
 - PC-MASTER Windows es el panel web y coordinador central.
 - Los PC-WORKERS serán equipos físicos; Debian 13 es el sistema base previsto.
-- AOSP Cuttlefish es el primer candidato para laboratorio, no aprobado. Android Emulator se conserva como referencia de compatibilidad. redroid está bloqueado por la issue #27 y Waydroid permanece como alternativa secundaria no validada.
+- redroid es el primer candidato de motor Android a evaluar, de acuerdo con la prioridad del proyecto; sigue bloqueado para ejecución física por la issue #27 hasta validar mitigación de seguridad sobre la imagen exacta. Cuttlefish no es la primera opción ni está aprobado; se conserva solo como alternativa de contingencia si redroid resulta inviable. Android Emulator queda como referencia de compatibilidad.
 - No reabrir rutas de ejecución retiradas; mantener únicamente el alcance técnico vigente.
 - Agente, autenticación, transporte, persistencia, despacho y reconciliación son componentes del plano de control, no motores Android alternativos.
 
-## Candidato prioritario: AOSP Cuttlefish
+## Candidato prioritario: redroid
 
-Cuttlefish es el primer candidato que se evaluará por su soporte de múltiples instancias, discos overlay por instancia, puertos ADB separados y control visual mediante WebRTC. Esto no implica que sea ligero ni adecuado para los WORKERS disponibles. Requiere validar KVM, paquetes/servicios de host, imágenes, licencias, uso de memoria/CPU y el flujo de instalación. Comenzar con un entorno de laboratorio y una instancia; medir antes de ampliar.
+redroid es el primer candidato a evaluar porque corresponde a la dirección elegida para ejecutar Android en contenedores sobre los WORKERS Debian 13. No se aprueba su instalación todavía: primero hay que resolver la issue #27 con evidencia reproducible para la imagen/digest exactos, revisar privilegios/kernel/Binder, licencias y exposición de ADB. Después se probará una instancia en laboratorio aislado, se medirán recursos y compatibilidad de APK, y solo entonces se evaluará aumentar densidad. Si no se demuestra mitigación, detener el despliegue y reconsiderar alternativas.
 
 Fuentes oficiales: https://source.android.com/docs/devices/cuttlefish/get-started ; https://source.android.com/docs/devices/cuttlefish/multi-tenancy ; https://source.android.com/docs/setup/create/cuttlefish-ref-webrtc
 
-## redroid: alternativa bloqueada por seguridad
+## Riesgos y puerta de seguridad de redroid
 
 redroid ejecuta Android en contenedores sobre un host Linux y documenta soporte para arquitecturas amd64 y arm64 y varias instancias. La densidad y compatibilidad reales dependen del kernel, Binder/BinderFS, recursos, aplicaciones objetivo y configuración. Ninguna cifra de capacidad se considera validada para nuestro hardware.
 
