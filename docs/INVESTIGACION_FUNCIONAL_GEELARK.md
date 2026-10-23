@@ -3,6 +3,8 @@
 **Fecha de consulta:** 2026-10-09  
 **Estado:** investigación documental inicial; no equivale a auditoría completa ni a pruebas directas dentro del cliente.  
 **Idioma de registro:** español.  
+
+**Revalidación de alcance — 2026-10-23:** redroid es el primer y único motor Android en preparación; la ejecución física sigue bloqueada por #27. La investigación funcional de GeeLark conserva su corte documental del 2026-10-09 y requiere refrescar fuentes públicas antes de considerarse actual o exhaustiva.
 **Alcance del proyecto:** replicar funciones de GeeLark aplicables a Android mediante entornos Android virtualizados/emulados en hardware anfitrión local, sin teléfonos físicos como requisito y sin servicios cloud obligatorios. iOS queda excluido.
 
 ## 1. Conclusión ejecutiva
