@@ -34,8 +34,8 @@ class FakeJournal:
     def list_pending_receipts(self, *, limit=100):
         return self.pending[:limit]
 
-    def mark_receipt_synced(self, operation_id, *, expected_status, expected_result):
-        self.synced.append((operation_id, expected_status, expected_result))
+    def mark_receipt_synced(self, operation_id, *, expected_assignment_epoch, expected_status, expected_result):
+        self.synced.append((operation_id, expected_assignment_epoch, expected_status, expected_result))
         return self.ack_result
 
     def record_result(self, **kwargs):
@@ -282,4 +282,4 @@ def test_stale_ack_keeps_newer_receipt_pending():
             result={"progress_percent": 25},
         )
 
-    assert journal.synced == [(operation_id, "running", {"progress_percent": 25})]
+    assert journal.synced == [(operation_id, 1, "running", {"progress_percent": 25})]
