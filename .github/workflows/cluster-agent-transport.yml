@@ -13,6 +13,7 @@ on:
     paths:
       - "packages/cluster-agent-transport/**"
       - "packages/cluster-agent-auth/**"
+      - "packages/cluster-agent-guard/**"
       - "db/migrations/**"
       - ".github/workflows/cluster-agent-transport.yml"
   workflow_dispatch:
