@@ -38,3 +38,14 @@
 5. Después de aprobar seguridad, ejecutar diagnóstico de solo lectura y validar primero una instancia y luego dos.
 
 No se declara ningún worker configurado, redroid instalado, seguridad aprobada ni densidad de instancias validada.
+## Corrección de prioridad del motor — 2026-10-23
+
+Durante la continuidad de auditoría se detectaron textos contradictorios en las issues abiertas #3, #10, #12, #24 y #92 que nombraban Cuttlefish como primer candidato, pese a que la decisión vigente en `main`, ADR-002, la comparativa de motores y la issue #27 establecen redroid como prioridad. Se corrigieron los cuerpos de esas cinco issues:
+
+- **redroid primero y único motor en preparación** para WORKERS Debian 13.
+- **#27 continúa bloqueando** cualquier instalación/ejecución física hasta demostrar mitigación reproducible para imagen/digest exactos.
+- Cuttlefish solo queda como contingencia futura si redroid se descarta por seguridad o viabilidad; Android Emulator es referencia de compatibilidad.
+- Se mantiene retirado QEMU + Android-x86 + VNC en WSL2.
+- No se instalaron ni ejecutaron motores ni se hicieron cambios en equipos físicos. No se lanzaron workflows manuales para esta corrección.
+
+La búsqueda posterior de las issues abiertas ya no encuentra una decisión vigente que ponga Cuttlefish por delante de redroid; los resultados de búsqueda pueden conservar fragmentos indexados anteriores. La verificación de contenido actualizado se hizo leyendo de nuevo los cuerpos de #3, #10, #11, #12, #24, #27 y #92.
