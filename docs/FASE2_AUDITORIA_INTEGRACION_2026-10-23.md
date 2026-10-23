@@ -151,3 +151,17 @@ Los dos workflows para el HEAD vigente terminaron `completed/success`:
 - Persistencia [#40030143221](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40030143221): prueba PostgreSQL de bandeja **1 passed**, además de suites de persistencia/guard/auth **32 + 12 + 54 passed** y comprobación de dependencias limpia.
 
 La ampliación del workflow de persistencia es parte de la PR y hace que cambios bajo `packages/cluster-agent-transport/**` ejecuten también la prueba PostgreSQL de bandeja. Queda corregida la nota anterior que decía que faltaba comprobar este workflow: ya está validado en el mismo HEAD. #113 permanece en draft porque la integración combinada con #74/#52 aún requiere reconciliar runtime, ACK cercado, task_id/endpoints, esquema, pruebas y workflows. No se ha fusionado la cadena ni se ha ejecutado Android.
+
+## Primera reconciliación combinada #115 — 2026-10-23
+
+Se creó la rama `fix/integrate-snapshot-task-inbox-fenced-ack-v1` desde `feat/agent-task-inbox-v2` y la PR draft [#115](https://github.com/D3ckardCain/Geelark-IA/pull/115) contra esa base. HEAD inicial: `87f6e1c0f9c3e108bf99e23a658a8ee76d958a7a`; compare: 10 commits adelante, 0 detrás, 9 archivos tocados.
+
+Cambios combinados:
+- Se conserva el runtime de bandeja: `claim_next_task`, `accept_task`, `reconcile`, `task_id` y sus rutas; no se reemplazó por el runtime reducido del proveedor.
+- Se integra ACK cercado con `expected_status` y `expected_result`, incluyendo el `assignment_epoch` para la API de journal que lo admite. La API antigua sin firma de ACK versionado falla cerrada.
+- Se mantiene el test PostgreSQL de la bandeja y se agrega test de ACK obsoleto.
+- Se integra el contrato/inventario de módulos y pruebas de snapshots, además de las comprobaciones de rol PostgreSQL de solo lectura.
+- El workflow de persistencia incorpora cambios de transporte y ejecuta `test_task_inbox_postgres.py`.
+- Se conserva la dependencia `geelark-cluster-agent-auth` en el `pyproject.toml` del transporte; no se copió encima el archivo de proveedor que la omitía.
+
+Estado: #115 es solo el primer HEAD combinado y permanece draft/no mergeable mientras GitHub recalcula. Todavía no se han confirmado los CI del SHA combinado. Próximo paso: inspeccionar ambos workflows, revisar fallos en cuanto aparezcan y corregir antes de considerar cualquier fusión. No fusionar #52/#74/#112, no desplegar ni ejecutar Android.
