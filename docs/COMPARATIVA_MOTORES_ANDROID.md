@@ -37,6 +37,12 @@ No ejecutar redroid en hardware físico hasta que la issue interna [#27](https:/
 - [ ] Documentar recuperación, logs redactados y reversión.
 - [ ] Obtener aprobación de la puerta #27 antes de arrancar en WORKER físico.
 
+## Compatibilidad ABI: riesgo adicional conocido
+
+La incidencia upstream [redroid-doc #933](https://github.com/remote-android/redroid-doc/issues/933) reporta que ciertas imágenes x86_64 pueden anunciar arm64-v8a aunque la biblioteca de traducción nativa no esté disponible; una APK ARM-only podría instalarse y fallar al arrancar. El reporte está abierto y no demuestra que todas las etiquetas estén afectadas.
+
+Por ello, la imagen se elegirá a partir de las APK objetivo y se probará por etiqueta/digest exactos. La lista ABI declarada no basta para afirmar compatibilidad. No redistribuir traductores propietarios ni extraerlos de otros productos sin revisar sus términos. Este riesgo de compatibilidad es independiente del bloqueo de seguridad #27.
+
 ## Plan de pruebas después de aprobar seguridad
 
 1. Diagnóstico de solo lectura en WORKER-01 (CPU, RAM, kernel, disco, Binder/BinderFS, red y puertos).
