@@ -16,7 +16,7 @@ Revisión de solo lectura de `D3ckardCain/Geelark-IA` para priorizar limpieza e 
 
 ## Fotografía de GitHub
 
-La consulta inicial del día devolvió 21 PR abiertas; la revalidación posterior del 2026-10-23 devuelve **38 Issues abiertas, 10 cerradas y 23 PR abiertas**, todas en draft. Estos números son fotografías temporales. Estos números son una fotografía y pueden cambiar. La búsqueda de Issues puede incluir elementos históricos/actualizados; el estado debe confirmarse antes de cualquier cierre.
+La consulta inicial del día devolvió 21 PR abiertas; la revalidación posterior del 2026-10-23 devuelve **38 Issues abiertas, 10 cerradas y 23 PR abiertas**, todas en draft. Estos números son fotografías temporales y pueden cambiar; confirmar estado antes de cualquier cierre.
 
 ## Bloqueos principales
 
@@ -74,6 +74,7 @@ Esta nota registra el estado observado y la secuencia segura. No afirma que los 
 
 ## Revalidación posterior de la auditoría — 2026-10-23
 
+- El HEAD consultado actualmente de #104 es `75764c435f488f617a07c0003ce088829e6dbd41`; transporte #473 (125 passed) y persistencia #602 (293 passed/3 skipped en suite raíz, Windows ACL 50 passed/8 skipped, asignaciones 33, guard/journal 12, auth 70 passed/2 skipped) terminaron `success`; `pip check` limpio. #104 sigue en draft.
 - Se verificaron enlaces relativos en nueve documentos principales (README, estado, plan, comparación de motores, ADR-002, esta auditoría, Fase 2 y las dos guías de inventario): **no se encontraron enlaces relativos rotos**. También se aclaró la relación entre `GUIA_INVENTARIO_EQUIPO.md` (un anfitrión individual) y `GUIA_INVENTARIO_HARDWARE_CLUSTER.md` (fichas de PC-MASTER/WORKERS); son complementarias, no copias para fusionar.
 - Se actualizaron Issues #50, #63, #71, #72, #89, #91 y #93 con evidencias de SHA/CI y dependencias actuales. #105 permanece cerrada: la colisión ADR-005 ya no existe; el nombre actual de PC-MASTER en la rama #104 es ADR-007 (ADR-006 queda en la rama histórica cerrada #70).
 - PR #112 no es mergeable; se dejó comentario y no se fusionó. PR #113 pasó transporte y la prueba PostgreSQL afectada después de ampliar el workflow para ejecutar `test_task_inbox_postgres.py` ante cambios en `cluster-agent-transport`.
