@@ -1,6 +1,6 @@
 # Transporte HTTPS privado de agentes
 
-Paquete experimental independiente del dominio y sin listener automático.
+Paquete experimental de transporte, sin listener automático. La autorización por operación se delega al paquete canónico `cluster-agent-auth`, que debe instalarse junto con el transporte.
 
 ## Política de acceso
 
@@ -22,7 +22,6 @@ Paquete experimental independiente del dominio y sin listener automático.
 - `PostgresRateLimiter` usa un UPDATE atómico en la fila del nodo y aplica el límite global entre workers/procesos. Requiere la migración `db/migrations/0003_agent_rate_limit.sql`; el contador se satura para evitar desbordamiento.
 - El cliente `AgentHTTPSClient` usa la CA explícita, verifica cadena y hostname/IP, exige TLS 1.2+, no sigue redirects, rechaza path traversal y limita timeout, cuerpos y respuestas.
 - `AgentTransportRuntime` conecta el cliente con un journal compatible: persiste progreso/resultados antes de enviarlos y ofrece `sync_pending_receipts(limit=100)` para recorrer un lote acotado. El journal debe exponer `list_pending_receipts(limit=...)` y `mark_receipt_synced(operation_id)`; el ACK terminal solo se registra tras una respuesta HTTP 2xx. Los estados `accepted` no se envían como resultados. No ejecuta tareas ni inicia polling por sí solo.
-- El ACK del journal está protegido contra carreras: el marcador debe comparar `expected_status` y `expected_result` y devolver `True` solo si el recibo no cambió y el ACK quedó confirmado; `False` mantiene el recibo pendiente. Las pruebas deben cubrir cambios concurrentes del recibo y ACK fallido.
 - Las respuestas no incluyen tokens, SQL ni excepciones internas.
 - Los handlers de dominio no configurados responden 503; el paquete no ejecuta shell/ADB ni comandos Android.
 
@@ -64,17 +63,8 @@ Los tests de configuración TLS usan archivos ficticios para probar restriccione
 ## Pruebas locales
 
 ```sh
+python -m pip install -e "packages/cluster-agent-auth[test]"
 python -m pip install -e "packages/cluster-agent-transport[test]"
+python -m pip check
 python -m pytest packages/cluster-agent-transport/tests -q
 ```
-
-
-## Inventario de módulos (v1, en revisión)
-
-- `PUT /agent/v1/modules` acepta IDs de una lista cerrada: `agent-supervisor`, `agent-transport`, `agent-guard`, `task-journal` y `android-engine`.
-- Solo un nodo `active` puede publicar estados de módulos. Un nodo `pending` recibe 403 y conserva exclusivamente heartbeat, capacidades y consulta de su propio estado.
-- El Master fija `checked_at`; no confía en el reloj del Worker.
-- Si el heartbeat supera 90 segundos o el reporte supera 5 minutos, el estado leído pasa a `unknown`, con origen `master-check` y código seguro (`NODE_STALE` o `REPORT_STALE`).
-- Migración requerida: `db/migrations/0004_worker_module_inventory.sql`. No está desplegado ni conectado a PCs físicas.
-
-- Esquema normativo del payload: [worker-module-inventory-v1.schema.json](../../docs/contracts/worker-module-inventory-v1.schema.json); [ejemplo](../../docs/contracts/examples/worker-module-inventory-v1.example.json).
