@@ -7,7 +7,7 @@
 - PC-MASTER Windows es el panel web y coordinador central.
 - Los PC-WORKERS serán equipos físicos; Debian 13 es el sistema base previsto.
 - redroid es el único motor Android en preparación.
-- No reabrir QEMU + Android-x86 + VNC en WSL2 ni mantener otros motores como alternativas activas.
+- No reabrir rutas de ejecución retiradas; mantener únicamente el alcance técnico vigente.
 - Agente, autenticación, transporte, persistencia, despacho y reconciliación son componentes del plano de control, no motores Android alternativos.
 
 ## Qué ofrece redroid
