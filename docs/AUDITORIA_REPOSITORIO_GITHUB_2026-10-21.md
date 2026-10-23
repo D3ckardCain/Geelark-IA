@@ -216,3 +216,8 @@ Consulta de metadatos actual de GitHub (la mergeabilidad puede cambiar con cada 
 - Issue #93 es una issue paraguas de evolución visual e integración del panel; no es duplicada de #77 (aceptación de seguridad Windows), #71 (semántica de salud), #72 (inventario persistido) ni #69 (diseño del módulo central). Mantener cada una abierta hasta sus propios criterios de aceptación.
 - PR #86 contiene ampliaciones funcionales no presentes en `main` y no se cierra como duplicada. Debe reconciliarse con las decisiones motor Android del 21–22 oct y no sobrescribir el plan actual con su copia antigua.
 - No se cerraron otras Issues solo por CI verde: muchas representan trabajo pendiente de integración, pruebas físicas, seguridad o aceptación manual. No se fusionaron PR ni se eliminaron ramas.
+
+
+## Rama histórica `docs/android-engine-evaluation` — actualización 22-oct-2026
+
+Se añadieron avisos de vigencia, preservando el análisis original, a cinco documentos de esta rama: actualización de seguridad redroid, evaluación preliminar de motor, plan de prueba Worker-01, contrato de adaptador runtime histórico y revisión de disponibilidad de imágenes. Los avisos declaran no ejecutable la recomendación antigua QEMU/KVM + Bliss OS, mantienen redroid bloqueado por #27 y aclaran que Cuttlefish no está aprobado. La rama continúa divergida y no se fusionó; estos commits documentales no alteran `main` ni ejecutan CI.
