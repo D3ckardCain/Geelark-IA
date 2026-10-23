@@ -1,3 +1,5 @@
+> **Nota de vigencia — 2026-10-22:** Este documento conserva la investigación histórica del riesgo de redroid. La recomendación antigua de probar QEMU/KVM con Bliss OS si redroid falla quedó retirada por decisión del proyecto; no ejecutar ni reactivar esa ruta. QEMU + Android-x86 + VNC en WSL2 se descartó y Bliss OS no es un sustituto aprobado. Redroid sigue bloqueado por la Issue #27 hasta demostrar mitigación específica; el motor Android sigue sin seleccionar.
+
 # Actualización de seguridad: redroid y kernel.modprobe
 
 **Fecha de revisión:** 2026-10-09  
