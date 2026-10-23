@@ -18,6 +18,14 @@ Esta auditoría revisa el estado visible del repositorio `D3ckardCain/Geelark-IA
 
 ## Acciones realizadas
 
+### Serie de correcciones Windows ACL — PR #94–#98, #100 y #102 cerradas
+
+- #94, #95, #96, #97 y #98 fueron intentos sucesivos de estabilizar ACL NTFS y pruebas Windows; todos cerrados sin merge.
+- #100 intentó corregir el ciclo ASGI y la suite raíz sobre la rama anterior del backend; cerrado sin merge.
+- #102 combinó ACL/ciclo ASGI/suite integral en v2, también cerrada sin merge.
+- #103 es la candidata actual v3 sobre la rama del lanzador Windows #87. CI de #103 no sustituye aceptación de Windows en la máquina real ni resuelve la ascendencia de #87 frente a #104.
+- Se conservan los PR cerrados como historial; no borrar ramas ni reabrir versiones antiguas salvo que el diff de #103 pierda una corrección necesaria.
+
 ### PR #102 — cerrada como supersedida
 
 - Era la versión v2 de la corrección de ACL NTFS/ciclo ASGI para la rama PC-MASTER Windows.
