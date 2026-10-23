@@ -15,7 +15,7 @@
 - redroid se evalúa únicamente como motor Android local en los WORKERS.
 - Debian 13 es el sistema base previsto para el worker. Se busca empaquetar y automatizar la instalación para que el usuario no tenga que administrar manualmente cada capa.
 - No se reinstalará ni modificará PC-MASTER para esta prueba.
-- No se reabre la ruta retirada QEMU + Android-x86 + VNC en WSL2.
+- No se reabren rutas técnicas retiradas; el alcance vigente es redroid y sus agregados de control.
 - El adaptador Android de GeeLark-IA debe seguir siendo independiente del motor para no bloquear una futura sustitución.
 - No se instalará software en los equipos físicos ni se cambiarán particiones/BIOS como parte de esta preparación documental.
 
