@@ -1,3 +1,5 @@
+> **Estado de vigencia — 2026-10-22:** Matriz histórica de una rama divergida; revisar frente a `main` antes de ejecutar. Debian 13 directo sigue siendo la base prevista para WORKERS, pero esto no autoriza particionar/instalar ni aprueba un motor Android. No reactivar QEMU + Android-x86 + VNC; redroid continúa bloqueado por #27 y Cuttlefish es candidato de laboratorio sin aprobación.
+
 # Matriz de decisión del sistema operativo del clúster GeeLark-IA
 
 **Estado:** Debian 13 Stable directo es la primera plataforma de prueba solicitada por el usuario; no equivale a aprobación de instalación ni selección para producción. Proxmox VE se conserva para una fase comparativa posterior cuando el usuario la solicite.  
