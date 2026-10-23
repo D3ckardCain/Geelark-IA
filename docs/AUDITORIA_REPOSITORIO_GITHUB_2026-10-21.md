@@ -226,3 +226,10 @@ Se añadieron avisos de vigencia, preservando el análisis original, a cinco doc
 ## Rama histórica `docs/cluster-os-poc-decision` — avisos de revalidación (22-oct-2026)
 
 Se añadieron avisos, sin eliminar el análisis original, a cuatro documentos de esa rama divergida: evaluación de sistema base, matriz de decisión, hoja de ejecución de POC y POC Debian 13 primer nodo. Los avisos prohíben ejecutarlos como si fueran un plan aprobado: Debian 13 es base prevista pero la instalación requiere autorización específica; QEMU + Android-x86 + VNC está retirado, redroid bloqueado por #27 y Cuttlefish no aprobado. No se fusionó la rama ni se ejecutó CI.
+
+
+## Corrección de decisiones envejecidas en `main` — 22-oct-2026
+
+- `docs/ARQUITECTURA_CLUSTER_HETEROGENEO.md` ya no presenta Tauri/React como interfaz seleccionada: aclara PC-MASTER Windows, candidata Python/Tkinter #87 y panel autenticado #104, ambos sin integrar.
+- `docs/decisiones/ADR-001-STACK-PRINCIPAL.md` conserva la propuesta original del 9-oct como historial, pero añade nota visible de que Tauri/React y SQLite inicial no deben tratarse como decisiones vigentes frente a la candidata Windows y la persistencia PostgreSQL local que se está validando.
+- `docs/ESTADO_PROYECTO.md` etiqueta como históricas/supersedidas las recomendaciones iniciales de redroid y Tauri para evitar que contradigan el estado actual: Cuttlefish candidato no aprobado, redroid bloqueado por #27 y motor sin seleccionar.
