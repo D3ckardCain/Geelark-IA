@@ -42,6 +42,9 @@ Mantener el repositorio GeeLark-IA alineado con el alcance vigente: panel web PC
 - La cadena de PR de clúster sigue mayormente en draft. La CI de una rama no acredita que el stack esté integrado, aceptado manualmente ni probado en hardware.
 - #24 se limita a caché local de artefactos; #92 a aprovisionamiento Debian 13. Se añadieron comentarios para evitar duplicación. #27 sigue bloqueando la ejecución física de redroid.
 - La auditoría de origen PC-MASTER (#88) sigue pendiente de comparar el archivo/acceso directo local; GitHub identifica la rama candidata, pero no prueba qué ejecutable se inició en Windows.
+- Revalidación de CI en ramas apiladas: #104 HEAD `75764c435f488f617a07c0003ce088829e6dbd41` pasó transporte (#473, 125 pruebas) y persistencia/suite raíz (#602: 293 passed/3 skipped; Windows ACL 50/8 skipped; `pip check` limpio). Esto no sustituye aceptación manual (#77).
+- #101 HEAD `b84da93881f5866e8832e5888e5dce02433e85cc` no devolvió workflows asociados en la consulta; no declarar CI verde. #87 HEAD `386da22f1dca3f2a1f489e2d9a898d30350d3eb0` solo devolvió persistencia cancelada (#578). #103 HEAD `31ec5abceae6e38279d6be1e19e94683e0ea00ea` devolvió persistencia exitosa (#574), pero no transporte en esa consulta. Las tres PR siguen en draft.
+- #87/#103 heredan una base vinculada a la PR #76 cerrada sin merge; reconciliar la ascendencia con #104 antes de integrar. No retargetear automáticamente sin comparar diffs.
 
 ## Registro
 
