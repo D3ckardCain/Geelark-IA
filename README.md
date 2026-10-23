@@ -43,6 +43,7 @@ Plataforma local para administrar instancias Android en equipos WORKER físicos 
 - [Plan de aprovisionamiento automatizado Debian 13](docs/PLAN_APROVISIONAMIENTO_WORKER_DEBIAN13.md)
 - [Preparación del worker redroid](docs/PREPARACION_WORKER_REDROID.md)
 - [Bloqueo de seguridad redroid #27](https://github.com/D3ckardCain/Geelark-IA/issues/27)
+- [Limpieza manual segura del experimento QEMU retirado](docs/RETIRADA_EXPERIMENTO_QEMU_WSL.md)
 
 ## Secuencia de validación
 
