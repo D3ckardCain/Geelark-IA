@@ -76,3 +76,17 @@ La rama `docs/android-engine-evaluation` contiene documentación útil, pero no 
 ## Próxima unidad de auditoría
 
 Priorizar una reconciliación documental selectiva de la PR #86 por archivo, sin fusionar su rama divergida completa; después clasificar los documentos únicos de `docs/android-engine-evaluation` y `docs/cluster-os-poc-decision` como vigentes, históricos o pendientes. La limpieza de ramas solo se hará después de verificar que no queda contenido único sin migrar.
+
+
+## Revalidación posterior — 22-oct-2026 (HEADs exactos)
+
+Esta sección actualiza el estado CI de la instantánea anterior; las notas previas se conservan como evidencia histórica de lo observado en aquel momento.
+
+- **PR #70** HEAD `fd0365d579a815d2a39f1213ed11af891dfe91d6`: workflow de prototipo #44 (`39872433379`) completado con `success`. GitHub sigue indicando `mergeable=false`; no fusionar hasta reconciliar base/diff.
+- **PR #104** HEAD `75764c435f488f617a07c0003ce088829e6dbd41`: transporte #473 y persistencia #602 completados con `success`. Logs de persistencia: suite raíz **293 passed/3 skipped**; asignaciones **33**, guard/journal **12**, integración de transporte **54**, autenticación **70 passed/2 skipped**; Windows ACL **50 passed/8 skipped**; `pip check` limpio en los tres jobs. Esto no sustituye la aceptación manual de #77.
+- **PR #101** HEAD actual `b84da93881f5869e8832e5888e5dce02433e85cc`: no se encontraron workflows asociados a ese SHA y GitHub marca `mergeable=false`. La CI previa de 58 pruebas pertenece al HEAD anterior `f338d63abdf18ab2c7d833d01ff4cf085457ce0b`; no atribuirla al HEAD actual.
+- **PR #48** HEAD `f2301e9b1673c57b74a9d625f3f4788f603a83ed`: transporte #471 `success` (**54 passed, 1 warning**, `pip check` limpio); esquema #303 y persistencia #600 también `success`.
+- **PR #87** conserva un workflow cancelado para su HEAD actual; la CI verde de #103 valida una rama descendiente de correcciones, no la app completa ni la aceptación manual.
+- Recuento del repositorio por API: **23 PR abiertas** (todas en draft), **40 Issues abiertas** y **8 Issues cerradas**. Issues #64, #105 y #107 se cerraron con alcance limitado y evidencia documentada; no se fusionó ninguna PR.
+- La numeración ADR final en ramas candidatas es #40 ADR-005 (autenticación agentes), #70 ADR-006 (lectura de estado Master/Worker), #104 ADR-007 (autenticación PC-MASTER). Issue #107 quedó cerrada tras confirmar referencias, manuales separados y CI actual de #70/#104.
+
