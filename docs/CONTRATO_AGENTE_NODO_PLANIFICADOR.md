@@ -40,7 +40,7 @@ Servicio que:
 9. admite drenaje y mantenimiento controlado.
 
 ### Adaptador de motor
-Encapsula redroid, Android Emulator, Waydroid u otro backend probado. El agente no asume que los motores comparten comandos, formatos de disco, capacidades o compatibilidad.
+Encapsula el runtime redroid detrás del contrato Android. El agente no debe asumir capacidades no verificadas: la compatibilidad de comandos, formatos de disco, ABI y recursos debe medirse para la imagen y el kernel fijados.
 
 ### Planificador
 Calcula elegibilidad, puntuación, asignación y capacidad restante. La primera versión no migrará instancias activas automáticamente; asignará nuevas instancias y trabajos, y permitirá recuperación mediante backup/restore solo cuando el motor lo soporte y las pruebas lo validen.

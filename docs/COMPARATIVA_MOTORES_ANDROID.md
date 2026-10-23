@@ -1,72 +1,61 @@
-# Comparativa de motores Android locales
+# Evaluación del motor Android en preparación: redroid
 
-**Actualizado:** 2026-10-21  
-**Estado:** investigación documental ampliada; ningún motor aprobado ni validado en WORKERS físicos.  
-**Decisión de alcance:** se retira la vía manual QEMU + Android-x86 9.0-r2 + VNC. No se continuará depurando ese prototipo ni se usará como base del producto.
+**Actualizado:** 2026-10-22. **Estado:** preparación documental; bloqueado para despliegue físico por la issue #27. No aprobado para producción ni validado en WORKERS físicos.
 
-La investigación completa, incluidos componentes de automatización, fuentes, licencias, riesgos y puertas de validación, está en [INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md](INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md).
+## Alcance vigente
 
-## Comparación ejecutiva
+- PC-MASTER Windows es el panel web y coordinador central.
+- Los PC-WORKERS serán equipos físicos; Debian 13 es el sistema base previsto.
+- redroid es el único motor Android en preparación.
+- No reabrir rutas de ejecución retiradas; mantener únicamente el alcance técnico vigente.
+- Agente, autenticación, transporte, persistencia, despacho y reconciliación son componentes del plano de control, no motores Android alternativos.
 
-| Candidato | Evidencia de multiinstancia | Control | Riesgo/bloqueo | Prioridad |
-|---|---|---|---|---|
-| AOSP Cuttlefish | Documentación explícita: `cvd create --num_instances=N`, discos overlay por instancia y puertos ADB separados | WebRTC desde navegador, con control y ADB web documentados | Requiere Linux/KVM, imagen y dependencias compatibles; no garantiza Google Play ni compatibilidad universal de apps | **Primera prueba documental/técnica** |
-| redroid | Proyecto diseñado para Android en contenedores y múltiples instancias | ADB y visor externo como scrcpy | Requiere funciones del kernel; ejemplo oficial usa `--privileged`; bloqueo de seguridad interno #27 sin resolver | **Candidato bloqueado** |
-| Android Emulator oficial | AVD independientes; CLI/ADB/KVM documentados | Herramientas del emulador; la variante de contenedores es experimental | Revisar términos del SDK e imágenes, redistribución y densidad | Referencia de compatibilidad |
-| Waydroid | No se ha demostrado la topología multiinstancia requerida | Principalmente integración de escritorio Linux | Headless, aislamiento y control independiente pendientes | Secundario |
-| Android-x86/Bliss OS + QEMU manual | Posible una VM por instancia, pero no demuestra densidad ni paridad | El prototipo local con VNC mostró pantalla negra y no se validó | Imagen Android-x86 9.0-r2 antigua; ruta manual no validada | **Retirado** |
-| Genymotion Desktop gratuito | No apto para nuestro uso de servidor/automatización profesional bajo licencia personal | Variable | Condiciones de licencia requieren pago para usos relevantes | Descartado |
-| Anbox clásico | No se recomienda | — | Repositorio archivado | Descartado |
+## Qué ofrece redroid
 
-## Conclusiones
+redroid ejecuta Android en contenedores sobre un host Linux y documenta soporte para arquitecturas amd64 y arm64 y varias instancias. La densidad y compatibilidad reales dependen del kernel, Binder/BinderFS, recursos, aplicaciones objetivo y configuración. Ninguna cifra de capacidad se considera validada para nuestro hardware.
 
-1. **Cuttlefish** es el primer candidato para una prueba controlada de una y dos instancias, porque la documentación oficial contempla multiinstancia y acceso por navegador mediante WebRTC.
-2. **redroid** podría tener ventajas de densidad, pero no se ejecutará en hardware físico hasta resolver el bloqueo de seguridad de [issue #27](https://github.com/D3ckardCain/Geelark-IA/issues/27), verificar la mitigación upstream y definir aislamiento y red con privilegios mínimos.
-3. **Android Emulator oficial** se mantiene como referencia separada para compatibilidad de APK/UI/ADB; no se debe confundir con la receta manual Android-x86 + QEMU retirada, y no se aprobará para redistribución sin revisar licencias.
-4. **Waydroid** queda secundario por falta de evidencia para una flota multiinstancia independiente.
-5. No hay estimación validada de instancias por WORKER. Se medirá en Debian físico; no extrapolar a 50 instancias a partir de documentación.
-6. El motor debe ser intercambiable detrás de un contrato común. RPA y Synchronizer no dependerán directamente de comandos específicos de un motor.
+La documentación pública oficial consultada enumera imágenes hasta Android 16; no asumir soporte oficial de versiones superiores sin una etiqueta publicada y verificable. La frescura de una etiqueta y el digest deben comprobarse antes de seleccionarla.
 
-## Automatización que debe evaluarse
+Documentación oficial: https://github.com/remote-android/redroid-doc  
+Módulos del kernel: https://github.com/remote-android/redroid-modules  
+Imagen pública: https://hub.docker.com/r/redroid/redroid
 
-- **ADB/platform-tools:** operaciones Android permitidas, instalación de APK, archivos y capturas, siempre detrás de un adaptador con lista permitida, límites, timeout y auditoría.
-- **Appium + UiAutomator2:** automatización de UI por selectores; Apache-2.0 para el driver; fijar versiones compatibles.
-- **UI Automator oficial:** referencia Android para interacción y árbol semántico.
-- **scrcpy:** visor/control libre y multiplataforma; no crea instancias ni reemplaza un motor RPA.
-- **Maestro:** framework de flujos UI declarativos en YAML; evaluar como herramienta auxiliar, no asumir que sustituye un RPA completo de producto.
-- **Desarrollo propio:** Instance Manager, perfiles, RPA Builder/Runner, Synchronizer, API local/Webhooks, Library, logs y scheduler de recursos.
+## Bloqueo crítico de seguridad
 
-## Puertas de validación
+La guía upstream muestra ejemplos con Docker `--privileged`. La incidencia [redroid-doc #932](https://github.com/remote-android/redroid-doc/issues/932) describe una escritura de `/proc/sys/kernel/modprobe` que puede escapar al host debido a que el sysctl no está aislado por namespaces. La incidencia aparece cerrada como completed el 2026-08-25 y no tiene comentarios ni un parche enlazado en su hilo visible; eso no prueba que una etiqueta/digest concreta tenga una corrección. La rama upstream actual de AOSP también conserva la escritura en init.rc: https://chromium.googlesource.com/aosp/platform/system/core/+/refs/heads/upstream/rootdir/init.rc. Esta fuente confirma que la instrucción sigue presente en AOSP, no el comportamiento de cada imagen redroid concreta.
 
-1. **Licencia/seguridad:** fijar versiones e imágenes; auditar componentes, puertos, privilegios y distribución.
-2. **Una instancia en Debian físico de laboratorio:** inicio/parada/reinicio, ADB, captura/entrada, APK, red, archivos, persistencia y métricas.
-3. **Dos instancias simultáneas:** aislamiento de datos/red/ADB, operación independiente, RPA con resultados separados.
-4. **Automatización:** flujo con selectores, condiciones, bucle limitado, timeout, cancelación, recuperación y resultados.
-5. **Escalado:** medir 4, 6 y más instancias solo si las métricas lo permiten.
-6. **Integración:** conectar el adaptador aprobado con PC-MASTER/WORKERS y aprovisionamiento por LAN.
+No ejecutar redroid en hardware físico hasta que la issue interna [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27) contenga evidencia verificable de la mitigación sobre la imagen exacta. No basta con restaurar el valor del sysctl después del arranque. Si no se encuentra una mitigación efectiva, detener el despliegue físico.
 
-No instalar en WORKERS físicos ni cerrar la selección hasta completar las pruebas y documentar sus resultados. Coste obligatorio de software/servicios: 0 USD.
+## Lista de verificación previa
 
-## Fuentes principales
+- [ ] Elegir una etiqueta fija y registrar digest; no usar `latest` en pruebas reproducibles.
+- [ ] Inspeccionar init y parches de la versión exacta.
+- [ ] Probar una mitigación efectiva del riesgo `kernel.modprobe`.
+- [ ] Determinar privilegios, capacidades, dispositivos y montajes mínimos.
+- [ ] Mantener ADB en loopback o canal administrativo explícitamente protegido.
+- [ ] No exponer el socket Docker a PC-MASTER ni a la LAN.
+- [ ] Verificar Binder/BinderFS y módulos requeridos en el kernel real.
+- [ ] Revisar licencias y condiciones de distribución de imagen, módulos y dependencias.
+- [ ] Documentar recuperación, logs redactados y reversión.
+- [ ] Obtener aprobación de la puerta #27 antes de arrancar en WORKER físico.
 
-- Cuttlefish multiinstancia: https://source.android.com/docs/devices/cuttlefish/multi-tenancy
-- Cuttlefish WebRTC: https://source.android.com/docs/setup/create/cuttlefish-ref-webrtc
-- redroid: https://github.com/remote-android/redroid-doc
-- Bloqueo redroid: https://github.com/D3ckardCain/Geelark-IA/issues/27
-- Android Emulator: https://developer.android.com/studio/run/emulator-commandline
-- Términos SDK: https://developer.android.com/studio/terms
-- Android Emulator en contenedores (experimental): https://github.com/google/android-emulator-container-scripts
-- Waydroid: https://github.com/waydroid/waydroid
-- Genymotion: https://www.genymotion.com/legal-terms-and-conditions/
-- Appium UiAutomator2: https://github.com/appium/appium-uiautomator2-driver
-- UI Automator: https://developer.android.com/training/testing/other-components/ui-automator
-- scrcpy: https://github.com/Genymobile/scrcpy
-- Maestro: https://docs.maestro.dev/get-started/what-is-maestro
-- GeeLark RPA/API/Synchronizer: https://www.geelark.com/features/rpa/ · https://www.geelark.com/features/api/ · https://www.geelark.com/features/automation/
+## Compatibilidad ABI: riesgo adicional conocido
 
-## Registro de cambios
+La incidencia upstream [redroid-doc #933](https://github.com/remote-android/redroid-doc/issues/933) reporta que ciertas imágenes x86_64 pueden anunciar arm64-v8a aunque la biblioteca de traducción nativa no esté disponible; una APK ARM-only podría instalarse y fallar al arrancar. El reporte está abierto y no demuestra que todas las etiquetas estén afectadas.
 
-- 2026-10-21: se retira Android-x86 9.0-r2 + QEMU manual + VNC como ruta de producto.
-- 2026-10-21: Cuttlefish pasa a primera prioridad documental por multiinstancia y WebRTC.
-- 2026-10-21: redroid permanece bloqueado por seguridad; Android Emulator es referencia; Waydroid queda secundario.
-- 2026-10-21: automatización se amplía a RPA Builder/Runner, Synchronizer, API/Webhooks, ADB y visor de control.
+Por ello, la imagen se elegirá a partir de las APK objetivo y se probará por etiqueta/digest exactos. La lista ABI declarada no basta para afirmar compatibilidad. No redistribuir traductores propietarios ni extraerlos de otros productos sin revisar sus términos. Este riesgo de compatibilidad es independiente del bloqueo de seguridad #27.
+
+## Plan de pruebas después de aprobar seguridad
+
+1. Diagnóstico de solo lectura en WORKER-01 (CPU, RAM, kernel, disco, Binder/BinderFS, red y puertos).
+2. Instancia única: ciclo de vida, ADB restringido, APK autorizada, captura/entrada, archivos, persistencia y métricas.
+3. Dos instancias simultáneas: independencia de datos, puertos, almacenamiento y control.
+4. Reinicios y fallos: recuperación, reconciliación y ausencia de operaciones duplicadas.
+5. Integración por agente autenticado con PC-MASTER Windows.
+6. Medición de CPU, RAM, almacenamiento, latencia y estabilidad antes de cualquier estimación de escala.
+
+## Capacidad y coste
+
+El hardware de referencia inicial de cada worker es i5-11400, 32 GB de RAM, NVMe de 500 GB y sin GPU dedicada. Esto no determina cuántas instancias son viables. Medir primero una y dos; ampliar solo con datos observados.
+
+Objetivo obligatorio: 0 USD. Verificar cada dependencia y su licencia; no depender de un servicio cloud pagado.

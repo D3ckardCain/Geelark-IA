@@ -1,4 +1,4 @@
-> **Aclaración de vigencia — 2026-10-22:** esta arquitectura se mantiene como objetivo propuesto. El motor Android no está aprobado; QEMU + Android-x86 + VNC está retirado, redroid bloqueado por #27 y Cuttlefish es candidato de laboratorio no aprobado. No implica implementación, integración ni prueba física.
+> **Aclaración de vigencia — 2026-10-22:** PC-MASTER Windows es el panel central; redroid es el único motor Android en preparación para workers físicos Debian 13. La instalación física sigue bloqueada por #27. No implica implementación, integración ni prueba física.
 
 # Arquitectura de clúster físico heterogéneo — Geelark-IA
 
@@ -28,7 +28,7 @@ El clúster de varios equipos debe ser parte de la arquitectura objetivo desde a
 
 ### 3.1 Plano de administración
 
-PC-MASTER permanece como aplicación Windows. La candidata de escritorio actual es Python/Tkinter en la PR #87, todavía draft y no integrada; el panel web autenticado de solo lectura está en la PR #104, también draft. Tauri/React fue una propuesta inicial y no está seleccionado ni autoriza una reescritura. La interfaz muestra el estado del clúster, nodos, instancias, tareas, recursos, alertas y registros cuando se integre y acepte. La API debe ser agnóstica al número de nodos.
+PC-MASTER permanece como aplicación Windows. La candidata de escritorio actual es Python/Tkinter en la PR #87, todavía draft y no integrada; el panel web autenticado de solo lectura está en la PR #104, también draft. No se autoriza reescribir el panel ni cambiar su stack sin una decisión documentada. La interfaz muestra el estado del clúster, nodos, instancias, tareas, recursos, alertas y registros cuando se integre y acepte. La API debe ser agnóstica al número de nodos.
 
 ### 3.2 Plano de control
 

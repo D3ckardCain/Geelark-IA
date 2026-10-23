@@ -105,4 +105,4 @@ No incluir contraseñas, tokens, cookies, seriales completos ni variables de ent
 
 ## 9. Resultado
 
-Este contrato sirve como interfaz de arquitectura y checklist de conformidad. No demuestra que Android Emulator, redroid o Waydroid lo cumplan; cada adaptador debe demostrarlo mediante código y pruebas.
+Este contrato define la interfaz interna del adaptador Android. En el alcance actual solo se prepara la implementación redroid; su conformidad debe demostrarse mediante código y pruebas, no se presume por la documentación.

@@ -1,200 +1,78 @@
-# Arquitectura tecnológica objetivo — Geelark-IA
+# Arquitectura tecnológica vigente — GeeLark-IA
 
-**Fecha de propuesta inicial:** 2026-10-09  
-**Revisión de estado:** 2026-10-21  
-**Estado:** propuesta de arquitectura; no implica que el software esté implementado.  
-**Objetivo:** maximizar funcionalidad local y extensible inspirada en las capacidades públicas de GeeLark, con coste obligatorio de operación de 0 USD, sin cloud phones ni APIs pagadas.
+**Actualizado:** 2026-10-22. **Estado:** arquitectura objetivo; no implica que todos los módulos estén integrados ni aceptados.  
+**Alcance:** panel web PC-MASTER Windows + redroid en PC-WORKERS físicos Debian 13 + componentes necesarios de control distribuido.  
+**Coste obligatorio objetivo:** 0 USD.
 
-> **Aclaración de estado (2026-10-21):** esta arquitectura sigue siendo una propuesta, no una decisión final de stack. PC-MASTER debe permanecer como aplicación Windows; la candidata de escritorio actual es Python/Tkinter en la PR #87, todavía sin merge ni aceptación. Tauri 2 no debe interpretarse como tecnología aprobada ni como autorización para reescribir el lanzador. Los WORKERS previstos son equipos físicos con Debian 13. Cuttlefish es el primer candidato Android para prueba de laboratorio, no un motor aprobado; redroid continúa bloqueado por el Issue #27. Consultar la [investigación ampliada](INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md) y la [auditoría del repositorio](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md) antes de implementar.
+## 1. Decisión de alcance
 
-## 1. Decisión ejecutiva
+- PC-MASTER es el panel web central y su servicio de control en Windows. El lanzador/configurador de escritorio es un componente separado, no el panel.
+- redroid es el único motor Android en preparación. La evaluación técnica se limita al motor definido en el alcance vigente.
+- Debian 13 es el sistema base previsto para los workers.
+- Las rutas técnicas retiradas quedan fuera del alcance de producto.
+- La instalación física de redroid permanece bloqueada por la issue #27 hasta que se demuestre una mitigación verificable del riesgo de `/proc/sys/kernel/modprobe`.
+- GeeLark es referencia funcional pública; la implementación será independiente y local-first.
 
-Diseñar primero una aplicación **desktop-first, local-first y modular**, con una interfaz reutilizable, un servicio backend propio y adaptadores desacoplados para motores Android. No construir una plataforma SaaS dependiente de un proveedor.
+## 2. Componentes y responsabilidades
 
-### Combinación base recomendada
+| Componente | Responsabilidad |
+|---|---|
+| Panel PC-MASTER Windows | UI web de administración, inventario, estado, perfiles, tareas, alertas y auditoría |
+| Servicio de control Master | API privada, autenticación, autorización, configuración deseada, asignaciones y coordinación |
+| Persistencia local | Estado autoritativo, operaciones, idempotencia, auditoría, reservas y outbox durable |
+| Agente de Worker | Identidad del nodo, heartbeat, capacidades, recepción de órdenes tipadas, ejecución permitida y reporte |
+| redroid | Runtime Android en el host Linux, solo después de superar el bloqueo de seguridad |
+| Adaptador Android | Contrato de ciclo de vida, estado, captura/entrada, instalación de APK, archivos, persistencia y errores |
+| Automatización | Flujos tipados con timeout, cancelación, límites de bucle, recuperación y resultados por paso |
+| Observabilidad | Salud reportada por Worker y salud derivada por Master, logs redactados y métricas |
 
-| Capa | Tecnología preferida | Motivo | Condición/alternativa |
-|---|---|---|---|
-| UI de escritorio PC-MASTER | Python 3 + Tkinter (candidata actual en PR #87; no integrada) | Coincide con la aplicación Windows v0.1 en revisión | Tauri 2 + React/Vite permanece alternativa no aprobada; no reescribir sin decisión explícita |
-| Diseño UI web | HTML/CSS accesible; el prototipo GitHub Dark está en PR #70 y el panel autenticado en PR #104 | Permite evolución visual sin declarar funciones ficticias | Tailwind/Radix solo si se elige explícitamente; revisar licencias |
-| API y dominio | Python 3 + FastAPI + Pydantic | Ecosistema maduro para automatización, procesos y tooling Android | Mantener el dominio desacoplado del framework |
-| Persistencia local inicial | SQLite + migraciones versionadas | Cero coste, local y transaccional | Evaluar PostgreSQL local si la concurrencia multiusuario lo exige |
-| Estado de tareas | Cola persistente en SQLite, IDs idempotentes y recuperación | Evita añadir infraestructura prematura | Valorar PostgreSQL o Valkey solo si pruebas lo justifican |
-| Contrato API | OpenAPI generado desde FastAPI | Contratos verificables y cliente UI desacoplado | Versionar API y errores |
-| Primera prioridad de evaluación | AOSP Cuttlefish | Multiinstancia documentada, overlays independientes y control WebRTC | Requiere preparar host/imágenes y medir recursos; no aprobado hasta pruebas |
-| Candidato de densidad bloqueado | redroid en Linux | Android en contenedores, potencialmente eficiente | No probar hasta resolver issue #27 y demostrar aislamiento con privilegios mínimos |
-| Referencia de compatibilidad | Android Emulator oficial | AVD, ADB y herramientas maduras para probar APK/UI | Revisar términos del SDK/imágenes; variante de contenedores experimental |
-| Alternativa Linux secundaria | Waydroid | Android containerizado en Linux | Multiinstancia independiente/headless no demostrada |
-| Control de dispositivos | ADB oficial/platform-tools detrás de adaptador interno | Estándar para dispositivos autorizados | Nunca exponer ADB públicamente |
-| RPA | Motor propio de máquina de estados + adaptadores ADB/UIAutomator2 | Control, límites, recuperación y trazabilidad | Appium como apoyo de pruebas, no dependencia ciega |
-| Pruebas UI web | Playwright | Pruebas E2E reproducibles | No usar como motor RPA Android de producción |
-| Pruebas Android | ADB + UIAutomator2/Appium según caso | Acciones y verificaciones | Fijar versiones compatibles |
-| Entorno | uv/venv para Python; pnpm y lockfile para UI | Reproducibilidad | Docker solo opcional, no requisito del producto |
-| Calidad | Ruff, mypy/pyright, pytest, ESLint, TypeScript strict, Vitest, Playwright | Detectar errores temprano | La ejecución local de pruebas no depende de CI pago |
-| Registro | Logs estructurados locales con redacción y rotación | Diagnóstico sin filtrar secretos | Sin telemetría obligatoria |
-| Distribución | Instaladores por SO y compilación reproducible | Descarga sencilla | Debe ser posible compilar localmente |
+## 3. Plataforma prevista
 
-## 2. Decisión actual sobre Android virtualizado (2026-10-21)
+- **PC-MASTER:** Windows 10/11 de 64 bits; conservar el panel web central y el lanzador separado.
+- **PC-WORKERS:** Debian 13 en hardware físico; el inventario inicial de laboratorio es i5-11400, 32 GB RAM, NVMe de 500 GB y sin GPU dedicada.
+- **Red:** LAN Gigabit; el servicio de agente debe usar transporte autenticado y cifrado. No publicar ADB ni el socket Docker a la LAN.
+- **Runtime:** redroid sobre Linux, con versión de imagen y digest fijados. No usar `latest` para pruebas reproducibles.
+- **Dependencias:** paquetes libres/locales cuando sea viable; documentar licencia, versión, origen, coste, límites y procedimiento de actualización.
 
-La ruta manual **QEMU + Android-x86 9.0-r2 + VNC en WSL2 queda retirada**. No se continuará depurando ese prototipo ni se usará como base del producto.
+La densidad no se infiere del hardware: se mide primero con una instancia y después con dos. Solo se escala si las métricas y pruebas de aislamiento lo permiten.
 
-No hay motor ganador hasta completar pruebas. La prioridad documental/técnica actual es:
+## 4. Seguridad y autorización
 
-1. **AOSP Cuttlefish:** primera opción a evaluar por multiinstancia, overlays de disco por instancia, puertos ADB diferenciados y control WebRTC desde navegador. Su instalación requiere preparar el host Debian, paquetes/módulos/grupos e imágenes; no se debe confundir con el servicio Cloud Orchestrator. La densidad debe medirse: la documentación de AOSP da ejemplos de perfiles con consumo alto.
-2. **redroid:** posible candidato de densidad, bloqueado por la issue #27 hasta revisar el riesgo upstream, versión/mitigación y un modelo de privilegios/red aceptable.
-3. **Android Emulator oficial:** referencia para compatibilidad de APK, ADB y UI; revisar licencias de SDK e imágenes. Los scripts de contenedores son experimentales.
-4. **Waydroid:** alternativa secundaria; multiinstancia independiente y operación headless no demostradas para nuestro uso.
+- Un nodo pendiente puede informar heartbeat/capacidades y consultar un estado limitado; no recibe ni ejecuta tareas.
+- La activación requiere autorización desde PC-MASTER y credenciales individuales revocables.
+- La API usa HTTPS privado con CA local, autorización por operación, límites de tamaño/frecuencia, timeouts, idempotencia y protección contra repetición.
+- No ofrecer shell arbitrario, comandos Docker ni ADB indiscriminado como API administrativa.
+- ADB queda en loopback o en un canal explícitamente protegido.
+- No arrancar redroid en hardware físico hasta resolver la issue #27 con evidencia de la imagen exacta.
+- Los logs y artefactos no contienen tokens, contraseñas, cookies ni claves privadas.
 
-La investigación completa y las fuentes se mantienen en [docs/INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md](INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md) y la [comparativa](COMPARATIVA_MOTORES_ANDROID.md).
+## 5. Persistencia, despacho y recuperación
 
-La selección final comparará compatibilidad de APK/ABI, versiones Android, persistencia, configuración de red por instancia, aislamiento, ADB/captura/entrada, sensores/cámara, privilegios, licencias, automatización y coste de mantenimiento. No se promete reproducción exacta de identidad física ni compatibilidad universal de aplicaciones. No se implementarán técnicas para falsificar claves de hardware, attestation o evadir controles de seguridad.
+- Registrar operación, auditoría, idempotencia y outbox en una transacción antes de enviar una orden.
+- Las órdenes llevan identificador, nodo propietario y epoch de fencing.
+- Un estado incierto se reconcilia; no se libera ni reasigna automáticamente una instancia si puede seguir ejecutándose en el nodo anterior.
+- Los fallos de red y reinicios no deben duplicar efectos ni borrar datos persistentes.
+- La persistencia Android se separa por instancia y tiene límites y permisos explícitos.
 
-## 3. Arquitectura de procesos
+## 6. Preparación y aceptación
 
-En el MVP pueden compartir un backend modular; separar procesos solo cuando una frontera de seguridad o pruebas lo justifiquen.
+1. Completar la auditoría de seguridad/licencias de la imagen redroid exacta.
+2. Resolver la issue #27 con evidencia reproducible; si no existe mitigación efectiva, mantener el bloqueo.
+3. Aprobar el aprovisionamiento de Debian 13 y ejecutar diagnóstico de solo lectura en WORKER-01.
+4. Probar una instancia: inicio/parada/reinicio, ADB restringido, APK autorizada, captura/entrada, archivos, persistencia y métricas.
+5. Probar dos instancias simultáneas con separación de datos, puertos y control.
+6. Integrar el agente con PC-MASTER y validar enrolamiento, heartbeat, autorización, despacho, idempotencia y reconciliación.
+7. Publicar manual del módulo, pruebas reproducibles, incidencias y soluciones en español.
 
-- **pc-master-windows:** aplicación de escritorio Python/Tkinter candidata en PR #87; no integrada ni aceptada.
-- **master-admin-web:** panel/API local autenticado de solo lectura candidato en PR #104; no integrado ni aceptado. No expone shell, ADB ni ejecución de tareas.
-- **Tauri/React:** alternativa anterior no aprobada; no iniciar esa reescritura sin decisión explícita.
-- **geelark-api:** FastAPI local con autenticación y autorización por recurso.
-- **instance-manager:** adaptador de ciclo de vida para cada motor.
-- **adb-manager:** lista permitida de comandos, selección explícita, timeout y salida limitada.
-- **rpa-runner:** cola persistente, estado por paso, timeout, límite de iteraciones, pausa/cancelación y auditoría.
-- **importer:** lectura selectiva desde Android físico, sin escritura al origen.
-- **artifact-manager:** archivos/APK, checksums, nombres y rutas normalizadas.
-- **audit-log:** eventos estructurados redactados.
+## 7. Coste y registro
 
-### Contratos y adaptadores
+El objetivo obligatorio es 0 USD en software y servicios esenciales. Antes de adoptar una dependencia, registrar licencia, precio, requisito de tarjeta, cuotas, almacenamiento, ancho de banda, límites y riesgos. No declarar paridad con GeeLark ni capacidad de producción sin evidencia práctica.
 
-El dominio no dependerá de comandos específicos de un motor. La interfaz de cada adaptador debe contemplar: listar imágenes, crear/iniciar/detener/reiniciar/eliminar instancias, consultar estado, capturar pantalla, instalar aplicación, ejecutar acciones permitidas y respaldar/restaurar datos.
+## Fuentes y seguimiento
 
-Cada adaptador declara capacidades soportadas, no soportadas y no probadas. Operaciones peligrosas requieren confirmación explícita.
-
-## 4. Modelo de datos inicial
-
-- Perfiles con UUID, nombre, grupo, estado y versión de esquema.
-- Configuración versionada separando identidad sintética de campos de hardware protegidos.
-- Instancias de motor, versión, ruta de datos, estado y capacidades.
-- Grupos y pertenencia de perfiles.
-- Proxies; credenciales separadas y protegidas.
-- Aplicaciones/artefactos con origen, checksum, versión y ABI.
-- Archivos multimedia y etiquetas.
-- Flujos RPA, versiones, ejecuciones y pasos.
-- Cola de tareas con payload validado, clave idempotente, intentos, estado y error redactado.
-- Sesiones de sincronización y acciones.
-- Dispositivos físicos con alias, fabricante/modelo/versión y serial enmascarado.
-- Sesiones de importación, campos y resultados.
-- Eventos de auditoría, respaldos y migraciones.
-
-Los secretos no se guardan en logs ni como texto plano en tablas genéricas. Definir el mecanismo de cifrado antes de guardar credenciales reales.
-
-## 5. API, tareas y sincronización
-
-- API versionada y documentada por OpenAPI.
-- Validación estricta de esquemas, límites de cuerpo, timeout y concurrencia.
-- UUID y claves idempotentes para tareas y reintentos seguros.
-- Estados de tarea: queued, running, paused, cancel_requested, succeeded, failed, cancelled.
-- Resultado por instancia/paso sin almacenar secretos.
-- Recuperación tras reinicio según política explícita; no repetir automáticamente acciones no idempotentes.
-- Eventos por WebSocket/SSE solo en loopback, con polling como alternativa.
-- Importación/sincronización con vista previa, confirmación, diferencias y registro por campo.
-
-## 6. Offline
-
-Debe funcionar sin Internet: abrir la UI local; gestionar perfiles/configuración; crear grupos; consultar historial/logs locales; editar RPA y tareas pendientes; importar archivos locales y exportar respaldos.
-
-Requiere motor instalado: iniciar/detener instancias, instalar APK y automatizar apps.
-
-Requiere conectividad: descargar imágenes/actualizaciones o APK remotos; proxies externos; integraciones remotas. No declarar sincronización entre equipos offline-first hasta implementar reconciliación de conflictos, versionado y pruebas de idempotencia.
-
-## 7. Licencias y coste
-
-- Preferir licencias permisivas (MIT, Apache-2.0, BSD, PostgreSQL License y dominio público) cuando la funcionalidad sea comparable.
-- Revisar por separado código, dependencias, imágenes Android, aplicaciones y derechos de redistribución.
-- Evitar n8n como motor RPA integrado: su Sustainable Use License restringe ofrecer su editor de flujos o automatización como parte de un producto para clientes.
-- No depender de Supabase Cloud, Firebase, APIs de IA de pago, almacenamiento externo ni teléfonos en la nube. Supabase podría ser una integración futura opcional, nunca el único almacenamiento ni requisito local.
-- El software local puede no tener tarifa de licencia; hardware, electricidad, conectividad y dominios opcionales pueden tener costes indirectos. La meta es no imponer pagos de software/servicios.
-- Las cuotas gratuitas de GitHub Actions pueden cambiar; compilar localmente debe seguir siendo posible.
-
-## 8. Secuencia recomendada
-
-### Fase 0 — decisiones y contratos
-- [ ] Fijar licencias y versiones principales.
-- [ ] Registrar ADR de arquitectura y motor.
-- [ ] Definir capacidades del adaptador y matriz de soporte.
-
-### Fase 1 — núcleo mínimo
-- [ ] Resolver la integración entre el lanzador Windows #87 y el panel/API #104; decidir la tecnología UI definitiva antes de iniciar una reescritura Tauri/React.
-- [ ] Backend FastAPI local.
-- [ ] SQLite y migraciones.
-- [ ] Autenticación local y permisos.
-- [ ] Logs redactados y pruebas reproducibles.
-
-### Fase 2 — primera instancia Android
-- [ ] Superar revisión de licencias/seguridad del candidato de prueba.
-- [ ] Probar Cuttlefish como primera prioridad documental/técnica; no se aprueba por documentación.
-- [ ] Crear, iniciar, detener, reiniciar y eliminar una instancia en Debian físico de laboratorio.
-- [ ] Captura WebRTC, entrada básica, ADB restringido y persistencia.
-- [ ] Instalar APK de referencia y medir CPU/RAM/disco/arranque.
-- [ ] Repetir con dos instancias y comprobar aislamiento.
-- [ ] Documentar diferencias respecto a GeeLark y límites reales.
-
-### Fase 3 — gestión de perfiles
-- [ ] Perfiles, grupos, clonación segura y operaciones masivas.
-- [ ] Proxy con credenciales protegidas.
-- [ ] Instalación/actualización de APK.
-- [ ] Logs e historial de tareas.
-
-### Fase 4 — RPA/Synchronizer
-- [ ] Editor visual de flujos con bloques tipados.
-- [ ] Ejecutor persistente, pausa, cancelación, límites y resultados.
-- [ ] Sincronización entre instancias con acciones seleccionadas explícitamente.
-- [ ] Pruebas de flujos interrumpidos y recuperación.
-
-### Fase 5 — importación física
-- [ ] Detección ADB progresiva para múltiples fabricantes/versiones.
-- [ ] Inventario de campos realmente legibles.
-- [ ] Vista previa por campo y exclusión sensible por defecto.
-- [ ] Aplicar campos compatibles a instancia virtual.
-- [ ] Verificar persistencia y registrar diferencias.
-
-### Fase 6 — motor alternativo, Library, API/CLI y distribución
-- [ ] Evaluar redroid en Linux aislado solo después de resolver issue #27.
-- [ ] Comparar compatibilidad y recursos contra Cuttlefish y Android Emulator.
-- [ ] API/CLI local estable.
-- [ ] Library de archivos/medios.
-- [ ] Empaquetado reproducible para los sistemas operativos incluidos en alcance.
-
-No comenzar la fase siguiente hasta que la fase actual tenga pruebas, manual en español, matriz actualizada y aceptación documentada.
-
-## 9. Decisiones pendientes de evidencia
-
-1. Motor Android final y versiones soportadas.
-2. Aislamiento para múltiples instancias.
-3. Estrategia de secretos/cifrado.
-4. Campos de configuración aplicables por motor.
-5. Permisos de shell/ADB.
-6. Alcance de distribución: escritorio o UI web local adicional.
-7. Redistribución de imágenes y APK.
-
-## 10. Criterio de aprobación
-
-La arquitectura se acepta cuando las licencias son compatibles; no hay pago ni servicio cloud obligatorio; se prueba el flujo crear/iniciar/detener/persistir/respaldar; ADB/API no quedan expuestos por defecto; existen pruebas automatizadas; y las diferencias frente a GeeLark y el manual del módulo inicial están documentados.
-
-
-## 11. Requisito transversal: clúster heterogéneo de varios PC
-
-**Esta arquitectura queda corregida para contemplar varios equipos desde el inicio.** El lanzador Windows y el panel/API local autenticado están en PRs distintas y deben reconciliarse antes de integrarse. Tauri/React sigue sin aprobarse. No se presupone que el backend y todas las instancias Android residan en un único anfitrión.
-
-Documentos que definen esta parte:
-- [Arquitectura de clúster heterogéneo](ARQUITECTURA_CLUSTER_HETEROGENEO.md).
-- [ADR-003 — Arquitectura distribuida](decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md).
-- [Contrato del agente de nodo y planificador](CONTRATO_AGENTE_NODO_PLANIFICADOR.md).
-- [Arquitectura de clúster físico heterogéneo](ARQUITECTURA_CLUSTER_HETEROGENEO.md).
-- [Issue #14 — Integrar clúster y planificador](https://github.com/D3ckardCain/Geelark-IA/issues/14).
-
-El diseño se separa en plano de administración, plano de control, agentes por nodo, planificador de recursos y adaptadores de motor Android. Cada nodo anuncia capacidades observadas y probadas; el planificador filtra por compatibilidad, RAM, disco, CPU y capacidades de motor. No se supone migración en vivo entre nodos heterogéneos.
-
-La decisión operativa es mantener PC-MASTER como aplicación Windows y utilizar Debian 13 directamente en los PC WORKER físicos. La administración central, el descubrimiento, la adopción, el despliegue del agente y la preparación de Android serán responsabilidad de GeeLark-IA. El aprovisionamiento desde equipos sin sistema operativo se implementará mediante arranque por red cuando el hardware y la LAN sean compatibles, y se validará con pruebas reproducibles.
-
-No se aprobará la infraestructura hasta probar dos nodos heterogéneos, registrar métricas, comprobar recuperación y revisar licencias/versiones. El objetivo de 0 USD para software/servicios obligatorios se mantiene.
+- [Alcance vigente](ALCANCE_PC_MASTER_REDROID.md)
+- [Estado del proyecto](ESTADO_PROYECTO.md)
+- [Evaluación de redroid](COMPARATIVA_MOTORES_ANDROID.md)
+- [Modelo de amenazas](MODELO_AMENAZAS_SEGURIDAD.md)
+- [Bloqueo de seguridad #27](https://github.com/D3ckardCain/Geelark-IA/issues/27)
+- [Preparación del worker, PR #108](https://github.com/D3ckardCain/Geelark-IA/pull/108)

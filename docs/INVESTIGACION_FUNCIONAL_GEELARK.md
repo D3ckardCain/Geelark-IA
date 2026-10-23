@@ -167,72 +167,28 @@ La ayuda también lista una guía para usar la cámara del cloud phone: https://
 - 2026-10-09: se fija el alcance de nuestro proyecto en Android virtualizado/emulado localmente en hardware anfitrión; no se presupone el uso de teléfonos físicos.
 
 
-## 9. Investigación preliminar de motores Android local
+## 9. Estado del motor Android para este proyecto
 
-Esta sección es una comparación de candidatos, no una selección definitiva. El motor final debe probarse con aplicaciones Android objetivo, identidad por instancia, ADB, automatización, persistencia, aislamiento, gráficos y consumo de recursos.
+GeeLark es una plataforma cloud con funciones de administración y automatización; su arquitectura interna completa no es pública. Este documento registra funcionalidades públicas de GeeLark, no una autorización para adoptar otros motores. El alcance técnico vigente de GeeLark-IA es redroid en workers Linux, coordinados por PC-MASTER Windows.
 
-### Candidato A — redroid
+redroid ejecuta Android en contenedores Linux y documenta múltiples instancias. Antes de cualquier prueba física hay que verificar la imagen exacta, el kernel, Binder/BinderFS, licencias, privilegios, ADB, aislamiento y persistencia.
 
-Fuente: https://github.com/remote-android/redroid-doc y https://github.com/Nredroid
+**Bloqueo obligatorio:** la incidencia upstream [redroid-doc #932](https://github.com/remote-android/redroid-doc/issues/932) describe una escritura de `/proc/sys/kernel/modprobe` desde el init de Android que puede afectar al host en configuraciones privilegiadas. Que la incidencia figure cerrada no demuestra que la imagen concreta esté corregida. No iniciar redroid en hardware físico hasta que la issue interna [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27) contenga evidencia reproducible de una mitigación efectiva.
 
-La documentación pública describe Android en contenedores para hosts Linux, aceleración GPU, arquitectura amd64/arm64 y posibilidad de ejecutar múltiples instancias. La lista pública consultada incluye imágenes Android 9 a 17, según etiqueta/variante.
+Fuentes de motor:
+- https://github.com/remote-android/redroid-doc
+- https://github.com/remote-android/redroid-modules
+- https://github.com/remote-android/redroid-doc/issues/932
 
-**Ventajas potenciales:** orientado a múltiples instancias, automatización y operación tipo servicio; puede ajustarse al requisito de instancias locales.  
-**Riesgos/preguntas:** requisitos de kernel y GPU, configuración de contenedores privilegiados, compatibilidad de apps y Play Services, manejo de identidad, estabilidad y seguridad del host. Verificar licencia de cada repositorio e imagen antes de distribuir o usar comercialmente. No asumir que la imagen Android base equivale a un teléfono real.
-
-### Candidato B — Android Emulator oficial
-
-Fuentes: https://developer.android.com/studio/run/emulator-acceleration y https://developer.android.google.cn/studio/run/emulator?hl=es-419
-
-La documentación oficial explica aceleración de virtualización mediante el hipervisor del sistema operativo y publica requisitos mínimos orientativos de 16 GB de RAM para una experiencia adecuada. La ruta de aceleración depende del sistema operativo y de las extensiones de virtualización del procesador.
-
-**Ventajas potenciales:** herramientas oficiales Android, compatibilidad de desarrollo, imágenes de distintas versiones y herramientas de prueba conocidas.  
-**Riesgos/preguntas:** está orientado principalmente a desarrollo y pruebas; la densidad de instancias, control centralizado, rendimiento prolongado y personalización de identidad deben medirse. En Windows, la documentación indica que Android Emulator Hypervisor Driver (AEHD) dejará de mantenerse el 31 de diciembre de 2026 y recomienda migrar a Windows Hypervisor Platform.
-
-### Candidato C — Waydroid
-
-Fuentes: https://github.com/waydroid/waydroid y https://github.com/waydroid/docs
-
-Waydroid usa contenedores Linux para ejecutar un sistema Android basado en LineageOS; la documentación consultada menciona Android 13 para su imagen actual. Requiere GNU/Linux compatible y acceso a componentes del host.
-
-**Ventajas potenciales:** software libre, integración con Linux y ejecución local.  
-**Riesgos/preguntas:** su modelo de contenedor e integración de escritorio puede no ofrecer aislamiento de dispositivo completo ni una granja de perfiles independientes de forma directa. Debe comprobarse si puede sostener la semántica de perfiles y aislamiento que requiere GeeLark.
-
-### Candidato D — Android-x86 en máquina virtual
-
-Fuentes: https://www.android-x86.org/source.html y https://www.android-x86.org/
-
-Android-x86 permite ejecutar compilaciones Android para x86 en hardware compatible y máquinas virtuales como QEMU o VirtualBox. El proyecto declara Apache License 2.0 para el proyecto base y GPL para algunos componentes.
-
-**Ventajas potenciales:** aislamiento por máquina virtual y compatibilidad con hipervisores comunes.  
-**Riesgos/preguntas:** versiones y mantenimiento disponibles, sensores simulados, arquitectura x86 frente a aplicaciones que requieren ARM, Play Services, gráficos y costes de recursos por instancia.
-
-### Criterios de selección obligatorios
-
-1. Licencia de motor, imagen, componentes Android, herramientas y complementos.
-2. Posibilidad de crear, clonar, arrancar, detener, reiniciar y eliminar instancias mediante comandos/API.
-3. ADB estable y captura/control de pantalla.
-4. Persistencia y aislamiento de datos entre instancias.
-5. Posibilidad de configurar cada instancia de forma independiente, sin afirmar que se puede falsificar cualquier identidad.
-6. Compatibilidad de APK arm64-v8a, armeabi-v7a y x86_64 según necesidad.
-7. Cámara, GPS, sensores, audio, notificaciones, portapapeles y aceleración gráfica.
-8. Consumo de CPU, RAM, VRAM, almacenamiento y tiempo de arranque por instancia.
-9. Seguridad: permisos de contenedores/VM, exposición de puertos y separación de redes.
-10. Funcionamiento sin servicios cloud ni pagos obligatorios.
-11. Soporte de varias instancias en el sistema operativo anfitrión seleccionado.
-12. Reproducibilidad de instalación, backup, actualización y rollback.
-
-### Conclusión provisional
-
-No se selecciona todavía un motor. redroid parece especialmente relevante para investigar escenarios de múltiples instancias Linux; Android Emulator es el candidato de referencia para herramientas oficiales; Waydroid y Android-x86 cubren alternativas de contenedor y máquina virtual. La elección requiere una prueba comparativa en el hardware real del usuario y un inventario más preciso de las funciones de GeeLark.
-
+Criterios previos: fijar etiqueta y digest; revisar init y parches; verificar mitigación, privilegios mínimos, ADB restringido, persistencia independiente, aislamiento y recuperación; documentar licencias y costes. Tras aprobar seguridad, probar una instancia y luego dos en WORKER-01 y medir recursos reales. No estimar capacidad de escala antes del benchmark.
+ 
 ## 10. Registro de cambios
 
 - 2026-10-09: primera investigación documental consolidada; se aclara que GeeLark es una plataforma integrada de cloud phones, gestión, automatización, sincronización, API y recursos, no solo un emulador.
 - 2026-10-09: se fija el alcance de nuestro proyecto en Android virtualizado/emulado localmente en hardware anfitrión; no se presupone el uso de teléfonos físicos.
-- 2026-10-09: se añade comparación preliminar de redroid, Android Emulator, Waydroid y Android-x86, sin seleccionar stack definitivo.
+- 2026-10-22: se actualiza el alcance técnico: redroid es el único motor en preparación y permanece bloqueado por la issue #27.
 
 
 ## Nota de vigencia estratégica — 2026-10-22
 
-Este documento se conserva como evidencia funcional histórica/preliminar; la fecha de las fuentes funcionales originales no se actualiza por esta nota. La estrategia técnica se revisó el 2026-10-22: la ruta manual QEMU + Android-x86 + VNC está retirada; AOSP Cuttlefish es solo candidato de laboratorio y no está aprobado; redroid permanece bloqueado por la Issue #27; Android Emulator es referencia de compatibilidad y Waydroid sigue como alternativa secundaria. No se ha completado una prueba en WORKER físico ni se ha medido densidad de instancias. Antes de implementar paridad, reconciliar con la investigación ampliada de la PR #86 y distinguir evidencia documentada, inferencia, código en PR, CI por SHA y prueba real.
+Este documento conserva evidencia funcional pública de GeeLark; no es una comparativa de motores. El alcance técnico vigente es PC-MASTER Windows + redroid en workers Debian 13. La prueba física sigue bloqueada por la issue #27; no se ha medido densidad de instancias.

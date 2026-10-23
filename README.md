@@ -1,106 +1,55 @@
-# Geelark-IA
+# GeeLark-IA
 
-Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la referencia funcional para las capacidades que decidamos implementar. Este repositorio documenta requisitos y decisiones confirmados durante este proyecto; no se importará código, arquitectura, datos ni soluciones de proyectos o conversaciones anteriores.
+Plataforma local para administrar instancias Android en equipos WORKER físicos desde el **panel web PC-MASTER Windows**. GeeLark se usa como referencia funcional pública; la implementación será independiente.
 
-> **Estado actual:** auditoría funcional de GeeLark, investigación de motores Android locales y arquitectura de automatización. No hay motor Android aprobado para producción. La vía manual QEMU + Android-x86 9.0-r2 + VNC se retiró como ruta de producto.
->
-> **Auditoría de GitHub (21–22 oct 2026):** [auditoría principal](docs/AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md) y [continuidad/CI y ramas históricas](docs/AUDITORIA_GITHUB_CONTINUIDAD_2026-10-22.md). Recuento consultado al 2026-10-22 tras la última limpieza: 23 PR abiertas (todas draft), 39 Issues abiertas y 9 cerradas. Las implementaciones siguen en ramas/PR; el contenido de una rama no se considera integrado ni aceptado.
+> **Alcance vigente:** PC-MASTER Windows + redroid en PC-WORKERS Debian 13 + los componentes de control distribuido necesarios. Solo se prepara el motor definido en el alcance vigente. La instalación física de redroid permanece bloqueada por seguridad hasta que la issue [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27) tenga evidencia reproducible de mitigación.
 
-## Reglas de trabajo
+## Reglas obligatorias
 
-- **Objetivo de costo operativo: 0 USD.** No depender de tarjetas obligatorias, pruebas temporales, cobros automáticos, APIs de pago ni servicios críticos que exijan pagos. Verificar límites y condiciones antes de elegir cada dependencia.
-- Priorizar software libre, open source, local o autoalojado; reducir dependencias y facilitar migraciones.
-- Implementar operación offline o con conectividad limitada cuando sea viable y explicar qué requiere Internet.
-- Trabajar en pasos pequeños y explicados. No avanzar al siguiente módulo hasta que el actual esté probado, documentado y aceptado.
-- Comparar cada capacidad acordada con GeeLark y registrar resultados y diferencias. No afirmar paridad sin evidencia.
-- Usar GitHub para registrar requisitos, preguntas, decisiones, tareas, incidencias, soluciones, pruebas, cambios y documentación.
-- Cada módulo debe tener un manual de usuario completo y documentación técnica.
-- No dar por confirmado ningún dato de hardware, tecnología o arquitectura hasta verificarlo con el usuario o mediante pruebas.
+- Coste operativo objetivo: **0 USD**; sin dependencia crítica de servicios de pago, tarjetas, pruebas temporales ni cargos automáticos.
+- PC-MASTER significa el panel web de control, no el lanzador/configurador de escritorio.
+- PC-MASTER Windows coordina workers físicos. Los workers ejecutarán Debian 13 como base prevista y redroid como único motor Android en preparación.
+- No reabrir rutas técnicas retiradas ni documentar otros motores como candidatos activos.
+- Conservar agente, enrolamiento, autenticación/autorización, transporte seguro, heartbeat, estado, persistencia, despacho, reconciliación, observabilidad y automatización: son agregados del producto, no motores alternativos.
+- Los nodos pendientes solo pueden enviar telemetría y consultar estado limitado; no reciben ni ejecutan tareas hasta ser autorizados.
+- No exponer ADB a Internet ni abrir el socket Docker al panel. No ejecutar shell arbitrario desde la API.
+- No instalar ni arrancar redroid en WORKERS físicos hasta superar la puerta de seguridad.
+- No afirmar capacidad, paridad o pruebas completadas sin evidencia del hardware real.
+- Mantener documentación, incidencias, pruebas y manuales en español. Registrar costes y límites para sostener el objetivo de 0 USD.
 
-## Forma de trabajo
+## Estado actual
 
-1. Aclarar el objetivo y los requisitos con preguntas concretas.
-2. Registrar acuerdos y criterios de aceptación en GitHub.
-3. Elegir una tarea pequeña y explicar cómo realizarla.
-4. Implementar y probar.
-5. Documentar el resultado, los problemas y sus soluciones.
-6. Comparar la función con GeeLark cuando corresponda.
-7. Solo entonces avanzar.
+- PC-MASTER Windows v0.1 y sus componentes están en distintas PR; una PR abierta no significa que esté integrada ni aceptada.
+- La preparación de redroid y el diagnóstico de solo lectura están documentados en la [PR #108](https://github.com/D3ckardCain/Geelark-IA/pull/108).
+- La limpieza de alcance y documentación está en esta [PR #109](https://github.com/D3ckardCain/Geelark-IA/pull/109).
+- La [issue #27](https://github.com/D3ckardCain/Geelark-IA/issues/27) es un bloqueo real, no una tarea cosmética. El reporte upstream sobre `/proc/sys/kernel/modprobe` está cerrado, pero no prueba por sí solo que una imagen concreta esté corregida.
+- No se ha instalado redroid ni se han modificado discos de los WORKERS durante esta preparación.
 
-## Documentación
+## Documentos principales
 
-- `docs/ESTADO_PROYECTO.md`: etapa actual, acuerdos y preguntas abiertas.
-- `docs/REQUISITOS.md`: requisitos confirmados y criterios de aceptación.
-- `docs/PLAN_TRABAJO.md`: fases, dependencias y orden de trabajo.
-- `docs/CATALOGO_FUNCIONAL_GEELARK.md`: inventario funcional por módulos, evidencia, adaptaciones y límites.
-- `docs/MATRIZ_PARIDAD_GEELARK.md`: requisitos de paridad, estados y pruebas pendientes.
-- `docs/INVESTIGACION_FUNCIONAL_GEELARK.md`: fuentes y análisis documental.
-- `docs/COMPARATIVA_MOTORES_ANDROID.md`: comparativa ejecutiva y estado de selección.
-- `docs/INVESTIGACION_MOTOR_AUTOMATIZACION_ANDROID.md`: investigación ampliada de motores, licencias, seguridad, RPA, Synchronizer, API y pruebas.
-- `docs/MODELO_AMENAZAS_SEGURIDAD.md`: controles de seguridad requeridos, aún no implementados.
-- `docs/GUIA_INVENTARIO_EQUIPO.md`: guía opcional para validación final en hardware real.
-- `docs/ARQUITECTURA_TECNOLOGICA_PROPUESTA.md`: combinación tecnológica local-first propuesta.
-- `docs/decisiones/ADR-001-STACK-PRINCIPAL.md`: decisión inicial de stack y anfitrión de referencia.
-- `docs/decisiones/ADR-002-ESTRATEGIA-MOTOR-ANDROID.md`: decisión actual de selección del motor; retira el prototipo QEMU manual y prioriza la evaluación de Cuttlefish.
-- `docs/INVENTARIO_LICENCIAS_COSTE.md`: licencias, costes y restricciones de redistribución.
-- `docs/CONTRATO_ADAPTADOR_ANDROID.md`: contrato agnóstico para motores Android.
-- `docs/ESPECIFICACION_MOTOR_RPA.md`: diseño de automatización por bloques tipados.
-- GitHub Issues: tareas, dudas, incidencias, decisiones y soluciones.
+- [Alcance vigente PC-MASTER + redroid](docs/ALCANCE_PC_MASTER_REDROID.md)
+- [Estado del proyecto](docs/ESTADO_PROYECTO.md)
+- [Requisitos](docs/REQUISITOS.md)
+- [Plan de trabajo](docs/PLAN_TRABAJO.md)
+- [Arquitectura del clúster físico](docs/ARQUITECTURA_CLUSTER_HETEROGENEO.md)
+- [Contrato del adaptador Android](docs/CONTRATO_ADAPTADOR_ANDROID.md)
+- [Contrato API del clúster](docs/CONTRATO_API_CLUSTER.md)
+- [Contrato de mensajes de agente](docs/CONTRATO_MENSAJES_AGENTE_CLUSTER.md)
+- [Modelo de amenazas](docs/MODELO_AMENAZAS_SEGURIDAD.md)
+- [Inventario de licencias y costes](docs/INVENTARIO_LICENCIAS_COSTE.md)
+- [Evaluación exclusiva de redroid](docs/COMPARATIVA_MOTORES_ANDROID.md)
+- [Preparación del worker redroid (PR en revisión)](https://github.com/D3ckardCain/Geelark-IA/pull/108)
+- [Bloqueo de seguridad redroid #27](https://github.com/D3ckardCain/Geelark-IA/issues/27)
 
-## Arquitectura acordada y validación pendiente
+## Secuencia de validación
 
-El PC-MASTER se mantiene como aplicación Windows. Los PC WORKER son equipos físicos con Debian 13 como sistema base previsto; PC-MASTER deberá descubrirlos, solicitar aprobación de adopción y automatizar el aprovisionamiento del agente y del entorno Android. Las capacidades y el rendimiento se validarán paso a paso.
+1. Completar la auditoría de documentación y dependencias.
+2. Resolver la issue #27 con versión/digest exactos, análisis de la imagen y mitigación verificable.
+3. Aprovisionar WORKER-01 con Debian 13 solo después de que se apruebe el procedimiento.
+4. Ejecutar diagnóstico de solo lectura; fijar kernel, Binder/BinderFS, red y recursos.
+5. Aprobar seguridad antes de iniciar cualquier contenedor redroid.
+6. Probar una instancia y luego dos: ciclo de vida, ADB restringido, captura/entrada, APK autorizada, persistencia, aislamiento y métricas.
+7. Integrar el agente autenticado con PC-MASTER; validar enrolamiento, heartbeat, despacho y reconciliación.
+8. Medir capacidad real antes de planificar 4, 6 o aproximadamente 50 instancias.
 
-## Investigación actual de motores
-
-- **Primera prioridad de evaluación:** AOSP Cuttlefish, por la documentación oficial de multiinstancia y control WebRTC.
-- **Candidato bloqueado:** redroid, hasta resolver la revisión de seguridad registrada en issue #27.
-- **Referencia de compatibilidad:** Android Emulator oficial, sujeto a revisión de términos del SDK e imágenes.
-- **Alternativa secundaria:** Waydroid, pendiente de demostrar multiinstancia independiente y operación headless.
-- **Retirado:** prototipo manual QEMU + Android-x86 9.0-r2 + VNC en WSL2. No se seguirá depurando ni se utilizará como base de producto.
-
-Estas son prioridades documentales, no resultados de pruebas. Ningún motor ha sido aprobado para producción y no hay estimación validada de instancias por WORKER. La prueba técnica deberá ejecutarse en Debian físico de laboratorio después de revisar licencias y seguridad.
-
-## Seguridad
-
-No guardar contraseñas, tokens, claves privadas ni otros secretos en el repositorio, commits o incidencias. Las automatizaciones deberán respetar las condiciones aplicables de los servicios y plataformas utilizados. ADB no debe exponerse a redes públicas y la API del producto no ejecutará shell arbitrario.
-
-## Issues principales
-
-- [#3 — Inventario funcional y matriz de paridad](https://github.com/D3ckardCain/Geelark-IA/issues/3)
-- [#6 — Completar el catálogo funcional](https://github.com/D3ckardCain/Geelark-IA/issues/6)
-- [#7 — Importación selectiva desde Android físico por USB/ADB](https://github.com/D3ckardCain/Geelark-IA/issues/7)
-- [#8 — Seleccionar y validar motores Android locales y automatización GeeLark-IA](https://github.com/D3ckardCain/Geelark-IA/issues/8)
-- [#9 — Controles de seguridad local, ADB, RPA e importación](https://github.com/D3ckardCain/Geelark-IA/issues/9)
-- [#10 — Recopilar especificaciones del equipo anfitrión](https://github.com/D3ckardCain/Geelark-IA/issues/10)
-- [#11 — Validar combinación tecnológica y arquitectura local-first](https://github.com/D3ckardCain/Geelark-IA/issues/11)
-- [#12 — Implementar contrato del motor Android y pruebas de conformidad](https://github.com/D3ckardCain/Geelark-IA/issues/12)
-- [#27 — Bloqueo de seguridad de redroid](https://github.com/D3ckardCain/Geelark-IA/issues/27)
-
-## Arquitectura de clúster heterogéneo
-
-El diseño contempla una PC principal para administrar y varios nodos físicos de capacidades diferentes, con agentes autenticados y planificación de instancias Android por recursos y compatibilidad. La infraestructura no está seleccionada ni probada todavía.
-
-- [Arquitectura del clúster](docs/ARQUITECTURA_CLUSTER_HETEROGENEO.md)
-- [Contrato del agente y planificador](docs/CONTRATO_AGENTE_NODO_PLANIFICADOR.md)
-- [Plan de prueba de concepto del aprovisionamiento](docs/PLAN_PRUEBA_CONCEPTO_CLUSTER.md)
-- [ADR-003 — Arquitectura distribuida](docs/decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md)
-- [Issue #14 — Integrar clúster y planificador](https://github.com/D3ckardCain/Geelark-IA/issues/14)
-
-La documentación describe decisiones y criterios, no implementación terminada. No se declaran probados el rendimiento, la recuperación, la migración en vivo ni la cantidad de instancias.
-
-## Planificador y validación del clúster
-
-- [Especificación del planificador de recursos](docs/ESPECIFICACION_PLANIFICADOR_RECURSOS.md)
-- [Plan de prueba de concepto del clúster](docs/PLAN_PRUEBA_CONCEPTO_CLUSTER.md)
-- [ADR-004 — Persistencia y consistencia del clúster](docs/decisiones/ADR-004-PERSISTENCIA-CONSISTENCIA-CLUSTER.md)
-
-Son criterios de diseño y validación; no indican que el clúster esté validado en hardware físico.
-
-## Regla de continuidad del trabajo
-
-Avanzar de forma autónoma por la siguiente tarea técnicamente justificada y registrar en GitHub el resultado, decisiones, incidencias, soluciones y pruebas. No interrumpir el avance para pedir confirmación de pasos rutinarios ni decisiones reversibles que puedan resolverse con evidencia. Consultar al usuario únicamente cuando falte una credencial/acceso, una decisión de producto no inferible, una aprobación que solo él pueda otorgar o una prueba física que requiera su intervención. Explicar claramente cualquier bloqueo real y dar instrucciones paso a paso cuando su participación sea necesaria.
-
-## Implementación técnica en revisión
-
-Los contratos y componentes existentes pueden estar en ramas/PR en borrador. No confundir código en una rama, pruebas de CI y documentación con integración en la rama principal ni con validación en equipos físicos. No fusionar ni desplegar sin revisar las dependencias, los controles de seguridad y los criterios de aceptación.
+La documentación y las pruebas de laboratorio no equivalen a una aprobación de producción.

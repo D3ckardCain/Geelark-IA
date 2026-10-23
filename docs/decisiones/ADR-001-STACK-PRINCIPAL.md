@@ -1,36 +1,37 @@
 # ADR-001: Stack principal y sistema operativo de referencia
 
-> **Nota de vigencia — 2026-10-22:** conservar este ADR como registro de la propuesta del 9-oct, pero no tratar todos sus puntos como decisiones vigentes. Tauri/React no está seleccionado; la candidata de escritorio es Python/Tkinter en PR #87 y el panel autenticado está en PR #104, ambos sin integrar. El plano de control y la persistencia PostgreSQL local se están validando en ramas/PRs separadas, por lo que la elección inicial de SQLite no debe imponerse a la arquitectura del clúster sin reconciliar ADR-004 y las pruebas. Android Emulator sigue siendo referencia de compatibilidad, redroid está bloqueado por #27 y Cuttlefish es candidato de laboratorio sin aprobación; QEMU + Android-x86 + VNC está retirado. No instalar ni desplegar por este ADR histórico.
+- **Estado:** decisión de alcance actualizada; la integración y aceptación se verifican por PR y pruebas.
+- **Actualizado:** 2026-10-22.
+- **Coste obligatorio objetivo:** 0 USD.
 
+## Contexto
 
-- **Estado:** propuesta adoptada para prototipo, pendiente de validación experimental.
-- **Fecha:** 2026-10-09
-- **Contexto:** Geelark-IA debe operar sin costes obligatorios, localmente, con Android virtualizado, automatización, API/CLI y opción offline. El usuario permite elegir el mejor hardware y sistema operativo; no hace falta optimizar para un equipo existente.
-- **Decisión:**
-  1. Mantener **PC-MASTER como aplicación Windows** y utilizar **Debian 13 directamente en los PC WORKER físicos** como sistema base previsto para ejecutar Android. GeeLark-IA administrará los nodos y desplegará las herramientas locales necesarias desde PC-MASTER.
-  2. Usar **Tauri 2 + React + TypeScript + Vite** para la aplicación de escritorio de control.
-  3. Usar **Python + FastAPI + Pydantic** para la API y el dominio local.
-  4. Usar **SQLite con migraciones** para la instalación de un solo anfitrión; no introducir PostgreSQL, Redis ni servicios adicionales hasta que pruebas de concurrencia justifiquen la complejidad.
-  5. Mantener **Android Emulator oficial como baseline de compatibilidad** y probar **redroid como candidato de ejecución multiinstancia** en Linux. La selección final de motor es un ADR separado y requiere pruebas.
-  6. Encapsular ADB detrás de una lista de operaciones permitidas; no exponer puertos ADB ni la API administrativa a redes públicas.
-  7. Crear el RPA como motor propio de estados, con acciones tipadas, límites, pausas, cancelación, reintentos idempotentes y trazabilidad. Usar Appium/UIAutomator2 para pruebas y Playwright para la UI web.
-- **Consecuencias positivas:** stack portable, poco acoplamiento, costes de licencia bajos/nulos, API documentada, operación local y capacidad de cambiar el motor Android sin rehacer la UI.
-- **Costes/riesgos:** hay que empaquetar dependencias; Linux es el anfitrión de referencia y no garantiza por sí mismo compatibilidad de cada app Android; redroid puede requerir permisos elevados y revisión de seguridad; Tauri necesita un proceso de instalación/actualización bien diseñado.
-- **Alternativas descartadas por ahora:**
-  - Supabase Cloud como backend obligatorio: añade dependencia de servicio externo y límites de free tier.
-  - n8n como motor de RPA embebido: su licencia limita ofrecer el editor/automatización como parte de un producto para clientes.
-  - Un microservicio/broker por cada función desde el día uno: complejidad prematura.
-  - Elegir redroid como motor final sin pruebas: riesgo de asumir seguridad, compatibilidad y rendimiento.
-- **Condiciones de validación:** crear e iniciar una instancia, persistir datos tras reinicio, instalar APK de prueba, ejecutar ADB local, capturar pantalla, respaldar/restaurar, probar dos instancias aisladas, verificar puertos escuchando y registrar recursos.
-- **Revisión:** actualizar esta ADR cuando las pruebas comparativas indiquen que otro stack o motor ofrece mejor resultado.
+GeeLark-IA administra instancias Android locales desde PC-MASTER Windows y PC-WORKERS físicos. La solución debe ser local-first, operar con conectividad limitada cuando sea posible y no depender de servicios cloud pagados.
 
+## Decisiones vigentes
 
-## Aclaración posterior: la aplicación debe operar sobre varios nodos
+1. **PC-MASTER:** el producto de administración es el panel web central en Windows. El lanzador/configurador de escritorio es un componente separado y no debe confundirse con el panel.
+2. **Workers:** Debian 13 es el sistema base previsto para PC-WORKERS físicos.
+3. **Motor Android:** redroid es el único motor en preparación. Su despliegue físico sigue bloqueado por la issue #27 hasta demostrar una mitigación de seguridad verificable para la imagen exacta.
+4. **Backend/API:** Python, FastAPI y Pydantic se mantienen como stack del servicio local sujeto a pruebas de integración y seguridad.
+5. **Persistencia:** usar el diseño transaccional de persistencia del clúster y reconciliar migraciones/decisiones con las PR actuales antes de integrar. No tratar una propuesta histórica de base de datos como decisión de producción sin validar el diseño distribuido.
+6. **Comunicación:** transporte HTTPS privado, CA local, credenciales individuales revocables, autorización por operación, límites, idempotencia y protección contra repetición.
+7. **Agente Worker:** identidad del nodo, heartbeat, inventario de capacidades, recepción de órdenes tipadas, ejecución limitada y reporte de resultados.
+8. **Operación segura:** nodo pendiente solo informa telemetría/consulta limitada; no recibe ni ejecuta tareas hasta ser autorizado. No exponer ADB ni el socket Docker al panel.
+9. **Automatización:** flujos tipados con timeout, límites, cancelación, recuperación y auditoría; no ejecutar shell arbitrario desde la API de producto.
+10. **Coste/licencias:** cada dependencia, imagen y componente debe tener versión, procedencia, licencia y coste documentados. No asumir que una imagen gratuita autoriza su redistribución.
 
-La propuesta original de backend local se mantiene para el dominio y la API, pero el producto no se limitará a un único anfitrión. ADR-003 establece un plano de control distribuido y agentes por nodo. La base de datos local de una instalación mononodo no se considera automáticamente válida como almacén distribuido autoritativo. La decisión sobre persistencia, leases, quorum y recuperación se tomará junto con la implementación del clúster.
+## Puerta de seguridad redroid
 
-Referencias:
-- [ADR-003 — Arquitectura distribuida](ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md)
-- [Contrato de agente y planificador](../CONTRATO_AGENTE_NODO_PLANIFICADOR.md)
+La incidencia upstream redroid-doc #932 (https://github.com/remote-android/redroid-doc/issues/932) describe una escritura de /proc/sys/kernel/modprobe que puede afectar al host desde un contenedor privilegiado. El cierre upstream no demuestra que la imagen elegida esté corregida. No ejecutar redroid en WORKER físico hasta que la issue interna #27 (https://github.com/D3ckardCain/Geelark-IA/issues/27) tenga evidencia reproducible de mitigación, privilegios mínimos, ADB restringido y recuperación.
 
-La decisión operativa vigente es Debian 13 directamente en los PC WORKER y PC-MASTER en Windows. El aprovisionamiento desatendido por red, la instalación del agente y la preparación del runtime Android requieren pruebas en hardware físico. La interfaz, API y modelo de dominio deben mantener contratos claros entre el plano de control y los agentes.
+## Estado de implementación
+
+- La preparación de redroid y el diagnóstico de solo lectura están en la PR #108 (https://github.com/D3ckardCain/Geelark-IA/pull/108).
+- La limpieza de alcance/documentación está en la PR #109 (https://github.com/D3ckardCain/Geelark-IA/pull/109).
+- Las PR abiertas no equivalen a integración ni aceptación. Revisar CI del SHA actual y criterios manuales antes de cerrar módulos.
+- No se declara instalación, prueba física ni densidad de instancias completada.
+
+## Registro de cambios
+
+- 2026-10-22: se alinea el stack con PC-MASTER Windows, workers Debian 13 y redroid como único motor en preparación; se elimina la vigencia de propuestas tecnológicas históricas no adoptadas.
