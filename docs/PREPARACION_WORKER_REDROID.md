@@ -34,7 +34,7 @@ La issue upstream aparece cerrada por quien la abrió como “completed”, pero
 - [ ] Verificar que ADB no escucha en una interfaz pública ni queda accesible sin autenticación desde la LAN.
 - [ ] Revisar aislamiento entre instancias, datos, puertos, dispositivos Binder y recursos.
 - [ ] Documentar recuperación local y reversión.
-- [ ] Si no puede demostrarse una mitigación aceptable, detener redroid en host físico y volver a comparar con una VM completa u otro motor.
+- [ ] Si no puede demostrarse una mitigación aceptable, detener el despliegue físico y mantener el bloqueo abierto. No activar otra ruta técnica automáticamente.
 
 Un laboratorio temporal dentro de una VM desechable puede considerarse para estudiar el comportamiento con una frontera de kernel separada, pero no se considera prueba de despliegue bare-metal ni sustituye la puerta de seguridad para producción.
 
