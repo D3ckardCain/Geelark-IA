@@ -1,3 +1,5 @@
+> **Documento histórico no ejecutable — actualizado 2026-10-22:** La priorización original de redroid y el plan alternativo QEMU/KVM + Bliss OS que aparecen más abajo ya no representan la decisión vigente. No instalar ni probar siguiendo esta evaluación antigua. QEMU + Android-x86 + VNC en WSL2 está retirado; redroid permanece bloqueado por #27; Cuttlefish es solo candidato de laboratorio pendiente de licencias/seguridad; no hay motor aprobado. Se conserva el análisis como evidencia histórica y debe reconciliarse antes de reutilizarlo.
+
 # Evaluación preliminar del motor Android para el clúster GeeLark-IA
 
 **Estado:** propuesta de arquitectura; no instalada ni probada en el hardware del usuario.  
