@@ -1,3 +1,5 @@
+> **Nota de vigencia — 2026-10-22:** Este contrato es una propuesta histórica de diseño, no una selección de motor ni un permiso para instalarlo. Las referencias a redroid, Bliss OS y Android Emulator son ejemplos de motores desacoplables, no decisiones vigentes. La selección actual sigue abierta: QEMU/Android-x86/VNC retirado, redroid bloqueado por #27 y Cuttlefish candidato no aprobado. El contrato canónico vigente que debe compararse antes de reutilizar contenido es `docs/CONTRATO_ADAPTADOR_ANDROID.md` en `main`.
+
 # Contrato del adaptador de runtime Android
 
 **Fecha:** 2026-10-09  
