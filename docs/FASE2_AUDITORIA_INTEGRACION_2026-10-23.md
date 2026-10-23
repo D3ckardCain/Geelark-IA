@@ -165,3 +165,15 @@ Cambios combinados:
 - Se conserva la dependencia `geelark-cluster-agent-auth` en el `pyproject.toml` del transporte; no se copió encima el archivo de proveedor que la omitía.
 
 Estado: #115 es solo el primer HEAD combinado y permanece draft/no mergeable mientras GitHub recalcula. Todavía no se han confirmado los CI del SHA combinado. Próximo paso: inspeccionar ambos workflows, revisar fallos en cuanto aparezcan y corregir antes de considerar cualquier fusión. No fusionar #52/#74/#112, no desplegar ni ejecutar Android.
+
+## Resultado CI del primer HEAD combinado #115 — 2026-10-23
+
+El HEAD `87f6e1c0f9c3e108bf99e23a658a8ee76d958a7a` terminó con ambos workflows en `completed/success`:
+- Transporte HTTPS [#40040284033](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40040284033).
+- Persistencia/PostgreSQL [#40040284060](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40040284060), incluyendo `test_task_inbox_postgres.py`.
+
+Corrección de alcance: el workflow contiene pasos opcionales para `cluster-master-admin`, pero se omitieron en este HEAD porque el paquete no está presente en la rama base de #115. Por tanto, el CI verde **no valida** todavía la implementación ni los permisos efectivos del rol readonly de Master Admin.
+
+Nuevo hallazgo de integración, aún abierto: `AgentTransportRuntime.sync_receipt` puede usar `task_id` si el recibo lo expone, pero el `OperationReceipt` actual del journal local solo guarda `operation_id`, `instance_id`, nodo, epoch, estado y resultado. Cuando `task_id != operation_id`, un reintento offline puede enviar a `/agent/v1/tasks/{operation_id}/...` en vez de la ruta de tarea correcta. La suite unitaria que construye un recibo artificial con `task_id` no prueba persistencia real de esa relación. Antes de cerrar #115/#52, hay que añadir y probar la persistencia durable de `task_id` desde claim/aceptación hasta los recibos/reintentos, o definir y demostrar formalmente una invariancia que garantice IDs iguales. No se presume esa invariancia.
+
+#115 sigue en draft. No fusionar #52/#74/#112, no desplegar a PCs físicas y no ejecutar Android.
