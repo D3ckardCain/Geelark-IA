@@ -1,3 +1,5 @@
+> **Revalidación requerida — 2026-10-22:** Debian 13 es la base prevista para los WORKERS, pero este documento de una rama divergida no autoriza su instalación. Comparar con `main` y aprobar explícitamente equipo, disco, recuperación y procedimiento antes de ejecutar. La selección del motor Android sigue abierta: QEMU + Android-x86 + VNC retirado, redroid bloqueado por #27 y Cuttlefish no aprobado. No realizar cambios físicos sin autorización.
+
 # POC inicial: Debian 13 Stable en un nodo GeeLark-IA
 
 **Estado:** preparación documental; no ejecutada.  
