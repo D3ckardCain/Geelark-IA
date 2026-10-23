@@ -26,6 +26,7 @@ Construir una plataforma local que administre instancias Android ejecutadas en P
 - La limpieza de alcance/documentación se integró mediante la PR #109.
 - El bloqueo de seguridad sigue abierto: [issue #27](https://github.com/D3ckardCain/Geelark-IA/issues/27).
 - No se ha instalado redroid en los workers físicos ni se han modificado sus discos durante esta preparación.
+- La limpieza local del experimento QEMU retirado está preparada en `docs/RETIRADA_EXPERIMENTO_QEMU_WSL.md` y registrada en la [Issue #114](https://github.com/D3ckardCain/Geelark-IA/issues/114); no se ha ejecutado desde GitHub y requiere comprobación manual del proceso/paquetes antes de borrar o desinstalar.
 - Las PR abiertas no equivalen a cambios integrados; revisar dependencia, CI del HEAD actual y aceptación manual antes de cerrar módulos.
 
 ## Recuento de auditoría GitHub — 2026-10-23
