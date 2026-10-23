@@ -30,7 +30,7 @@ Construir una plataforma local que administre instancias Android ejecutadas en P
 
 ## Recuento de auditoría GitHub — 2026-10-23
 
-La consulta final registra **38 Issues abiertas, 10 cerradas y 22 PR abiertas**, todas las PR abiertas en draft. Son conteos dinámicos, no un criterio de aceptación. La auditoría documental más reciente está en [AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md). No se han fusionado las PR de la cadena del agente/panel; no confundir CI de ramas con integración o aceptación en hardware.
+La consulta final registra **38 Issues abiertas, 10 cerradas y 21 PR abiertas**, todas las PR abiertas en draft. Son conteos dinámicos, no un criterio de aceptación. La auditoría documental más reciente está en [AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md). No se han fusionado las PR de la cadena del agente/panel; no confundir CI de ramas con integración o aceptación en hardware.
 
 ## Próximas etapas
 
