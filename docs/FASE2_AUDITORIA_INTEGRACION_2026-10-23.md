@@ -218,3 +218,13 @@ Se detectó que el primer HEAD de #115 todavía no llevaba la corrección de lea
 - Commits de integración: `62aab2e5424c0bd23c7f3a2ad6f7ae04c5477530` (handler) y `64f4a7f344ac94f15c75313171bdc2dc9218cd8f` (test).
 
 CI #499/#626 validó el HEAD anterior, no este nuevo HEAD. La PR #113 sigue abierta como referencia hasta que #115 pase CI actualizado y se apruebe; no cerrar aún.
+
+## CI verde de #115 tras integrar la corrección de lease — 2026-10-23
+
+HEAD `64f4a7f344ac94f15c75313171bdc2dc9218cd8f` validado por ambos workflows:
+- Transporte HTTPS #500: [40041029911](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40041029911), success.
+- Persistencia/PostgreSQL #627: [40041029952](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40041029952), success, incluida `test_task_inbox_postgres.py`.
+
+Esta ronda incorpora a la rama combinada el cambio que estaba separado en #113: la lease de entrega solo restringe tareas `delivered`; después de `accepted`, la validez sigue dependiendo de propiedad, epoch y lease de instancia. La prueba PostgreSQL acepta la tarea, expira la lease de entrega y exige que progreso siga funcionando. El test de aceptación tardía tras expiración permanece intacto.
+
+La integración combinada está verde para transporte, journal/guard, auth, persistencia y bandeja PostgreSQL. Aún no se ha probado el rol readonly de Master Admin porque el paquete no existe en la base de #115; ese límite se mantiene explícito. #115 permanece draft/no fusionada. #113 se conserva abierta hasta aprobar/fusionar la integración combinada, evitando perder la corrección auxiliar antes de tiempo.
