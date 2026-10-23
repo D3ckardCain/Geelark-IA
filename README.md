@@ -20,8 +20,8 @@ Plataforma local para administrar instancias Android en equipos WORKER físicos 
 ## Estado actual
 
 - PC-MASTER Windows v0.1 y sus componentes están en distintas PR; una PR abierta no significa que esté integrada ni aceptada.
-- La preparación de redroid y el diagnóstico de solo lectura están documentados en la [PR #108](https://github.com/D3ckardCain/Geelark-IA/pull/108).
-- La limpieza de alcance y documentación está en esta [PR #109](https://github.com/D3ckardCain/Geelark-IA/pull/109).
+- La preparación de redroid está en [docs/PREPARACION_WORKER_REDROID.md](docs/PREPARACION_WORKER_REDROID.md) y el diagnóstico de solo lectura en [docs/GUIA_DIAGNOSTICO_PREVIO_REDROID.md](docs/GUIA_DIAGNOSTICO_PREVIO_REDROID.md).
+- La limpieza de alcance y documentación se integró mediante la [PR #109](https://github.com/D3ckardCain/Geelark-IA/pull/109).
 - La [issue #27](https://github.com/D3ckardCain/Geelark-IA/issues/27) es un bloqueo real, no una tarea cosmética. El reporte upstream sobre `/proc/sys/kernel/modprobe` está cerrado, pero no prueba por sí solo que una imagen concreta esté corregida.
 - No se ha instalado redroid ni se han modificado discos de los WORKERS durante esta preparación.
 
@@ -38,7 +38,7 @@ Plataforma local para administrar instancias Android en equipos WORKER físicos 
 - [Modelo de amenazas](docs/MODELO_AMENAZAS_SEGURIDAD.md)
 - [Inventario de licencias y costes](docs/INVENTARIO_LICENCIAS_COSTE.md)
 - [Evaluación exclusiva de redroid](docs/COMPARATIVA_MOTORES_ANDROID.md)
-- [Preparación del worker redroid (PR en revisión)](https://github.com/D3ckardCain/Geelark-IA/pull/108)
+- [Preparación del worker redroid](docs/PREPARACION_WORKER_REDROID.md)
 - [Bloqueo de seguridad redroid #27](https://github.com/D3ckardCain/Geelark-IA/issues/27)
 
 ## Secuencia de validación
