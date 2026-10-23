@@ -30,6 +30,7 @@ class FakeJournal:
         self.pending = []
         self.synced = []
         self.ack_result = True
+        self.receipt_task_id = None
 
     def list_pending_receipts(self, *, limit=100):
         return self.pending[:limit]
@@ -41,7 +42,7 @@ class FakeJournal:
     def record_result(self, **kwargs):
         self.events.append("journal")
         self.calls.append(kwargs)
-        return SimpleNamespace(**kwargs)
+        return SimpleNamespace(**kwargs, task_id=self.receipt_task_id)
 
 
 def make_runtime(client, journal, node_id):
@@ -283,3 +284,37 @@ def test_stale_ack_keeps_newer_receipt_pending():
         )
 
     assert journal.synced == [(operation_id, 1, "running", {"progress_percent": 25})]
+
+
+def test_live_progress_and_result_use_task_id_from_durable_receipt():
+    node_id, task_id, operation_id, instance_id = uuid4(), uuid4(), uuid4(), uuid4()
+    client, journal = FakeClient(), FakeJournal()
+    journal.receipt_task_id = task_id
+    runtime = make_runtime(client, journal, node_id)
+
+    runtime.report_progress(
+        operation_id=operation_id, instance_id=instance_id,
+        assignment_epoch=1, result={"progress_percent": 20},
+    )
+    runtime.report_result(
+        operation_id=operation_id, instance_id=instance_id,
+        assignment_epoch=1, status="succeeded", result={"ok": True},
+    )
+
+    assert client.requests[0][1] == f"/agent/v1/tasks/{task_id}/progress"
+    assert client.requests[1][1] == f"/agent/v1/tasks/{task_id}/result"
+
+
+def test_live_report_rejects_task_id_that_conflicts_with_durable_receipt():
+    node_id, task_id, operation_id, instance_id = uuid4(), uuid4(), uuid4(), uuid4()
+    journal = FakeJournal()
+    journal.receipt_task_id = task_id
+    runtime = make_runtime(FakeClient(), journal, node_id)
+
+    with pytest.raises(ValueError, match="no coincide con el recibo durable"):
+        runtime.report_progress(
+            task_id=uuid4(), operation_id=operation_id, instance_id=instance_id,
+            assignment_epoch=1, result={"progress_percent": 20},
+        )
+
+    assert runtime.client.requests == []
