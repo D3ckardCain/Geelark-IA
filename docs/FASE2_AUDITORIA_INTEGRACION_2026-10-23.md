@@ -86,3 +86,9 @@ Para el HEAD exacto `043a4e23efd063949577f758eacc326d74bb7ce5`, los tres workflo
 - Servicio de persistencia #40018311695: pruebas de integración/concurrencia, guard, autenticación y consistencia de dependencias correctas.
 
 GitHub confirma `mergeable=true` y la comparación de ramas es `ahead 30 / behind 0`. La descripción de la PR #101 y su conversación se actualizaron con estos resultados. La PR permanece en draft y no se ha fusionado: los checks de CI no sustituyen la revisión final del contrato/migración ni las pruebas de aceptación en PCs físicas.
+
+## Siguiente etapa: sincronización de proveedor de snapshots — 2026-10-23
+
+Se fusionó la PR auxiliar #111 (solo sincronización de rama) en el merge commit `406936ecef181eb4a7a34d6e25316079ee8b29ea`, incorporando el HEAD de inventario/ACK validado `043a4e23efd063949577f758eacc326d74bb7ce5` dentro de `feat/master-status-snapshot-provider-v1`. La PR #74 conserva sus cambios propios; comparación ahora `ahead 14 / behind 0` respecto de la base #101 y GitHub indica `mergeable=true`.
+
+CI del merge result: persistencia #40018703486 y transporte HTTPS #40018705163 estaban `in_progress` al registrar esta nota. La PR #74 sigue en draft. Antes de avanzar a la bandeja de tareas (#52), verificar ambos workflows del SHA exacto y revisar el contrato de snapshots, permisos reales de solo lectura y futura autenticación de operador. No integrar ni desplegar en hardware físico por el mero hecho de tener mergeable=true.
