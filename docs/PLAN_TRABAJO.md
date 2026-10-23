@@ -36,7 +36,7 @@
 - [ ] Ejecutar el diagnóstico de solo lectura: CPU, RAM, disco, kernel, Binder/BinderFS, red y puertos.
 - [ ] Fijar versiones, hashes, licencias y registro de instalación.
 
-La guía y el diagnóstico están en revisión en la [PR #108](https://github.com/D3ckardCain/Geelark-IA/pull/108).
+La guía y el diagnóstico ya están integrados en PREPARACION_WORKER_REDROID.md y GUIA_DIAGNOSTICO_PREVIO_REDROID.md; no se han ejecutado en el hardware físico.
 
 ### Fase 4 — Pruebas Android controladas
 Solo tras aprobar la fase 2:
