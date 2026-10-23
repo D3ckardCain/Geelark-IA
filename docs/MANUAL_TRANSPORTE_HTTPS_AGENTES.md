@@ -217,3 +217,8 @@ La migración `db/migrations/0004_worker_module_inventory.sql` crea la columna J
 ### Contrato del payload
 
 El esquema JSON formal y el ejemplo están en [worker-module-inventory-v1.schema.json](contracts/worker-module-inventory-v1.schema.json) y [worker-module-inventory-v1.example.json](contracts/examples/worker-module-inventory-v1.example.json). La lista cerrada del esquema se prueba contra el registro del código para evitar divergencias. El timestamp `checked_at` y `source` son generados por el Master; el Worker no puede falsificarlos. La lectura de estado propio no equivale todavía a un snapshot administrativo para PC-MASTER.
+
+
+## ACK durable y compatibilidad del journal (21-oct-2026)
+
+La sincronización de recibos debe confirmar exactamente el estado y el resultado enviados. El runtime pasa `expected_status` y `expected_result` al journal y conserva el recibo pendiente si la versión local cambió durante la petición. La CI de integración fija el commit del journal que implementa esa API; no debe sustituirse por un commit anterior que solo admita ACK por `operation_id`.

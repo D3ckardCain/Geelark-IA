@@ -58,7 +58,89 @@
             "pattern": "^[A-Z0-9_]{1,64}$"
           }
         }
-      }
+      },
+      "allOf": [
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "module_id": {
+                "const": "agent-guard"
+              }
+            },
+            "required": [
+              "module_id"
+            ]
+          },
+          "maxContains": 1,
+          "description": "At most one entry may declare module_id agent-guard.",
+          "minContains": 0
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "module_id": {
+                "const": "agent-supervisor"
+              }
+            },
+            "required": [
+              "module_id"
+            ]
+          },
+          "maxContains": 1,
+          "description": "At most one entry may declare module_id agent-supervisor.",
+          "minContains": 0
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "module_id": {
+                "const": "agent-transport"
+              }
+            },
+            "required": [
+              "module_id"
+            ]
+          },
+          "maxContains": 1,
+          "description": "At most one entry may declare module_id agent-transport.",
+          "minContains": 0
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "module_id": {
+                "const": "android-engine"
+              }
+            },
+            "required": [
+              "module_id"
+            ]
+          },
+          "maxContains": 1,
+          "description": "At most one entry may declare module_id android-engine.",
+          "minContains": 0
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "module_id": {
+                "const": "task-journal"
+              }
+            },
+            "required": [
+              "module_id"
+            ]
+          },
+          "maxContains": 1,
+          "description": "At most one entry may declare module_id task-journal.",
+          "minContains": 0
+        }
+      ]
     }
   }
 }

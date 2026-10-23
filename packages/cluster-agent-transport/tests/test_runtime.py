@@ -29,12 +29,14 @@ class FakeJournal:
         self.calls = []
         self.pending = []
         self.synced = []
+        self.ack_result = True
 
     def list_pending_receipts(self, *, limit=100):
         return self.pending[:limit]
 
-    def mark_receipt_synced(self, operation_id):
-        self.synced.append(operation_id)
+    def mark_receipt_synced(self, operation_id, *, expected_status, expected_result):
+        self.synced.append((operation_id, expected_status, expected_result))
+        return self.ack_result
 
     def record_result(self, **kwargs):
         self.events.append("journal")
@@ -144,7 +146,7 @@ def test_sync_pending_receipts_marks_terminal_ack_and_stops_when_offline():
     runtime = make_runtime(client, journal, node_id)
     confirmed, attempted = runtime.sync_pending_receipts(limit=10)
     assert (confirmed, attempted) == (2, 2)
-    assert journal.synced == [operation_id, journal.pending[1].operation_id]
+    assert [item[0] for item in journal.synced] == [operation_id, journal.pending[1].operation_id]
 
     offline_journal = FakeJournal()
     offline_journal.pending = journal.pending
@@ -212,7 +214,7 @@ def test_running_progress_ack_is_persisted_and_does_not_block_later_receipts():
     runtime = make_runtime(FakeClient(), journal, node_id)
     confirmed, attempted = runtime.sync_pending_receipts(limit=2)
     assert (confirmed, attempted) == (2, 2)
-    assert journal.synced == [operation_id, journal.pending[1].operation_id]
+    assert [item[0] for item in journal.synced] == [operation_id, journal.pending[1].operation_id]
 
 def test_runtime_uses_fenced_journal_ack_api_when_available():
     class FencedJournal(FakeJournal):
@@ -220,8 +222,13 @@ def test_runtime_uses_fenced_journal_ack_api_when_available():
             super().__init__()
             self.delivered = []
 
-        def mark_receipt_delivered(self, operation_id, assignment_epoch):
-            self.delivered.append((operation_id, assignment_epoch))
+        def mark_receipt_delivered(
+            self, operation_id, assignment_epoch, *, expected_status, expected_result
+        ):
+            self.delivered.append(
+                (operation_id, assignment_epoch, expected_status, expected_result)
+            )
+            return self.ack_result
 
     node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
     journal = FencedJournal()
@@ -234,5 +241,22 @@ def test_runtime_uses_fenced_journal_ack_api_when_available():
     runtime = make_runtime(FakeClient(), journal, node_id)
 
     assert runtime.sync_pending_receipts(limit=1) == (1, 1)
-    assert journal.delivered == [(operation_id, 7)]
+    assert journal.delivered == [(operation_id, 7, "succeeded", {"ok": True})]
     assert journal.synced == []
+
+
+def test_stale_ack_keeps_newer_receipt_pending():
+    node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
+    journal = FakeJournal()
+    journal.ack_result = False
+    runtime = make_runtime(FakeClient(), journal, node_id)
+
+    with pytest.raises(AgentTransportError, match="versión más reciente sigue pendiente"):
+        runtime.report_progress(
+            operation_id=operation_id,
+            instance_id=instance_id,
+            assignment_epoch=1,
+            result={"progress_percent": 25},
+        )
+
+    assert journal.synced == [(operation_id, "running", {"progress_percent": 25})]

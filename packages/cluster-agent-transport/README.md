@@ -1,6 +1,6 @@
 # Transporte HTTPS privado de agentes
 
-Paquete experimental independiente del dominio y sin listener automático.
+Paquete experimental de transporte, sin listener automático. La autorización por operación se delega al paquete canónico `cluster-agent-auth`, que debe instalarse junto con el transporte.
 
 ## Política de acceso
 
@@ -46,6 +46,7 @@ Para el primer tramo de telemetría, usar:
 - `rate_limiter=PostgresRateLimiter(connect)` para despliegues reales/multiworker.
 - `handlers=make_postgres_agent_handlers(connect)`
 - `AgentTransportRuntime(client=https_client, bearer_token=token, journal=agent_journal, local_node_id=node_id)` para integrar el cliente con el journal local del agente.
+- El ACK del journal está protegido contra carreras: el marcador debe comparar `expected_status` y `expected_result` y devolver `True` solo si el recibo no cambió y el ACK quedó confirmado; `False` mantiene el recibo pendiente. Las pruebas deben cubrir cambios concurrentes del recibo y ACK fallido.
 
 Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fila antes de mutar; guardan heartbeat/capacidades y consultan únicamente el nodo autenticado. Los handlers de tareas/reconciliación siguen sin configurarse y devuelven 503; no deben conectarse a operaciones reales hasta integrar el servicio de dominio/outbox y revisarlo.
 
@@ -63,10 +64,11 @@ Los tests de configuración TLS usan archivos ficticios para probar restriccione
 ## Pruebas locales
 
 ```sh
+python -m pip install -e "packages/cluster-agent-auth[test]"
 python -m pip install -e "packages/cluster-agent-transport[test]"
+python -m pip check
 python -m pytest packages/cluster-agent-transport/tests -q
 ```
-
 
 ## Inventario de módulos (v1, en revisión)
 
