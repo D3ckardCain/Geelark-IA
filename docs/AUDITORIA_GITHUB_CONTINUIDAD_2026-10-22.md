@@ -95,3 +95,8 @@ Esta sección actualiza el estado CI de la instantánea anterior; las notas prev
 ## Reconciliación de documentos históricos Android — 22-oct-2026
 
 Se añadieron avisos de vigencia sin borrar el análisis original, únicamente en la rama `docs/android-engine-evaluation`, a cinco archivos: `ACTUALIZACION_SEGURIDAD_REDROID_2026-10-09.md`, `EVALUACION_PRELIMINAR_MOTOR_ANDROID_CLUSTER.md`, `PLAN_PRUEBA_NO_DESTRUCTIVA_WORKER_01.md`, `CONTRATO_ADAPTADOR_RUNTIME_ANDROID.md` y `REVISION_DISPONIBILIDAD_IMAGENES_ANDROID_2026-10-09.md`. Los avisos prohíben tratar como vigente la recomendación QEMU/KVM + Bliss OS y aclaran el estado actual de los candidatos. No se fusionó la rama ni se ejecutó CI; no hubo cambios de código ni instalaciones.
+
+
+## Revalidación de la rama histórica `docs/cluster-os-poc-decision` — 22-oct-2026
+
+Se añadieron avisos de revalidación, sin borrar el contenido original, a `EVALUACION_SO_BASE_CLUSTER_0USD.md`, `MATRIZ_DECISION_SO_CLUSTER.md`, `HOJA_EJECUCION_POC_HOST_CLUSTER.md` y `POC_DEBIAN13_PRIMER_NODO.md`. Los avisos distinguen Debian 13 como base prevista de una autorización de instalación y recuerdan el retiro de QEMU/Android-x86/VNC, el bloqueo de redroid y que Cuttlefish no está aprobado. La rama sigue divergida; no se fusionó ni se ejecutó CI.
