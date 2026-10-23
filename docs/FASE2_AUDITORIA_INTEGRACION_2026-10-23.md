@@ -232,3 +232,11 @@ La integración combinada está verde para transporte, journal/guard, auth, pers
 ## Documentación de transporte alineada con el ACK/lease final — 2026-10-23
 
 Se corrigió `packages/cluster-agent-transport/README.md`, que aún describía la API antigua `mark_receipt_synced(operation_id)` y no precisaba la frontera de la lease. Ahora documenta los argumentos obligatorios `expected_assignment_epoch`, `expected_status` y `expected_result`, el fallo cerrado de APIs antiguas, y que la lease de entrega solo bloquea aceptación mientras el estado sea `delivered`. Commit: `f510356c9796e67270a23c763018c6a1de84dbbd`. Este cambio vuelve a disparar CI de transporte y debe validarse en el HEAD documental nuevo.
+
+## CI del HEAD final con documentación alineada — 2026-10-23
+
+Tras actualizar el README para describir correctamente el ACK versionado y la frontera de la lease, el HEAD `f510356c9796e67270a23c763018c6a1de84dbbd` pasó de nuevo ambos workflows:
+- Transporte HTTPS #501: [40041192926](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40041192926), success.
+- Persistencia/PostgreSQL #628: [40041193006](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40041193006), success.
+
+La documentación ya no recomienda la API antigua de ACK. Se actualizó la descripción de #115 a estos checks. La PR sigue draft y no fusionada; el rol readonly de Master Admin sigue fuera de esta rama y no se declara validado.
