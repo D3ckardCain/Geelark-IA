@@ -4,6 +4,8 @@
 **Estado:** pendiente de ejecutar en el equipo del usuario.  
 **Seguridad:** los comandos de esta guía son de lectura; no instalan ni modifican nada. No enviar números de serie, claves, nombres de usuario, direcciones IP públicas ni otra información personal.
 
+> **Delimitación actualizada — 2026-10-23:** esta guía recoge el perfil técnico de **un único equipo anfitrión** para comprobar arquitectura, RAM, GPU, almacenamiento y virtualización. Para inventariar por separado PC-MASTER y cada PC-WORKER, asignar roles y registrar capacidades de clúster, usar la [Guía de inventario inicial de hardware para el clúster](GUIA_INVENTARIO_HARDWARE_CLUSTER.md). redroid es el motor prioritario, pero la issue [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27) bloquea cualquier ejecución física hasta demostrar mitigación sobre la imagen/digest exactos.
+
 ## 1. Qué necesitamos conocer
 
 - Sistema operativo y versión.
