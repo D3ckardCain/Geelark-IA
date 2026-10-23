@@ -1,47 +1,44 @@
-# Inventario inicial de licencias y coste — Geelark-IA
+# Inventario de licencias y coste — GeeLark-IA
 
-**Fecha de evaluación inicial:** 2026-10-09  
-**Revisión de estado:** 2026-10-21  
-**Estado:** evaluación preliminar de componentes principales. No sustituye el inventario automático de dependencias transitivas ni la revisión legal de las imágenes/aplicaciones redistribuidas.
+**Actualizado:** 2026-10-22  
+**Estado:** inventario de alcance activo; pendiente verificar versiones/digests exactos antes de distribuir o desplegar.  
+**Objetivo obligatorio:** 0 USD en software y servicios esenciales.
 
 ## Criterios
+
 - Sin cuota obligatoria, tarjeta ni prueba temporal.
-- Preferir MIT, Apache-2.0, BSD, PostgreSQL License o dominio público.
-- No asumir que “código abierto” significa que imágenes, APK, marcas o contenido se pueden redistribuir.
-- Fijar versiones y lockfiles; registrar licencias transitivas antes de cada release.
+- Registrar licencia, versión, procedencia, dependencias transitivas, coste, límites y condiciones de redistribución.
+- No asumir que código abierto autoriza redistribuir imágenes Android, APK, marcas o contenido.
+- Fijar versiones y hashes; evitar etiquetas flotantes en pruebas reproducibles.
+- No declarar una dependencia aprobada para producción sin revisión y prueba.
 
-## Componentes
+## Componentes dentro del alcance actual
 
-| Componente | Uso previsto | Licencia/evidencia pública | Evaluación de coste | Decisión |
-|---|---|---|---|---|
-| Tauri 2 | Alternativa de UI de escritorio | MIT y MIT/Apache-2.0 según componente: https://github.com/tauri-apps/tauri | Sin cuota de licencia; revisar cada plugin | No seleccionado; no reescribir PC-MASTER sin decisión explícita |
-| React | UI web opcional | MIT: https://github.com/facebook/react/blob/main/LICENSE | Sin cuota de licencia | Candidato técnico; no implica selección del stack |
-| Vite | Herramientas de frontend opcional | MIT: https://github.com/vitejs/vite/blob/main/LICENSE | Sin cuota de licencia | Candidato técnico; no implica selección del stack |
-| Python | Backend | Distribución disponible gratuitamente; términos PSF: https://www.python.org/psf/about/legal-and-policies/ | Sin cuota de licencia | Candidato aprobado |
-| FastAPI | API local | MIT: https://github.com/fastapi/fastapi | Sin cuota de licencia | Candidato aprobado |
-| SQLite | Persistencia local | Dominio público: https://www.sqlite.org/copyright.html | Sin cuota de licencia/servidor | Candidato aprobado |
-| Android Emulator/SDK | Baseline Android | Condiciones del SDK de Google: https://developer.android.com/studio/terms | No asumir redistribución irrestricta; aceptar términos al descargar y revisar distribución de imágenes | Solo herramienta de desarrollo/prueba hasta revisar |
-| redroid | Motor Android en contenedores | Repositorio/documentación pública: https://github.com/remote-android/redroid-doc | Revisar licencia exacta de imagen/componentes AOSP y riesgos upstream | Bloqueado por Issue #27; no instalar hasta revisión de seguridad |
-| AOSP Cuttlefish | Primer candidato para laboratorio Debian físico | Documentación AOSP: https://source.android.com/docs/devices/cuttlefish/get-started; licencias exactas de imagen/componentes aún por confirmar | No se ha identificado cuota de licencia obligatoria; revisar paquetes, imagen y términos antes de instalar | Candidato prioritario de prueba; no aprobado |
-| Waydroid | Alternativa Android Linux | Documentación y repositorio: https://github.com/waydroid/docs | Revisar licencias de imágenes/componentes | Alternativa secundaria; no aprobada |
-| Appium | Automatización de pruebas Android | Apache-2.0: https://github.com/appium/appium | Sin cuota de licencia | Herramienta de pruebas |
-| Playwright | Pruebas E2E de UI | Proyecto público y aviso de licencia: https://github.com/microsoft/playwright | Sin cuota de licencia; revisar dependencias y navegadores instalados | Herramienta de pruebas |
-| n8n | Motor general de workflows | Sustainable Use License y licencia Enterprise: https://docs.n8n.io/sustainable-use-license/ | Restricciones para ofrecer editor/automatización en un producto | No usar como motor integrado |
-| GitHub Actions | CI opcional | Cuotas y condiciones de GitHub pueden cambiar: https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions | No puede ser requisito único; build local obligatorio | Opcional |
+| Componente | Uso | Estado/coste | Verificación pendiente |
+|---|---|---|---|
+| Python | Lanzador Windows y servicios locales | Sin cuota de licencia | Fijar versión por entorno y auditar dependencias transitivas |
+| FastAPI | API local de PC-MASTER/servicios | MIT; sin cuota obligatoria | Revisar versiones y dependencias en lockfile |
+| Pydantic | Validación de contratos/mensajes | MIT; sin cuota obligatoria | Fijar versión compatible y auditar transitivas |
+| PostgreSQL | Persistencia transaccional propuesta para el clúster | PostgreSQL License; sin cuota de software | Validar migraciones, operación local, coste de almacenamiento y pruebas de concurrencia |
+| Debian 13 | Sistema base previsto de PC-WORKERS | Software libre; sin cuota obligatoria | Fijar imagen/repositorios, versión de kernel y política de actualizaciones |
+| redroid | Runtime Android previsto en workers Linux | Código principal Apache-2.0 según repositorio; imágenes/componentes requieren revisión individual | Verificar etiqueta/digest, licencia de componentes, procedencia y bloqueo de seguridad #27 |
+| redroid kernel modules | Funciones Binder/BinderFS y módulos requeridos según kernel | Repositorio de módulos indica GPL-2.0 | Confirmar si hacen falta módulos adicionales y compatibilidad exacta del kernel |
+| Runtime de contenedores | Ejecutar redroid en worker | No aprobado para despliegue hasta completar revisión | Elegir versión y fuente oficial; verificar licencia, capacidades y seguridad |
+| HTTPS/CA local | Transporte privado de agentes | Sin proveedor cloud obligatorio | Documentar generación, rotación, revocación y recuperación |
+| pytest | Pruebas locales reproducibles | Open source; sin cuota obligatoria | Fijar versión y evitar CI redundante para conservar el objetivo $0 |
 
-## Riesgos de licencia a vigilar
-1. La licencia de la aplicación Android y la licencia de la imagen/sistema Android son asuntos distintos.
-2. No redistribuir Google Play Services, Play Store, APK de terceros ni imágenes propietarias sin permiso explícito.
-3. Mantener un SBOM (Software Bill of Materials) y archivo de licencias por release.
-4. Generar una lista de licencias transitivas desde lockfiles; revisar excepciones y avisos.
-5. No incorporar herramientas de automatización cuya licencia impida el uso previsto.
-6. El coste cero de licencias no significa coste cero de electricidad, hardware, internet o mantenimiento.
+## Controles de coste
 
-## Validación previa a distribuir
-- [ ] Fijar versiones exactas y lockfiles.
-- [ ] Generar SBOM para frontend y backend.
-- [ ] Generar lista de licencias de dependencias transitivas.
-- [ ] Revisar licencias del motor y de cada imagen Android.
-- [ ] Revisar redistribución de APK, Google components, codecs y fuentes.
-- [ ] Confirmar que se puede compilar localmente sin GitHub Actions.
-- [ ] Documentar servicios externos y confirmar que ninguno es obligatorio.
+- No usar servicios cloud de teléfonos como dependencia operativa.
+- No usar APIs comerciales obligatorias para administración, automatización o captura.
+- Descargar artefactos una vez y distribuirlos por LAN cuando la licencia lo permita.
+- Revisar cuotas, almacenamiento, ancho de banda, minutos CI y límites antes de activar cualquier servicio.
+- Ejecutar pruebas pesadas localmente cuando sea viable; no lanzar workflows solo para repetir resultados ya documentados.
+
+## Bloqueo
+
+redroid no está aprobado para hardware físico. La issue #27 (https://github.com/D3ckardCain/Geelark-IA/issues/27) debe contener evidencia de mitigación para la imagen exacta, privilegios mínimos, ADB restringido y recuperación antes de cualquier arranque.
+
+## Registro de cambios
+
+- 2026-10-22: se limita el inventario a componentes dentro del alcance actual; las propuestas de UI/ejecución que no forman parte del stack vigente dejan de presentarse como candidatas.
