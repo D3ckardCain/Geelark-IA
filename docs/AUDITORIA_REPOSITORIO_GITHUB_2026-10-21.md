@@ -110,10 +110,18 @@ Esta actualización reemplaza recuentos históricos de Issues/PR que podrían ha
 
 ### Corrección de estrategia Android — 2026-10-23
 
-- Se actualizaron Issues #3, #10, #11, #12, #24 y #92 para retirar afirmaciones envejecidas que nombraban redroid como motor único/seleccionado. Ahora reflejan que Cuttlefish es candidato de laboratorio, no aprobado, y que el contrato del adaptador es agnóstico.
+- Se actualizaron Issues #3, #10, #11, #12, #24 y #92 para corregir textos envejecidos que ponían a Cuttlefish por delante de redroid. La decisión vigente es **redroid primero y único motor Android en preparación**; el adaptador permanece agnóstico.
 - #24 mantiene únicamente la caché local de artefactos verificados; #92 mantiene únicamente el aprovisionamiento Debian 13. No ejecutar instalación de runtime hasta superar las puertas de licencia, seguridad y aceptación.
-- #27 permanece abierta como bloqueo obligatorio del motor prioritario redroid. La prioridad no implica aprobación de seguridad ni autoriza instalación física; la puerta solo se levanta con evidencia reproducible sobre la imagen/digest exactos.
+- #27 permanece abierta como bloqueo obligatorio de redroid. La prioridad no implica aprobación de seguridad ni autoriza instalación física; la puerta solo se levanta con evidencia reproducible sobre la imagen/digest exactos.
 - Se cerró #64 como decisión resuelta (Windows en PC-MASTER, Debian 13 previsto en WORKERS). No se cerró ninguna tarea de implementación física por inferencia.
 
 
 **Documento complementario:** [Auditoría de continuidad GitHub — 2026-10-22](AUDITORIA_GITHUB_CONTINUIDAD_2026-10-22.md) resume decisiones de alcance y continuidad; este archivo conserva el registro detallado de higiene, issues, PRs, conflictos y CI.
+
+
+## Higiene de documentación funcional — 2026-10-23
+
+- Los documentos `CATALOGO_FUNCIONAL_GEELARK.md`, `INVESTIGACION_FUNCIONAL_GEELARK.md` y `MATRIZ_PARIDAD_GEELARK.md` conservaban un corte de fuentes del 2026-10-09. Se añadieron avisos visibles de frescura: el alcance de motor fue revalidado el 23-oct (redroid primero; #27 bloqueante), pero la investigación funcional no se declara actualizada ni exhaustiva. No se alteraron las conclusiones históricas ni se marcó paridad sin pruebas.
+- Issues #3 y #6 se mantienen separadas: #3 controla la Fase A y aceptación de la matriz; #6 detalla el catálogo de funciones. Se documentó la distinción en ambas issues; no son duplicados exactos.
+- Los informes `AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md` y `AUDITORIA_GITHUB_CONTINUIDAD_2026-10-22.md` se conservan como documentos complementarios (detalle de higiene/CI frente a resumen de continuidad), con enlaces cruzados; no se borró historial.
+- No se cerraron issues de implementación pendientes por inferencia. Se cerró #64 porque el texto declaraba la decisión de sistema base/roles como resuelta; no significa que Debian, PXE o redroid estén instalados.
