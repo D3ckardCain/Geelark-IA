@@ -248,3 +248,11 @@ Se cerró otro borde del runtime: antes, los reintentos offline recuperaban `tas
 - Pruebas: `f17bd3651b710ce2baee64cc98c0825c7bc96546`.
 
 Este cambio crea un HEAD nuevo después de CI #501/#628; no declararlo validado hasta que los dos workflows terminen de nuevo.
+
+## CI final de task_id autoritativo en reportes en vivo — 2026-10-23
+
+HEAD `f17bd3651b710ce2baee64cc98c0825c7bc96546` pasó los dos workflows:
+- Transporte HTTPS #502: [40041315719](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40041315719), success.
+- Persistencia/PostgreSQL #629: [40041315731](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40041315731), success, incluida la prueba de bandeja PostgreSQL.
+
+Se confirma que el runtime usa el `task_id` del recibo durable en reportes inmediatos si se omite el argumento, y rechaza discrepancias explícitas; los tests de progreso/resultado con `task_id != operation_id` pasaron. La documentación, la corrección de lease de entrega y el ACK cercado por epoch/estado/resultado también están incluidos en este HEAD. #115 permanece draft y no fusionada. Los pasos de Master Admin readonly siguen omitidos porque ese paquete no existe en esta rama base.
