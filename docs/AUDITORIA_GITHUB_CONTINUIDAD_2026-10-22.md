@@ -53,3 +53,6 @@ La búsqueda posterior de las issues abiertas ya no encuentra una decisión vige
 ## PR de prototipo y solapamiento de contratos — 2026-10-23
 
 La PR #70 se cerró el 2026-10-23 como supersedida, sin merge. La maqueta HTML de datos ficticios no es la línea de implementación: #104 contiene el panel autenticado y GET `/admin/v1/status/snapshots`; #74 contiene el proveedor interno de snapshots y el schema/ejemplo canónicos. No se fusionaron archivos de #70 para evitar reintroducir el manual antiguo y duplicar el contrato. La rama queda disponible como referencia; el cierre no implica aceptación del panel, que sigue bloqueada por #77 y #88.
+
+
+**Registro detallado relacionado:** [Auditoría de higiene del repositorio GitHub](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md). Este documento resume continuidad y alcance; no es una copia del informe detallado.
