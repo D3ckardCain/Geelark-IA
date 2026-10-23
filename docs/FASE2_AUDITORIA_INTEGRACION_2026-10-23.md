@@ -105,3 +105,14 @@ Revisión estática del proveedor: consulta `SELECT` parametrizada, sin listener
 Para llevar la base verificada a la rama de bandeja se abrió PR auxiliar #112 (`feat/master-status-snapshot-provider-v1` → `feat/agent-task-inbox-v2`). La comparación muestra 34 commits exclusivos del proveedor y 23 commits exclusivos de la bandeja, con ancestro común `a8ce049458e94ae2587caeb8a42269a0b094b09a`. GitHub marca #112 `mergeable=false` y el diff toca workflows, contrato de inventario, runtime HTTPS y pruebas. Se dejó #112 en draft y se añadió comentario: no fusionar ni forzar la rama hasta reconciliar los solapamientos, preservando la lógica de #52.
 
 La CI histórica del HEAD `20e618aaeadc1866457f637522b755540f795dfa` de #52 terminó success en los tres workflows ([persistencia #38194392804](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194392804), [transporte #38194392823](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194392823), [esquema #38194392801](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194392801)), pero es evidencia histórica de ese SHA, no del merge combinado. No lanzar re-runs hasta que cambie el HEAD de la rama combinada. #74 y #52 permanecen en draft; sin despliegue ni hardware físico.
+
+
+## Hallazgo de lease en bandeja de tareas — 2026-10-23
+
+En la revisión de #52 se detectó que `_locked_task` trataba la lease de entrega de 30 s como requisito también para tareas `accepted` y `running`. Eso puede bloquear progreso/resultado tras 30 s aun cuando la asignación siga vigente. Se abrió la PR auxiliar #113 desde `feat/agent-task-inbox-v2`:
+- Código: la lease de entrega solo se exige mientras el estado es `delivered`; se mantienen propiedad, `assignment_epoch` y lease de instancia para mutaciones posteriores.
+- Prueba PostgreSQL: una tarea aceptada debe poder reportar progreso tras expirar la lease de entrega; la aceptación tardía después de expirar la lease debe seguir fallando.
+- HEAD de #113: `3f096d0f461e8ef47077eb02153fb615001fe465`. Comparación con base: 2 commits adelante, 0 detrás.
+- Estado: #113 draft; CI aún no aparece en los resultados al registrar esta nota. No se ha fusionado ni desplegado. Revalidar CI antes de incorporar el fix a #52 y antes de reconciliar la pila con el proveedor de snapshots.
+
+La divergencia entre #74 y #52 sigue siendo independiente: #112 no es mergeable y requiere reconciliar el runtime (task_id y endpoints de bandeja más ACK cercado por versión), pruebas, schema y workflows. No seleccionar una versión completa de `runtime.py` sobre la otra.
