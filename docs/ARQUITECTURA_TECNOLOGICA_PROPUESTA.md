@@ -75,4 +75,5 @@ El objetivo obligatorio es 0 USD en software y servicios esenciales. Antes de ad
 - [Evaluación de redroid](COMPARATIVA_MOTORES_ANDROID.md)
 - [Modelo de amenazas](MODELO_AMENAZAS_SEGURIDAD.md)
 - [Bloqueo de seguridad #27](https://github.com/D3ckardCain/Geelark-IA/issues/27)
-- [Preparación del worker, PR #108](https://github.com/D3ckardCain/Geelark-IA/pull/108)
+- [Preparación del worker](PREPARACION_WORKER_REDROID.md)
+- [Diagnóstico previo del worker](GUIA_DIAGNOSTICO_PREVIO_REDROID.md)
