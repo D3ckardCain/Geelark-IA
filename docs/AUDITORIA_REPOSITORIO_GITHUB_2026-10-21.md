@@ -3,17 +3,19 @@
 Consulta en vivo de GitHub:
 - **38 Issues abiertas, 10 cerradas y 23 PR abiertas** en la consulta más reciente del 2026-10-23; todas las PR abiertas están en draft.
 - **#101 (observación histórica, 2026-10-23 temprano):** HEAD `b84da93881f5869e8832e5888e5dce02433e85cc` no tenía workflows asociados en esa consulta. Fue reemplazado por HEAD `043a4e23efd063949577f758eacc326d74bb7ce5`, que posteriormente pasó transporte #479/#478, esquema #308 y persistencia #607.
-- **#74** HEAD `df34e00ec18eb99ef3d53e99513ef625b42d2a58`, base #101: GitHub la muestra mergeable, pero no integrar mientras #101 siga en conflicto.
+- **#74** HEAD `406936ecef181eb4a7a34d6e25316079ee8b29ea`, base #101: transporte #480 y persistencia #608 `success`; GitHub la muestra mergeable. No integrar antes de resolver la sincronización conflictiva #112 y revisar la bandeja.
 - **#52** HEAD `20e618aaeadc1866457f637522b755540f795dfa`: `mergeable=false`; resultados CI anteriores exitosos no eliminan el conflicto.
-- **#57** HEAD `a27922c2e773b3e3b01f368931e14b389490c2f6`: mergeable en metadatos, pero depende de #52 y no debe integrarse antes de resolver la cadena.
+- **#57** HEAD `a27922c2e773b3e3b01f368931e14b389490c2f6`: mergeable en metadatos, pero depende de #52, que está `mergeable=false`; no integrar antes de resolver #52.
 - **#67** HEAD `776a3d54fb28af269b405658541a13f57d3c2537`: `mergeable=false`; CI anterior exitosa no valida la integración con la base actual.
 - **#85** HEAD `3ef9f065c6228e337c9509e43be5484b3de11c76`: mergeable en metadatos, pero depende de #67.
 - **#104** HEAD `75764c435f488f617a07c0003ce088829e6dbd41`: transporte HTTPS run #473 y persistencia run #602 en `success`; sigue en draft y requiere aceptación manual #77 y reconciliación del stack.
 - **#103** HEAD `31ec5abceae6e38279d6be1e19e94683e0ea00ea`: persistencia run #574 en `success`; no se observó workflow de transporte para ese SHA en la consulta.
 - **#87** HEAD `386da22f1dca3f2a1f489e2d9a898d30350d3eb0`: persistencia run #578 cancelada. Su ascendencia continúa basada en la rama de #76 cerrada sin merge; reconciliar con #104 sin retarget automático.
 - **#48** HEAD `f2301e9b1673c57b74a9d625f3f4788f603a83ed`: transporte #471 pasó 54 pruebas, 1 warning y `pip check` limpio. La rama sigue draft por el orden de integración y revisión de seguridad, no por ese workflow.
+- **#112** sincronización del proveedor a la bandeja: `mergeable=false`; no fusionar hasta reconciliar los 10 archivos del diff.
+- **#113** HEAD `21a5b4915086959eaf7dece15b6095de333612ce`: transporte #482 (63 passed) y persistencia #609 (prueba PostgreSQL de bandeja 1 passed; persistencia/guard/auth 32 + 12 + 54 passed), `pip check` limpio; ambos workflows `success`.
 
-**Decisión de auditoría:** no cerrar ni fusionar las PR apiladas únicamente por CI verde. La acción de mayor valor es resolver el conflicto de #101 primero, volver a validar su nuevo SHA y continuar base → descendiente (#101 → #74 → #52 → #57 → #67 → #85). Mantener aparte la línea Windows (#87/#103/#104) hasta reconciliar su ascendencia. La prioridad de runtime permanece redroid; #27 continúa como bloqueo de seguridad físico.
+**Decisión de auditoría:** no cerrar ni fusionar las PR apiladas únicamente por CI verde. #101 y #74 ya tienen CI verde y son mergeables en los HEAD actuales. La acción de mayor valor es resolver el conflicto de sincronización #112 preservando los cambios de #52 y #74; #52 y #67 siguen no mergeables. Después validar el stack base → descendiente (#101 → #74 → #52 → #57 → #67 → #85). Mantener aparte la línea Windows (#87/#103/#104) hasta reconciliar su ascendencia. La prioridad de runtime permanece redroid; #27 continúa como bloqueo de seguridad físico.
 
 ## Corrección de prioridad de motor Android — 2026-10-23
 
