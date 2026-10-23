@@ -1,3 +1,7 @@
+## Corrección de prioridad de motor Android — 2026-10-23
+
+La prioridad acordada es redroid primero. La documentación que nombraba AOSP Cuttlefish como primer candidato fue corregida en `docs/COMPARATIVA_MOTORES_ANDROID.md`, `docs/decisiones/ADR-002-ESTRATEGIA-MOTOR-ANDROID.md`, `docs/ARQUITECTURA_TECNOLOGICA_PROPUESTA.md`, `docs/ESTADO_PROYECTO.md`, `docs/PLAN_TRABAJO.md` y `README.md`. También se corrigió la Issue #11 y se aclaró #27: redroid es prioritario, pero continúa bloqueado para ejecución física hasta demostrar mitigación en la imagen/digest exactos. Cuttlefish queda como contingencia, no como prioridad. No se instaló ni ejecutó ningún motor.
+
 # Auditoría de higiene del repositorio GitHub — actualización 2026-10-23
 
 ## Objetivo
