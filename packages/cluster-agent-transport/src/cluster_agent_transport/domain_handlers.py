@@ -290,7 +290,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 and (
                     row[7] is None or row[7] <= datetime.now(timezone.utc)
                     or (
-                        row[0] in {"delivered", "accepted", "running"}
+                        row[0] == "delivered"
                         and (row[9] is None or row[9] <= datetime.now(timezone.utc))
                     )
                 )
