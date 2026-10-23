@@ -92,3 +92,16 @@ GitHub confirma `mergeable=true` y la comparación de ramas es `ahead 30 / behin
 Se fusionó la PR auxiliar #111 (solo sincronización de rama) en el merge commit `406936ecef181eb4a7a34d6e25316079ee8b29ea`, incorporando el HEAD de inventario/ACK validado `043a4e23efd063949577f758eacc326d74bb7ce5` dentro de `feat/master-status-snapshot-provider-v1`. La PR #74 conserva sus cambios propios; comparación ahora `ahead 14 / behind 0` respecto de la base #101 y GitHub indica `mergeable=true`.
 
 CI del merge result: persistencia #40018703486 y transporte HTTPS #40018705163 estaban `in_progress` al registrar esta nota. La PR #74 sigue en draft. Antes de avanzar a la bandeja de tareas (#52), verificar ambos workflows del SHA exacto y revisar el contrato de snapshots, permisos reales de solo lectura y futura autenticación de operador. No integrar ni desplegar en hardware físico por el mero hecho de tener mergeable=true.
+
+
+## Revalidación del proveedor y bloqueo de sincronización de #52 — 2026-10-23
+
+El HEAD del proveedor de snapshots `406936ecef181eb4a7a34d6e25316079ee8b29ea` terminó con CI verde en ambos workflows disparados para esta revisión:
+- Persistencia PostgreSQL [#40018703486](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40018703486): `completed/success`.
+- Transporte HTTPS [#40018705163](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40018705163): `completed/success`.
+
+Revisión estática del proveedor: consulta `SELECT` parametrizada, sin listener HTTP, y contrato/manual dejan explícitos los requisitos de rol PostgreSQL de solo lectura y autenticación/autorización humana antes de conectar el panel. No hay aceptación de producción: falta integrar autenticación humana, conectar la UI y validar permisos efectivos del entorno.
+
+Para llevar la base verificada a la rama de bandeja se abrió PR auxiliar #112 (`feat/master-status-snapshot-provider-v1` → `feat/agent-task-inbox-v2`). La comparación muestra 34 commits exclusivos del proveedor y 23 commits exclusivos de la bandeja, con ancestro común `a8ce049458e94ae2587caeb8a42269a0b094b09a`. GitHub marca #112 `mergeable=false` y el diff toca workflows, contrato de inventario, runtime HTTPS y pruebas. Se dejó #112 en draft y se añadió comentario: no fusionar ni forzar la rama hasta reconciliar los solapamientos, preservando la lógica de #52.
+
+La CI histórica del HEAD `20e618aaeadc1866457f637522b755540f795dfa` de #52 terminó success en los tres workflows ([persistencia #38194392804](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194392804), [transporte #38194392823](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194392823), [esquema #38194392801](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38194392801)), pero es evidencia histórica de ese SHA, no del merge combinado. No lanzar re-runs hasta que cambie el HEAD de la rama combinada. #74 y #52 permanecen en draft; sin despliegue ni hardware físico.
