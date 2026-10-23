@@ -21,7 +21,7 @@ Paquete experimental independiente del dominio y sin listener automático.
 - `InMemoryRateLimiter` limita a 60 solicitudes/minuto/nodo por proceso y solo es apropiado para pruebas o un único worker.
 - `PostgresRateLimiter` usa un UPDATE atómico en la fila del nodo y aplica el límite global entre workers/procesos. Requiere la migración `db/migrations/0003_agent_rate_limit.sql`; el contador se satura para evitar desbordamiento.
 - El cliente `AgentHTTPSClient` usa la CA explícita, verifica cadena y hostname/IP, exige TLS 1.2+, no sigue redirects, rechaza path traversal y limita timeout, cuerpos y respuestas.
-- `AgentTransportRuntime` conecta el cliente con un journal compatible: persiste progreso/resultados antes de enviarlos y ofrece `sync_pending_receipts(limit=100)` para recorrer un lote acotado. El journal debe exponer `list_pending_receipts(limit=...)` y `mark_receipt_synced(operation_id)`; el ACK terminal solo se registra tras una respuesta HTTP 2xx. Los estados `accepted` no se envían como resultados. No ejecuta tareas ni inicia polling por sí solo.
+- `AgentTransportRuntime` conecta el cliente con un journal compatible: persiste progreso/resultados antes de enviarlos y ofrece `sync_pending_receipts(limit=100)` para recorrer un lote acotado. El journal debe exponer `list_pending_receipts(limit=...)` y `mark_receipt_synced(operation_id, expected_assignment_epoch=..., expected_status=..., expected_result=...)`. Un HTTP 2xx solo confirma la versión exacta enviada; si el epoch, estado o resultado ya cambió, el ACK devuelve `False` y el recibo más reciente permanece pendiente. Las APIs antiguas sin este contrato fallan cerradas. Los estados `accepted` no se envían como resultados. No ejecuta tareas ni inicia polling por sí solo.
 - Las respuestas no incluyen tokens, SQL ni excepciones internas.
 - Los handlers de dominio no configurados responden 503; el paquete no ejecuta shell/ADB ni comandos Android.
 
@@ -82,7 +82,7 @@ python -m pytest packages/cluster-agent-transport/tests -q
 ## Bandeja durable de tareas (en revisión)
 
 - `POST /agent/v1/tasks/claim` entrega una única asignación tipada a un nodo `active/active` y saludable; los nodos `pending` reciben 403.
-- Claim, aceptación, progreso y resultado usan idempotencia, nonce anti-replay, propietario, epoch y leases de entrega/asignación.
+- Claim, aceptación, progreso y resultado usan idempotencia, nonce anti-replay, propietario, epoch y leases de entrega/asignación. La lease de entrega solo limita la aceptación mientras la tarea siga `delivered`; después de `accepted`, progreso/resultado siguen sujetos al propietario, `assignment_epoch` y lease de instancia.
 - El claim bloquea la tarea, instancia y operación con `FOR UPDATE ... SKIP LOCKED`; la respuesta incluye las dos expiraciones de lease.
 - Los resúmenes de resultado se limitan a 1 MB y rechazan claves sensibles en snake_case, kebab-case o camelCase.
 - `POST /agent/v1/reconcile` es estrictamente read-only: devuelve discrepancias y `mutations_applied=0`; `unknown` requiere revisión.
