@@ -49,3 +49,40 @@ Mantener el repositorio GeeLark-IA alineado con el alcance vigente: panel web PC
 ## Registro
 
 Esta actualización reemplaza recuentos históricos de Issues/PR que podrían haber cambiado. El historial de GitHub conserva las decisiones anteriores; los documentos operativos actuales deben seguir esta actualización.
+
+## Continuación de auditoría — 2026-10-23
+
+### Conteo actual y alcance
+
+- Consulta global de GitHub: **23 PR abiertas, todas en draft**. La cifra previa de 27 queda supersedida.
+- Issues abiertas: **39** tras cerrar #64 como decisión de plataforma/roles confirmada. Issues cerradas consultadas: **8**.
+- No se fusionó ni eliminó ninguna PR durante esta continuación; no se borraron ramas. No se lanzaron workflows manuales.
+- PR #108 y #109 ya están fusionadas en `main`; PR #106 también aparece registrada como fusionada en la auditoría previa. No tratarlas como pendientes.
+- La implementación candidata de PC-MASTER sigue fuera de `main` (#87/#103/#104).
+
+### Issues revisadas y criterio de cierre
+
+- **#39 — ya cerrada en GitHub:** sus requisitos siguen siendo criterios de seguridad para PR #40/#42/#44/#48; cerrar la fase de diseño no significa que todo el transporte esté integrado ni que haya pruebas físicas.
+- **#64 — cerrada en esta auditoría:** decisión de Windows PC-MASTER + Debian 13 WORKERS registrada. No implica que PXE, aprovisionamiento automático o motor Android estén implementados.
+- **#20 — permanece abierta correctamente:** nueve pruebas del prototipo histórico están marcadas completas, pero autenticación real, dispatcher, recuperación/reconciliación y evaluación de migración oficial continúan sin completar. No confundir el prototipo PR #19 con el esquema actual #32.
+- **#29, #31, #33, #41, #46, #55, #62, #65, #69 y #71 — permanecen abiertas:** describen trabajo de contratos, persistencia, transporte, sincronización, retención, autorización o salud derivada que no se demuestra terminado/integrado.
+- **#63 — permanece abierta:** las herramientas del repositorio no permiten verificar el saldo/facturación de la cuenta. No se iniciaron workflows manuales ni configuraron runners de pago. El propietario debe revisar el panel de uso si necesita certificar el coste real de Actions.
+- **#88 — permanece abierta:** GitHub identifica las ramas/PR candidatas, pero no demuestra qué acceso directo/archivo ejecutó el equipo Windows. La comparación local sigue pendiente; no instalar ni iniciar el panel desde esta issue.
+- **#89/#91 — permanecen abiertas:** la corrección candidata de Windows/suite está verde en el HEAD de #104, pero no está integrada en la rama base; #77 conserva la aceptación manual.
+- **#77 — permanece abierta:** aceptación manual en el PC-MASTER real pendiente; CI no sustituye la inspección de ACL/certificados/rutas del equipo.
+- **#86 — cerrada sin merge:** su rama contiene documentación histórica de investigación funcional/RPA que no debe borrarse del historial. La auditoría de continuidad indica que su contenido no es fuente operativa vigente bajo el alcance actual PC-MASTER Windows + Debian 13 + redroid; recuperar secciones solo si se decide que siguen siendo necesarias y reconciliarlas antes de integrarlas.
+
+### Duplicados, prototipos y ramas apiladas
+
+- **#70 no es una copia exacta de #104:** #70 contiene una maqueta HTML ficticia autocontenida, contrato v1, ADR-006 de lectura de estado y pruebas de navegación; #104 implementa el backend/panel autenticado local y corrige Windows. Hay solapamiento documental en manual/contrato, pero los propósitos y archivos principales difieren. Mantener #70 en draft; antes de integrarlo, reconciliar contrato/manual y ADR-006 de estado con ADR-007 de autenticación de PC-MASTER. No conectarlo a datos reales.
+- **#87 → #103** conserva el lanzador Windows y correcciones específicas, pero su ascendencia usa la rama antigua de #76 cerrada sin merge. Reconciliar con #104 antes de integrar para no reintroducir backend antiguo. No cambiar la base automáticamente.
+- Cadena de implementación de agentes/control registrada en #50: #38 → #42 → #44 → #47 → #48 → #101 → #74 → #52 → #57 → #67 → #85. No integrar fuera de orden; checks verdes por SHA no resuelven por sí solos conflictos/topología.
+- Los prototipos históricos (#19 y #70) deben seguir diferenciados de los servicios operativos; las pruebas de un prototipo no son aceptación de producción.
+
+### Evidencia reciente que permanece vigente
+
+- PR #48 HEAD `f2301e9b1673c57b74a9d625f3f4788f603a83ed`: transporte HTTPS **54 passed, 1 warning**, `pip check` limpio; workflow #471 success.
+- PR #104 HEAD `75764c435f488f617a07c0003ce088829e6dbd41`: persistencia **293 passed / 3 skipped**, Windows ACL **50 passed / 8 skipped**, asignaciones **33 passed**, guard/journal **12 passed**, auth **70 passed / 2 skipped**, transporte **125 passed**; `pip check` limpio. Sigue en draft y sin merge.
+- La rama de #104 incluye ADR-007 de autenticación local; #70 usa ADR-006 para el contrato/lectura de estado. La antigua colisión ADR-005 se corrigió en #104 y el Issue #105 está cerrado.
+- Ninguno de estos resultados acredita instalación en hardware, acceso remoto seguro ya desplegado, ni ejecución real de instancias Android.
+
