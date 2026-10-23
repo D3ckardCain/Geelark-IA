@@ -4,6 +4,8 @@
 **Estado:** versión 0.1; catálogo preliminar basado en fuentes oficiales públicas.  
 **Regla:** ninguna fila se marca como equivalente hasta tener pruebas reproducibles.
 
+**Revalidación de alcance — 2026-10-23:** redroid es el motor prioritario en preparación, pero está bloqueado por #27 para ejecución física. La matriz conserva su corte documental del 2026-10-09; sus estados son preliminares y no acreditan compatibilidad ni paridad. Refrescar fuentes y pruebas por función antes de cambiar cualquier fila a «Implementado» o «Probado».
+
 ## Estados permitidos
 
 - **No investigado:** no hay evidencia suficiente todavía.
