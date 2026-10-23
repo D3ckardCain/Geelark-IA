@@ -36,7 +36,7 @@
 - [ ] Ejecutar el diagnóstico de solo lectura: CPU, RAM, disco, kernel, Binder/BinderFS, red y puertos.
 - [ ] Fijar versiones, hashes, licencias y registro de instalación.
 
-La guía y el diagnóstico ya están integrados en PREPARACION_WORKER_REDROID.md y GUIA_DIAGNOSTICO_PREVIO_REDROID.md; no se han ejecutado en el hardware físico.
+El plan de aprovisionamiento Debian 13 está en PLAN_APROVISIONAMIENTO_WORKER_DEBIAN13.md; la guía de redroid y el diagnóstico de solo lectura están en PREPARACION_WORKER_REDROID.md y GUIA_DIAGNOSTICO_PREVIO_REDROID.md. No se han ejecutado en el hardware físico.
 
 ### Fase 4 — Pruebas Android controladas
 Solo tras aprobar la fase 2:
