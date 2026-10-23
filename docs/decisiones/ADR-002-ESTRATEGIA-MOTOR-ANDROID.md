@@ -1,8 +1,8 @@
-# ADR-002: Motor Android en preparación — redroid
+# ADR-002: Estrategia de selección del motor Android local
 
 - **Estado:** decisión de alcance para evaluación; no aprobado para producción.
-- **Actualizado:** 2026-10-22.
-- **Alcance:** PC-MASTER Windows y redroid en PC-WORKERS físicos con Debian 13 como sistema base previsto.
+- **Actualizado:** 2026-10-23.
+- **Alcance:** PC-MASTER Windows, PC-WORKERS físicos con Debian 13 previsto y adaptador Android agnóstico.
 - **Coste obligatorio objetivo:** 0 USD.
 
 ## Contexto
@@ -11,9 +11,11 @@ GeeLark-IA necesita un panel web central PC-MASTER en Windows y un plano de ejec
 
 ## Decisión de alcance
 
-1. redroid es el único motor Android que se prepara en este ciclo.
-2. No se mantendrán alternativas activas ni comparativas de otros motores Android en la documentación operativa.
-3. La ruta experimental anterior queda retirada y no forma parte del producto.
+1. El contrato del motor Android permanece agnóstico.
+2. AOSP Cuttlefish es el primer candidato de laboratorio, no una selección aprobada para producción.
+3. Android Emulator sirve como referencia de compatibilidad; revisar licencias y condiciones de imágenes antes de uso.
+4. redroid permanece bloqueado por #27 y no se instala hasta demostrar mitigación sobre la imagen exacta.
+5. La ruta manual QEMU + Android-x86 + VNC en WSL2 queda retirada y no debe retomarse.
 4. PC-MASTER significa el panel web central; su lanzador/configurador de Windows es un componente separado.
 5. Se conservan los agregados imprescindibles: agente de worker, enrolamiento, autenticación/autorización, transporte HTTPS privado, heartbeat, inventario de capacidades, persistencia transaccional, despacho durable, límites de recursos, auditoría, reconciliación, captura/entrada remota y automatización.
 6. Un nodo pendiente solo puede informar telemetría y consultar estado limitado; no puede aceptar ni ejecutar tareas.
@@ -24,7 +26,7 @@ GeeLark-IA necesita un panel web central PC-MASTER en Windows y un plano de ejec
 
 La documentación oficial de redroid muestra ejemplos con Docker `--privileged`. La incidencia upstream [redroid-doc #932](https://github.com/remote-android/redroid-doc/issues/932) reportó que el init de Android puede escribir en `/proc/sys/kernel/modprobe` desde un contenedor privilegiado y afectar al host. La incidencia figura cerrada como completed el 2026-08-25, sin comentarios ni parche enlazado en el hilo visible; el cierre no acredita que la imagen exacta que usaríamos contenga una corrección. La rama upstream actual de AOSP mantiene la escritura en init.rc (https://chromium.googlesource.com/aosp/platform/system/core/+/refs/heads/upstream/rootdir/init.rc); esto refuerza la necesidad de revisar el digest exacto, pero no prueba por sí solo cómo se comporta cada imagen redroid.
 
-**No iniciar redroid en un worker físico** hasta que la issue interna [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27) registre evidencia verificable de:
+**No iniciar ningún motor Android en un worker físico sin aprobar su selección y puerta de seguridad. En particular, no iniciar redroid** hasta que la issue interna [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27) registre evidencia verificable de:
 - versión, etiqueta y digest exactos;
 - revisión del código/init de esa versión;
 - mitigación probada que impida la escritura peligrosa o limite sus efectos de forma demostrable;
@@ -36,13 +38,13 @@ Restaurar `kernel.modprobe` después de arrancar no es suficiente si el host ya 
 
 ## Secuencia de validación
 
-1. Auditoría de imagen, dependencias, licencias y seguridad.
-2. Diagnóstico de solo lectura del worker: CPU, RAM, disco, kernel, Binder/BinderFS, red y puertos.
-3. Instalación aprobada de Debian 13 en WORKER-01; no ejecutar esta etapa antes de cerrar la puerta de seguridad.
-4. Una instancia: inicio/parada/reinicio, ADB restringido, APK autorizada, captura/entrada, red, archivos, persistencia y métricas.
-5. Dos instancias: separación de datos, puertos, ADB y operación independiente.
-6. Integración con PC-MASTER por agente autenticado, sin publicar Docker ni ADB como API administrativa.
-7. Medición real de CPU, RAM, disco, arranque, latencia y estabilidad antes de estimar densidad.
+1. Evaluar Cuttlefish: requisitos del host, KVM, imágenes, licencias, control visual y operación multiinstancia.
+2. Diagnóstico de solo lectura del worker: CPU, RAM, disco, kernel, virtualización, red y puertos.
+3. Aprobar instalación Debian 13 en WORKER-01; no modificar discos antes de aprobar el procedimiento.
+4. Probar una instancia en laboratorio solo tras aprobar la puerta de seguridad y licencia del candidato.
+5. Probar dos instancias y validar separación de datos, puertos, ADB y operación independiente.
+6. Integrar con PC-MASTER por agente autenticado, sin publicar ADB ni interfaces privilegiadas como API administrativa.
+7. Medir CPU, RAM, disco, arranque, latencia y estabilidad antes de estimar densidad.
 
 ## Fuentes
 
