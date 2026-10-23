@@ -1,7 +1,7 @@
 # Auditoría de continuidad GitHub — 2026-10-22
 
 **Estado:** hallazgos registrados; no implica fusión ni aceptación de implementación.  
-**Coste:** auditoría documental mediante APIs de GitHub; no se lanzaron workflows.  
+**Coste:** auditoría documental mediante APIs de GitHub; no se lanzaron workflows manualmente. Las correcciones de código en PR #48/#104 dispararon CI automática; no se usaron runners de pago.  
 **Regla de seguridad:** no borrar ramas divergentes ni cerrar tareas sin verificar dependencias y evidencia.
 
 ## Decisiones vigentes
@@ -87,7 +87,7 @@ Esta sección actualiza el estado CI de la instantánea anterior; las notas prev
 - **PR #101** HEAD actual `b84da93881f5869e8832e5888e5dce02433e85cc`: no se encontraron workflows asociados a ese SHA y GitHub marca `mergeable=false`. La CI previa de 58 pruebas pertenece al HEAD anterior `f338d63abdf18ab2c7d833d01ff4cf085457ce0b`; no atribuirla al HEAD actual.
 - **PR #48** HEAD `f2301e9b1673c57b74a9d625f3f4788f603a83ed`: transporte #471 `success` (**54 passed, 1 warning**, `pip check` limpio); esquema #303 y persistencia #600 también `success`.
 - **PR #87** conserva un workflow cancelado para su HEAD actual; la CI verde de #103 valida una rama descendiente de correcciones, no la app completa ni la aceptación manual.
-- Recuento del repositorio por API: **23 PR abiertas** (todas en draft), **40 Issues abiertas** y **8 Issues cerradas**. Issues #64, #105 y #107 se cerraron con alcance limitado y evidencia documentada; no se fusionó ninguna PR.
+- Recuento del repositorio por API: **23 PR abiertas** (todas en draft), **39 Issues abiertas** y **9 Issues cerradas** al cierre del 2026-10-22. Issues #39, #64, #105 y #107 se cerraron con alcance limitado y evidencia documentada; no se fusionó ninguna PR de implementación.
 - La numeración ADR final en ramas candidatas es #40 ADR-005 (autenticación agentes), #70 ADR-006 (lectura de estado Master/Worker), #104 ADR-007 (autenticación PC-MASTER). Issue #107 quedó cerrada tras confirmar referencias, manuales separados y CI actual de #70/#104.
 
 
