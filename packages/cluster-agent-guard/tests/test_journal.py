@@ -25,7 +25,7 @@ OTHER_NODE = UUID("33333333-3333-4333-8333-333333333333")
 INSTANCE = UUID("66666666-6666-4666-8666-666666666666")
 
 
-def command(*, epoch=1, node_id=LOCAL_NODE, operation_id=None, payload=None):
+def command(*, epoch=1, node_id=LOCAL_NODE, operation_id=None, payload=None, task_id=None):
     return AgentCommand(
         operation_id=operation_id or uuid4(),
         instance_id=INSTANCE,
@@ -33,6 +33,7 @@ def command(*, epoch=1, node_id=LOCAL_NODE, operation_id=None, payload=None):
         assignment_epoch=epoch,
         lease_expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
         payload=payload if payload is not None else {"action": "start", "engine": "test-engine"},
+        task_id=task_id,
     )
 
 
@@ -202,3 +203,35 @@ def test_journal_rejects_symlink_path(tmp_path):
     link.symlink_to(target)
     with pytest.raises(AgentGuardError):
         AgentJournal(link, LOCAL_NODE).initialize()
+
+
+def test_task_id_survives_acceptance_progress_and_offline_receipt_retry(tmp_path):
+    path = tmp_path / "task-journal.sqlite3"
+    journal = AgentJournal(path, LOCAL_NODE)
+    journal.initialize()
+    task_id, operation_id = uuid4(), uuid4()
+    accepted = journal.accept_command(command(operation_id=operation_id, task_id=task_id))
+    assert accepted.task_id == task_id
+
+    journal.record_result(
+        operation_id=operation_id,
+        instance_id=INSTANCE,
+        node_id=LOCAL_NODE,
+        assignment_epoch=1,
+        status="running",
+        result={"progress_percent": 25},
+    )
+    pending = journal.list_pending_receipts(limit=10)
+    assert len(pending) == 1
+    assert pending[0].operation_id == operation_id
+    assert pending[0].task_id == task_id
+    assert journal.mark_receipt_synced(
+        operation_id,
+        expected_status="running",
+        expected_result={"progress_percent": 25},
+    ) is True
+    assert journal.list_pending_receipts(limit=10) == []
+
+    reopened = AgentJournal(path, LOCAL_NODE)
+    reopened.initialize()
+    assert reopened.get_receipt(operation_id).task_id == task_id
