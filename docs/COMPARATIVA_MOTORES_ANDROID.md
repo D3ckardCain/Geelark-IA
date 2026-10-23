@@ -14,13 +14,15 @@
 
 redroid ejecuta Android en contenedores sobre un host Linux y documenta soporte para arquitecturas amd64 y arm64 y varias instancias. La densidad y compatibilidad reales dependen del kernel, Binder/BinderFS, recursos, aplicaciones objetivo y configuración. Ninguna cifra de capacidad se considera validada para nuestro hardware.
 
+La documentación pública oficial consultada enumera imágenes hasta Android 16; no asumir soporte oficial de versiones superiores sin una etiqueta publicada y verificable. La frescura de una etiqueta y el digest deben comprobarse antes de seleccionarla.
+
 Documentación oficial: https://github.com/remote-android/redroid-doc  
 Módulos del kernel: https://github.com/remote-android/redroid-modules  
 Imagen pública: https://hub.docker.com/r/redroid/redroid
 
 ## Bloqueo crítico de seguridad
 
-La guía upstream muestra ejemplos con Docker `--privileged`. La incidencia [redroid-doc #932](https://github.com/remote-android/redroid-doc/issues/932) describe una escritura de `/proc/sys/kernel/modprobe` que puede escapar al host debido a que el sysctl no está aislado por namespaces. La incidencia aparece cerrada, pero eso no prueba que una etiqueta/digest concreta tenga una corrección. La rama upstream actual de AOSP también conserva la escritura en init.rc: https://chromium.googlesource.com/aosp/platform/system/core/+/refs/heads/upstream/rootdir/init.rc. Esta fuente confirma que la instrucción sigue presente en AOSP, no el comportamiento de cada imagen redroid concreta.
+La guía upstream muestra ejemplos con Docker `--privileged`. La incidencia [redroid-doc #932](https://github.com/remote-android/redroid-doc/issues/932) describe una escritura de `/proc/sys/kernel/modprobe` que puede escapar al host debido a que el sysctl no está aislado por namespaces. La incidencia aparece cerrada como completed el 2026-08-25 y no tiene comentarios ni un parche enlazado en su hilo visible; eso no prueba que una etiqueta/digest concreta tenga una corrección. La rama upstream actual de AOSP también conserva la escritura en init.rc: https://chromium.googlesource.com/aosp/platform/system/core/+/refs/heads/upstream/rootdir/init.rc. Esta fuente confirma que la instrucción sigue presente en AOSP, no el comportamiento de cada imagen redroid concreta.
 
 No ejecutar redroid en hardware físico hasta que la issue interna [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27) contenga evidencia verificable de la mitigación sobre la imagen exacta. No basta con restaurar el valor del sysctl después del arranque. Si no se encuentra una mitigación efectiva, detener el despliegue físico.
 
