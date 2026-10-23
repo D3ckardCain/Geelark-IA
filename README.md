@@ -9,7 +9,7 @@ Plataforma local para administrar instancias Android en equipos WORKER físicos 
 - Coste operativo objetivo: **0 USD**; sin dependencia crítica de servicios de pago, tarjetas, pruebas temporales ni cargos automáticos.
 - PC-MASTER significa el panel web de control, no el lanzador/configurador de escritorio.
 - PC-MASTER Windows coordina workers físicos. Los workers ejecutarán Debian 13 como base prevista y redroid como único motor Android en preparación.
-- No reabrir la ruta retirada la ruta experimental anterior ni documentar otros motores como candidatos activos.
+- No reabrir rutas técnicas retiradas ni documentar otros motores como candidatos activos.
 - Conservar agente, enrolamiento, autenticación/autorización, transporte seguro, heartbeat, estado, persistencia, despacho, reconciliación, observabilidad y automatización: son agregados del producto, no motores alternativos.
 - Los nodos pendientes solo pueden enviar telemetría y consultar estado limitado; no reciben ni ejecutan tareas hasta ser autorizados.
 - No exponer ADB a Internet ni abrir el socket Docker al panel. No ejecutar shell arbitrario desde la API.
