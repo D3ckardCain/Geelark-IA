@@ -54,8 +54,8 @@ Esta actualización reemplaza recuentos históricos de Issues/PR que podrían ha
 
 ### Conteo actual y alcance
 
-- Consulta global de GitHub: **23 PR abiertas, todas en draft**. La cifra previa de 27 queda supersedida.
-- Issues abiertas: **39** tras cerrar #64 como decisión de plataforma/roles confirmada. Issues cerradas consultadas: **8**.
+- Consulta global de GitHub: **22 PR abiertas, todas en draft**. La cifra previa de 27 y la consulta intermedia de 23 quedan supersedidas por este recuento.
+- Issues abiertas: **38**. Issues cerradas consultadas: **10**.
 - No se fusionó ni eliminó ninguna PR durante esta continuación; no se borraron ramas. No se lanzaron workflows manuales.
 - PR #108 y #109 ya están fusionadas en `main`; PR #106 también aparece registrada como fusionada en la auditoría previa. No tratarlas como pendientes.
 - La implementación candidata de PC-MASTER sigue fuera de `main` (#87/#103/#104).
