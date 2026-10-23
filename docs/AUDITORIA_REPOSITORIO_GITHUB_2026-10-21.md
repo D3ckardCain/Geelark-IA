@@ -1,4 +1,4 @@
-# Auditoría de higiene del repositorio GitHub — 2026-10-21
+# Auditoría de higiene del repositorio GitHub — 21–22 de octubre de 2026
 
 ## Resumen ejecutivo
 
@@ -189,6 +189,11 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 - La PR #38 en su HEAD `5815bc6e8f4146099e5fff028008fdf9f0ede5d6` sí contiene el método versionado. Corregí el pin en `.github/workflows/cluster-agent-transport.yml` dentro de la rama de la PR #48; commit `cbede919af6242c9d874a6eead3596e0144d81ec`.
 - La CI del commit de pin `cbede919af6242c9d874a6eead3596e0144d81ec` (#469) eliminó las dos fallas anteriores del journal real, pero expuso una falla adicional del test double `FencedJournal.mark_receipt_delivered`. Ajusté el fixture y la aserción en commit `f2301e9b1673c57b74a9d625f3f4788f603a83ed`. La CI del HEAD final `f2301e9b1673c57b74a9d625f3f4788f603a83ed` pasó en run #471: **54 passed, 1 warning**, `pip check` limpio; los workflows de esquema (#303) y persistencia (#600) también terminaron `success`. La PR #48 sigue abierta por su posición en la cadena de dependencias y la integración real del journal, no por esa suite de transporte.
 - **Límite de la corrección:** el pin permite que la prueba cruzada instale la API compatible, pero no cambia la base de #48 ni integra la historia de #38. La topología de ramas y las migraciones siguen requiriendo integración ordenada; no hacer merge por el mero hecho de que el workflow pase.
+
+## Revisión final de Issues abiertas — 22-oct-2026
+
+- Se consultaron las 40 Issues abiertas directamente por la API del repositorio. Tener todas las casillas marcadas, o no tener checklist, no basta por sí solo para cerrar: los issues #24, #11, #10 y #4 siguen teniendo criterios explícitos pendientes de medición, prueba física o contraste funcional; #20 conserva cuatro tareas sin completar; #63 conserva pendiente confirmar el costo real de GitHub Actions, dato que no está disponible desde esta auditoría.
+- Se mantienen abiertas las tareas que requieren intervención local del usuario (#77 aceptación Windows, #88 confirmar el archivo/acceso directo local), pruebas en hardware físico (#8/#10/#12/#24) o revisión de seguridad (#9/#27/#65). No se cerraron por antigüedad ni por CI verde en ramas no integradas.
 
 ## Límites de esta auditoría
 
