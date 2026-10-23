@@ -203,7 +203,7 @@ La consulta de GitHub permite revisar el contenido del repositorio, metadatos, P
 ## Estado de mergeabilidad de las ramas apiladas — 22-oct-2026
 
 Consulta de metadatos actual de GitHub (la mergeabilidad puede cambiar con cada push):
-- GitHub marca `mergeable=false` en #101 (ACK/inventario), #52 (bandeja durable), #67 (supervisor), #70 (prototipo del panel) y #86 (documentación funcional). No asumir que CI verde equivale a que el diff pueda integrarse; reconciliar conflictos/base y volver a revisar el HEAD antes de cualquier merge.
+- Revalidación de metadatos 2026-10-22: GitHub marca `mergeable=false` en #101 (ACK/inventario), #52 (bandeja durable), #67 (supervisor) y #86 (documentación funcional); #70 (prototipo del panel) ahora aparece `mergeable=true`. #101 tiene HEAD `b84da93881f5869e8832e5888e5dce02433e85cc` sin workflows asociados; los 58 tests previos pertenecen al HEAD anterior. #52 y #67 tienen CI success en sus SHA actuales, pero siguen con conflicto de integración. No asumir que CI verde equivale a que el diff pueda integrarse; reconciliar conflictos/base y volver a revisar el HEAD antes de cualquier merge.
 - #87, #103 y #104 aparecen `mergeable=true` en la consulta, pero siguen en draft y tienen dependencias/aceptación pendientes. En particular, #87/#103 heredan una base de #76 cerrada sin merge; la mergeabilidad técnica no elimina ese problema de ascendencia.
 - No cambié bases ni forcé resoluciones de conflicto porque podrían descartar cambios exclusivos.
 
