@@ -1,8 +1,8 @@
-# Auditoría de higiene del repositorio GitHub — actualización 2026-10-22
+# Auditoría de higiene del repositorio GitHub — actualización 2026-10-23
 
 ## Objetivo
 
-Mantener el repositorio GeeLark-IA alineado con el alcance vigente: panel web PC-MASTER Windows, redroid en PC-WORKERS Debian 13 y agregados necesarios para administrar los nodos. El objetivo operativo obligatorio es 0 USD.
+Mantener el repositorio GeeLark-IA alineado con el alcance vigente: PC-MASTER Windows, PC-WORKERS físicos con Debian 13 previsto, un adaptador Android agnóstico y selección de motor basada en evidencia. El objetivo operativo obligatorio es 0 USD.
 
 ## Estado y reglas
 
@@ -10,16 +10,16 @@ Mantener el repositorio GeeLark-IA alineado con el alcance vigente: panel web PC
 - No cerrar un bloqueo de seguridad por tener documentación escrita; exigir evidencia reproducible.
 - No borrar ramas o historial de commits para ocultar decisiones anteriores. La documentación operativa sí debe reflejar el alcance actual.
 - Las tareas de autenticación, enrolamiento, transporte, persistencia, despacho, reconciliación, observabilidad y automatización permanecen porque son componentes necesarios del plano de control.
-- La selección de motores Android queda cerrada como línea documental: redroid es el único motor en preparación; la issue #27 bloquea la prueba física.
+- La estrategia de motor se reabrió a nivel de investigación tras retirar el experimento manual QEMU + Android-x86 + VNC en WSL2. AOSP Cuttlefish es el primer candidato de laboratorio, no aprobado; Android Emulator es referencia de compatibilidad; redroid sigue bloqueado por #27. El contrato permanece agnóstico y no se permite instalación física hasta revisar licencias, seguridad y plan de pruebas.
 - No se han instalado paquetes ni modificado discos de los WORKERS durante esta limpieza documental.
 
 ## Cambios realizados en la rama de limpieza
 
 - README actualizado con el alcance y los enlaces vigentes.
-- ADR-001 y ADR-002 alineados con PC-MASTER Windows, Debian 13 y redroid.
+- ADR-001 y ADR-002 alineados con PC-MASTER Windows, Debian 13 previsto y motor Android intercambiable; ADR-002 retira la ruta QEMU + Android-x86 + VNC en WSL2.
 - Arquitectura tecnológica y de clúster actualizadas.
 - Plan de trabajo actualizado con fases y puertas de aceptación.
-- Evaluación de redroid centrada en seguridad, digest, kernel, Binder/BinderFS, ADB, aislamiento y pruebas.
+- Evaluación de redroid conservada como bloqueo de seguridad independiente; investigación/comparativa priorizan evaluar Cuttlefish antes de aprobar cualquier motor.
 - Catálogo funcional y matriz de paridad conservados como documentación de funciones públicas de GeeLark, no como selección de motores.
 - Issue #8 cerrada como decisión de alcance completada; la issue #27 permanece abierta.
 - PR #108 integró la preparación del worker y el diagnóstico de solo lectura; PR #109 integró la limpieza de alcance.
@@ -70,7 +70,7 @@ Esta actualización reemplaza recuentos históricos de Issues/PR que podrían ha
 - **#88 — permanece abierta:** GitHub identifica las ramas/PR candidatas, pero no demuestra qué acceso directo/archivo ejecutó el equipo Windows. La comparación local sigue pendiente; no instalar ni iniciar el panel desde esta issue.
 - **#89/#91 — permanecen abiertas:** la corrección candidata de Windows/suite está verde en el HEAD de #104, pero no está integrada en la rama base; #77 conserva la aceptación manual.
 - **#77 — permanece abierta:** aceptación manual en el PC-MASTER real pendiente; CI no sustituye la inspección de ACL/certificados/rutas del equipo.
-- **#86 — cerrada sin merge:** su rama contiene documentación histórica de investigación funcional/RPA que no debe borrarse del historial. La auditoría de continuidad indica que su contenido no es fuente operativa vigente bajo el alcance actual PC-MASTER Windows + Debian 13 + redroid; recuperar secciones solo si se decide que siguen siendo necesarias y reconciliarlas antes de integrarlas.
+- **#86 — cerrada sin merge:** su rama contiene documentación histórica de investigación funcional/RPA que no debe borrarse del historial. Sus documentos exclusivos no se consideran integrados por defecto. Reconciliar el catálogo, investigación funcional, matriz de paridad y especificación RPA con el alcance vigente PC-MASTER Windows + Debian 13 + motor intercambiable; Cuttlefish es candidato no aprobado y redroid permanece bloqueado por #27.
 
 ### Duplicados, prototipos y ramas apiladas
 
@@ -86,3 +86,10 @@ Esta actualización reemplaza recuentos históricos de Issues/PR que podrían ha
 - La rama de #104 incluye ADR-007 de autenticación local; #70 usa ADR-006 para el contrato/lectura de estado. La antigua colisión ADR-005 se corrigió en #104 y el Issue #105 está cerrado.
 - Ninguno de estos resultados acredita instalación en hardware, acceso remoto seguro ya desplegado, ni ejecución real de instancias Android.
 
+
+### Corrección de estrategia Android — 2026-10-23
+
+- Se actualizaron Issues #3, #10, #11, #12, #24 y #92 para retirar afirmaciones envejecidas que nombraban redroid como motor único/seleccionado. Ahora reflejan que Cuttlefish es candidato de laboratorio, no aprobado, y que el contrato del adaptador es agnóstico.
+- #24 mantiene únicamente la caché local de artefactos verificados; #92 mantiene únicamente el aprovisionamiento Debian 13. No ejecutar instalación de runtime hasta superar las puertas de licencia, seguridad y aceptación.
+- #27 permanece abierta como bloqueo específico de redroid; no se cierra porque la estrategia haya cambiado, ya que sigue siendo evidencia de riesgo relevante si se reconsidera ese motor.
+- Se cerró #64 como decisión resuelta (Windows en PC-MASTER, Debian 13 previsto en WORKERS). No se cerró ninguna tarea de implementación física por inferencia.
