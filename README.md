@@ -2,14 +2,14 @@
 
 Plataforma local para administrar instancias Android en equipos WORKER físicos desde el **panel web PC-MASTER Windows**. GeeLark se usa como referencia funcional pública; la implementación será independiente.
 
-> **Alcance vigente:** PC-MASTER Windows + PC-WORKERS físicos con Debian 13 previsto + adaptador Android agnóstico + componentes de control distribuido. AOSP Cuttlefish es el primer candidato de laboratorio, aún no aprobado. redroid permanece bloqueado por seguridad en la issue [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27).
+> **Alcance vigente:** PC-MASTER Windows + PC-WORKERS físicos con Debian 13 previsto + adaptador Android agnóstico + componentes de control distribuido. redroid es el primer candidato a evaluar, pero permanece bloqueado para ejecución física por la issue [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27) hasta demostrar mitigación en la imagen/digest exactos. Cuttlefish queda como contingencia, no como primera opción.
 
 ## Reglas obligatorias
 
 - Coste operativo objetivo: **0 USD**; sin dependencia crítica de servicios de pago, tarjetas, pruebas temporales ni cargos automáticos.
 - PC-MASTER significa el panel web de control, no el lanzador/configurador de escritorio.
-- PC-MASTER Windows coordina workers físicos. Los workers usarán Debian 13 como base prevista; el motor Android se seleccionará tras revisar licencias, seguridad y pruebas. Cuttlefish es el primer candidato de laboratorio, no aprobado; redroid está bloqueado por #27.
-- La ruta manual QEMU + Android-x86 + VNC en WSL2 está retirada. Cuttlefish es candidato de laboratorio, no aprobado; Android Emulator sirve como referencia de compatibilidad y redroid sigue bloqueado por #27.
+- PC-MASTER Windows coordina workers físicos. Los workers usarán Debian 13 como base prevista; redroid es la primera opción a evaluar, aún bloqueada por #27 antes de ejecución física. Cuttlefish queda como contingencia; el motor solo se aprobará tras revisar licencia, seguridad y pruebas.
+- La ruta manual QEMU + Android-x86 + VNC en WSL2 está retirada. redroid es la prioridad de evaluación, no una instalación autorizada; Android Emulator sirve como referencia de compatibilidad y Cuttlefish queda como contingencia si redroid no supera la puerta de seguridad.
 - Conservar agente, enrolamiento, autenticación/autorización, transporte seguro, heartbeat, estado, persistencia, despacho, reconciliación, observabilidad y automatización: son agregados del producto, no motores alternativos.
 - Los nodos pendientes solo pueden enviar telemetría y consultar estado limitado; no reciben ni ejecutan tareas hasta ser autorizados.
 - No exponer ADB a Internet ni abrir el socket Docker al panel. No ejecutar shell arbitrario desde la API.
