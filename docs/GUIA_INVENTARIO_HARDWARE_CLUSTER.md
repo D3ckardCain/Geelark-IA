@@ -4,6 +4,8 @@
 **Objetivo:** recopilar datos suficientes para decidir qué PC puede actuar como Master y cuáles como Workers heterogéneos.  
 **Coste:** comandos integrados del sistema operativo; no requiere SaaS ni API de pago.
 
+> **Relación con la guía de equipo individual:** este documento es la ficha del clúster (PC-MASTER y varios WORKERS, roles y capacidades). Para un diagnóstico detallado de CPU/GPU/RAM/virtualización de un solo anfitrión, consultar [Guía de inventario del equipo anfitrión](GUIA_INVENTARIO_EQUIPO.md). No son dos procedimientos de instalación; ambos son de inventario/solo lectura.
+
 ## Principios
 
 - No ejecutar scripts descargados ni comandos como administrador/root para este inventario.
