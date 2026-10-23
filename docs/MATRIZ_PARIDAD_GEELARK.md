@@ -158,3 +158,8 @@ Las notas v4.5.1 y v4.5.2 se incorporaron al catálogo (sección 28). Las funcio
 
 
 Las notas históricas v3.6–v3.9 se documentaron en el catálogo, sección 30. Sus límites y opciones no se consideran garantía actual ni límites que debamos copiar; la implementación local deberá validarse con pruebas propias.
+
+
+## Nota de vigencia estratégica — 2026-10-22
+
+Este documento se conserva como evidencia funcional histórica/preliminar; la fecha de las fuentes funcionales originales no se actualiza por esta nota. La estrategia técnica se revisó el 2026-10-22: la ruta manual QEMU + Android-x86 + VNC está retirada; AOSP Cuttlefish es solo candidato de laboratorio y no está aprobado; redroid permanece bloqueado por la Issue #27; Android Emulator es referencia de compatibilidad y Waydroid sigue como alternativa secundaria. No se ha completado una prueba en WORKER físico ni se ha medido densidad de instancias. Antes de implementar paridad, reconciliar con la investigación ampliada de la PR #86 y distinguir evidencia documentada, inferencia, código en PR, CI por SHA y prueba real.
