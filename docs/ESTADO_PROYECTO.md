@@ -13,7 +13,7 @@ Construir una plataforma local que administre instancias Android ejecutadas en P
 1. PC-MASTER significa el panel web central, no su lanzador/configurador de escritorio.
 2. redroid es el único motor Android en preparación.
 3. Debian 13 es el sistema base previsto para los workers; no se ha instalado ni aprobado aún mediante este registro.
-4. Se retira la ruta QEMU + Android-x86 + VNC en WSL2 y no se mantienen motores alternativos como opciones activas.
+4. Se retira la ruta la ruta experimental anterior y no se mantienen motores alternativos como opciones activas.
 5. Se conservan agente, enrolamiento, autenticación/autorización, HTTPS privado, heartbeat, capacidades, estado, persistencia, despacho durable, auditoría, reconciliación, captura/entrada y automatización.
 6. Los nodos pendientes pueden enviar telemetría y consultar estado limitado; no reciben ni ejecutan tareas hasta ser autorizados.
 7. No arrancar redroid en hardware físico hasta que #27 documente una mitigación de seguridad verificable para la imagen exacta.
