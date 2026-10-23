@@ -1,3 +1,5 @@
+> **Revalidación requerida — 2026-10-22:** Esta evaluación pertenece a una rama documental divergida y no debe tomarse como plan operativo vigente. La decisión vigente confirma PC-MASTER Windows y WORKERS físicos Debian 13 como base prevista, pero no autoriza instalación ni selección del motor Android. Antes de reutilizar este documento, comparar con `main` y `docs/ESTADO_PROYECTO.md`; QEMU + Android-x86 + VNC está retirado, redroid bloqueado por #27 y Cuttlefish no aprobado. Mantener el requisito de $0 USD y no instalar nada sin autorización específica.
+
 # Evaluación del sistema operativo base del clúster GeeLark-IA
 
 **Fecha de revisión:** 2026-10-10  
