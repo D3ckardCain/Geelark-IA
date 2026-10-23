@@ -32,9 +32,17 @@ Construir una plataforma local que administre instancias Android ejecutadas en P
 
 La consulta final registra **38 Issues abiertas, 10 cerradas y 21 PR abiertas**, todas las PR abiertas en draft. Son conteos dinámicos, no un criterio de aceptación. La auditoría documental más reciente está en [AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md). No se han fusionado las PR de la cadena del agente/panel; no confundir CI de ramas con integración o aceptación en hardware.
 
+## Bloqueos de integración comprobados — 2026-10-23
+
+- La cadena de agentes/control está apilada en orden #101 → #74 → #52 → #57 → #67 → #85. GitHub marca #101, #52 y #67 como no mergeables; #101 no tiene workflow asociado a su HEAD actual `b84da93881f5869e8832e5888e5dce02433e85cc`. No usar CI de SHA anteriores como validación actual.
+- #74, #57 y #85 no deben integrarse mientras sus bases descendientes sigan con conflictos. Resolver primero #101 y validar cada SHA nuevo en orden.
+- La línea Windows (#87/#103/#104) sigue separada; #87/#103 parten de una rama vinculada a la PR #76 cerrada sin merge. Reconciliar la ascendencia sin cambiar bases automáticamente.
+- #104 tiene transporte y persistencia en success en el HEAD consultado, pero sigue draft; aceptación manual Windows #77 y comprobación del artefacto local #88 continúan pendientes.
+- La documentación funcional de GeeLark mantiene corte de fuentes del 2026-10-09; se añadieron avisos de frescura, pero no se ha completado una nueva auditoría exhaustiva de las funciones públicas.
+
 ## Próximas etapas
 
-1. Completar la limpieza de referencias y enlaces obsoletos en GitHub.
+1. Resolver primero el conflicto de #101 y validar el stack de control en orden base → descendiente; después reconciliar la línea Windows (#87/#103/#104).
 2. Evaluar redroid primero: seguridad de la imagen/digest, requisitos kernel/Binder, licencia, compatibilidad de APK, operación multiinstancia y recursos. Cuttlefish solo si redroid se descarta.
 3. Mantener #27 abierta mientras redroid no tenga mitigación verificable para la imagen exacta.
 4. Aprobar el procedimiento de aprovisionamiento Debian 13 para WORKER-01.
