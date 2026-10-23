@@ -72,16 +72,16 @@ class OperationReceipt:
     assignment_epoch: int
     status: str
     result: dict[str, Any] | None
-    task_id: UUID | None = None
     duplicate: bool = False
+    task_id: UUID | None = None
 
 
 class AgentJournal:
     """Journal durable de un solo nodo; usar archivo en disco local, no NFS."""
 
-    _SCHEMA_VERSION = 2
-    _STATUSES = {"accepted", "running", "succeeded", "failed", "unknown"}
-    _TERMINAL_STATUSES = {"succeeded", "failed"}
+    _SCHEMA_VERSION = 3
+    _STATUSES = {"accepted", "running", "succeeded", "rejected", "failed", "unknown"}
+    _TERMINAL_STATUSES = {"succeeded", "rejected", "failed"}
 
     def __init__(self, db_path: str | Path, local_node_id: UUID):
         if str(db_path) == ":memory:":
@@ -141,23 +141,105 @@ class AgentJournal:
                     node_id TEXT NOT NULL,
                     assignment_epoch INTEGER NOT NULL CHECK (assignment_epoch >= 1),
                     payload_sha256 TEXT NOT NULL CHECK (length(payload_sha256) = 64),
-                    status TEXT NOT NULL CHECK (status IN ('accepted', 'running', 'succeeded', 'failed', 'unknown')),
+                    status TEXT NOT NULL CHECK (status IN ('accepted', 'running', 'succeeded', 'rejected', 'failed', 'unknown')),
                     result_json TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
                 """
             )
-            columns = {row[1] for row in conn.execute("PRAGMA table_info(operation_receipts)").fetchall()}
-            if "task_id" not in columns:
-                conn.execute("ALTER TABLE operation_receipts ADD COLUMN task_id TEXT")
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS synced_receipts (
+                    operation_id TEXT PRIMARY KEY,
+                    synced_at TEXT NOT NULL,
+                    FOREIGN KEY(operation_id) REFERENCES operation_receipts(operation_id)
+                )
+                """
+            )
             version = conn.execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations").fetchone()[0]
             if version > self._SCHEMA_VERSION:
                 raise AgentGuardError("La versión del journal es más nueva que este agente")
-            if version < self._SCHEMA_VERSION:
+            if version == 0:
+                # Un journal nuevo se crea directamente con el esquema más reciente.
                 conn.execute(
-                    "INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)",
-                    (self._SCHEMA_VERSION, self._now()),
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES (1, ?)",
+                    (self._now(),),
+                )
+                conn.execute(
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES (2, ?)",
+                    (self._now(),),
+                )
+                conn.execute(
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES (3, ?)",
+                    (self._now(),),
+                )
+            elif version == 1:
+                # SQLite no permite ampliar un CHECK existente con ALTER COLUMN.
+                # Se recrean las dos tablas en una transacción y se conservan los ACK.
+                conn.execute("PRAGMA foreign_keys = OFF")
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    conn.execute(
+                        """
+                        CREATE TABLE operation_receipts_v2 (
+                            operation_id TEXT PRIMARY KEY,
+                            instance_id TEXT NOT NULL,
+                            node_id TEXT NOT NULL,
+                            assignment_epoch INTEGER NOT NULL CHECK (assignment_epoch >= 1),
+                            payload_sha256 TEXT NOT NULL CHECK (length(payload_sha256) = 64),
+                            status TEXT NOT NULL CHECK (status IN ('accepted', 'running', 'succeeded', 'rejected', 'failed', 'unknown')),
+                            result_json TEXT,
+                            created_at TEXT NOT NULL,
+                            updated_at TEXT NOT NULL
+                        )
+                        """
+                    )
+                    conn.execute(
+                        """
+                        INSERT INTO operation_receipts_v2
+                            (operation_id, instance_id, node_id, assignment_epoch,
+                             payload_sha256, status, result_json, created_at, updated_at)
+                        SELECT operation_id, instance_id, node_id, assignment_epoch,
+                               payload_sha256, status, result_json, created_at, updated_at
+                          FROM operation_receipts
+                        """
+                    )
+                    conn.execute(
+                        """
+                        CREATE TABLE synced_receipts_v2 (
+                            operation_id TEXT PRIMARY KEY,
+                            synced_at TEXT NOT NULL,
+                            FOREIGN KEY(operation_id) REFERENCES operation_receipts_v2(operation_id)
+                        )
+                        """
+                    )
+                    conn.execute(
+                        """
+                        INSERT INTO synced_receipts_v2(operation_id, synced_at)
+                        SELECT operation_id, synced_at FROM synced_receipts
+                        """
+                    )
+                    conn.execute("DROP TABLE synced_receipts")
+                    conn.execute("DROP TABLE operation_receipts")
+                    conn.execute("ALTER TABLE operation_receipts_v2 RENAME TO operation_receipts")
+                    conn.execute("ALTER TABLE synced_receipts_v2 RENAME TO synced_receipts")
+                    conn.execute(
+                        "INSERT INTO schema_migrations(version, applied_at) VALUES (2, ?)",
+                        (self._now(),),
+                    )
+                    conn.commit()
+                    version = 2
+                except Exception:
+                    conn.rollback()
+                    raise
+                finally:
+                    conn.execute("PRAGMA foreign_keys = ON")
+            if version == 2:
+                conn.execute("ALTER TABLE operation_receipts ADD COLUMN task_id TEXT")
+                conn.execute(
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES (3, ?)",
+                    (self._now(),),
                 )
         finally:
             conn.close()
@@ -247,8 +329,8 @@ class AgentJournal:
                 assignment_epoch=command.assignment_epoch,
                 status="accepted",
                 result=None,
-                task_id=command.task_id,
                 duplicate=False,
+                task_id=command.task_id,
             )
         except Exception:
             conn.rollback()
@@ -275,7 +357,7 @@ class AgentJournal:
             raise InvalidAgentCommand("El resultado no está dirigido a este nodo")
         if not isinstance(result, dict):
             raise InvalidAgentCommand("result debe ser un objeto JSON")
-        if not isinstance(status, str) or status not in {"running", "succeeded", "failed", "unknown"}:
+        if not isinstance(status, str) or status not in {"running", "succeeded", "rejected", "failed", "unknown"}:
             raise InvalidAgentCommand("status de resultado no válido")
         result_json = self._canonical_json(result)
         if len(result_json.encode("utf-8")) > 1_000_000:
@@ -298,7 +380,7 @@ class AgentJournal:
 
             row = conn.execute(
                 """
-                SELECT operation_id, task_id, instance_id, node_id, assignment_epoch,
+                SELECT operation_id, instance_id, node_id, assignment_epoch,
                        payload_sha256, status, result_json
                   FROM operation_receipts
                  WHERE operation_id = ?
@@ -329,6 +411,9 @@ class AgentJournal:
                 """,
                 (status, result_json, now, str(operation_id)),
             )
+            # Cada nueva versión de progreso/resultado debe volver a la cola,
+            # incluso si una versión anterior ya recibió ACK.
+            conn.execute("DELETE FROM synced_receipts WHERE operation_id = ?", (str(operation_id),))
             conn.commit()
             return OperationReceipt(
                 operation_id=operation_id,
@@ -337,8 +422,8 @@ class AgentJournal:
                 assignment_epoch=assignment_epoch,
                 status=status,
                 result=result,
-                task_id=UUID(row["task_id"]) if row["task_id"] else None,
                 duplicate=False,
+                task_id=UUID(row["task_id"]) if row["task_id"] else None,
             )
         except Exception:
             conn.rollback()
@@ -351,7 +436,7 @@ class AgentJournal:
         try:
             row = conn.execute(
                 """
-                SELECT operation_id, task_id, instance_id, node_id, assignment_epoch,
+                SELECT operation_id, instance_id, node_id, assignment_epoch,
                        payload_sha256, status, result_json
                   FROM operation_receipts
                  WHERE operation_id = ?
@@ -359,6 +444,82 @@ class AgentJournal:
                 (str(operation_id),),
             ).fetchone()
             return self._receipt(row, duplicate=False) if row is not None else None
+        finally:
+            conn.close()
+
+    def list_pending_receipts(self, *, limit: int = 100) -> list[OperationReceipt]:
+        """Devuelve recibos de progreso/resultados todavía no confirmados por el servidor."""
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 1000:
+            raise ValueError("limit debe ser un entero entre 1 y 1000")
+        conn = self._connect()
+        try:
+            rows = conn.execute(
+                """
+                SELECT r.operation_id, r.instance_id, r.node_id, r.assignment_epoch,
+                       r.payload_sha256, r.status, r.result_json
+                  FROM operation_receipts AS r
+                 WHERE r.node_id = ?
+                   AND r.status IN ('running', 'succeeded', 'rejected', 'failed', 'unknown')
+                   AND NOT EXISTS (
+                       SELECT 1 FROM synced_receipts AS s
+                        WHERE s.operation_id = r.operation_id
+                   )
+                 ORDER BY r.updated_at ASC, r.operation_id ASC
+                 LIMIT ?
+                """,
+                (str(self.local_node_id), limit),
+            ).fetchall()
+            return [self._receipt(row, duplicate=False) for row in rows]
+        finally:
+            conn.close()
+
+    def mark_receipt_synced(
+        self,
+        operation_id: UUID,
+        *,
+        expected_status: str,
+        expected_result: dict[str, Any],
+    ) -> bool:
+        """Confirma solo la versión exacta del recibo que recibió ACK HTTP 2xx.
+
+        Si el resultado local cambió mientras la petición estaba en vuelo, devuelve
+        False y no marca el recibo actual como sincronizado. Así un ACK tardío de una
+        versión anterior no puede ocultar progreso/resultado más reciente.
+        """
+        if not isinstance(operation_id, UUID):
+            raise InvalidAgentCommand("operation_id debe ser UUID")
+        if not isinstance(expected_status, str) or expected_status not in (self._STATUSES - {"accepted"}):
+            raise InvalidAgentCommand("expected_status no es un estado sincronizable")
+        if not isinstance(expected_result, dict):
+            raise InvalidAgentCommand("expected_result debe ser un objeto JSON")
+        expected_json = self._canonical_json(expected_result)
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                "SELECT node_id, status, result_json FROM operation_receipts WHERE operation_id = ?",
+                (str(operation_id),),
+            ).fetchone()
+            if row is None or row["node_id"] != str(self.local_node_id):
+                raise UnknownOperation("El recibo no existe en este nodo")
+            if row["status"] not in (self._STATUSES - {"accepted"}):
+                raise InvalidAgentCommand("Solo progreso o resultado puede marcarse sincronizado")
+            if row["status"] != expected_status or row["result_json"] != expected_json:
+                conn.commit()
+                return False
+            conn.execute(
+                """
+                INSERT INTO synced_receipts(operation_id, synced_at)
+                VALUES (?, ?)
+                ON CONFLICT(operation_id) DO NOTHING
+                """,
+                (str(operation_id), self._now()),
+            )
+            conn.commit()
+            return True
+        except Exception:
+            conn.rollback()
+            raise
         finally:
             conn.close()
 
@@ -439,6 +600,6 @@ class AgentJournal:
             assignment_epoch=row["assignment_epoch"],
             status=row["status"],
             result=result,
-            task_id=UUID(row["task_id"]) if row["task_id"] else None,
             duplicate=duplicate,
+            task_id=UUID(row["task_id"]) if row["task_id"] else None,
         )
