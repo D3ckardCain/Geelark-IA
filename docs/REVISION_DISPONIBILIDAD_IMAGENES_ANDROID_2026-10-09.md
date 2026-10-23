@@ -1,3 +1,5 @@
+> **Nota de vigencia — 2026-10-22:** La conclusión de que Bliss OS no es una base permanente por falta de imágenes actuales/soporte sigue siendo una restricción relevante; sin embargo, la recomendación de evaluarlo en QEMU como alternativa activa quedó retirada. No descargar ni instalar imágenes basándose en este documento sin una nueva aprobación. QEMU + Android-x86 + VNC está descartado, redroid continúa bloqueado por #27 y el motor Android permanece sin seleccionar.
+
 # Revisión de disponibilidad de imágenes Android para el clúster
 **Fecha:** 2026-10-09  
 **Estado:** investigación documental; ningún motor instalado ni probado.
