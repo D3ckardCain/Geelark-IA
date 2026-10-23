@@ -1,6 +1,6 @@
 # Plan de trabajo — GeeLark-IA
 
-**Actualizado:** 2026-10-22  
+**Actualizado:** 2026-10-23  
 **Alcance:** PC-MASTER Windows + redroid en PC-WORKERS Debian 13 + agregados necesarios.  
 **Coste obligatorio objetivo:** 0 USD.
 
@@ -80,3 +80,12 @@ Solo tras aprobar la fase 2:
 - [Contrato del adaptador Android](CONTRATO_ADAPTADOR_ANDROID.md)
 - [Modelo de amenazas](MODELO_AMENAZAS_SEGURIDAD.md)
 - [Inventario de licencias y costes](INVENTARIO_LICENCIAS_COSTE.md)
+
+
+## Continuidad de auditoría — 2026-10-23
+
+- PR #106, #108 y #109 están integradas en `main`; consultar `docs/AUDITORIA_GITHUB_CONTINUIDAD_2026-10-22.md` y `docs/AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md` para evidencia y límites.
+- PR #86 se cerró sin merge por cambio de alcance. No usar su plan antiguo para reemplazar este archivo; rescatar contenido solo si reaparece como necesidad explícita.
+- Recuento observado: 22 PR abiertas y 38 Issues abiertas. No fusionar PR apiladas fuera de orden ni cerrar una tarea solo por CI verde.
+- La issue #27 sigue bloqueando cualquier ejecución física de redroid. #24 cubre caché de artefactos; #92 cubre aprovisionamiento Debian 13.
+- La aceptación manual de PC-MASTER en Windows (#77) y la identificación del artefacto local (#88) siguen pendientes; no declarar el panel operativo hasta resolverlas.
