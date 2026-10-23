@@ -90,3 +90,8 @@ python -m pytest packages/cluster-agent-transport/tests -q
 - La prueba de integración PostgreSQL cubre doble claim concurrente, recuperación idempotente, lease de entrega, estados terminales, campos sensibles y epoch obsoleto. La integración con el bucle real del agente sigue pendiente.
 
 No activar listeners ni desplegar en nodos físicos hasta que la pila completa esté revisada y sus pruebas pasen sobre el HEAD actualizado.
+
+
+## Snapshot de estado para PC-MASTER (componente interno)
+
+El proveedor `PostgresStatusSnapshotProvider` del paquete `cluster-persistence` transforma el estado persistido en el contrato `master-worker-status-v1`. Ejecuta solo `SELECT`, no crea listeners ni cambia permisos; la capa que lo consuma debe autenticar y autorizar al operador y usar un rol PostgreSQL de solo lectura. Manual operativo: [MANUAL_PROVEEDOR_SNAPSHOT_PC_MASTER.md](../../docs/MANUAL_PROVEEDOR_SNAPSHOT_PC_MASTER.md). No está conectado al panel ni aprobado para despliegue.
