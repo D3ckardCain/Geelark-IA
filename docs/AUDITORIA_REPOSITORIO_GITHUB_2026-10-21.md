@@ -259,7 +259,7 @@ Se añadieron avisos, sin eliminar el análisis original, a cuatro documentos de
 
 - **Prueba física/decisión de motor:** #8, #10, #11, #12, #24 y #27; falta medir en WORKER real, revisar licencias/seguridad y seleccionar motor. No se puede declarar completado por investigación documental.
 - **Paridad funcional:** #3, #4 y #6; los documentos siguen parciales y #86 contiene contenido único, pero tiene conflicto y no tiene CI asociada a su HEAD actual.
-- **Clúster y persistencia:** #20, #29, #31, #33, #35, #37, #39, #41, #43, #46, #50, #55, #58, #62 y #65; hay dependencias de integración, pruebas de recuperación, autenticación, autorización, seguridad y/o CI del SHA final pendientes.
+- **Clúster y persistencia:** #20, #29, #31, #33, #35, #37, #41, #43, #46, #50, #55, #58, #62 y #65; #39 se cerró solo como decisión de diseño; hay dependencias de integración, pruebas de recuperación, autenticación, autorización, seguridad y/o CI del SHA final pendientes.
 - **PC-MASTER:** #77 requiere aceptación manual en Windows; #88 requiere comparar el archivo/acceso directo local; #89/#91 requieren integrar y validar la suite completa. #87/#103 mantienen una ascendencia desde la rama #76 cerrada sin merge; no cambiar bases automáticamente.
 - **Costo $0:** #63 sigue abierta porque el panel de uso/facturación no es accesible desde la auditoría de repositorio. Se verificaron filtros de workflow, pero no se puede certificar desde aquí el saldo real ni prometer costo futuro sin revisar el panel de la cuenta.
 
@@ -268,4 +268,4 @@ Se añadieron avisos, sin eliminar el análisis original, a cuatro documentos de
 - Recuento actualizado tras cerrar #39 como decisión de diseño completada (22-oct-2026): **39 Issues abiertas; 9 cerradas**.
 - **23 PR abiertas, todas en draft; 36 PR cerradas** según la consulta actual de GitHub.
 - PR #101, #52 y #67 aparecen con conflictos de integración; el HEAD actual de #101 no tiene workflows asociados. #86 también tiene conflicto documental. No se cambió ninguna base ni se resolvieron conflictos a ciegas.
-- No se identificó otra Issue que pudiera cerrarse con seguridad sin confundir una decisión documental con implementación, CI de una rama con integración, o trabajo de software con aceptación/prueba física. Las Issues #64, #105 y #107 ya se cerraron con alcance limitado y evidencia.
+- No se identificó otra Issue que pudiera cerrarse con seguridad sin confundir una decisión documental con implementación, CI de una rama con integración, o trabajo de software con aceptación/prueba física. Las Issues #39, #64, #105 y #107 ya se cerraron con alcance limitado y evidencia.
