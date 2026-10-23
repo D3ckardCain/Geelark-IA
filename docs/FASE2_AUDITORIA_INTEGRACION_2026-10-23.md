@@ -2,27 +2,29 @@
 
 ## Resultado de inspección en vivo
 
-Se consultaron metadatos de las PR apiladas, comparaciones de commits y Issues de aceptación. Esta revisión es de solo lectura; no se rebasaron ramas, no se fusionaron PR, no se cerraron Issues y no se lanzaron workflows nuevos.
+Se consultaron metadatos de las PR apiladas, comparaciones de commits y Issues de aceptación. No se rebasaron ramas, no se fusionaron PR, no se cerraron Issues ni se lanzaron workflows manuales. Los workflows automáticos posteriores sí se ejecutaron por commits de corrección; los resultados se registran en la revalidación final.
 
 ### Cadena de control
 
-| PR | Estado de merge reportado | Base → HEAD | Hallazgo |
+| PR | Estado de merge reportado (consulta 2026-10-23) | Base → HEAD | Hallazgo |
 |---|---|---|---|
-| #101 | `mergeable=false` | base `da71c77a` → HEAD `b84da938` | Comparación divergente: HEAD 21 commits por delante y 5 por detrás. Debe reconciliarse antes de confiar en CI previa. |
-| #74 | `mergeable=true` | base declarada en `f338d63a` → HEAD `df34e00e` | Es descendiente de #101. No integrarla hasta que #101 se resuelva y se valide el nuevo SHA; su base declarada no debe darse por actualizada automáticamente. |
-| #52 | `mergeable=false` | base `c5bc7925` → HEAD `20e618aa` | 55 commits por delante, 0 por detrás, pero GitHub informa no mergeable. Esto puede deberse a conflictos de contenido y requiere inspección de diff; la topología por sí sola no resuelve el bloqueo. |
-| #57 | `mergeable=true` | base `ea3e0d09` → HEAD `a27922c2` | Depende de #52; no integrar antes de resolver #52. |
-| #67 | `mergeable=false` | base `ead30bd4` → HEAD `776a3d54` | Depende de #57; revisar conflictos tras estabilizar las bases anteriores. |
-| #85 | `mergeable=true` | base `3bd09e4f` → HEAD `3ef9f065` | Depende de #67; no integrar antes de validar la cadena completa. |
+| #101 | `mergeable=true` | `feat/agent-https-transport` → `043a4e23` | CI actual verde: transporte #479/#478, esquema #308 y persistencia #607. Sigue en draft. |
+| #74 | `mergeable=true` | `fix/worker-module-inventory-transport-ack-v2` → `406936ec` | CI actual verde: transporte #480 y persistencia #608. Sigue en draft. |
+| #52 | `mergeable=false` | `feat/master-status-snapshot-provider-v1` → `20e618aa` | Conflicto de integración; no fusionar. |
+| #57 | `mergeable=true` | `feat/agent-task-inbox-v2` → `a27922c2` | Depende de #52; no integrar antes de resolver #52. |
+| #67 | `mergeable=false` | `feat/agent-lifecycle-sync-inbox` → `776a3d54` | Depende de #57; requiere reconciliación tras estabilizar las bases anteriores. |
+| #85 | `mergeable=true` | `feat/agent-supervisor-heartbeat-v2` → `3ef9f065` | Depende de #67; no integrar antes de validar la cadena completa. |
+| #112 | `mergeable=false` | `feat/agent-task-inbox-v2` ← `406936ec` | PR de sincronización del proveedor #74 a la rama de bandeja; resolver conflictos, no fusionar a ciegas. |
+| #113 | `mergeable=true` | `feat/agent-task-inbox-v2` → `21a5b491` | Corrección de lease validada: transporte #482 y persistencia #609 `success`; mantener draft hasta revisión/integración. |
 
 Los SHA abreviados de la tabla sirven para orientación; usar SHA completos en operaciones. La propiedad `mergeable` es una observación de GitHub en el momento de la consulta y puede cambiar.
 
-### CI exacta de #101
+### CI exacta de #101 — estado actual
 
-- HEAD consultado: `b84da93881f5869e8832e5888e5dce02433e85cc`.
-- La consulta de workflows asociados a ese SHA devolvió una lista vacía; los estados combinados también devolvieron una lista vacía. Por tanto, no hay evidencia recuperada de CI de PR asociada a ese SHA en esta consulta.
-- La PR incluye cambios reales en runtime, política, handlers, migración, contrato JSON Schema, pruebas PostgreSQL y workflow. No es una limpieza documental segura para integrar a ciegas.
-- La comparación base/HEAD devolvió 21 commits por delante y 5 por detrás. Próximo paso: revisar los cinco commits de divergencia y reconciliar los cambios de autorización/transporte, preservar ACK durable y validar el SHA resultante.
+- HEAD actual consultado: `043a4e23efd063949577f758eacc326d74bb7ce5`.
+- Transporte #479/#478, esquema #308 y persistencia #607 terminaron `completed/success`.
+- GitHub informa `mergeable=true`. La PR sigue en draft y no se ha fusionado; revisar contrato/migración y dependencias antes de integrar.
+- El SHA `b84da93881f5869e8832e5888e5dce02433e85cc` descrito en una sección histórica posterior no debe usarse como estado actual.
 
 ### Línea Windows PC-MASTER
 
