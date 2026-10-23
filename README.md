@@ -38,6 +38,7 @@ Plataforma local para administrar instancias Android en equipos WORKER físicos 
 - [Modelo de amenazas](docs/MODELO_AMENAZAS_SEGURIDAD.md)
 - [Inventario de licencias y costes](docs/INVENTARIO_LICENCIAS_COSTE.md)
 - [Evaluación exclusiva de redroid](docs/COMPARATIVA_MOTORES_ANDROID.md)
+- [Plan de aprovisionamiento automatizado Debian 13](docs/PLAN_APROVISIONAMIENTO_WORKER_DEBIAN13.md)
 - [Preparación del worker redroid](docs/PREPARACION_WORKER_REDROID.md)
 - [Bloqueo de seguridad redroid #27](https://github.com/D3ckardCain/Geelark-IA/issues/27)
 
