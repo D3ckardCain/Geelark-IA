@@ -90,3 +90,8 @@ Esta sección actualiza el estado CI de la instantánea anterior; las notas prev
 - Recuento del repositorio por API: **23 PR abiertas** (todas en draft), **40 Issues abiertas** y **8 Issues cerradas**. Issues #64, #105 y #107 se cerraron con alcance limitado y evidencia documentada; no se fusionó ninguna PR.
 - La numeración ADR final en ramas candidatas es #40 ADR-005 (autenticación agentes), #70 ADR-006 (lectura de estado Master/Worker), #104 ADR-007 (autenticación PC-MASTER). Issue #107 quedó cerrada tras confirmar referencias, manuales separados y CI actual de #70/#104.
 
+
+
+## Reconciliación de documentos históricos Android — 22-oct-2026
+
+Se añadieron avisos de vigencia sin borrar el análisis original, únicamente en la rama `docs/android-engine-evaluation`, a cinco archivos: `ACTUALIZACION_SEGURIDAD_REDROID_2026-10-09.md`, `EVALUACION_PRELIMINAR_MOTOR_ANDROID_CLUSTER.md`, `PLAN_PRUEBA_NO_DESTRUCTIVA_WORKER_01.md`, `CONTRATO_ADAPTADOR_RUNTIME_ANDROID.md` y `REVISION_DISPONIBILIDAD_IMAGENES_ANDROID_2026-10-09.md`. Los avisos prohíben tratar como vigente la recomendación QEMU/KVM + Bliss OS y aclaran el estado actual de los candidatos. No se fusionó la rama ni se ejecutó CI; no hubo cambios de código ni instalaciones.
