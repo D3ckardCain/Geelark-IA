@@ -5,6 +5,7 @@ on:
     paths:
       - "packages/cluster-agent-transport/**"
       - "packages/cluster-agent-auth/**"
+      - "packages/cluster-agent-guard/**"
       - "db/migrations/**"
       - ".github/workflows/cluster-agent-transport.yml"
   push:
@@ -48,15 +49,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      # PR #48 is stacked on auth-service while the journal API lives in PR #38.
-      # Pin the current journal API commit so the cross-branch integration test is reproducible.
-      - name: Checkout journal API from PR #38
-        uses: actions/checkout@v5
-        with:
-          repository: D3ckardCain/Geelark-IA
-          ref: 8403f9d84b603b9b59c3172a75df0b3681b9bad7
-          path: guard-source
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -74,7 +66,7 @@ jobs:
 
       - name: Install local journal and transport packages
         run: |
-          python -m pip install -e "guard-source/packages/cluster-agent-guard[test]"
+          python -m pip install -e "packages/cluster-agent-guard[test]"
           python -m pip install -e "packages/cluster-agent-auth[test]"
           python -m pip install -e "packages/cluster-agent-transport[test]"
 
