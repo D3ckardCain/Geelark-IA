@@ -30,19 +30,19 @@ Construir una plataforma local que administre instancias Android ejecutadas en P
 
 ## Recuento de auditoría GitHub — 2026-10-23
 
-La consulta final registra **38 Issues abiertas, 10 cerradas y 21 PR abiertas**, todas las PR abiertas en draft. Son conteos dinámicos, no un criterio de aceptación. La auditoría documental más reciente está en [AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md). No se han fusionado las PR de la cadena del agente/panel; no confundir CI de ramas con integración o aceptación en hardware.
+La consulta final registra **38 Issues abiertas, 10 cerradas y 23 PR abiertas**, todas las PR abiertas en draft al 2026-10-23. Son conteos dinámicos, no un criterio de aceptación. Son conteos dinámicos, no un criterio de aceptación. La auditoría documental más reciente está en [AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md). No se han fusionado las PR de la cadena del agente/panel; no confundir CI de ramas con integración o aceptación en hardware.
 
 ## Bloqueos de integración comprobados — 2026-10-23
 
 - La cadena de agentes/control está apilada en orden #101 → #74 → #52 → #57 → #67 → #85. GitHub marca #101, #52 y #67 como no mergeables; #101 no tiene workflow asociado a su HEAD actual `b84da93881f5869e8832e5888e5dce02433e85cc`. No usar CI de SHA anteriores como validación actual.
-- #74, #57 y #85 no deben integrarse mientras sus bases descendientes sigan con conflictos. Resolver primero #101 y validar cada SHA nuevo en orden.
+- PR #112 intenta sincronizar el proveedor #74 a la rama de bandeja; GitHub marca #112 `mergeable=false`. No fusionar hasta resolver conflicto, revisar diff y validar el SHA resultante. PR #113 corrige la lease de entrega tras aceptación; su HEAD `21a5b4915086959eaf7dece15b6095de333612ce` pasó transporte #482 (63 passed) y persistencia #609 (test PostgreSQL de bandeja 1 passed, suites persistencia/guard/auth 32 + 12 + 54 passed; `pip check` limpio). #52/#57/#67/#85 siguen sin integración/aceptación manual; validar dependencias en orden.
 - La línea Windows (#87/#103/#104) sigue separada; #87/#103 parten de una rama vinculada a la PR #76 cerrada sin merge. Reconciliar la ascendencia sin cambiar bases automáticamente.
 - #104 tiene transporte y persistencia en success en el HEAD consultado, pero sigue draft; aceptación manual Windows #77 y comprobación del artefacto local #88 continúan pendientes.
 - La documentación funcional de GeeLark mantiene corte de fuentes del 2026-10-09; se añadieron avisos de frescura, pero no se ha completado una nueva auditoría exhaustiva de las funciones públicas.
 
 ## Próximas etapas
 
-1. Resolver primero el conflicto de #101 y validar el stack de control en orden base → descendiente; después reconciliar la línea Windows (#87/#103/#104).
+1. Resolver la sincronización conflictiva #112 y revisar el stack de control en orden base → descendiente; después reconciliar la línea Windows (#87/#103/#104).
 2. Evaluar redroid primero: seguridad de la imagen/digest, requisitos kernel/Binder, licencia, compatibilidad de APK, operación multiinstancia y recursos. Cuttlefish solo si redroid se descarta.
 3. Mantener #27 abierta mientras redroid no tenga mitigación verificable para la imagen exacta.
 4. Aprobar el procedimiento de aprovisionamiento Debian 13 para WORKER-01.
