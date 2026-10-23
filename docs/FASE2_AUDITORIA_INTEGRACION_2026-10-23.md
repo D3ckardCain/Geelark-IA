@@ -116,3 +116,14 @@ En la revisión de #52 se detectó que `_locked_task` trataba la lease de entreg
 - Estado: #113 draft; CI aún no aparece en los resultados al registrar esta nota. No se ha fusionado ni desplegado. Revalidar CI antes de incorporar el fix a #52 y antes de reconciliar la pila con el proveedor de snapshots.
 
 La divergencia entre #74 y #52 sigue siendo independiente: #112 no es mergeable y requiere reconciliar el runtime (task_id y endpoints de bandeja más ACK cercado por versión), pruebas, schema y workflows. No seleccionar una versión completa de `runtime.py` sobre la otra.
+
+
+## Revalidación final de lease y cobertura PostgreSQL — 2026-10-23
+
+El HEAD inicial de #113 (`3f096d0f461e8ef47077eb02153fb615001fe465`) pasó transporte #481 (63 passed), pero la auditoría encontró que `cluster-persistence-service.yml` no se disparaba por cambios en `packages/cluster-agent-transport/**`. Se amplió el filtro `pull_request`/`push` y se añadió una ejecución explícita de `packages/cluster-agent-transport/tests/test_task_inbox_postgres.py` contra PostgreSQL 16 desechable.
+
+HEAD actualizado de #113: `21a5b4915086959eaf7dece15b6095de333612ce`.
+- Transporte #482: `success`, **63 passed**, `pip check` limpio.
+- Persistencia #609: `success`; prueba PostgreSQL de bandeja **1 passed**, suites de persistencia/guard/auth **32 + 12 + 54 passed**, `pip check` limpio.
+
+La corrección y su cobertura de CI quedan validadas en esta rama, pero #113 sigue en draft. La sincronización #112 continúa `mergeable=false`; no fusionar ni ejecutar Android hasta reconciliar las dos ramas y validar el SHA integrado.
