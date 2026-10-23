@@ -1,3 +1,4 @@
+import os
 import shutil
 import socket
 import subprocess
@@ -43,6 +44,8 @@ def test_real_tls_handshake_trusts_local_ca_and_rejects_untrusted_ca(tmp_path):
     ]
     for command in commands:
         subprocess.run(command, check=True, capture_output=True, text=True)
+    if os.name == "posix":
+        server_key.chmod(0o600)
 
     app = FastAPI()
 
@@ -107,3 +110,29 @@ def test_client_rejects_http_and_non_private_controller_urls():
         url_host = f"[{address}]" if ":" in address else address
         with pytest.raises(ValueError):
             AgentHTTPSClient(base_url=f"https://{url_host}:8443", ca_cert="/missing/ca.crt")
+
+
+@pytest.mark.skipif(os.name != "posix", reason="Los permisos POSIX no aplican en Windows.")
+@pytest.mark.parametrize("unsafe_target", ["key", "directory"])
+def test_listener_rejects_insecure_private_key_paths(tmp_path, unsafe_target):
+    from cluster_agent_transport.server import TransportConfigurationError, validate_https_listener
+
+    pki_dir = tmp_path / "pki"
+    pki_dir.mkdir()
+    cert = pki_dir / "server.crt"
+    key = pki_dir / "server.key"
+    cert.write_text("public certificate placeholder", encoding="utf-8")
+    key.write_text("private key placeholder", encoding="utf-8")
+    cert.chmod(0o644)
+    key.chmod(0o600)
+    if unsafe_target == "key":
+        key.chmod(0o644)
+    else:
+        pki_dir.chmod(0o777)
+    with pytest.raises(TransportConfigurationError, match="clave privada|directorio contenedor"):
+        validate_https_listener(
+            host="127.0.0.1",
+            port=8443,
+            certfile=str(cert),
+            keyfile=str(key),
+        )

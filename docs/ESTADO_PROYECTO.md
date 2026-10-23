@@ -287,3 +287,19 @@ El PR borrador #16 ahora incluye validación de coherencia entre `status` y `obs
 ### Persistencia de asignaciones documentada (2026-10-09)
 
 Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md). Define transacciones, restricciones para un único propietario, idempotencia durable, outbox y pruebas de caída/concurrencia. No hay DDL, migraciones ni código de persistencia implementados; PostgreSQL local sigue siendo una propuesta pendiente de validar.
+
+## Panel PC-MASTER — implementación de solo lectura en revisión (actualizado 2026-10-21)
+
+La implementación administrativa continúa en la [PR #104](https://github.com/D3ckardCain/Geelark-IA/pull/104), que recupera el trabajo de la PR #84 (cerrada sin fusionar) y agrega correcciones posteriores de Windows/CA y pruebas de regresión. Incluye login local, sesiones SQLite revocables, panel del mismo origen, TLS obligatorio, bind loopback por defecto, consulta autenticada de snapshots y rol PostgreSQL dedicado de solo lectura. No expone mutaciones, tareas, ADB ni shell.
+
+La consulta del panel lee `reported_health_state` desde su columna separada; la salud derivada se calcula con frescura del heartbeat. El panel no debe declarar operativo un módulo ausente, obsoleto o incoherente.
+
+CI verificada para HEAD reconciliado `09d6a5ba322b636fd5d277c1cdb366416e057845` (2026-10-21):
+- [Persistencia/PostgreSQL y Windows ACL #591](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39686519813): ambos jobs terminaron en success.
+- [Transporte HTTPS #462](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39686519850): success.
+
+Se añadió `pytest.ini` con `--import-mode=importlib` y un job aislado de suite integral desde la raíz para PR #104, con PostgreSQL 16 desechable. En HEAD `03da584894ee713af8d74212a81aa07a91cb407b`, la suite raíz terminó con **293 passed, 3 skipped** y `pip check` limpio; Windows ACL terminó con **50 passed, 8 skipped**, y PostgreSQL/persistencia + verificación del rol lector también pasó. Transporte HTTPS pasó en la ejecución [#466](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39686861612).
+
+La aceptación manual en el PC-MASTER Windows 11 sigue pendiente. La CI no demuestra certificados y confianza TLS del equipo, login/logout real ni permisos/conectividad de la base del equipo. Completar el checklist de la issue #77 con evidencia sanitizada antes de declarar operativo el panel.
+
+Pendiente antes de fusionar o desplegar: aceptación manual del checklist de la issue #77 y revisión final de PR. No fusionar ni desplegar todavía. Coste operativo objetivo $0 USD; no restaurar Supabase ni habilitar facturación/runners propios.
