@@ -114,3 +114,6 @@ Esta actualización reemplaza recuentos históricos de Issues/PR que podrían ha
 - #24 mantiene únicamente la caché local de artefactos verificados; #92 mantiene únicamente el aprovisionamiento Debian 13. No ejecutar instalación de runtime hasta superar las puertas de licencia, seguridad y aceptación.
 - #27 permanece abierta como bloqueo obligatorio del motor prioritario redroid. La prioridad no implica aprobación de seguridad ni autoriza instalación física; la puerta solo se levanta con evidencia reproducible sobre la imagen/digest exactos.
 - Se cerró #64 como decisión resuelta (Windows en PC-MASTER, Debian 13 previsto en WORKERS). No se cerró ninguna tarea de implementación física por inferencia.
+
+
+**Documento complementario:** [Auditoría de continuidad GitHub — 2026-10-22](AUDITORIA_GITHUB_CONTINUIDAD_2026-10-22.md) resume decisiones de alcance y continuidad; este archivo conserva el registro detallado de higiene, issues, PRs, conflictos y CI.
