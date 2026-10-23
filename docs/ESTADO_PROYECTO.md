@@ -13,7 +13,7 @@ Construir una plataforma local que administre instancias Android ejecutadas en P
 1. PC-MASTER significa el panel web central, no su lanzador/configurador de escritorio.
 2. redroid es el único motor Android en preparación.
 3. Debian 13 es el sistema base previsto para los workers; no se ha instalado ni aprobado aún mediante este registro.
-4. Se retira la ruta la ruta experimental anterior y no se mantienen motores alternativos como opciones activas.
+4. Se retira la ruta experimental anterior y no se mantienen motores alternativos como opciones activas.
 5. Se conservan agente, enrolamiento, autenticación/autorización, HTTPS privado, heartbeat, capacidades, estado, persistencia, despacho durable, auditoría, reconciliación, captura/entrada y automatización.
 6. Los nodos pendientes pueden enviar telemetría y consultar estado limitado; no reciben ni ejecutan tareas hasta ser autorizados.
 7. No arrancar redroid en hardware físico hasta que #27 documente una mitigación de seguridad verificable para la imagen exacta.
@@ -27,6 +27,10 @@ Construir una plataforma local que administre instancias Android ejecutadas en P
 - El bloqueo de seguridad sigue abierto: [issue #27](https://github.com/D3ckardCain/Geelark-IA/issues/27).
 - No se ha instalado redroid en los workers físicos ni se han modificado sus discos durante esta preparación.
 - Las PR abiertas no equivalen a cambios integrados; revisar dependencia, CI del HEAD actual y aceptación manual antes de cerrar módulos.
+
+## Recuento de auditoría GitHub — 2026-10-23
+
+La consulta final registra **38 Issues abiertas, 10 cerradas y 22 PR abiertas**, todas las PR abiertas en draft. Son conteos dinámicos, no un criterio de aceptación. La auditoría documental más reciente está en [AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md). No se han fusionado las PR de la cadena del agente/panel; no confundir CI de ramas con integración o aceptación en hardware.
 
 ## Próximas etapas
 
