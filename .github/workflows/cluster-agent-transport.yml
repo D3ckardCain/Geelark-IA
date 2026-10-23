@@ -49,7 +49,8 @@ jobs:
         uses: actions/checkout@v5
 
       # PR #48 is stacked on auth-service while the journal API lives in PR #38.
-      # Pin the journal API that supports ACK by exact status/result so this test matches runtime fencing.
+      # Pin the current journal API commit so the cross-branch integration test is reproducible.
+      # Runtime fencing is tested separately by the ACK status/result assertions.
       - name: Checkout journal API from PR #38
         uses: actions/checkout@v5
         with:
