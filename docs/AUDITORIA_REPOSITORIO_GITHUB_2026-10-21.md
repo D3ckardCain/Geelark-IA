@@ -23,7 +23,7 @@ Mantener el repositorio GeeLark-IA alineado con el alcance vigente: PC-MASTER Wi
 - ADR-001 y ADR-002 alineados con PC-MASTER Windows, Debian 13 previsto y motor Android intercambiable; ADR-002 retira la ruta QEMU + Android-x86 + VNC en WSL2.
 - Arquitectura tecnológica y de clúster actualizadas.
 - Plan de trabajo actualizado con fases y puertas de aceptación.
-- Evaluación de redroid conservada como bloqueo de seguridad independiente; investigación/comparativa priorizan evaluar Cuttlefish antes de aprobar cualquier motor.
+- Evaluación de redroid conservada como prioridad y bloqueo de seguridad independiente; Cuttlefish queda solo como contingencia futura y no como candidato activo.
 - Catálogo funcional y matriz de paridad conservados como documentación de funciones públicas de GeeLark, no como selección de motores.
 - Issue #8 cerrada como decisión de alcance completada; la issue #27 permanece abierta.
 - PR #108 integró la preparación del worker y el diagnóstico de solo lectura; PR #109 integró la limpieza de alcance.
