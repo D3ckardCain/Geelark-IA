@@ -181,6 +181,22 @@ def test_active_node_claims_assignment_and_reports_fenced_result():
             json={"schema_version": 1, "state": "accepted", "details": {}},
         )
         assert accepted.status_code == 200
+
+        # La lease de entrega solo protege la fase delivered. Una vez aceptada,
+        # el progreso depende de la lease de instancia y del assignment_epoch.
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.agent_tasks SET delivery_lease_until = now() - interval '1 second' WHERE task_id = %s",
+                (task_id,),
+            )
+        accepted_after_delivery_lease = client.post(
+            f"/agent/v1/tasks/{task_id}/progress",
+            headers=headers("task-progress-after-delivery-lease-" + str(uuid4())),
+            json={"schema_version": 1, "state": "running", "details": {"progress_percent": 10}},
+        )
+        assert accepted_after_delivery_lease.status_code == 200
+        assert accepted_after_delivery_lease.json()["state"] == "running"
+
         secret_progress = client.post(
             f"/agent/v1/tasks/{task_id}/progress",
             headers=headers("task-progress-secret-" + str(uuid4())),
