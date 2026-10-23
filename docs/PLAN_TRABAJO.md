@@ -7,7 +7,7 @@
 ## Estado vigente
 
 - PC-MASTER es el panel web central; el lanzador/configurador de escritorio es separado.
-- AOSP Cuttlefish es el primer candidato de laboratorio, aún no aprobado. El adaptador Android debe permanecer agnóstico; Android Emulator es referencia de compatibilidad y redroid sigue bloqueado por #27.
+- redroid es el primer candidato a evaluar; la ejecución física sigue bloqueada por #27 hasta demostrar mitigación para la imagen/digest exactos. El adaptador Android debe permanecer agnóstico; Cuttlefish es alternativa de contingencia y Android Emulator referencia de compatibilidad.
 - Las rutas técnicas retiradas no forman parte del alcance vigente.
 - No desplegar ningún motor Android en WORKERS físicos hasta aprobar selección, licencias, seguridad y plan de pruebas. La issue #27 mantiene un bloqueo específico para redroid.
 - Los componentes de agente, enrolamiento, autenticación/autorización, HTTPS privado, heartbeat, persistencia, despacho, reconciliación, observabilidad y automatización siguen dentro del alcance.
@@ -23,10 +23,10 @@
 - [ ] Actualizar el registro de decisiones, problemas, soluciones y evidencias.
 
 ### Fase 2 — Selección y seguridad del motor Android
-- [ ] Evaluar Cuttlefish como primer candidato: requisitos de host, KVM, licencias, imágenes, operación multiinstancia y control visual.
+- [ ] Evaluar redroid primero: requisitos Debian/kernel/Binder, licencia, imagen/digest, seguridad, compatibilidad y rendimiento de una instancia aislada; no instalar en Workers físicos hasta resolver #27.
 - [ ] Mantener el adaptador agnóstico y documentar capacidades realmente demostradas.
 - [ ] Revisar Android Emulator como referencia de compatibilidad/licencias, sin asumir que sus imágenes son redistribuibles.
-- [ ] Mantener redroid bloqueado por #27 hasta revisar imagen/digest y demostrar mitigación.
+- [ ] Mantener la puerta de seguridad #27 cerrada hasta documentar mitigación reproducible de redroid sobre imagen/digest exactos; si no es posible, registrar descarte y pasar a contingencia.
 - [ ] Definir privilegios mínimos, aislamiento, ADB, red y recuperación para el candidato seleccionado.
 - **Regla:** no arrancar ningún runtime Android en WORKER físico hasta aprobar la puerta correspondiente.
 
