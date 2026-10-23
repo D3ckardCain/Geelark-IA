@@ -46,6 +46,7 @@ Para el primer tramo de telemetría, usar:
 - `rate_limiter=PostgresRateLimiter(connect)` para despliegues reales/multiworker.
 - `handlers=make_postgres_agent_handlers(connect)`
 - `AgentTransportRuntime(client=https_client, bearer_token=token, journal=agent_journal, local_node_id=node_id)` para integrar el cliente con el journal local del agente.
+- El ACK del journal está protegido contra carreras: el marcador debe comparar `expected_status` y `expected_result` y devolver `True` solo si el recibo no cambió y el ACK quedó confirmado; `False` mantiene el recibo pendiente. Las pruebas deben cubrir cambios concurrentes del recibo y ACK fallido.
 
 Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fila antes de mutar; guardan heartbeat/capacidades y consultan únicamente el nodo autenticado. Los handlers de tareas/reconciliación siguen sin configurarse y devuelven 503; no deben conectarse a operaciones reales hasta integrar el servicio de dominio/outbox y revisarlo.
 
@@ -68,3 +69,13 @@ python -m pip install -e "packages/cluster-agent-transport[test]"
 python -m pip check
 python -m pytest packages/cluster-agent-transport/tests -q
 ```
+
+## Inventario de módulos (v1, en revisión)
+
+- `PUT /agent/v1/modules` acepta IDs de una lista cerrada: `agent-supervisor`, `agent-transport`, `agent-guard`, `task-journal` y `android-engine`.
+- Solo un nodo `active` puede publicar estados de módulos. Un nodo `pending` recibe 403 y conserva exclusivamente heartbeat, capacidades y consulta de su propio estado.
+- El Master fija `checked_at`; no confía en el reloj del Worker.
+- Si el heartbeat supera 90 segundos o el reporte supera 5 minutos, el estado leído pasa a `unknown`, con origen `master-check` y código seguro (`NODE_STALE` o `REPORT_STALE`).
+- Migración requerida: `db/migrations/0004_worker_module_inventory.sql`. No está desplegado ni conectado a PCs físicas.
+
+- Esquema normativo del payload: [worker-module-inventory-v1.schema.json](../../docs/contracts/worker-module-inventory-v1.schema.json); [ejemplo](../../docs/contracts/examples/worker-module-inventory-v1.example.json).

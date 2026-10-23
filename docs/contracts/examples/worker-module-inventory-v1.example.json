@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "modules": [
+    {
+      "module_id": "agent-supervisor",
+      "state": "operational",
+      "version": "0.1.0",
+      "error_code": null
+    },
+    {
+      "module_id": "android-engine",
+      "state": "not-installed",
+      "version": null,
+      "error_code": null
+    }
+  ]
+}
