@@ -228,3 +228,7 @@ HEAD `64f4a7f344ac94f15c75313171bdc2dc9218cd8f` validado por ambos workflows:
 Esta ronda incorpora a la rama combinada el cambio que estaba separado en #113: la lease de entrega solo restringe tareas `delivered`; después de `accepted`, la validez sigue dependiendo de propiedad, epoch y lease de instancia. La prueba PostgreSQL acepta la tarea, expira la lease de entrega y exige que progreso siga funcionando. El test de aceptación tardía tras expiración permanece intacto.
 
 La integración combinada está verde para transporte, journal/guard, auth, persistencia y bandeja PostgreSQL. Aún no se ha probado el rol readonly de Master Admin porque el paquete no existe en la base de #115; ese límite se mantiene explícito. #115 permanece draft/no fusionada. #113 se conserva abierta hasta aprobar/fusionar la integración combinada, evitando perder la corrección auxiliar antes de tiempo.
+
+## Documentación de transporte alineada con el ACK/lease final — 2026-10-23
+
+Se corrigió `packages/cluster-agent-transport/README.md`, que aún describía la API antigua `mark_receipt_synced(operation_id)` y no precisaba la frontera de la lease. Ahora documenta los argumentos obligatorios `expected_assignment_epoch`, `expected_status` y `expected_result`, el fallo cerrado de APIs antiguas, y que la lease de entrega solo bloquea aceptación mientras el estado sea `delivered`. Commit: `f510356c9796e67270a23c763018c6a1de84dbbd`. Este cambio vuelve a disparar CI de transporte y debe validarse en el HEAD documental nuevo.
