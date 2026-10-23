@@ -1,34 +1,34 @@
 # Plan de trabajo — GeeLark-IA
 
 **Actualizado:** 2026-10-23  
-**Alcance:** PC-MASTER Windows + redroid en PC-WORKERS Debian 13 + agregados necesarios.  
+**Alcance:** PC-MASTER Windows + PC-WORKERS Debian 13 previsto + adaptador Android agnóstico + agregados necesarios.  
 **Coste obligatorio objetivo:** 0 USD.
 
 ## Estado vigente
 
 - PC-MASTER es el panel web central; el lanzador/configurador de escritorio es separado.
-- redroid es el único motor Android en preparación.
+- AOSP Cuttlefish es el primer candidato de laboratorio, aún no aprobado. El adaptador Android debe permanecer agnóstico; Android Emulator es referencia de compatibilidad y redroid sigue bloqueado por #27.
 - Las rutas técnicas retiradas no forman parte del alcance vigente.
-- El despliegue físico de redroid está bloqueado por la issue #27 hasta demostrar una mitigación efectiva para el riesgo de `/proc/sys/kernel/modprobe`.
+- No desplegar ningún motor Android en WORKERS físicos hasta aprobar selección, licencias, seguridad y plan de pruebas. La issue #27 mantiene un bloqueo específico para redroid.
 - Los componentes de agente, enrolamiento, autenticación/autorización, HTTPS privado, heartbeat, persistencia, despacho, reconciliación, observabilidad y automatización siguen dentro del alcance.
 - Una PR abierta no significa que el código esté integrado ni aceptado.
 
 ## Fases y puertas
 
 ### Fase 1 — Alcance, auditoría y documentación
-- [x] Definir PC-MASTER Windows y redroid como alcance vigente en la rama de limpieza.
-- [x] Retirar de la documentación operativa la selección de motores alternativos.
+- [x] Definir PC-MASTER Windows y Debian 13 previsto para WORKERS.
+- [x] Retirar la ruta manual QEMU + Android-x86 + VNC en WSL2.
+- [ ] Reconciliar todos los documentos de `main` con el adaptador Android agnóstico y el estado de candidatos.
 - [ ] Revisar enlaces internos, documentación duplicada y referencias obsoletas en Issues/PR.
 - [ ] Actualizar el registro de decisiones, problemas, soluciones y evidencias.
 
-### Fase 2 — Puerta de seguridad redroid
-- [ ] Fijar etiqueta, digest y procedencia de imagen.
-- [ ] Inspeccionar init y parches de la versión exacta.
-- [ ] Identificar y probar una mitigación efectiva del riesgo `kernel.modprobe`.
-- [ ] Definir capacidades, dispositivos, montajes y privilegios mínimos.
-- [ ] Verificar que ADB no quede expuesto y que el panel no tenga acceso al socket Docker.
-- [ ] Registrar evidencia en [issue #27](https://github.com/D3ckardCain/Geelark-IA/issues/27).
-- **Regla:** no arrancar redroid en WORKER físico mientras esta puerta siga abierta.
+### Fase 2 — Selección y seguridad del motor Android
+- [ ] Evaluar Cuttlefish como primer candidato: requisitos de host, KVM, licencias, imágenes, operación multiinstancia y control visual.
+- [ ] Mantener el adaptador agnóstico y documentar capacidades realmente demostradas.
+- [ ] Revisar Android Emulator como referencia de compatibilidad/licencias, sin asumir que sus imágenes son redistribuibles.
+- [ ] Mantener redroid bloqueado por #27 hasta revisar imagen/digest y demostrar mitigación.
+- [ ] Definir privilegios mínimos, aislamiento, ADB, red y recuperación para el candidato seleccionado.
+- **Regla:** no arrancar ningún runtime Android en WORKER físico hasta aprobar la puerta correspondiente.
 
 ### Fase 3 — Preparación del primer worker
 - [ ] Aprobar el procedimiento de instalación automatizable de Debian 13.
@@ -36,7 +36,7 @@
 - [ ] Ejecutar el diagnóstico de solo lectura: CPU, RAM, disco, kernel, Binder/BinderFS, red y puertos.
 - [ ] Fijar versiones, hashes, licencias y registro de instalación.
 
-El plan de aprovisionamiento Debian 13 está en PLAN_APROVISIONAMIENTO_WORKER_DEBIAN13.md; la guía de redroid y el diagnóstico de solo lectura están en PREPARACION_WORKER_REDROID.md y GUIA_DIAGNOSTICO_PREVIO_REDROID.md. No se han ejecutado en el hardware físico.
+El plan de aprovisionamiento Debian 13 está en PLAN_APROVISIONAMIENTO_WORKER_DEBIAN13.md. El diagnóstico de solo lectura es independiente del motor. Las guías específicas de redroid no autorizan su instalación y no se han ejecutado en hardware físico.
 
 ### Fase 4 — Pruebas Android controladas
 Solo tras aprobar la fase 2:
