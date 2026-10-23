@@ -177,3 +177,13 @@ Corrección de alcance: el workflow contiene pasos opcionales para `cluster-mast
 Nuevo hallazgo de integración, aún abierto: `AgentTransportRuntime.sync_receipt` puede usar `task_id` si el recibo lo expone, pero el `OperationReceipt` actual del journal local solo guarda `operation_id`, `instance_id`, nodo, epoch, estado y resultado. Cuando `task_id != operation_id`, un reintento offline puede enviar a `/agent/v1/tasks/{operation_id}/...` en vez de la ruta de tarea correcta. La suite unitaria que construye un recibo artificial con `task_id` no prueba persistencia real de esa relación. Antes de cerrar #115/#52, hay que añadir y probar la persistencia durable de `task_id` desde claim/aceptación hasta los recibos/reintentos, o definir y demostrar formalmente una invariancia que garantice IDs iguales. No se presume esa invariancia.
 
 #115 sigue en draft. No fusionar #52/#74/#112, no desplegar a PCs físicas y no ejecutar Android.
+
+## Avance de persistencia de task_id en #115 — validación pendiente
+
+Se corrigió el hallazgo de reintentos offline en la rama combinada:
+- Se tomó como base la versión del journal que ya incluye ACK cercado y migración v1→v3, y se completó la persistencia de `task_id` en aceptación, lectura, recibos pendientes y reintentos.
+- El hash semántico del comando incluye `task_id` cuando está presente; los comandos legacy sin `task_id` mantienen el hash previo.
+- Se amplió `test_journal.py` con persistencia/reapertura/ACK del recibo y `test_runtime.py` con un test SQLite real que exige que `task_id != operation_id` llegue a la ruta correcta.
+- El workflow de transporte fija ahora el commit de journal `8403f9d84b603b9b59c3172a75df0b3681b9bad7`, que contiene la API versionada y el campo `task_id`.
+
+El HEAD de la PR es `167a774d14ec66b4d6e1153e8a15d9bff68e4d61`. CI del HEAD actualizado en curso: transporte run #494 y persistencia run #621. La observación previa sobre pérdida de `task_id` queda **corregida en código pero no cerrada** hasta que esos workflows pasen, en particular las pruebas de migración del journal y la ruta real con IDs distintos.
