@@ -199,3 +199,13 @@ En la revisión de #115 se detectó que la comparación de ACK por `expected_sta
 Commits de esta ronda en la rama de #115: `1a81d0cc7902ac765a9c0a3f8f328d3df9e9018d` (journal), `f2e9a2aec77c1c076e0804134777f6c87e7148ab` (runtime), `d7eaf3a836fa545a485272cf90eab11655e5ee50` (prueba journal), `c90e4960e55c08f512443ae49282503eac0c3468` (workflow).
 
 Estado: el CI del HEAD combinado anterior fue satisfactorio en transporte y persistencia; esta ronda posterior aún requiere CI nuevo. No se fusiona ni se despliega hasta que termine.
+
+## CI final de ACK cercado y task_id en #115 — 2026-10-23
+
+HEAD de la ronda: `c90e4960e55c08f512443ae49282503eac0c3468`. Ambos workflows terminaron en `completed/success`:
+- Transporte HTTPS #499: [40040796151](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40040796151).
+- Persistencia/PostgreSQL #626: [40040795989](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40040795989), incluyendo prueba de bandeja PostgreSQL y `pip check`.
+
+Se verificó en el mismo HEAD: journal ACK requiere `expected_assignment_epoch` + `expected_status` + `expected_result`; runtime transmite epoch; hay prueba de ACK de epoch antiguo y se mantiene la cobertura de `task_id` distinto de `operation_id`. El workflow de transporte ya no instala el journal desde un SHA fijo antiguo.
+
+Límite que permanece: los pasos de `cluster-master-admin` y la prueba del rol PostgreSQL readonly se omitieron porque el paquete no existe en esta rama base. No afirmar seguridad readonly de PC-MASTER validada hasta integrar ese paquete desde la rama de Master apropiada y ejecutar sus pruebas. #115 permanece draft y no se fusiona con #52/#74/#112 todavía.
