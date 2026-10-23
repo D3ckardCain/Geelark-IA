@@ -323,3 +323,6 @@ Registro detallado: [AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md](AUDITORIA_REPOS
 
 
 - Continuidad de auditoría 2026-10-22: se fusionó únicamente la PR documental #106 para registrar el informe; no se fusionaron PR de implementación. La auditoría actual registra 23 PR abiertas y 39 Issues abiertas tras cerrar #64; #101/#52/#67 tienen conflictos de integración según la consulta documentada, y debe comprobarse CI del HEAD antes de integrar.
+
+
+Auditoría adicional 2026-10-22: Issue #39 se cerró únicamente por la decisión documentada de autenticación/enrolamiento en ADR-005 de la PR #40. La implementación y validación siguen pendientes en #41, #46–#48 y #65. Recuento verificado por API: 39 Issues abiertas, 9 cerradas; 23 PR abiertas, todas en draft.
