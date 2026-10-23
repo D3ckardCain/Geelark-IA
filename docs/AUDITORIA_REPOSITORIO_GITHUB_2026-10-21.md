@@ -1,7 +1,7 @@
 ## Revalidación final de PRs y CI — 2026-10-23
 
 Consulta en vivo de GitHub:
-- **38 Issues abiertas, 10 cerradas y 23 PR abiertas** en la consulta más reciente del 2026-10-23; todas las PR abiertas están en draft.
+- **39 Issues abiertas, 10 cerradas y 23 PR abiertas** en la consulta más reciente del 2026-10-23; todas las PR abiertas están en draft.
 - **#101 (observación histórica, 2026-10-23 temprano):** HEAD `b84da93881f5869e8832e5888e5dce02433e85cc` no tenía workflows asociados en esa consulta. Fue reemplazado por HEAD `043a4e23efd063949577f758eacc326d74bb7ce5`, que posteriormente pasó transporte #479/#478, esquema #308 y persistencia #607.
 - **#74** HEAD `406936ecef181eb4a7a34d6e25316079ee8b29ea`, base #101: transporte #480 y persistencia #608 `success`; GitHub la muestra mergeable. No integrar antes de resolver la sincronización conflictiva #112 y revisar la bandeja.
 - **#52** HEAD `20e618aaeadc1866457f637522b755540f795dfa`: `mergeable=false`; resultados CI anteriores exitosos no eliminan el conflicto.
