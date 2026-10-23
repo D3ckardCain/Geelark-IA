@@ -98,4 +98,4 @@ Registra en el Issue #8 de GitHub qué se retiró, qué se conservó y cualquier
 
 ## Después de la limpieza
 
-La investigación del motor Android continúa por separado: validar primero AOSP Cuttlefish en hardware Debian físico, con pruebas progresivas de 1, 2, 4 y 6+ instancias, midiendo estabilidad, CPU, RAM, almacenamiento, arranque, aislamiento y control desde PC-MASTER. Redroid permanece bloqueado por la revisión de seguridad del Issue #27. La limpieza local no instala ni aprueba ningún motor alternativo.
+La investigación del motor Android continúa por separado. AOSP Cuttlefish es solo candidato de laboratorio, no aprobado: la prueba futura debe comenzar con una instancia y, si supera seguridad/licencias y criterios básicos, pasar a dos; cualquier nivel superior se planificará después de medir los resultados, sin extrapolar densidad. Medir estabilidad, CPU, RAM, almacenamiento, arranque, aislamiento y control desde PC-MASTER. Redroid permanece bloqueado por la revisión de seguridad del Issue #27. La limpieza local no instala ni aprueba ningún motor alternativo.
