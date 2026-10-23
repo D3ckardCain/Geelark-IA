@@ -1,3 +1,5 @@
+> **No ejecutar sin reconciliación y autorización — 2026-10-22:** Esta hoja pertenece a una rama divergida. Antes de usarla, contrastar con el estado actual de `main`, verificar licencias y obtener autorización específica para el equipo y la operación. No instalar sistemas, borrar discos ni habilitar motores Android por inferencia. QEMU + Android-x86 + VNC está retirado; no hay motor aprobado.
+
 # Hoja de ejecución de la POC del host y nodo Android
 
 **Estado:** plantilla; no ejecutada.  
