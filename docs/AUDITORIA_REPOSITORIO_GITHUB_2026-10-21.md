@@ -193,3 +193,14 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 ## Límites de esta auditoría
 
 La consulta de GitHub permite revisar el contenido del repositorio, metadatos, PR e Issues, pero no confirma el estado del PC-MASTER local, los procesos de WSL, la aceptación manual, el panel de facturación de la cuenta ni las pruebas que no tengan artefacto verificable. No se iniciaron ejecuciones manuales de GitHub Actions ni se habilitó ningún runner de pago; los commits de corrección sí dispararon las validaciones automáticas configuradas para las PR.
+
+
+## Continuación — panel y recuento verificado (22-oct-2026)
+
+- Recuento mediante API GitHub al 22-oct: **23 PR abiertas**, todas en draft; **40 Issues abiertas** y 9 cerradas. El recuento previo de 27 PR estaba desactualizado y se corrige aquí.
+- PR #70: HEAD `fd0365d579a815d2a39f1213ed11af891dfe91d6`, workflow de prototipo #44 (`39872433379`) completado con `success`. Mantener draft: es el prototipo visual y los contratos de estado, no el panel autenticado de producción.
+- PR #104: HEAD `75764c435f488f617a07c0003ce088829e6dbd41`; transporte #473 y persistencia #602 `success`. Persistencia: suite raíz **293 passed / 3 skipped**; asignaciones **33**, guard/journal **12**, integración de transporte **54**, autenticación **70 passed / 2 skipped**; Windows ACL **50 passed / 8 skipped**; `pip check` limpio en los tres jobs.
+- La colisión documental queda resuelta: #40 usa ADR-005 (autenticación de agentes), #70 ADR-006 (lectura de estado Master/Worker), #104 ADR-007 (autenticación local PC-MASTER). El prototipo conserva `MANUAL_PROTOTIPO_PANEL_CONTROL_MASTER.md`; el panel autenticado conserva `MANUAL_USUARIO_PANEL_CONTROL_MASTER.md`. Issue #107 cerrada tras verificar CI de los HEAD actuales.
+- Issue #93 es una issue paraguas de evolución visual e integración del panel; no es duplicada de #77 (aceptación de seguridad Windows), #71 (semántica de salud), #72 (inventario persistido) ni #69 (diseño del módulo central). Mantener cada una abierta hasta sus propios criterios de aceptación.
+- PR #86 contiene ampliaciones funcionales no presentes en `main` y no se cierra como duplicada. Debe reconciliarse con las decisiones motor Android del 21–22 oct y no sobrescribir el plan actual con su copia antigua.
+- No se cerraron otras Issues solo por CI verde: muchas representan trabajo pendiente de integración, pruebas físicas, seguridad o aceptación manual. No se fusionaron PR ni se eliminaron ramas.
