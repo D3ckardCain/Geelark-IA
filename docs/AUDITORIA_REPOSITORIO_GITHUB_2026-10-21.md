@@ -203,6 +203,12 @@ No se cerró ninguna Issue únicamente por tener casillas marcadas, antigüedad 
 - Se consultaron las 40 Issues abiertas directamente por la API del repositorio. Tener todas las casillas marcadas, o no tener checklist, no basta por sí solo para cerrar: los issues #24, #11, #10 y #4 siguen teniendo criterios explícitos pendientes de medición, prueba física o contraste funcional; #20 conserva cuatro tareas sin completar; #63 conserva pendiente confirmar el costo real de GitHub Actions, dato que no está disponible desde esta auditoría.
 - Se mantienen abiertas las tareas que requieren intervención local del usuario (#77 aceptación Windows, #88 confirmar el archivo/acceso directo local), pruebas en hardware físico (#8/#10/#12/#24) o revisión de seguridad (#9/#27/#65). No se cerraron por antigüedad ni por CI verde en ramas no integradas.
 
+## Preparación para retirar localmente el experimento QEMU — 2026-10-22
+
+- La ruta QEMU + Android-x86 + VNC quedó retirada de la estrategia del producto; se registró en Issue #8 una lista de limpieza manual segura.
+- Artefacto identificado: `/var/lib/geelark-ia/images/android-x86_64-9.0-r2.iso`. El proceso QEMU se observó históricamente como PID 19 dentro de WSL, pero el PID puede cambiar. TigerVNC se instaló/ejecutó en Windows y Debian.
+- No se ha detenido ningún proceso ni borrado ISO/paquetes desde esta auditoría. Antes de la limpieza, inspeccionar el estado actual; conservar la distribución `Debian13`, el usuario `geelarkia` y todo dato ajeno al experimento. No purgar QEMU/VNC ni borrar directorios amplios sin verificar dependencias y contenido.
+
 ## Límites de esta auditoría
 
 La consulta de GitHub permite revisar el contenido del repositorio, metadatos, PR e Issues, pero no confirma el estado del PC-MASTER local, los procesos de WSL, la aceptación manual, el panel de facturación de la cuenta ni las pruebas que no tengan artefacto verificable. No se iniciaron ejecuciones manuales de GitHub Actions ni se habilitó ningún runner de pago; los commits de corrección sí dispararon las validaciones automáticas configuradas para las PR.
