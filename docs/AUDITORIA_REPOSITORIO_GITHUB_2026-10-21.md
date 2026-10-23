@@ -42,7 +42,7 @@ Mantener el repositorio GeeLark-IA alineado con el alcance vigente: PC-MASTER Wi
 - PR #106 (auditoría de continuidad), #108 (preparación segura de WORKER-01) y #109 (consolidación del alcance PC-MASTER/redroid) están fusionadas en `main`.
 - PR #86 se cerró sin merge por cambio de alcance; su documentación histórica se conserva, pero no es fuente operativa vigente. Su valor funcional debe recuperarse solo si el alcance de producto vuelve a exigirlo.
 - Issue #64 se cerró como decisión resuelta: Windows en PC-MASTER y Debian 13 previsto para WORKERS. No significa que PXE, instalación o pruebas físicas estén implementadas.
-- Recuento consultado el 2026-10-23: **38 Issues abiertas, 10 cerradas, 22 PR abiertas**. El recuento cambia con nuevas acciones; no es criterio de aceptación.
+- Recuento consultado el 2026-10-23: **38 Issues abiertas, 10 cerradas, 21 PR abiertas**. El recuento cambia con nuevas acciones; no es criterio de aceptación.
 - La cadena de PR de clúster sigue mayormente en draft. La CI de una rama no acredita que el stack esté integrado, aceptado manualmente ni probado en hardware.
 - #24 se limita a caché local de artefactos; #92 a aprovisionamiento Debian 13. Se añadieron comentarios para evitar duplicación. #27 sigue bloqueando la ejecución física de redroid.
 - La auditoría de origen PC-MASTER (#88) sigue pendiente de comparar el archivo/acceso directo local; GitHub identifica la rama candidata, pero no prueba qué ejecutable se inició en Windows.
@@ -58,7 +58,7 @@ Esta actualización reemplaza recuentos históricos de Issues/PR que podrían ha
 
 ### Conteo actual y alcance
 
-- Consulta global de GitHub: **22 PR abiertas, todas en draft**. La cifra previa de 27 y la consulta intermedia de 23 quedan supersedidas por este recuento.
+- Consulta global de GitHub: **21 PR abiertas, todas en draft**. La cifra previa de 27 y la consulta intermedia de 23 quedan supersedidas por este recuento.
 - Issues abiertas: **38**. Issues cerradas consultadas: **10**.
 - No se fusionó ni eliminó ninguna PR durante esta continuación; no se borraron ramas. No se lanzaron workflows manuales.
 - PR #108 y #109 ya están fusionadas en `main`; PR #106 también aparece registrada como fusionada en la auditoría previa. No tratarlas como pendientes.
@@ -78,16 +78,16 @@ Esta actualización reemplaza recuentos históricos de Issues/PR que podrían ha
 
 ### Duplicados, prototipos y ramas apiladas
 
-- **#70 no es una copia exacta de #104:** #70 contiene una maqueta HTML ficticia autocontenida, contrato v1, ADR-006 de lectura de estado y pruebas de navegación; #104 implementa el backend/panel autenticado local y corrige Windows. Hay solapamiento documental en manual/contrato, pero los propósitos y archivos principales difieren. Mantener #70 en draft; antes de integrarlo, reconciliar contrato/manual y ADR-006 de estado con ADR-007 de autenticación de PC-MASTER. No conectarlo a datos reales.
+- **#70 se cerró como supersedida el 2026-10-23, sin merge.** Su maqueta HTML ficticia y contrato se solapan con la línea activa: #74 contiene proveedor/schema/ejemplo y #104 contiene panel autenticado/API. No se integró el manual antiguo ni el prototipo; la rama permanece como referencia recuperable. Esto no acepta el panel, que sigue pendiente de #77 y #88.
 - **#87 → #103** conserva el lanzador Windows y correcciones específicas, pero su ascendencia usa la rama antigua de #76 cerrada sin merge. Reconciliar con #104 antes de integrar para no reintroducir backend antiguo. No cambiar la base automáticamente.
 - Cadena de implementación de agentes/control registrada en #50: #38 → #42 → #44 → #47 → #48 → #101 → #74 → #52 → #57 → #67 → #85. No integrar fuera de orden; checks verdes por SHA no resuelven por sí solos conflictos/topología.
-- Los prototipos históricos (#19 y #70) deben seguir diferenciados de los servicios operativos; las pruebas de un prototipo no son aceptación de producción.
+- Los prototipos históricos (#19 y #70) deben seguir diferenciados de los servicios operativos; #70 se cerró sin merge como supersedida y las pruebas de un prototipo no son aceptación de producción.
 
 ### Evidencia reciente que permanece vigente
 
 - PR #48 HEAD `f2301e9b1673c57b74a9d625f3f4788f603a83ed`: transporte HTTPS **54 passed, 1 warning**, `pip check` limpio; workflow #471 success.
 - PR #104 HEAD `75764c435f488f617a07c0003ce088829e6dbd41`: persistencia **293 passed / 3 skipped**, Windows ACL **50 passed / 8 skipped**, asignaciones **33 passed**, guard/journal **12 passed**, auth **70 passed / 2 skipped**, transporte **125 passed**; `pip check` limpio. Sigue en draft y sin merge.
-- La rama de #104 incluye ADR-007 de autenticación local; #70 usa ADR-006 para el contrato/lectura de estado. La antigua colisión ADR-005 se corrigió en #104 y el Issue #105 está cerrado.
+- La rama de #104 incluye ADR-007 de autenticación local; #70 conserva su ADR-006 únicamente en la rama histórica cerrada sin merge. La antigua colisión ADR-005 se corrigió en #104 y el Issue #105 está cerrado.
 - Ninguno de estos resultados acredita instalación en hardware, acceso remoto seguro ya desplegado, ni ejecución real de instancias Android.
 
 
