@@ -54,7 +54,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: D3ckardCain/Geelark-IA
-          ref: 1079d04cca28b6a0602eb3616eb15702f26bc32b
+          ref: 8403f9d84b603b9b59c3172a75df0b3681b9bad7
           path: guard-source
 
       - name: Set up Python
