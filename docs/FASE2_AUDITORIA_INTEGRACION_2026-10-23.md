@@ -240,3 +240,11 @@ Tras actualizar el README para describir correctamente el ACK versionado y la fr
 - Persistencia/PostgreSQL #628: [40041193006](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40041193006), success.
 
 La documentación ya no recomienda la API antigua de ACK. Se actualizó la descripción de #115 a estos checks. La PR sigue draft y no fusionada; el rol readonly de Master Admin sigue fuera de esta rama y no se declara validado.
+
+## Uso autoritativo de task_id en reportes inmediatos — 2026-10-23
+
+Se cerró otro borde del runtime: antes, los reintentos offline recuperaban `task_id` del journal, pero `report_progress`/`report_result` podían usar `operation_id` si el llamador omitía el argumento opcional. Ahora el runtime deriva `task_id` del recibo durable cuando está disponible y rechaza un ID explícito que no coincida con el guardado. Pruebas nuevas cubren progreso/resultado inmediatos con `task_id != operation_id` y el rechazo de discrepancia.
+- Runtime: `991302171d95d6eddcd5b23bc177e13233516cd8`.
+- Pruebas: `f17bd3651b710ce2baee64cc98c0825c7bc96546`.
+
+Este cambio crea un HEAD nuevo después de CI #501/#628; no declararlo validado hasta que los dos workflows terminen de nuevo.
