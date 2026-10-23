@@ -24,10 +24,11 @@ La consulta inicial del día devolvió 21 PR abiertas; la revalidación posterio
 
 Orden de dependencia documentado: **#101 → #74 → #52 → #57 → #67 → #85**.
 
-- #101, #52 y #67 aparecen con conflictos/no mergeables en la última auditoría registrada.
-- El HEAD registrado de #101 (`b84da93881f5866e8832e5888e5dce02433e85cc`) no tenía workflow asociado en la consulta previa. No reutilizar CI de otro SHA como prueba del HEAD actual.
-- No fusionar descendientes ni actualizar sus bases a ciegas.
-- Siguiente paso técnico: inspeccionar el diff y la base exacta de #101; corregir conflicto en su rama, comprobar que el contrato de ACK/inventario coincide con la persistencia actual y dejar que la CI normal valide el nuevo HEAD. Después seguir en orden, una PR cada vez.
+- #101 HEAD `043a4e23efd063949577f758eacc326d74bb7ce5`: transporte #479/#478, esquema #308 y persistencia #607 `success`; GitHub indica `mergeable=true`.
+- #74 HEAD `406936ecef181eb4a7a34d6e25316079ee8b29ea`: transporte #480 y persistencia #608 `success`; GitHub indica `mergeable=true`.
+- #52 y #67 siguen `mergeable=false`. La sincronización auxiliar #112 también está `mergeable=false` por conflictos entre proveedor y bandeja.
+- #113 HEAD `21a5b4915086959eaf7dece15b6095de333612ce`: transporte #482 (63 passed, `pip check` limpio) y persistencia #609 (prueba PostgreSQL de bandeja 1 passed; persistencia/guard/auth 32 + 12 + 54 passed, `pip check` limpio) `success`.
+- No fusionar descendientes ni actualizar sus bases a ciegas. Siguiente paso: resolver #112 preservando los cambios de ambas ramas y validar el SHA combinado; después seguir en orden.
 
 ### 2. Línea PC-MASTER Windows
 
