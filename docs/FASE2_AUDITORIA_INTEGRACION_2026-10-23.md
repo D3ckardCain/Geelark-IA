@@ -77,3 +77,12 @@ Estado posterior: PR #101 sigue abierta y en draft. La consulta de workflows/sta
 ## Confirmación final de sincronización — 2026-10-23
 
 Reconsulta posterior a la restauración documental: PR #101 HEAD `043a4e23efd063949577f758eacc326d74bb7ce5`, `mergeable=true`, comparación `ahead 30 / behind 0` respecto de `feat/agent-https-transport`. GitHub ha iniciado CI para ese SHA: transporte run #40018311736, esquema #40018311703 y persistencia #40018311695; los tres figuraban `pending` al registrar este punto. Se añadió comentario de seguimiento a la PR. Mantener draft hasta obtener resultados finales de los tres workflows; no fusionar #101 antes de CI y revisión de la dependencia apilada.
+
+## Resultado final de verificación CI — 2026-10-23
+
+Para el HEAD exacto `043a4e23efd063949577f758eacc326d74bb7ce5`, los tres workflows terminaron `completed/success`:
+- Transporte HTTPS #40018311736: transporte/seguridad y comprobación de dependencias correctos.
+- Esquema PostgreSQL #40018311703: migraciones, smoke tests y restricciones correctos.
+- Servicio de persistencia #40018311695: pruebas de integración/concurrencia, guard, autenticación y consistencia de dependencias correctas.
+
+GitHub confirma `mergeable=true` y la comparación de ramas es `ahead 30 / behind 0`. La descripción de la PR #101 y su conversación se actualizaron con estos resultados. La PR permanece en draft y no se ha fusionado: los checks de CI no sustituyen la revisión final del contrato/migración ni las pruebas de aceptación en PCs físicas.
