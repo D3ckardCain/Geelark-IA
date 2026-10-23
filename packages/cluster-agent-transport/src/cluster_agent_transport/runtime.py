@@ -95,7 +95,8 @@ class AgentTransportRuntime:
             status="running", result=result,
         )
         response = self._send_receipt(
-            operation_id=operation_id, task_id=task_id, state="running", result=result, route="progress"
+            operation_id=operation_id, assignment_epoch=assignment_epoch, task_id=task_id,
+            state="running", result=result, route="progress"
         )
         return response
 
@@ -110,7 +111,8 @@ class AgentTransportRuntime:
             status=status, result=result,
         )
         response = self._send_receipt(
-            operation_id=operation_id, task_id=task_id, state=status, result=result, route="result"
+            operation_id=operation_id, assignment_epoch=assignment_epoch, task_id=task_id,
+            state=status, result=result, route="result"
         )
         return response
 
@@ -150,15 +152,17 @@ class AgentTransportRuntime:
         task_id = getattr(receipt, "task_id", operation_id)
         if not isinstance(operation_id, UUID) or not isinstance(instance_id, UUID):
             raise ValueError("Recibo local inválido.")
+        if isinstance(epoch, bool) or not isinstance(epoch, int) or epoch < 1:
+            raise ValueError("El recibo contiene un assignment_epoch inválido.")
         if status == "running" and isinstance(result, dict):
             return self._send_receipt(
-                operation_id=operation_id, task_id=task_id, state=status,
-                result=result, route="progress",
+                operation_id=operation_id, assignment_epoch=epoch, task_id=task_id,
+                state=status, result=result, route="progress",
             )
         if status in {"succeeded", "rejected", "failed", "unknown"} and isinstance(result, dict):
             return self._send_receipt(
-                operation_id=operation_id, task_id=task_id, state=status,
-                result=result, route="result",
+                operation_id=operation_id, assignment_epoch=epoch, task_id=task_id,
+                state=status, result=result, route="result",
             )
         return None
 
@@ -176,8 +180,8 @@ class AgentTransportRuntime:
         )
 
     def _send_receipt(
-        self, *, operation_id: UUID, state: str, result: dict[str, Any], route: str,
-        task_id: UUID | None = None
+        self, *, operation_id: UUID, assignment_epoch: int, state: str,
+        result: dict[str, Any], route: str, task_id: UUID | None = None
     ) -> AgentResponse:
         payload = {"schema_version": 1, "state": state, "details": result}
         digest = payload_digest(payload)[:32]
@@ -185,12 +189,33 @@ class AgentTransportRuntime:
         response = self._request(
             "POST", f"/agent/v1/tasks/{task_id or operation_id}/{route}", payload, idempotency_key=key
         )
-        # A 2xx acknowledges this exact durable receipt version, including
-        # running/progress updates. The journal requeues it only after a new
-        # local result version is recorded.
+        # ACK cercado: solo puede marcarse entregada la versión exacta enviada.
+        # Las APIs antiguas sin estado/resultado esperado fallan cerradas.
+        mark_delivered = getattr(self.journal, "mark_receipt_delivered", None)
         mark_synced = getattr(self.journal, "mark_receipt_synced", None)
-        if callable(mark_synced):
-            mark_synced(operation_id)
+        marker = mark_delivered if callable(mark_delivered) else mark_synced
+        if not callable(marker):
+            raise AgentTransportError(
+                "El journal no admite confirmación durable por versión; el recibo sigue pendiente."
+            )
+        try:
+            if callable(mark_delivered):
+                acknowledged = marker(
+                    operation_id, assignment_epoch,
+                    expected_status=state, expected_result=result,
+                )
+            else:
+                acknowledged = marker(
+                    operation_id, expected_status=state, expected_result=result,
+                )
+        except TypeError:
+            raise AgentTransportError(
+                "La API del journal no admite confirmar una versión exacta; el recibo sigue pendiente."
+            ) from None
+        if acknowledged is not True:
+            raise AgentTransportError(
+                "El recibo local cambió durante la sincronización; la versión más reciente sigue pendiente."
+            )
         return response
 
     def _request(
