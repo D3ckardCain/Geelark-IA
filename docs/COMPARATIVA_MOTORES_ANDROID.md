@@ -1,16 +1,22 @@
-# Evaluación del motor Android en preparación: redroid
+# Comparativa y priorización de motores Android locales
 
-**Actualizado:** 2026-10-22. **Estado:** preparación documental; bloqueado para despliegue físico por la issue #27. No aprobado para producción ni validado en WORKERS físicos.
+**Actualizado:** 2026-10-23. **Estado:** investigación documental; ningún motor está aprobado para producción ni validado en WORKERS físicos.
 
 ## Alcance vigente
 
 - PC-MASTER Windows es el panel web y coordinador central.
 - Los PC-WORKERS serán equipos físicos; Debian 13 es el sistema base previsto.
-- redroid es el único motor Android en preparación.
+- AOSP Cuttlefish es el primer candidato para laboratorio, no aprobado. Android Emulator se conserva como referencia de compatibilidad. redroid está bloqueado por la issue #27 y Waydroid permanece como alternativa secundaria no validada.
 - No reabrir rutas de ejecución retiradas; mantener únicamente el alcance técnico vigente.
 - Agente, autenticación, transporte, persistencia, despacho y reconciliación son componentes del plano de control, no motores Android alternativos.
 
-## Qué ofrece redroid
+## Candidato prioritario: AOSP Cuttlefish
+
+Cuttlefish es el primer candidato que se evaluará por su soporte de múltiples instancias, discos overlay por instancia, puertos ADB separados y control visual mediante WebRTC. Esto no implica que sea ligero ni adecuado para los WORKERS disponibles. Requiere validar KVM, paquetes/servicios de host, imágenes, licencias, uso de memoria/CPU y el flujo de instalación. Comenzar con un entorno de laboratorio y una instancia; medir antes de ampliar.
+
+Fuentes oficiales: https://source.android.com/docs/devices/cuttlefish/get-started ; https://source.android.com/docs/devices/cuttlefish/multi-tenancy ; https://source.android.com/docs/setup/create/cuttlefish-ref-webrtc
+
+## redroid: alternativa bloqueada por seguridad
 
 redroid ejecuta Android en contenedores sobre un host Linux y documenta soporte para arquitecturas amd64 y arm64 y varias instancias. La densidad y compatibilidad reales dependen del kernel, Binder/BinderFS, recursos, aplicaciones objetivo y configuración. Ninguna cifra de capacidad se considera validada para nuestro hardware.
 
@@ -45,7 +51,7 @@ La incidencia upstream [redroid-doc #933](https://github.com/remote-android/redr
 
 Por ello, la imagen se elegirá a partir de las APK objetivo y se probará por etiqueta/digest exactos. La lista ABI declarada no basta para afirmar compatibilidad. No redistribuir traductores propietarios ni extraerlos de otros productos sin revisar sus términos. Este riesgo de compatibilidad es independiente del bloqueo de seguridad #27.
 
-## Plan de pruebas después de aprobar seguridad
+## Plan de pruebas después de aprobar selección y seguridad
 
 1. Diagnóstico de solo lectura en WORKER-01 (CPU, RAM, kernel, disco, Binder/BinderFS, red y puertos).
 2. Instancia única: ciclo de vida, ADB restringido, APK autorizada, captura/entrada, archivos, persistencia y métricas.
