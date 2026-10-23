@@ -320,3 +320,6 @@ Registro detallado: [AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md](AUDITORIA_REPOS
 - CI consultada por SHA: PR #104 tiene suite raíz 293 passed/3 skipped, Windows ACL 50 passed/8 skipped y transporte en success; PR #103 tiene suite raíz 180 passed/3 skipped y Windows ACL 16 passed/2 skipped. Ambas siguen en draft. La PR #87 tiene su workflow asociado al HEAD actual cancelado, por lo que no cuenta como CI verde de la aplicación completa.
 - Hallazgo de auditoría resuelto (22-oct): Issue #107 quedó cerrada tras confirmar CI de los HEADs renumerados y separar los manuales. Orden ADR en ramas candidatas: #40 = ADR-005, #70 = ADR-006, #104 = ADR-007. Esto no autoriza merge; ver [auditoría del repositorio](AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md).
 
+
+
+- Continuidad de auditoría 2026-10-22: se fusionó únicamente la PR documental #106 para registrar el informe; no se fusionaron PR de implementación. La auditoría actual registra 23 PR abiertas y 40 Issues abiertas; #101/#52/#67 tienen conflictos de integración y #101 no tiene CI para su HEAD actual.
