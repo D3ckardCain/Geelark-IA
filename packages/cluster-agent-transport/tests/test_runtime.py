@@ -160,11 +160,12 @@ def test_runtime_syncs_real_sqlite_journal_and_persists_terminal_ack(tmp_path):
         getattr(guard.AgentJournal, "mark_receipt_synced", None)
     ):
         pytest.skip("la rama base aún no incluye la API de recibos del PR #38")
-    node_id, instance_id, operation_id = uuid4(), uuid4(), uuid4()
+    node_id, instance_id, operation_id, task_id = uuid4(), uuid4(), uuid4(), uuid4()
     journal = guard.AgentJournal(tmp_path / "journal.sqlite3", node_id)
     journal.initialize()
     command = guard.AgentCommand(
         operation_id=operation_id,
+        task_id=task_id,
         instance_id=instance_id,
         node_id=node_id,
         assignment_epoch=1,
@@ -183,13 +184,16 @@ def test_runtime_syncs_real_sqlite_journal_and_persists_terminal_ack(tmp_path):
 
     runtime = make_runtime(FakeClient(), journal, node_id)
     assert len(journal.list_pending_receipts(limit=10)) == 1
+    assert journal.list_pending_receipts(limit=10)[0].task_id == task_id
     confirmed, attempted = runtime.sync_pending_receipts(limit=10)
     assert (confirmed, attempted) == (1, 1)
+    assert runtime.client.requests[0][1] == f"/agent/v1/tasks/{task_id}/result"
     assert journal.list_pending_receipts(limit=10) == []
 
     reopened = guard.AgentJournal(tmp_path / "journal.sqlite3", node_id)
     reopened.initialize()
     assert reopened.list_pending_receipts(limit=10) == []
+    assert reopened.get_receipt(operation_id).task_id == task_id
 
 
 
