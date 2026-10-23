@@ -187,3 +187,15 @@ Se corrigió el hallazgo de reintentos offline en la rama combinada:
 - El workflow de transporte fija ahora el commit de journal `8403f9d84b603b9b59c3172a75df0b3681b9bad7`, que contiene la API versionada y el campo `task_id`.
 
 El HEAD de la PR es `167a774d14ec66b4d6e1153e8a15d9bff68e4d61`. CI del HEAD actualizado en curso: transporte run #494 y persistencia run #621. La observación previa sobre pérdida de `task_id` queda **corregida en código pero no cerrada** hasta que esos workflows pasen, en particular las pruebas de migración del journal y la ruta real con IDs distintos.
+
+## Endurecimiento adicional de ACK por epoch — 2026-10-23
+
+En la revisión de #115 se detectó que la comparación de ACK por `expected_status` y `expected_result` no bastaba para distinguir dos asignaciones si el resultado coincidía. Se reforzó el contrato:
+- `AgentJournal.mark_receipt_synced` exige `expected_assignment_epoch` y compara el epoch persistido junto con estado/resultado.
+- El runtime transmite el epoch que originó el recibo.
+- Se añadió prueba que simula ACK de epoch anterior y exige que el recibo siga pendiente.
+- El workflow de transporte dejó de instalar el journal desde un SHA histórico fijo; ahora instala `cluster-agent-guard` desde el mismo checkout de la PR. Se incluyó `packages/cluster-agent-guard/**` en filtros pull_request y push para no omitir cambios al journal.
+
+Commits de esta ronda en la rama de #115: `1a81d0cc7902ac765a9c0a3f8f328d3df9e9018d` (journal), `f2e9a2aec77c1c076e0804134777f6c87e7148ab` (runtime), `d7eaf3a836fa545a485272cf90eab11655e5ee50` (prueba journal), `c90e4960e55c08f512443ae49282503eac0c3468` (workflow).
+
+Estado: el CI del HEAD combinado anterior fue satisfactorio en transporte y persistencia; esta ronda posterior aún requiere CI nuevo. No se fusiona ni se despliega hasta que termine.
