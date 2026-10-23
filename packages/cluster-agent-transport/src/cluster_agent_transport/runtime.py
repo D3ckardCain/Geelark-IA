@@ -90,12 +90,16 @@ class AgentTransportRuntime:
         self, *, operation_id: UUID, instance_id: UUID, assignment_epoch: int,
         result: dict[str, Any], task_id: UUID | None = None
     ) -> AgentResponse:
-        self._record_local(
+        receipt = self._record_local(
             operation_id=operation_id, instance_id=instance_id, assignment_epoch=assignment_epoch,
             status="running", result=result,
         )
+        recorded_task_id = getattr(receipt, "task_id", None)
+        if task_id is not None and recorded_task_id is not None and task_id != recorded_task_id:
+            raise ValueError("task_id no coincide con el recibo durable.")
+        resolved_task_id = task_id or recorded_task_id
         response = self._send_receipt(
-            operation_id=operation_id, assignment_epoch=assignment_epoch, task_id=task_id,
+            operation_id=operation_id, assignment_epoch=assignment_epoch, task_id=resolved_task_id,
             state="running", result=result, route="progress"
         )
         return response
@@ -106,12 +110,16 @@ class AgentTransportRuntime:
     ) -> AgentResponse:
         if status not in {"succeeded", "rejected", "failed", "unknown"}:
             raise ValueError("El resultado final debe ser succeeded o failed.")
-        self._record_local(
+        receipt = self._record_local(
             operation_id=operation_id, instance_id=instance_id, assignment_epoch=assignment_epoch,
             status=status, result=result,
         )
+        recorded_task_id = getattr(receipt, "task_id", None)
+        if task_id is not None and recorded_task_id is not None and task_id != recorded_task_id:
+            raise ValueError("task_id no coincide con el recibo durable.")
+        resolved_task_id = task_id or recorded_task_id
         response = self._send_receipt(
-            operation_id=operation_id, assignment_epoch=assignment_epoch, task_id=task_id,
+            operation_id=operation_id, assignment_epoch=assignment_epoch, task_id=resolved_task_id,
             state=status, result=result, route="result"
         )
         return response
