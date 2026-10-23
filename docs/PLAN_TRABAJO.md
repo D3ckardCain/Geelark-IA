@@ -87,5 +87,6 @@ Solo tras aprobar la fase 2:
 - PR #106, #108 y #109 están integradas en `main`; consultar `docs/AUDITORIA_GITHUB_CONTINUIDAD_2026-10-22.md` y `docs/AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md` para evidencia y límites.
 - PR #86 se cerró sin merge por cambio de alcance. No usar su plan antiguo para reemplazar este archivo; rescatar contenido solo si reaparece como necesidad explícita.
 - Recuento observado: 21 PR abiertas y 38 Issues abiertas. No fusionar PR apiladas fuera de orden ni cerrar una tarea solo por CI verde.
+- Bloqueo activo del stack de control: #101 (`b84da93881f5869e8832e5888e5dce02433e85cc`), #52 y #67 están `mergeable=false`; #101 no tiene CI asociada al HEAD consultado. Resolver #101 primero, después revalidar #74 → #52 → #57 → #67 → #85 en orden y sobre cada SHA nuevo. La CI de SHA anteriores es histórica.
 - La issue #27 sigue bloqueando cualquier ejecución física de redroid. #24 cubre caché de artefactos; #92 cubre aprovisionamiento Debian 13.
 - La aceptación manual de PC-MASTER en Windows (#77) y la identificación del artefacto local (#88) siguen pendientes; no declarar el panel operativo hasta resolverlas.
