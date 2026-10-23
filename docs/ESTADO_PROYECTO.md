@@ -124,7 +124,7 @@ Se creó [COMPARATIVA_MOTORES_ANDROID.md](COMPARATIVA_MOTORES_ANDROID.md) con re
 - [ ] Obtener especificaciones del anfitrión y ejecutar la prueba mínima.
 - [ ] Comparar resultados de ADB, captura/entrada, APK, persistencia, aislamiento y recursos.
 
-Hallazgo provisional: redroid se prioriza para la primera prueba si el anfitrión es Linux compatible, por su enfoque de multiinstancia; esta prioridad no equivale a una selección definitiva. Android Emulator queda condicionado a revisión de las condiciones del SDK y las imágenes. Waydroid y Android-x86/derivados requieren validar modelo de instancias, mantenimiento y aislamiento.
+**Nota histórica del 2026-10-09, supersedida:** en ese momento se priorizaba redroid para una primera prueba; la recomendación dejó de estar vigente tras la revisión de seguridad y la investigación posterior. Redroid permanece bloqueado por #27. Android Emulator queda condicionado a revisión de las condiciones del SDK y las imágenes. Waydroid y Android-x86/derivados requieren validar modelo de instancias, mantenimiento y aislamiento.
 
 
 ## Actualización de auditoría funcional y contratos locales — 2026-10-09
@@ -195,7 +195,7 @@ No se requiere instalar nada ni compartir números de serie. Hasta recibir los d
 
 Se acepta la directriz de no bloquear la estrategia en las especificaciones de un equipo concreto. Se creó [ARQUITECTURA_TECNOLOGICA_PROPUESTA.md](ARQUITECTURA_TECNOLOGICA_PROPUESTA.md) y la [issue #11](https://github.com/D3ckardCain/Geelark-IA/issues/11).
 
-Propuesta inicial: Tauri 2 + React/TypeScript/Vite; FastAPI/Python; SQLite con migraciones; adaptadores desacoplados para motores Android; Android Emulator oficial como baseline de compatibilidad y redroid en Linux como experimento de densidad; ADB encapsulado; RPA propio con estados, límites y recuperación; Appium/UIAutomator2 y Playwright para pruebas.
+**Propuesta inicial histórica (2026-10-09, no vigente como selección final):** Tauri 2 + React/TypeScript/Vite; FastAPI/Python; SQLite; Android Emulator como baseline y redroid como experimento. Tauri no está seleccionado, la persistencia del clúster PostgreSQL se evalúa en PRs separadas y redroid está bloqueado por #27.
 
 La elección del motor sigue pendiente de pruebas comparativas, pero ya no se requiere hardware del usuario para diseñar el stack y los contratos. Se continuará con decisiones tecnológicas, licencias, contratos y pruebas reproducibles genéricas. Ninguna función se considera implementada por la sola creación de estos documentos.
 
@@ -213,7 +213,7 @@ Estas son decisiones de diseño para prototipo; no certifican todavía la compat
 Se añadieron [CONTRATO_ADAPTADOR_ANDROID.md](CONTRATO_ADAPTADOR_ANDROID.md) y [ESPECIFICACION_MOTOR_RPA.md](ESPECIFICACION_MOTOR_RPA.md). El primero define capacidades, estados, errores, idempotencia y pruebas de conformidad por motor. El segundo define bloques RPA tipados, límites, cancelación, recuperación y sincronización explícita. Ambos son especificaciones, no implementaciones.
 
 
-La estrategia del motor Android quedó registrada en ADR-002: redroid es candidato de experimento para multiinstancia; Android Emulator es baseline de compatibilidad y Waydroid alternativa de laboratorio. La decisión final depende de pruebas de conformidad, seguridad y licencias.
+**Resumen histórico de ADR-002 antes de la actualización del 2026-10-21:** redroid figuraba como candidato de experimento. El estado actual está recogido en el párrafo de prioridad vigente que sigue: Cuttlefish es el primer candidato documental/técnico, todavía no aprobado; redroid está bloqueado por #27.
 
 
 ## Actualización — clúster heterogéneo como requisito central (2026-10-09)
