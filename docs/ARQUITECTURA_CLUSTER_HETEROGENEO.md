@@ -1,3 +1,5 @@
+> **Aclaración de vigencia — 2026-10-22:** esta arquitectura se mantiene como objetivo propuesto. El motor Android no está aprobado; QEMU + Android-x86 + VNC está retirado, redroid bloqueado por #27 y Cuttlefish es candidato de laboratorio no aprobado. No implica implementación, integración ni prueba física.
+
 # Arquitectura de clúster físico heterogéneo — Geelark-IA
 
 **Fecha:** 2026-10-09  
@@ -26,7 +28,7 @@ El clúster de varios equipos debe ser parte de la arquitectura objetivo desde a
 
 ### 3.1 Plano de administración
 
-La aplicación Geelark-IA (Tauri/React como interfaz de escritorio, y opcionalmente una interfaz web local) muestra el estado del clúster, nodos, instancias, tareas, recursos, alertas y registros. La API debe ser agnóstica al número de nodos.
+PC-MASTER permanece como aplicación Windows. La candidata de escritorio actual es Python/Tkinter en la PR #87, todavía draft y no integrada; el panel web autenticado de solo lectura está en la PR #104, también draft. Tauri/React fue una propuesta inicial y no está seleccionado ni autoriza una reescritura. La interfaz muestra el estado del clúster, nodos, instancias, tareas, recursos, alertas y registros cuando se integre y acepte. La API debe ser agnóstica al número de nodos.
 
 ### 3.2 Plano de control
 
