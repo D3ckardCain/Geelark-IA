@@ -54,6 +54,7 @@ Orden de dependencia documentado: **#101 → #74 → #52 → #57 → #67 → #85
 ## Higiene y cierre de trabajo
 
 - No cerrar Issues de implementación por tener documentación o CI histórica.
+- La revisión de las 38 Issues abiertas no encontró ninguna con todas las casillas de aceptación marcadas; las candidatas inspeccionadas (#20, #29, #71, #72, #77, #88, #89, #91 y #93) conservan criterios de integración, investigación o aceptación pendientes. No se cerraron por inferencia. Las decisiones #64 y #105 ya constan cerradas con motivo documentado.
 - No borrar documentos históricos complementarios ni ramas/PR sin confirmar que sus cambios únicos están integrados.
 - La issue #29 conserva brechas de contrato pendientes y ahora distingue su alcance de #15/#16: endurecimiento/consistencia frente a fixtures/paquete inicial. También se detectó divergencia de ascendencia contra `main` en las PR raíz #16 (20 ahead/254 behind), #32 (18/242) y #40 (2/242); se dejaron comentarios para reconciliar historial y volver a validar CI, sin cambiar bases automáticamente. La issue #20 sigue abierta porque sus criterios de autenticación, entrega, recuperación y permisos están incompletos; se enlazaron las líneas canónicas (#39/#41/#43/#44, #35/#36, #50/#55/#58, #32/#33) para evitar duplicación.
 - La issue #89 describe una corrección candidata en #104, pero no debe cerrarse antes de integrar la corrección o confirmar formalmente que el criterio de issue está satisfecho.
