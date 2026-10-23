@@ -7,6 +7,8 @@ on:
       - "packages/cluster-persistence/**"
       - "packages/cluster-agent-guard/**"
       - "packages/cluster-agent-auth/**"
+      - "packages/cluster-agent-transport/**"
+      - "packages/cluster-master-admin/**"
       - ".github/workflows/cluster-persistence-service.yml"
   push:
     branches: [main]
@@ -15,6 +17,8 @@ on:
       - "packages/cluster-persistence/**"
       - "packages/cluster-agent-guard/**"
       - "packages/cluster-agent-auth/**"
+      - "packages/cluster-agent-transport/**"
+      - "packages/cluster-master-admin/**"
       - ".github/workflows/cluster-persistence-service.yml"
   workflow_dispatch:
 
@@ -48,7 +52,7 @@ jobs:
       TEST_DATABASE_URL: postgresql://postgres:test-only-password@127.0.0.1:5432/geelark_test
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Apply schema migrations to disposable database
         if: hashFiles('db/migrations/*.sql') != ''
@@ -62,7 +66,7 @@ jobs:
           done
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -90,6 +94,81 @@ jobs:
         if: hashFiles('packages/cluster-agent-auth/pyproject.toml') != ''
         run: python -m pytest packages/cluster-agent-auth/tests -q
 
+      - name: Install Master Admin API and tests when present
+        if: hashFiles('packages/cluster-master-admin/pyproject.toml') != ''
+        run: python -m pip install -e "packages/cluster-master-admin[test]"
+
+      - name: Run Master Admin API security tests when present
+        if: hashFiles('packages/cluster-master-admin/pyproject.toml') != ''
+        run: python -m pytest packages/cluster-master-admin/tests -q
+
+      - name: Verify PostgreSQL read-only role when present
+        if: hashFiles('packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          container_id="$(docker ps --filter 'ancestor=postgres:16-alpine' --format '{{.ID}}' | head -n 1)"
+          test -n "$container_id"
+          # Exercise migration of an existing role whose LOGIN attribute is disabled.
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "CREATE ROLE geelark_master_reader NOLOGIN"
+          docker exec -i "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 < packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "ALTER ROLE geelark_master_reader PASSWORD 'test-only-password'"
+          reader_dsn="postgresql://geelark_master_reader:test-only-password@127.0.0.1:5432/geelark_test"
+          PGPASSWORD=test-only-password psql "$reader_dsn" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql
+
+          # Negative test: a grant on any other application table must be rejected.
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "CREATE TABLE public.geelark_admin_privilege_probe(id integer); GRANT SELECT ON public.geelark_admin_privilege_probe TO geelark_master_reader"
+          if PGPASSWORD=test-only-password psql "$reader_dsn" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql > /tmp/geelark-admin-privilege-probe.log 2>&1; then
+            echo "ERROR: el verificador aceptó SELECT sobre una tabla ajena"
+            exit 1
+          fi
+          grep -q "privilegios efectivos sobre un objeto distinto" /tmp/geelark-admin-privilege-probe.log || { cat /tmp/geelark-admin-privilege-probe.log; exit 1; }
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "REVOKE SELECT ON public.geelark_admin_privilege_probe FROM geelark_master_reader; DROP TABLE public.geelark_admin_privilege_probe"
+
+          # Negative test: PUBLIC EXECUTE on a SECURITY DEFINER routine must be rejected.
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "CREATE FUNCTION public.geelark_admin_function_probe() RETURNS integer LANGUAGE sql SECURITY DEFINER AS 'SELECT 1'"
+          if PGPASSWORD=test-only-password psql "$reader_dsn" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql > /tmp/geelark-admin-function-probe.log 2>&1; then
+            echo "ERROR: el verificador aceptó EXECUTE sobre una rutina ajena"
+            exit 1
+          fi
+          grep -q "EXECUTE sobre una rutina no permitida" /tmp/geelark-admin-function-probe.log || { cat /tmp/geelark-admin-function-probe.log; exit 1; }
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "DROP FUNCTION public.geelark_admin_function_probe()"
+
+          # Negative test: column-level SELECT on an unrelated table must be rejected.
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "CREATE TABLE public.geelark_admin_column_probe(secret text); GRANT SELECT(secret) ON public.geelark_admin_column_probe TO geelark_master_reader"
+          if PGPASSWORD=test-only-password psql "$reader_dsn" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql > /tmp/geelark-admin-column-probe.log 2>&1; then
+            echo "ERROR: el verificador aceptó SELECT de columna en una tabla ajena"
+            exit 1
+          fi
+          grep -q "privilegios efectivos sobre un objeto distinto" /tmp/geelark-admin-column-probe.log || { cat /tmp/geelark-admin-column-probe.log; exit 1; }
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "REVOKE SELECT(secret) ON public.geelark_admin_column_probe FROM geelark_master_reader; DROP TABLE public.geelark_admin_column_probe"
+
+          # Negative test: column-level UPDATE on the allowed nodes table must be rejected.
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "GRANT UPDATE(display_name) ON geelark_control.nodes TO geelark_master_reader"
+          if PGPASSWORD=test-only-password psql "$reader_dsn" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql > /tmp/geelark-admin-node-column-write.log 2>&1; then
+            echo "ERROR: el verificador aceptó UPDATE de columna en nodes"
+            exit 1
+          fi
+          grep -q "privilegios de escritura o DDL sobre nodes" /tmp/geelark-admin-node-column-write.log || { cat /tmp/geelark-admin-node-column-write.log; exit 1; }
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "REVOKE UPDATE(display_name) ON geelark_control.nodes FROM geelark_master_reader"
+
+          # Negative test: ownership/CREATE on an unrelated schema must be rejected.
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "CREATE SCHEMA geelark_admin_owner_probe AUTHORIZATION geelark_master_reader"
+          if PGPASSWORD=test-only-password psql "$reader_dsn" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql > /tmp/geelark-admin-owner-probe.log 2>&1; then
+            echo "ERROR: el verificador aceptó propiedad/CREATE en otro esquema"
+            exit 1
+          fi
+          grep -q "CREATE sobre un esquema no permitido" /tmp/geelark-admin-owner-probe.log || { cat /tmp/geelark-admin-owner-probe.log; exit 1; }
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "DROP SCHEMA geelark_admin_owner_probe"
+
+      - name: Install agent transport and tests when present
+        if: hashFiles('packages/cluster-agent-transport/pyproject.toml') != ''
+        run: python -m pip install -e "packages/cluster-agent-transport[test]"
+
+      - name: Run task inbox PostgreSQL integration tests when present
+        if: hashFiles('packages/cluster-agent-transport/tests/test_task_inbox_postgres.py') != ''
+        run: python -m pytest packages/cluster-agent-transport/tests/test_task_inbox_postgres.py -q
+
       - name: Check dependency consistency
-        if: hashFiles('packages/cluster-persistence/pyproject.toml') != '' || hashFiles('packages/cluster-agent-guard/pyproject.toml') != '' || hashFiles('packages/cluster-agent-auth/pyproject.toml') != ''
+        if: hashFiles('packages/cluster-persistence/pyproject.toml') != '' || hashFiles('packages/cluster-agent-guard/pyproject.toml') != '' || hashFiles('packages/cluster-agent-auth/pyproject.toml') != '' || hashFiles('packages/cluster-agent-transport/pyproject.toml') != '' || hashFiles('packages/cluster-master-admin/pyproject.toml') != ''
         run: python -m pip check
