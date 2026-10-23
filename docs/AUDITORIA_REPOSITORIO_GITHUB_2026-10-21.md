@@ -125,3 +125,9 @@ Esta actualización reemplaza recuentos históricos de Issues/PR que podrían ha
 - Issues #3 y #6 se mantienen separadas: #3 controla la Fase A y aceptación de la matriz; #6 detalla el catálogo de funciones. Se documentó la distinción en ambas issues; no son duplicados exactos.
 - Los informes `AUDITORIA_REPOSITORIO_GITHUB_2026-10-21.md` y `AUDITORIA_GITHUB_CONTINUIDAD_2026-10-22.md` se conservan como documentos complementarios (detalle de higiene/CI frente a resumen de continuidad), con enlaces cruzados; no se borró historial.
 - No se cerraron issues de implementación pendientes por inferencia. Se cerró #64 porque el texto declaraba la decisión de sistema base/roles como resuelta; no significa que Debian, PXE o redroid estén instalados.
+
+## Revalidación del stack de tareas — 2026-10-23
+- PR #101 y #74 cambiaron de HEAD tras la auditoría anterior. Se verificó CI actual: #101 HEAD `043a4e23efd063949577f758eacc326d74bb7ce5` con transporte #479/#478, esquema #308 y persistencia #607 en `success`; #74 HEAD `406936ecef181eb4a7a34d6e25316079ee8b29ea` con transporte #480 y persistencia #608 en `success`.
+- PR #112 intenta sincronizar el proveedor de snapshots a la rama de bandeja; la API de GitHub informa `mergeable=false`. No fusionar hasta resolver conflictos y revisar el diff completo.
+- PR #113 corrige el uso de lease de entrega tras aceptación. Transporte #481 pasa **63 pruebas** y `pip check` limpio; la CI PostgreSQL del mismo HEAD aún debe confirmarse.
+- La cadena no se considera integrada: mantener #52/#57/#67/#85 y #112/#113 en draft hasta resolver dependencias, CI completa y aceptación manual. No se despliega ni se ejecuta Android.
