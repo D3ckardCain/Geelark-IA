@@ -22,7 +22,7 @@ Mantener el repositorio GeeLark-IA alineado con el alcance vigente: panel web PC
 - Evaluación de redroid centrada en seguridad, digest, kernel, Binder/BinderFS, ADB, aislamiento y pruebas.
 - Catálogo funcional y matriz de paridad conservados como documentación de funciones públicas de GeeLark, no como selección de motores.
 - Issue #8 cerrada como decisión de alcance completada; la issue #27 permanece abierta.
-- PR #108 conserva la preparación del worker y el diagnóstico de solo lectura; PR #109 contiene la limpieza de alcance.
+- PR #108 integró la preparación del worker y el diagnóstico de solo lectura; PR #109 integró la limpieza de alcance.
 
 ## Criterios antes de integrar
 
