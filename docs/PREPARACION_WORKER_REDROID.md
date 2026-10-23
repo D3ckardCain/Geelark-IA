@@ -23,7 +23,7 @@
 
 La guía oficial de redroid documenta una ejecución Docker con `--privileged` y advierte que ADB no debe exponerse a redes públicas. La issue upstream [remote-android/redroid-doc #932](https://github.com/remote-android/redroid-doc/issues/932) describe que el init de Android puede escribir en `/proc/sys/kernel/modprobe` desde el contenedor privilegiado, afectando al host porque ese sysctl no está aislado por namespaces. El reporte incluye redroid 14 y redroid 16.
 
-La issue upstream aparece cerrada por quien la abrió como “completed”, pero la página consultada no documenta un commit, parche publicado ni versión corregida. Por tanto, **no interpretamos ese cierre como prueba de mitigación**.
+La issue upstream aparece cerrada por quien la abrió como “completed”, pero la página consultada no documenta un commit, parche publicado ni versión corregida. Además, la fuente oficial de AOSP `platform/system/core` para `android16-qpr2-release` sigue conteniendo la escritura `write /proc/sys/kernel/modprobe \\n` en `rootdir/init.rc` (fuente: https://android.googlesource.com/platform/system/core/+/android16-qpr2-release/rootdir/init.rc). Esto confirma que la instrucción sigue presente en esa rama Android 16 consultada; no demuestra por sí solo el comportamiento de cada digest de redroid, que debe comprobarse por separado. Por tanto, **no interpretamos ese cierre como prueba de mitigación**.
 
 ### Puerta de seguridad previa a cualquier prueba
 
