@@ -61,9 +61,7 @@ Abre una terminal y ejecuta:
 ### Virtualización
 
     grep -Eoc '(vmx|svm)' /proc/cpuinfo
-    test -e /dev/kvm && echo "KVM disponible" || echo "KVM no detectado"
 
-El primer comando de virtualización cuenta CPUs lógicas que exponen flags de virtualización; un resultado positivo no demuestra por sí solo que el firmware, permisos y KVM estén listos. La prueba definitiva se hará después, de forma controlada.
 
 ## 4. macOS
 
