@@ -55,3 +55,15 @@ No usar `mergeable=true` como sustituto de revisión, CI del HEAD exacto, integr
 ## Siguiente tarea técnica
 
 Inspeccionar los commits que divergen en #101 respecto de la base actual y determinar el conjunto mínimo de cambios que debe preservarse. Luego resolver únicamente #101 y validar CI del nuevo HEAD. No continuar a #74 hasta que #101 tenga base reconciliada y CI relevante en verde.
+
+
+## Seguimiento de resolución de PR #101 — 2026-10-23
+
+Se realizaron tres correcciones acotadas directamente en la rama `fix/worker-module-inventory-transport-ack-v2` para reducir solapamientos con la base:
+- Commit `34004599821454e05b6380ed77f6bfaf50271772`: alinea `tests/test_runtime.py` con las pruebas actuales del contrato ACK (estado/resultado esperados y ACK fail-closed).
+- Commit `f3c14ff2fbfd751cb80250b3507a4752f1a788ff`: separa la explicación del fencing ACK en README para conservar el inventario de módulos y reducir conflicto de línea.
+- Commit `3123cd15e08c301860389abd00900e26b4c660a2`: reconcilia el comentario del workflow con la base y mantiene una nota separada sobre el fencing.
+
+El código `runtime.py` fue comparado en ambas ramas y su contenido actual coincide. La base tiene siete commits posteriores al ancestro común que tocan workflow, README, runtime y tests. Aunque se reconciliaron los solapamientos visibles de esos cuatro archivos, GitHub sigue informando `mergeable=false` para la PR #101. La consulta de estados y workflows del HEAD `3123cd15e08c301860389abd00900e26b4c660a2` no devolvió checks ni ejecuciones asociados. Por tanto, **no se considera resuelta** ni se ha intentado fusionar.
+
+Siguiente paso seguro: obtener/reconciliar la base exacta y resolver el conflicto restante con una operación Git de merge/rebase que preserve los cambios únicos de la PR; validar el nuevo HEAD con CI antes de quitar el draft. No se deben tratar los checks históricos como evidencia de esta revisión.
