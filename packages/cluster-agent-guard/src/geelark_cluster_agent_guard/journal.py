@@ -477,6 +477,7 @@ class AgentJournal:
         self,
         operation_id: UUID,
         *,
+        expected_assignment_epoch: int,
         expected_status: str,
         expected_result: dict[str, Any],
     ) -> bool:
@@ -488,6 +489,8 @@ class AgentJournal:
         """
         if not isinstance(operation_id, UUID):
             raise InvalidAgentCommand("operation_id debe ser UUID")
+        if isinstance(expected_assignment_epoch, bool) or not isinstance(expected_assignment_epoch, int) or expected_assignment_epoch < 1:
+            raise InvalidAgentCommand("expected_assignment_epoch debe ser entero positivo")
         if not isinstance(expected_status, str) or expected_status not in (self._STATUSES - {"accepted"}):
             raise InvalidAgentCommand("expected_status no es un estado sincronizable")
         if not isinstance(expected_result, dict):
@@ -497,14 +500,18 @@ class AgentJournal:
         try:
             conn.execute("BEGIN IMMEDIATE")
             row = conn.execute(
-                "SELECT node_id, status, result_json FROM operation_receipts WHERE operation_id = ?",
+                "SELECT node_id, assignment_epoch, status, result_json FROM operation_receipts WHERE operation_id = ?",
                 (str(operation_id),),
             ).fetchone()
             if row is None or row["node_id"] != str(self.local_node_id):
                 raise UnknownOperation("El recibo no existe en este nodo")
             if row["status"] not in (self._STATUSES - {"accepted"}):
                 raise InvalidAgentCommand("Solo progreso o resultado puede marcarse sincronizado")
-            if row["status"] != expected_status or row["result_json"] != expected_json:
+            if (
+                row["assignment_epoch"] != expected_assignment_epoch
+                or row["status"] != expected_status
+                or row["result_json"] != expected_json
+            ):
                 conn.commit()
                 return False
             conn.execute(
