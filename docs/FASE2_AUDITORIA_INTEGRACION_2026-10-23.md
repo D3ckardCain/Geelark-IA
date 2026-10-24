@@ -283,3 +283,14 @@ Se confirma que el runtime usa el `task_id` del recibo durable en reportes inmed
 - #113 se cerró sin merge como supersedida por #115 después de comparar `domain_handlers.py` y `test_task_inbox_postgres.py` (contenido idéntico en ambas ramas) y verificar que el workflow de #115 conserva los filtros y la prueba PostgreSQL.
 - La PR activa de integración es #115, HEAD `f17bd3651b710ce2baee64cc98c0825c7bc96546`, mergeable=true, transporte #502 (**66 passed**) y persistencia #629 (**33 + 20 + 54 + 1 passed**), `pip check` limpio. Sigue en draft y no fusionada.
 - La seguridad de Master Admin/rol PostgreSQL readonly no queda validada por esta línea porque el paquete no está presente en su base; debe comprobarse en la línea #104. La issue #27 sigue bloqueando la ejecución física de redroid.
+
+
+## Revalidación de la línea Windows #87/#103/#104 — 2026-10-23
+
+La comparación de los cinco archivos compartidos entre #103 y #104 confirma divergencia funcional, no duplicación exacta:
+- `auth.py`: #103 usa `whoami.exe` + `icacls.exe` con timeout de 30 s; #104 usa PowerShell para aplicar ACL secuenciales/verificadas, timeout de 8 s y comprobación posterior con `icacls`. No portar el método antiguo sobre #104.
+- `app.py`: #103 usa `health_state AS reported_health_state`; #104 consulta la columna `reported_health_state` explícita, evitando confundir salud derivada y reportada.
+- `tests/test_app.py` / `tests/test_auth.py`: los fixtures de #103 corresponden a la estrategia antigua; #104 contiene pruebas más amplias de ACL PowerShell y seguridad de solo lectura.
+- Workflow: #103 añade un job Windows específico; #104 mantiene pruebas adicionales del rol PostgreSQL readonly. Reconciliar cobertura al integrar.
+
+La #87 aporta el lanzador/configurador Windows; #104 aporta el panel web/API autenticado. #103 no se cierra como duplicada: se mantiene como corrección apilada pendiente de reconciliación. El objetivo es conservar el lanzador sin reintroducir la implementación antigua del backend/ACL. No se cambió ninguna base ni se fusionaron ramas.
