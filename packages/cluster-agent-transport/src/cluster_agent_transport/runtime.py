@@ -58,31 +58,68 @@ class AgentTransportRuntime:
     def read_status(self) -> AgentResponse:
         return self._request("GET", "/agent/v1/status", None)
 
+    def claim_next_task(self, *, idempotency_key: str) -> AgentResponse:
+        """Reclama una tarea; conservar la misma clave si se reintenta por timeout."""
+        return self._request(
+            "POST", "/agent/v1/tasks/claim", {"schema_version": 1},
+            idempotency_key=idempotency_key,
+        )
+
+    def accept_task(self, *, task_id: UUID, idempotency_key: str | None = None) -> AgentResponse:
+        """Confirma recepción de una tarea sin ejecutarla."""
+        key = idempotency_key or f"task-accept-{task_id}"
+        return self._request(
+            "POST", f"/agent/v1/tasks/{task_id}/accept",
+            {"schema_version": 1, "state": "accepted", "details": {}},
+            idempotency_key=key,
+        )
+
+    def reconcile(self, *, assignments: list[dict[str, Any]], idempotency_key: str) -> AgentResponse:
+        """Envía una comparación de solo lectura; no aplica cambios en el controlador."""
+        if not isinstance(assignments, list) or len(assignments) > 500:
+            raise ValueError("assignments debe contener como máximo 500 elementos")
+        if any(not isinstance(item, dict) for item in assignments):
+            raise ValueError("cada elemento de assignments debe ser un objeto")
+        return self._request(
+            "POST", "/agent/v1/reconcile",
+            {"schema_version": 1, "assignments": assignments},
+            idempotency_key=idempotency_key,
+        )
+
     def report_progress(
-        self, *, operation_id: UUID, instance_id: UUID, assignment_epoch: int, result: dict[str, Any]
+        self, *, operation_id: UUID, instance_id: UUID, assignment_epoch: int,
+        result: dict[str, Any], task_id: UUID | None = None
     ) -> AgentResponse:
-        self._record_local(
+        receipt = self._record_local(
             operation_id=operation_id, instance_id=instance_id, assignment_epoch=assignment_epoch,
             status="running", result=result,
         )
+        recorded_task_id = getattr(receipt, "task_id", None)
+        if task_id is not None and recorded_task_id is not None and task_id != recorded_task_id:
+            raise ValueError("task_id no coincide con el recibo durable.")
+        resolved_task_id = task_id or recorded_task_id
         response = self._send_receipt(
-            operation_id=operation_id, assignment_epoch=assignment_epoch,
+            operation_id=operation_id, assignment_epoch=assignment_epoch, task_id=resolved_task_id,
             state="running", result=result, route="progress"
         )
         return response
 
     def report_result(
         self, *, operation_id: UUID, instance_id: UUID, assignment_epoch: int,
-        status: str, result: dict[str, Any],
+        status: str, result: dict[str, Any], task_id: UUID | None = None,
     ) -> AgentResponse:
-        if status not in {"succeeded", "failed"}:
+        if status not in {"succeeded", "rejected", "failed", "unknown"}:
             raise ValueError("El resultado final debe ser succeeded o failed.")
-        self._record_local(
+        receipt = self._record_local(
             operation_id=operation_id, instance_id=instance_id, assignment_epoch=assignment_epoch,
             status=status, result=result,
         )
+        recorded_task_id = getattr(receipt, "task_id", None)
+        if task_id is not None and recorded_task_id is not None and task_id != recorded_task_id:
+            raise ValueError("task_id no coincide con el recibo durable.")
+        resolved_task_id = task_id or recorded_task_id
         response = self._send_receipt(
-            operation_id=operation_id, assignment_epoch=assignment_epoch,
+            operation_id=operation_id, assignment_epoch=assignment_epoch, task_id=resolved_task_id,
             state=status, result=result, route="result"
         )
         return response
@@ -120,23 +157,22 @@ class AgentTransportRuntime:
         operation_id = getattr(receipt, "operation_id", None)
         instance_id = getattr(receipt, "instance_id", None)
         epoch = getattr(receipt, "assignment_epoch", None)
+        task_id = getattr(receipt, "task_id", operation_id)
         if not isinstance(operation_id, UUID) or not isinstance(instance_id, UUID):
             raise ValueError("Recibo local inválido.")
-        # El recibo ya fue persistido localmente. No volver a llamar report_progress
-        # / report_result aquí: eso crearía una nueva escritura local durante cada
-        # reintento y podría alterar el journal en vez de entregar el snapshot original.
-        if status == "running" and isinstance(result, dict):
-            route = "progress"
-        elif status in {"succeeded", "failed"} and isinstance(result, dict):
-            route = "result"
-        else:
-            return None
         if isinstance(epoch, bool) or not isinstance(epoch, int) or epoch < 1:
             raise ValueError("El recibo contiene un assignment_epoch inválido.")
-        return self._send_receipt(
-            operation_id=operation_id, assignment_epoch=epoch,
-            state=status, result=result, route=route
-        )
+        if status == "running" and isinstance(result, dict):
+            return self._send_receipt(
+                operation_id=operation_id, assignment_epoch=epoch, task_id=task_id,
+                state=status, result=result, route="progress",
+            )
+        if status in {"succeeded", "rejected", "failed", "unknown"} and isinstance(result, dict):
+            return self._send_receipt(
+                operation_id=operation_id, assignment_epoch=epoch, task_id=task_id,
+                state=status, result=result, route="result",
+            )
+        return None
 
     def _record_local(
         self, *, operation_id: UUID, instance_id: UUID, assignment_epoch: int,
@@ -152,18 +188,17 @@ class AgentTransportRuntime:
         )
 
     def _send_receipt(
-        self, *, operation_id: UUID, assignment_epoch: int,
-        state: str, result: dict[str, Any], route: str
+        self, *, operation_id: UUID, assignment_epoch: int, state: str,
+        result: dict[str, Any], route: str, task_id: UUID | None = None
     ) -> AgentResponse:
         payload = {"schema_version": 1, "state": state, "details": result}
         digest = payload_digest(payload)[:32]
         key = f"{route}-{operation_id}-{digest}"
         response = self._request(
-            "POST", f"/agent/v1/tasks/{operation_id}/{route}", payload, idempotency_key=key
+            "POST", f"/agent/v1/tasks/{task_id or operation_id}/{route}", payload, idempotency_key=key
         )
-        # El ACK debe corresponder al estado y resultado exactos enviados. Las APIs
-        # antiguas sin expected_status/expected_result fallan cerradas: aceptar su ACK
-        # podría ocultar una versión local más nueva que llegó mientras la petición volaba.
+        # ACK cercado: solo puede marcarse entregada la versión exacta enviada.
+        # Las APIs antiguas sin estado/resultado esperado fallan cerradas.
         mark_delivered = getattr(self.journal, "mark_receipt_delivered", None)
         mark_synced = getattr(self.journal, "mark_receipt_synced", None)
         marker = mark_delivered if callable(mark_delivered) else mark_synced
@@ -174,16 +209,13 @@ class AgentTransportRuntime:
         try:
             if callable(mark_delivered):
                 acknowledged = marker(
-                    operation_id,
-                    assignment_epoch,
-                    expected_status=state,
-                    expected_result=result,
+                    operation_id, assignment_epoch,
+                    expected_status=state, expected_result=result,
                 )
             else:
                 acknowledged = marker(
-                    operation_id,
-                    expected_status=state,
-                    expected_result=result,
+                    operation_id, expected_assignment_epoch=assignment_epoch,
+                    expected_status=state, expected_result=result,
                 )
         except TypeError:
             raise AgentTransportError(

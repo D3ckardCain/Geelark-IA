@@ -1,14 +1,16 @@
-"""Adaptadores de dominio PostgreSQL para telemetría y consulta propia del agente.
+"""Adaptadores PostgreSQL para telemetría, inventario y bandeja durable del agente.
 
-No se implementan aquí handlers de tareas; esas operaciones permanecen sin
-configurar hasta integrar y revisar la capa de operaciones/outbox.
+Las operaciones de tareas validan propiedad, epoch y leases bajo bloqueo de filas;
+la reconciliación se mantiene de solo lectura y no resuelve estados inciertos.
 """
 from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
+import json
 import re
 from typing import Any
+from uuid import UUID
 
 import psycopg
 from fastapi import HTTPException
@@ -21,9 +23,39 @@ from .module_registry import MODULE_REPORT_STALE_AFTER, SUPPORTED_MODULE_IDS
 HEARTBEAT_STALE_AFTER = timedelta(seconds=90)
 
 
-def _derive_module_reports(reports: list[dict[str, Any]], last_seen_at: datetime | None, *, now: datetime | None = None) -> list[dict[str, Any]]:
+def _validate_result_summary(value: Any) -> dict[str, Any]:
+    """Exige JSON compacto y rechaza campos que puedan contener secretos."""
+    if not isinstance(value, dict):
+        raise HTTPException(status_code=422, detail={"code": "INVALID_RESULT_SUMMARY"})
+    forbidden = ("token", "password", "secret", "authorization", "cookie", "credential", "apikey", "privatekey", "accesskey")
+
+    def inspect(item: Any) -> None:
+        if isinstance(item, dict):
+            for key, nested in item.items():
+                if not isinstance(key, str):
+                    raise HTTPException(status_code=422, detail={"code": "INVALID_RESULT_SUMMARY"})
+                # Normalizar snake_case, kebab-case y camelCase por igual.
+                normalized = "".join(character for character in key.casefold() if character.isalnum())
+                if any(term in normalized for term in forbidden):
+                    raise HTTPException(status_code=422, detail={"code": "SENSITIVE_RESULT_FIELD"})
+                inspect(nested)
+        elif isinstance(item, list):
+            for nested in item:
+                inspect(nested)
+
+    inspect(value)
+    try:
+        encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail={"code": "INVALID_RESULT_SUMMARY"}) from None
+    if len(encoded) > 1_000_000:
+        raise HTTPException(status_code=413, detail={"code": "RESULT_SUMMARY_TOO_LARGE"})
+    return value
+
+
+def _derive_module_reports(reports: list[dict[str, Any]], last_seen_at: datetime | None, *, now: datetime) -> list[dict[str, Any]]:
     """Sanea filas persistidas y degrada a unknown datos obsoletos o incoherentes."""
-    current_time = now or datetime.now(timezone.utc)
+    current_time = now.astimezone(timezone.utc)
     node_stale = last_seen_at is None or last_seen_at <= current_time - HEARTBEAT_STALE_AFTER
     allowed_states = {"operational", "degraded", "not-installed", "unknown"}
     error_code_pattern = re.compile(r"^[A-Z0-9_]{1,64}$")
@@ -83,9 +115,9 @@ def _derive_module_reports(reports: list[dict[str, Any]], last_seen_at: datetime
         })
     return result
 
-def _derive_health_state(reported_health_state: str, last_seen_at: datetime | None, *, now: datetime | None = None) -> str:
+def _derive_health_state(reported_health_state: str, last_seen_at: datetime | None, *, now: datetime) -> str:
     """Deriva salud usando el reloj del controlador, nunca solo el valor del agente."""
-    current_time = now or datetime.now(timezone.utc)
+    current_time = now.astimezone(timezone.utc)
     if last_seen_at is None or last_seen_at <= current_time - HEARTBEAT_STALE_AFTER:
         return "offline"
     if reported_health_state in {"degraded", "unhealthy"}:
@@ -173,7 +205,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
     def modules(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
         """Persiste inventario; el UPDATE solo permite nodos active."""
         _assert_principal_current(conn, principal)
-        received_at = datetime.now(timezone.utc)
+        received_at = conn.execute("SELECT now()").fetchone()[0].astimezone(timezone.utc)
         normalized = [
             {"module_id": item["module_id"], "state": item["state"], "version": item.get("version"),
              "checked_at": received_at.isoformat(), "source": "agent-report", "error_code": item.get("error_code")}
@@ -199,7 +231,8 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             row = conn.execute(
                 """
                 SELECT node_id, display_name, admin_state, reported_health_state, agent_version,
-                       protocol_version, last_seen_at, last_sequence, capabilities, module_reports
+                       protocol_version, last_seen_at, last_sequence, capabilities, module_reports,
+                       now() AS database_now
                   FROM geelark_control.nodes
                  WHERE node_id = %s
                 """,
@@ -212,18 +245,306 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 "display_name": row[1],
                 "admin_state": row[2],
                 "reported_health_state": row[3],
-                "health_state": _derive_health_state(row[3], row[6]),
+                "health_state": _derive_health_state(row[3], row[6], now=row[10]),
                 "agent_version": row[4],
                 "protocol_version": row[5],
                 "last_seen_at": row[6].astimezone(timezone.utc).isoformat() if row[6] else None,
                 "sequence": row[7],
                 "capabilities": row[8],
-                "modules": _derive_module_reports(row[9], row[6]),
+                "modules": _derive_module_reports(row[9], row[6], now=row[10]),
             }
+
+    def _locked_task(
+        conn: psycopg.Connection,
+        principal: AgentPrincipal,
+        task_id: UUID,
+        *,
+        allow_terminal_replay: bool = False,
+    ):
+        row = conn.execute(
+            """
+            SELECT t.status, t.node_id, t.instance_id, t.assignment_epoch,
+                   t.result_summary, i.owner_node_id, i.assignment_epoch,
+                   i.lease_expires_at, o.status, t.delivery_lease_until,
+                   now() AS database_now
+              FROM geelark_control.agent_tasks AS t
+              JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
+              JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
+             WHERE t.task_id = %s
+             FOR UPDATE OF t, i, o
+            """,
+            (task_id,),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail={"code": "TASK_NOT_FOUND"})
+        if str(row[1]) != principal.node_id:
+            raise HTTPException(status_code=403, detail={"code": "TASK_NOT_OWNED_BY_NODE"})
+        # Un reintento terminal idéntico puede recibir ACK aunque venza la lease,
+        # pero solo si el mismo nodo conserva la propiedad y el mismo assignment_epoch.
+        terminal_replay = allow_terminal_replay and row[0] in {
+            "succeeded", "rejected", "failed", "unknown"
+        }
+        if (
+            row[5] is None or str(row[5]) != principal.node_id
+            or row[6] != row[3]
+            or (
+                not terminal_replay
+                and (
+                    row[7] is None or row[7] <= row[10]
+                    or (
+                        row[0] == "delivered"
+                        and (row[9] is None or row[9] <= row[10])
+                    )
+                )
+            )
+        ):
+            raise HTTPException(status_code=409, detail={"code": "STALE_ASSIGNMENT"})
+        return row
+
+    def claim_task(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
+        _assert_principal_current(conn, principal)
+        if (principal.admin_state, principal.credential_status) != ("active", "active"):
+            raise HTTPException(status_code=403, detail={"code": "PERMISSION_DENIED"})
+        row = conn.execute(
+            """
+            SELECT t.task_id, t.operation_id, t.instance_id, t.assignment_epoch,
+                   t.payload, t.delivery_attempts, i.lease_expires_at
+              FROM geelark_control.agent_tasks AS t
+              JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
+              JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
+              JOIN geelark_control.nodes AS n ON n.node_id = t.node_id
+             WHERE t.node_id = %s
+               AND n.admin_state = 'active' AND n.health_state = 'healthy' AND n.revoked_at IS NULL
+               AND n.last_seen_at > now() - interval '90 seconds'
+               AND t.status IN ('queued', 'delivered')
+               AND (t.status = 'queued' OR t.delivery_lease_until IS NULL
+                    OR t.delivery_lease_until <= now())
+               AND o.operation_type = 'assign' AND o.status = 'accepted'
+               AND i.owner_node_id = t.node_id
+               AND i.assignment_epoch = t.assignment_epoch
+               AND i.lease_expires_at > now()
+             ORDER BY t.created_at, t.task_id
+             LIMIT 1
+             FOR UPDATE OF t, i, o SKIP LOCKED
+            """,
+            (principal.node_id,),
+        ).fetchone()
+        if row is None:
+            return {"task": None}
+        task_id, operation_id, instance_id, epoch, task_payload, attempts, instance_lease_expires_at = row
+        delivery_lease_expires_at = conn.execute(
+            """
+            UPDATE geelark_control.agent_tasks
+               SET status = 'delivered',
+                   delivery_attempts = delivery_attempts + 1,
+                   delivery_lease_until = now() + interval '30 seconds',
+                   delivered_at = COALESCE(delivered_at, now()),
+                   updated_at = now()
+             WHERE task_id = %s
+             RETURNING delivery_lease_until
+            """,
+            (task_id,),
+        ).fetchone()[0]
+        body = dict(task_payload)
+        body.update({
+            "task_id": str(task_id),
+            "operation_id": str(operation_id),
+            "instance_id": str(instance_id),
+            "node_id": principal.node_id,
+            "assignment_epoch": epoch,
+            "lease_expires_at": delivery_lease_expires_at.astimezone(timezone.utc).isoformat(),
+            "instance_lease_expires_at": instance_lease_expires_at.astimezone(timezone.utc).isoformat(),
+            "delivery_attempt": attempts + 1,
+        })
+        return {"task": body}
+
+    def accept_task(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
+        _assert_principal_current(conn, principal)
+        if payload.get("state") != "accepted":
+            raise HTTPException(status_code=422, detail={"code": "INVALID_TASK_STATE"})
+        try:
+            task_id = UUID(payload["task_id"])
+        except (KeyError, ValueError, TypeError):
+            raise HTTPException(status_code=422, detail={"code": "INVALID_TASK_ID"}) from None
+        row = _locked_task(conn, principal, task_id)
+        status = row[0]
+        if status == "accepted":
+            return {"ok": True, "task_id": str(task_id), "state": "accepted", "duplicate": True}
+        if status != "delivered":
+            raise HTTPException(status_code=409, detail={"code": "TASK_STATE_CONFLICT"})
+        conn.execute(
+            """
+            UPDATE geelark_control.agent_tasks
+               SET status = 'accepted', accepted_at = COALESCE(accepted_at, now()),
+                   updated_at = now()
+             WHERE task_id = %s
+            """,
+            (task_id,),
+        )
+        return {"ok": True, "task_id": str(task_id), "state": "accepted", "duplicate": False}
+
+    def progress_task(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
+        _assert_principal_current(conn, principal)
+        if payload.get("state") not in {"running", "unknown"}:
+            raise HTTPException(status_code=422, detail={"code": "INVALID_TASK_STATE"})
+        try:
+            task_id = UUID(payload["task_id"])
+        except (KeyError, ValueError, TypeError):
+            raise HTTPException(status_code=422, detail={"code": "INVALID_TASK_ID"}) from None
+        row = _locked_task(conn, principal, task_id)
+        if row[0] not in {"accepted", "running"}:
+            raise HTTPException(status_code=409, detail={"code": "TASK_STATE_CONFLICT"})
+        state = payload["state"]
+        details = _validate_result_summary(payload.get("details", {}))
+        conn.execute(
+            """
+            UPDATE geelark_control.agent_tasks
+               SET status = %s, result_summary = %s, updated_at = now()
+             WHERE task_id = %s
+            """,
+            (state, Jsonb(details), task_id),
+        )
+        conn.execute(
+            """
+            UPDATE geelark_control.operations
+               SET status = %s, result_summary = %s, updated_at = now()
+             WHERE operation_id = (SELECT operation_id FROM geelark_control.agent_tasks WHERE task_id = %s)
+            """,
+            (state, Jsonb(details), task_id),
+        )
+        return {"ok": True, "task_id": str(task_id), "state": state}
+
+    def result_task(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
+        _assert_principal_current(conn, principal)
+        state = payload.get("state")
+        if state not in {"succeeded", "rejected", "failed", "unknown"}:
+            raise HTTPException(status_code=422, detail={"code": "INVALID_TASK_STATE"})
+        try:
+            task_id = UUID(payload["task_id"])
+        except (KeyError, ValueError, TypeError):
+            raise HTTPException(status_code=422, detail={"code": "INVALID_TASK_ID"}) from None
+        row = _locked_task(conn, principal, task_id, allow_terminal_replay=True)
+        old_status, old_summary = row[0], dict(row[4] or {})
+        details = _validate_result_summary(payload.get("details", {}))
+        if old_status in {"succeeded", "rejected", "failed", "unknown"}:
+            if old_status == state and old_summary == details:
+                return {"ok": True, "task_id": str(task_id), "state": state, "duplicate": True}
+            raise HTTPException(status_code=409, detail={"code": "TASK_TERMINAL_CONFLICT"})
+        if old_status not in {"accepted", "running"}:
+            raise HTTPException(status_code=409, detail={"code": "TASK_STATE_CONFLICT"})
+        terminal = state in {"succeeded", "rejected", "failed"}
+        conn.execute(
+            """
+            UPDATE geelark_control.agent_tasks
+               SET status = %s, result_summary = %s,
+                   completed_at = CASE WHEN %s THEN now() ELSE NULL END,
+                   updated_at = now()
+             WHERE task_id = %s
+            """,
+            (state, Jsonb(details), terminal, task_id),
+        )
+        conn.execute(
+            """
+            UPDATE geelark_control.operations
+               SET status = %s, result_summary = %s,
+                   completed_at = CASE WHEN %s THEN now() ELSE NULL END,
+                   updated_at = now()
+             WHERE operation_id = (SELECT operation_id FROM geelark_control.agent_tasks WHERE task_id = %s)
+            """,
+            (state, Jsonb(details), terminal, task_id),
+        )
+        return {"ok": True, "task_id": str(task_id), "state": state, "duplicate": False}
+
+    def reconcile(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
+        """Compara el inventario informado con la autoridad central sin mutar estados."""
+        _assert_principal_current(conn, principal)
+        items = payload.get("assignments", [])
+        if not isinstance(items, list) or len(items) > 500:
+            raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_BATCH"})
+        comparisons = []
+        now = conn.execute("SELECT now()").fetchone()[0]
+        for item in items:
+            try:
+                task_id = UUID(item["task_id"])
+                operation_id = UUID(item["operation_id"])
+                instance_id = UUID(item["instance_id"])
+                epoch = item["assignment_epoch"]
+                observed_state = item["observed_state"]
+                observed_summary = item.get("result_summary", {})
+            except (KeyError, TypeError, ValueError):
+                raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_ITEM"}) from None
+            if isinstance(epoch, bool) or not isinstance(epoch, int) or epoch < 1:
+                raise HTTPException(status_code=422, detail={"code": "INVALID_ASSIGNMENT_EPOCH"})
+            observed_summary = _validate_result_summary(observed_summary)
+            row = conn.execute(
+                """
+                SELECT t.status, t.result_summary, t.node_id, t.instance_id,
+                       t.operation_id, t.assignment_epoch,
+                       i.owner_node_id, i.assignment_epoch, i.lease_expires_at,
+                       o.status
+                  FROM geelark_control.agent_tasks AS t
+                  JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
+                  JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
+                 WHERE t.task_id = %s AND t.node_id = %s
+                   AND t.operation_id = %s AND t.instance_id = %s
+                   AND t.assignment_epoch = %s
+                """,
+                (task_id, principal.node_id, operation_id, instance_id, epoch),
+            ).fetchone()
+            if row is None:
+                comparisons.append({
+                    "task_id": str(task_id),
+                    "status": "not_found_or_not_owned",
+                    "action": "do_not_execute",
+                })
+                continue
+            server_state, server_summary = row[0], dict(row[1] or {})
+            owner_node, current_epoch, lease_expires_at = row[6], row[7], row[8]
+            if (
+                owner_node is None or str(owner_node) != principal.node_id
+                or current_epoch != epoch or lease_expires_at is None or lease_expires_at <= now
+            ):
+                comparisons.append({
+                    "task_id": str(task_id),
+                    "status": "stale_assignment",
+                    "server_state": server_state,
+                    "observed_state": observed_state,
+                    "action": "operator_review_required",
+                })
+                continue
+            if server_state in {"succeeded", "rejected", "failed"}:
+                if server_state == observed_state and server_summary == observed_summary:
+                    result_state = "in_sync"
+                else:
+                    result_state = "terminal_conflict"
+            elif server_state == observed_state and server_summary == observed_summary:
+                result_state = "in_sync"
+            elif server_state == "unknown" or observed_state == "unknown":
+                result_state = "uncertain_review_required"
+            else:
+                result_state = "review_required"
+            comparisons.append({
+                "task_id": str(task_id),
+                "status": result_state,
+                "server_state": server_state,
+                "observed_state": observed_state,
+                "action": "none" if result_state == "in_sync" else "operator_review_required",
+            })
+        return {
+            "schema_version": 1,
+            "read_only": True,
+            "mutations_applied": 0,
+            "items": comparisons,
+        }
 
     return {
         Operation.HEARTBEAT: heartbeat,
         Operation.CAPABILITIES: capabilities,
         Operation.MODULES_REPORT: modules,
         Operation.STATUS_READ: status,
+        Operation.TASK_FETCH: claim_task,
+        Operation.TASK_ACCEPT: accept_task,
+        Operation.TASK_PROGRESS: progress_task,
+        Operation.TASK_RESULT: result_task,
+        Operation.RECONCILE: reconcile,
     }

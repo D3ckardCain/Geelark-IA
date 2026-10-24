@@ -87,6 +87,11 @@ def test_naive_expiry_is_rejected():
     assert error.value.code == "CREDENTIAL_EXPIRY_INVALID"
 
 
+def test_authorization_requires_explicit_authoritative_time():
+    with pytest.raises(TypeError):
+        authorize_agent_operation(context(), AgentOperation.HEARTBEAT)
+
+
 def test_unknown_operation_is_rejected():
     with pytest.raises(AgentAuthorizationError) as error:
         authorize_agent_operation(context(), "execute_shell", now=NOW)

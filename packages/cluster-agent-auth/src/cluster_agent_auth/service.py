@@ -79,8 +79,9 @@ def create_enrollment(
         raise ValueError("La vigencia del enrolamiento debe ser mayor que cero y <= 1 hora.")
     secret = _new_secret()
     enrollment_id = uuid4()
-    expires_at = datetime.now(timezone.utc) + ttl
     with conn.transaction():
+        now = conn.execute("SELECT now()").fetchone()[0]
+        expires_at = now + ttl
         conn.execute(
             """
             INSERT INTO geelark_control.node_enrollments
@@ -108,12 +109,12 @@ def consume_enrollment(
         raise ValueError("display_name debe tener entre 1 y 128 caracteres.")
     _validate_credential_ttl(credential_ttl)
     token_hash = _secret_hash(enrollment_token)
-    now = datetime.now(timezone.utc)
     credential = _new_secret()
     credential_id = uuid4()
     node_id: UUID | None = None
-    expires_at = now + credential_ttl
     with conn.transaction():
+        now = conn.execute("SELECT now()").fetchone()[0]
+        expires_at = now + credential_ttl
         row = conn.execute(
             """
             SELECT enrollment_id, expected_node_id
@@ -193,9 +194,10 @@ def begin_credential_rotation(
     _validate_credential_ttl(ttl)
     secret = _new_secret()
     credential_id = uuid4()
-    expires_at = datetime.now(timezone.utc) + ttl
     try:
         with conn.transaction():
+            now = conn.execute("SELECT now()").fetchone()[0]
+            expires_at = now + ttl
             old = conn.execute(
                 """
                 SELECT credential_id FROM geelark_control.node_credentials
@@ -223,8 +225,8 @@ def begin_credential_rotation(
 
 def rotate_credential(conn: psycopg.Connection, node_id: UUID, new_credential_id: UUID) -> None:
     """Activa una rotación de forma atómica, revocando primero la credencial anterior."""
-    now = datetime.now(timezone.utc)
     with conn.transaction():
+        now = conn.execute("SELECT now()").fetchone()[0]
         new = conn.execute(
             """
             SELECT replaces_credential_id FROM geelark_control.node_credentials

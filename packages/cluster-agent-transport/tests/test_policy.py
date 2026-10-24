@@ -3,15 +3,16 @@ from datetime import datetime, timedelta, timezone
 from cluster_agent_transport.policy import AgentPrincipal, Operation, PermissionDenied, authorize_operation
 
 
-def principal(admin_state="pending", credential_status="pending", expires_at=None):
-    expiry = expires_at or (datetime.now(timezone.utc) + timedelta(hours=1))
-    return AgentPrincipal("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", admin_state, credential_status, expiry)
+def principal(admin_state="pending", credential_status="pending", expires_at=None, authorized_at=None):
+    current_time = authorized_at or datetime.now(timezone.utc)
+    expiry = expires_at or (current_time + timedelta(hours=1))
+    return AgentPrincipal("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", admin_state, credential_status, expiry, current_time)
 
 
 def test_pending_can_only_send_telemetry_and_read_status():
     for operation in (Operation.HEARTBEAT, Operation.CAPABILITIES, Operation.STATUS_READ):
         authorize_operation(principal(), operation)
-    for operation in (Operation.MODULES_REPORT, Operation.TASK_ACCEPT, Operation.TASK_PROGRESS, Operation.TASK_RESULT, Operation.RECONCILE):
+    for operation in (Operation.MODULES_REPORT, Operation.TASK_FETCH, Operation.TASK_ACCEPT, Operation.TASK_PROGRESS, Operation.TASK_RESULT, Operation.RECONCILE):
         try:
             authorize_operation(principal(), operation)
         except PermissionDenied:

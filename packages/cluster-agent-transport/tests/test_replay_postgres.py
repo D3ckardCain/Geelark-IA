@@ -43,6 +43,49 @@ def test_nonce_is_persistently_single_use():
         conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))
 
 
+def test_nonce_timestamp_window_uses_postgres_clock_not_application_clock(monkeypatch):
+    import cluster_agent_transport.replay as replay_module
+
+    node_id, credential_id = uuid4(), uuid4()
+    with psycopg.connect(DATABASE_URL) as conn:
+        conn.execute(
+            "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state) VALUES (%s, %s, 'pending')",
+            (node_id, "test-replay-clock-" + str(node_id)),
+        )
+        conn.execute(
+            """
+            INSERT INTO geelark_control.node_credentials
+                (credential_id, node_id, token_sha256, status, expires_at)
+            VALUES (%s, %s, %s, 'pending', now() + interval '1 hour')
+            """,
+            (credential_id, node_id, __import__("hashlib").sha256(str(credential_id).encode()).hexdigest()),
+        )
+        database_now = conn.execute("SELECT now()").fetchone()[0]
+
+        for offset_hours in (-1, 1):
+            class ApplicationClock:
+                @classmethod
+                def now(cls, tz=None):
+                    return database_now + timedelta(hours=offset_hours)
+
+            monkeypatch.setattr(replay_module, "datetime", ApplicationClock)
+            nonce = uuid4()
+            consume_request_nonce(
+                conn, node_id=node_id, credential_id=credential_id, nonce=nonce,
+                request_id=uuid4(), timestamp=database_now,
+            )
+            stored = conn.execute(
+                "SELECT seen_at, expires_at FROM geelark_control.agent_request_nonces WHERE node_id = %s AND nonce = %s",
+                (node_id, nonce),
+            ).fetchone()
+            assert stored[0] == database_now
+            assert stored[1] == database_now + timedelta(minutes=5)
+
+        conn.execute("DELETE FROM geelark_control.agent_request_nonces WHERE node_id = %s", (node_id,))
+        conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
+        conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))
+
+
 def test_old_timestamp_is_rejected_without_database_write():
     with psycopg.connect(DATABASE_URL) as conn:
         with pytest.raises(ReplayRejected):

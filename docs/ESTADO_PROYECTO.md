@@ -1,8 +1,13 @@
-# Estado del proyecto Geelark-IA
+# Estado del proyecto GeeLark-IA
 
-**Actualizado:** 2026-10-09  
-**Fase:** A — inventario funcional de GeeLark y estudio de viabilidad de Android virtualizado local.  
-**Implementación:** no hay módulos declarados como terminados o verificados.
+**Actualizado:** 2026-10-24  
+**Estado operativo:** ningún módulo se considera aceptado para producción; la aceptación manual de PC-MASTER en Windows sigue pendiente en [issue #77](https://github.com/D3ckardCain/Geelark-IA/issues/77).  
+**Integración candidata:** la PR #117 combina el panel autenticado, snapshots y bandeja durable; permanece en draft y sin fusionar. Su CI verde no sustituye las pruebas manuales ni la revisión de seguridad.  
+**Workers:** la adopción independiente de redroid está especificada en [issue #118](https://github.com/D3ckardCain/Geelark-IA/issues/118) y bloqueada por la aceptación de #77. Los nodos pendientes no deben ejecutar tareas.  
+**Android:** redroid es el motor candidato acordado; no arrancar contenedores ni instalar imágenes hasta resolver el bloqueo de seguridad [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27). La investigación de imágenes ligeras sigue abierta en [#119](https://github.com/D3ckardCain/Geelark-IA/issues/119).  
+**Seguridad temporal y del agente:** heartbeat obsoleto [#120](https://github.com/D3ckardCain/Geelark-IA/issues/120); leases de tareas [#121](https://github.com/D3ckardCain/Geelark-IA/issues/121); anti-replay [#124](https://github.com/D3ckardCain/Geelark-IA/issues/124); salud/frescura del estado propio [#125](https://github.com/D3ckardCain/Geelark-IA/issues/125); lease de asignación [#126](https://github.com/D3ckardCain/Geelark-IA/issues/126); TTL y reloj de autorización [#127](https://github.com/D3ckardCain/Geelark-IA/issues/127). Las correcciones de reloj están validadas en CI en `4081f37abfe9f0071fbc2ea2eaf2b723d07f2faf` y la integración posterior/documentación sincronizada pasó los tres workflows de CI en `97e410fdf578b3f87f2d19e4cba4ab0f63b899ec`. Los commits posteriores a ese SHA sincronizan únicamente documentación de seguridad, estado y manuales; no modifican código de ejecución y no deben confundirse con una nueva validación funcional. Sigue abierto el diseño de lease local segura ante desfase/reinicio [#128](https://github.com/D3ckardCain/Geelark-IA/issues/128), además de la semántica de `health_state` [#71](https://github.com/D3ckardCain/Geelark-IA/issues/71); no conectar ejecución real hasta resolverlos.  
+
+> **Nota de vigencia:** las secciones posteriores de este documento contienen apuntes históricos desde el 2026-10-09 y aún incluyen decisiones que han cambiado. Este encabezado resume el estado más reciente; antes de tomar decisiones operativas, contrastar las issues enlazadas y los ADR vigentes. La reconciliación completa del documento sigue pendiente.
 
 ## Objetivo acordado
 
@@ -63,9 +68,29 @@ La investigación y la matriz son preliminares: aún falta desglosar cada pantal
 - [ ] Definir una prueba técnica reproducible de una instancia Android virtual.
 - [ ] Ejecutar y documentar la prueba antes de seleccionar stack definitivo.
 
-## Decisiones pendientes
+## Decisiones vigentes y pendientes (revisión 2026-10-24)
 
-No están aprobados el sistema operativo anfitrión, el stack, la base de datos, el motor de control, el virtualizador, las imágenes Android, el número simultáneo de instancias ni la tecnología de IA local. Estas decisiones requieren investigación de licencias, compatibilidad, rendimiento, seguridad y costes.
+**Decisiones vigentes de trabajo (no equivalen a aceptación de producción):**
+
+- **PC-MASTER:** aplicación Windows existente en fase de aceptación manual; la integración candidata de panel y bandeja es la PR #117.
+- **Workers:** Debian 13 Stable es la base prevista para la primera prueba de nodos; Proxmox VE no está descartado y sigue siendo una alternativa que debe compararse con criterios medibles.
+- **Motor Android:** redroid es el primer candidato acordado para evaluación local; no se debe iniciar hasta cerrar el bloqueo de seguridad #27.
+- **Control y coordinación distribuida:** arquitectura Master/Worker; los nodos pendientes solo pueden reportar heartbeat/capacidades/estado propio y no pueden reclamar tareas.
+- **Persistencia de la integración del clúster:** PostgreSQL local/autohospedado para los contratos distribuidos y las pruebas de integración; no convertir un servicio cloud de pago en requisito.
+- **Autenticación del panel:** gestionada localmente en PC-MASTER; conexión PostgreSQL con rol de solo lectura.
+- **Coste:** objetivo obligatorio de 0 USD en servicios operativos; CI solo con runners estándar gratuitos para repositorios públicos, sin asumir que el saldo de facturación de la cuenta esté verificado.
+- **GitHub:** registro principal de requisitos, decisiones, hallazgos, pruebas y aceptación.
+
+**Pendiente de validar con pruebas reales o investigación:**
+
+- Capacidad por worker y cantidad sostenible de instancias simultáneas.
+- Kernel Debian, módulos y requisitos exactos de cada digest redroid.
+- Compatibilidad de APK objetivo, ABI y servicios de Google cuando correspondan.
+- Rendimiento de CPU/RAM/almacenamiento, aislamiento, persistencia, recuperación y distribución LAN de imágenes.
+- Aceptación manual de PC-MASTER en Windows (#77) y revisión final del diff de la PR #117.
+- El uso/cargo real de GitHub Actions solo puede confirmarse desde el panel de facturación de la cuenta.
+
+Las secciones siguientes conservan el registro histórico del 2026-10-09 y días posteriores. Las frases históricas como «no se ha seleccionado motor/stack/base de datos» no representan el estado vigente por sí solas; contrastar siempre esta sección con las issues y ADR enlazadas antes de ejecutar cambios.
 
 ## Registro de cambios
 
@@ -287,3 +312,19 @@ El PR borrador #16 ahora incluye validación de coherencia entre `status` y `obs
 ### Persistencia de asignaciones documentada (2026-10-09)
 
 Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md). Define transacciones, restricciones para un único propietario, idempotencia durable, outbox y pruebas de caída/concurrencia. No hay DDL, migraciones ni código de persistencia implementados; PostgreSQL local sigue siendo una propuesta pendiente de validar.
+
+## Panel PC-MASTER — implementación de solo lectura en revisión (actualizado 2026-10-21)
+
+La implementación administrativa continúa en la [PR #104](https://github.com/D3ckardCain/Geelark-IA/pull/104), que recupera el trabajo de la PR #84 (cerrada sin fusionar) y agrega correcciones posteriores de Windows/CA y pruebas de regresión. Incluye login local, sesiones SQLite revocables, panel del mismo origen, TLS obligatorio, bind loopback por defecto, consulta autenticada de snapshots y rol PostgreSQL dedicado de solo lectura. No expone mutaciones, tareas, ADB ni shell.
+
+La consulta del panel lee `reported_health_state` desde su columna separada; la salud derivada se calcula con frescura del heartbeat. El panel no debe declarar operativo un módulo ausente, obsoleto o incoherente.
+
+CI verificada para HEAD reconciliado `09d6a5ba322b636fd5d277c1cdb366416e057845` (2026-10-21):
+- [Persistencia/PostgreSQL y Windows ACL #591](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39686519813): ambos jobs terminaron en success.
+- [Transporte HTTPS #462](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39686519850): success.
+
+Se añadió `pytest.ini` con `--import-mode=importlib` y un job aislado de suite integral desde la raíz para PR #104, con PostgreSQL 16 desechable. En HEAD `03da584894ee713af8d74212a81aa07a91cb407b`, la suite raíz terminó con **293 passed, 3 skipped** y `pip check` limpio; Windows ACL terminó con **50 passed, 8 skipped**, y PostgreSQL/persistencia + verificación del rol lector también pasó. Transporte HTTPS pasó en la ejecución [#466](https://github.com/D3ckardCain/Geelark-IA/actions/runs/39686861612).
+
+La aceptación manual en el PC-MASTER Windows 11 sigue pendiente. La CI no demuestra certificados y confianza TLS del equipo, login/logout real ni permisos/conectividad de la base del equipo. Completar el checklist de la issue #77 con evidencia sanitizada antes de declarar operativo el panel.
+
+Pendiente antes de fusionar o desplegar: aceptación manual del checklist de la issue #77 y revisión final de PR. No fusionar ni desplegar todavía. Coste operativo objetivo $0 USD; no restaurar Supabase ni habilitar facturación/runners propios.

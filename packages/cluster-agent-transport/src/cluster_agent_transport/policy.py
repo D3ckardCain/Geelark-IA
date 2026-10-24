@@ -21,6 +21,7 @@ class Operation(str, Enum):
     HEARTBEAT = "heartbeat"
     CAPABILITIES = "capabilities"
     MODULES_REPORT = "modules_report"
+    TASK_FETCH = "task_fetch"
     STATUS_READ = "status_read"
     TASK_ACCEPT = "task_accept"
     TASK_PROGRESS = "task_progress"
@@ -35,6 +36,7 @@ class AgentPrincipal:
     admin_state: str
     credential_status: str
     credential_expires_at: datetime
+    authorized_at: datetime
 
 
 class PermissionDenied(Exception):
@@ -45,6 +47,7 @@ _OPERATION_MAP = {
     Operation.HEARTBEAT: AgentOperation.HEARTBEAT,
     Operation.CAPABILITIES: AgentOperation.PUBLISH_CAPABILITIES,
     Operation.MODULES_REPORT: AgentOperation.REPORT_MODULES,
+    Operation.TASK_FETCH: AgentOperation.CLAIM_TASK,
     Operation.STATUS_READ: AgentOperation.READ_OWN_STATUS,
     Operation.TASK_ACCEPT: AgentOperation.ACCEPT_TASK,
     Operation.TASK_PROGRESS: AgentOperation.REPORT_PROGRESS,
@@ -65,7 +68,7 @@ def authorize_operation(principal: AgentPrincipal, operation: Operation) -> None
             credential_status=principal.credential_status,
             credential_expires_at=principal.credential_expires_at,
         )
-        authorize_agent_operation(context, canonical_operation)
+        authorize_agent_operation(context, canonical_operation, now=principal.authorized_at)
     except (AgentAuthorizationError, KeyError, TypeError, ValueError) as exc:
         code = getattr(exc, "code", "OPERATION_NOT_ALLOWED")
         raise PermissionDenied(code) from None

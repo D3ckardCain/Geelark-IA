@@ -26,6 +26,7 @@ def test_listener_requires_tls_files_and_private_ip(tmp_path):
     cert, key = tmp_path / "cert.pem", tmp_path / "key.pem"
     cert.write_text("cert")
     key.write_text("key")
+    key.chmod(0o600)
     validate_https_listener(host="127.0.0.1", port=8443, certfile=str(cert), keyfile=str(key))
     with pytest.raises(TransportConfigurationError):
         validate_https_listener(host="127.0.0.1", port=80, certfile=str(cert), keyfile=str(tmp_path / "missing.pem"))

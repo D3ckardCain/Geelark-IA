@@ -3,10 +3,17 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from cluster_agent_transport.domain_handlers import HEARTBEAT_STALE_AFTER, _derive_health_state
+from cluster_agent_transport.domain_handlers import HEARTBEAT_STALE_AFTER, _derive_health_state, _derive_module_reports
 
 
 NOW = datetime(2026, 10, 10, 20, 0, tzinfo=timezone.utc)
+
+
+def test_health_derivation_requires_authoritative_now():
+    with pytest.raises(TypeError):
+        _derive_health_state("healthy", NOW)
+    with pytest.raises(TypeError):
+        _derive_module_reports([], NOW)
 
 
 @pytest.mark.parametrize(
