@@ -28,7 +28,7 @@ Orden de dependencia documentado: **#101 → #74 → #52 → #57 → #67 → #85
 - #74 HEAD `406936ecef181eb4a7a34d6e25316079ee8b29ea`: transporte #480 y persistencia #608 `success`; GitHub indica `mergeable=true`.
 - #52 y #67 siguen `mergeable=false`. La sincronización auxiliar #112 se cerró sin merge como supersedida por #115, que integra proveedor/bandeja/ACK cercado; #115 tiene `mergeable=true` y CI verde, pero permanece en draft.
 - #113 HEAD `21a5b4915086959eaf7dece15b6095de333612ce`: transporte #482 (63 passed, `pip check` limpio) y persistencia #609 (prueba PostgreSQL de bandeja 1 passed; persistencia/guard/auth 32 + 12 + 54 passed, `pip check` limpio) `success`.
-- No fusionar descendientes ni actualizar sus bases a ciegas. Siguiente paso: resolver #112 preservando los cambios de ambas ramas y validar el SHA combinado; después seguir en orden.
+- No fusionar descendientes ni actualizar sus bases a ciegas. Siguiente paso: revisar #115, que sustituyó a #112 y conserva los cambios de ambas ramas; validar el diff/contrato del SHA actual antes de integrar, después seguir en orden.
 
 ### 2. Línea PC-MASTER Windows
 
@@ -62,7 +62,7 @@ Orden de dependencia documentado: **#101 → #74 → #52 → #57 → #67 → #85
 
 ## Próxima secuencia recomendada
 
-1. Resolver el conflicto de sincronización #112, revisar los 10 archivos afectados y validar el SHA resultante; no escoger un `runtime.py` entero sin reconciliar las funciones exclusivas.
+1. Revisar el diff de #115 (sustituta de #112), comprobar que conserva las funciones exclusivas y el contrato ACK, y validar la integración antes de fusionar; no escoger un `runtime.py` entero sin reconciliar las funciones exclusivas.
 2. Revalidar la cadena #101 → #74 → #52 → #57 → #67 → #85; #101 y #74 tienen CI verde en sus SHA actuales, pero #52 y #67 siguen con conflicto.
 3. En paralelo, inspeccionar #104/#103/#87 y definir una reconciliación explícita de ascendencia; no cambiar bases automáticamente.
 4. Mantener #27 como bloqueo hasta evidencia reproducible de mitigación de redroid para imagen/digest exactos.
@@ -79,7 +79,7 @@ Esta nota registra el estado observado y la secuencia segura. No afirma que los 
 - El HEAD consultado actualmente de #104 es `75764c435f488f617a07c0003ce088829e6dbd41`; transporte #473 (125 passed) y persistencia #602 (293 passed/3 skipped en suite raíz, Windows ACL 50 passed/8 skipped, asignaciones 33, guard/journal 12, auth 70 passed/2 skipped) terminaron `success`; `pip check` limpio. #104 sigue en draft.
 - Se verificaron enlaces relativos en once documentos principales (README, estado, plan, comparación de motores, ADR-002, auditorías del 21/22/23-oct, Fase 2 y las dos guías de inventario): **no se encontraron enlaces relativos rotos**. También se aclaró la relación entre `GUIA_INVENTARIO_EQUIPO.md` (un anfitrión individual) y `GUIA_INVENTARIO_HARDWARE_CLUSTER.md` (fichas de PC-MASTER/WORKERS); son complementarias, no copias para fusionar.
 - Se actualizaron Issues #50, #63, #71, #72, #89, #91 y #93 con evidencias de SHA/CI y dependencias actuales. #105 permanece cerrada: la colisión ADR-005 ya no existe; el nombre actual de PC-MASTER en la rama #104 es ADR-007 (ADR-006 queda en la rama histórica cerrada #70).
-- PR #112 no es mergeable; se dejó comentario y no se fusionó. PR #113 pasó transporte y la prueba PostgreSQL afectada después de ampliar el workflow para ejecutar `test_task_inbox_postgres.py` ante cambios en `cluster-agent-transport`.
+- Nota histórica: PR #112 era no mergeable y no se fusionó; se cerró después como supersedida por #115. PR #113 pasó transporte y la prueba PostgreSQL afectada después de ampliar el workflow para ejecutar `test_task_inbox_postgres.py` ante cambios en `cluster-agent-transport`.
 - El HEAD actual consultado de #104 es `75764c435f488f617a07c0003ce088829e6dbd41`, con transporte #473 y persistencia #602 `success`; siguen pendientes aceptación manual #77 y comparación local #88.
 - No se cerraron issues de implementación con criterios pendientes; #64 es la única decisión de sistema base cerrada en esta pasada. No se ejecutó Android ni se modificó hardware físico.
 
