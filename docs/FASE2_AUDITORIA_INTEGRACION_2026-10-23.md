@@ -148,7 +148,7 @@ En la revisión de #52 se detectó que `_locked_task` trataba la lease de entreg
 - HEAD de #113: `3f096d0f461e8ef47077eb02153fb615001fe465`. Comparación con base: 2 commits adelante, 0 detrás.
 - Estado en esa observación inicial: #113 draft y CI aún no aparecía. Esta fotografía fue supersedida por la sección «Revalidación final de lease y cobertura PostgreSQL» al final del documento, que registra el HEAD nuevo y ambos workflows en `success`.
 
-La divergencia entre #74 y #52 sigue siendo independiente: #112 no es mergeable y requiere reconciliar el runtime (task_id y endpoints de bandeja más ACK cercado por versión), pruebas, schema y workflows. La comparación de nombres encontró 8 rutas compartidas: `.github/workflows/cluster-agent-transport.yml`, `.github/workflows/cluster-persistence-service.yml`, `docs/MANUAL_TRANSPORTE_HTTPS_AGENTES.md`, `packages/cluster-agent-transport/README.md`, `packages/cluster-agent-transport/pyproject.toml`, `packages/cluster-agent-transport/src/cluster_agent_transport/runtime.py`, `packages/cluster-agent-transport/tests/test_domain_handlers_postgres.py` y `packages/cluster-agent-transport/tests/test_runtime.py`. No seleccionar una versión completa de `runtime.py` sobre la otra; integrar el proveedor/ACK de inventario con los endpoints de bandeja, `task_id` y sincronización de recibos. Además, conservar el ajuste de #113 a `cluster-persistence-service.yml`: el workflow debe dispararse por cambios en `packages/cluster-agent-transport/**` y ejecutar `test_task_inbox_postgres.py`; la versión de workflow en #74 no tiene esa cobertura.
+Nota histórica anterior a la creación de #115: la divergencia entre #74 y #52 requería reconciliar runtime (`task_id`/endpoints de bandeja y ACK cercado), pruebas, schema y workflows. Esa reconciliación se realizó en la rama #115 y su HEAD final está registrado más abajo. La comparación de nombres encontró 8 rutas compartidas: `.github/workflows/cluster-agent-transport.yml`, `.github/workflows/cluster-persistence-service.yml`, `docs/MANUAL_TRANSPORTE_HTTPS_AGENTES.md`, `packages/cluster-agent-transport/README.md`, `packages/cluster-agent-transport/pyproject.toml`, `packages/cluster-agent-transport/src/cluster_agent_transport/runtime.py`, `packages/cluster-agent-transport/tests/test_domain_handlers_postgres.py` y `packages/cluster-agent-transport/tests/test_runtime.py`. No seleccionar una versión completa de `runtime.py` sobre la otra; integrar el proveedor/ACK de inventario con los endpoints de bandeja, `task_id` y sincronización de recibos. Además, conservar el ajuste de #113 a `cluster-persistence-service.yml`: el workflow debe dispararse por cambios en `packages/cluster-agent-transport/**` y ejecutar `test_task_inbox_postgres.py`; la versión de workflow en #74 no tiene esa cobertura.
 
 
 ## Revalidación final de lease y cobertura PostgreSQL — 2026-10-23
@@ -159,7 +159,7 @@ HEAD actualizado de #113: `21a5b4915086959eaf7dece15b6095de333612ce`.
 - Transporte #482: `success`, **63 passed**, `pip check` limpio.
 - Persistencia #609: `success`; prueba PostgreSQL de bandeja **1 passed**, suites de persistencia/guard/auth **32 + 12 + 54 passed**, `pip check` limpio.
 
-La corrección y su cobertura de CI quedan validadas en esta rama, pero #113 sigue en draft. La sincronización #112 continúa `mergeable=false`; no fusionar ni ejecutar Android hasta reconciliar las dos ramas y validar el SHA integrado.
+Nota histórica anterior a #115: #113 tenía su corrección validada de forma aislada, pero la integración con #74/#52 seguía pendiente. #115 incorporó posteriormente la corrección y pasó CI; véanse las secciones finales. No ejecutar Android: la puerta de seguridad #27 sigue vigente.
 
 ## Corrección de estado documental de #113 — 2026-10-23
 
@@ -183,7 +183,7 @@ Cambios combinados:
 - El workflow de persistencia incorpora cambios de transporte y ejecuta `test_task_inbox_postgres.py`.
 - Se conserva la dependencia `geelark-cluster-agent-auth` en el `pyproject.toml` del transporte; no se copió encima el archivo de proveedor que la omitía.
 
-Estado: #115 es solo el primer HEAD combinado y permanece draft/no mergeable mientras GitHub recalcula. Todavía no se han confirmado los CI del SHA combinado. Próximo paso: inspeccionar ambos workflows, revisar fallos en cuanto aparezcan y corregir antes de considerar cualquier fusión. No fusionar #52/#74/#112, no desplegar ni ejecutar Android.
+Estado de esa observación inicial: #115 era el primer HEAD combinado y CI aún estaba pendiente. Esta fotografía quedó supersedida por las secciones finales, que registran el HEAD `f17bd365...`, ambos workflows en success y #112 cerrada sin merge como supersedida. #115 sigue en draft; no desplegar ni ejecutar Android.
 
 ## Resultado CI del primer HEAD combinado #115 — 2026-10-23
 
@@ -195,7 +195,7 @@ Corrección de alcance: el workflow contiene pasos opcionales para `cluster-mast
 
 Nuevo hallazgo de integración, aún abierto: `AgentTransportRuntime.sync_receipt` puede usar `task_id` si el recibo lo expone, pero el `OperationReceipt` actual del journal local solo guarda `operation_id`, `instance_id`, nodo, epoch, estado y resultado. Cuando `task_id != operation_id`, un reintento offline puede enviar a `/agent/v1/tasks/{operation_id}/...` en vez de la ruta de tarea correcta. La suite unitaria que construye un recibo artificial con `task_id` no prueba persistencia real de esa relación. Antes de cerrar #115/#52, hay que añadir y probar la persistencia durable de `task_id` desde claim/aceptación hasta los recibos/reintentos, o definir y demostrar formalmente una invariancia que garantice IDs iguales. No se presume esa invariancia.
 
-#115 sigue en draft. No fusionar #52/#74/#112, no desplegar a PCs físicas y no ejecutar Android.
+Nota histórica de la primera revisión combinada: #115 seguía en draft. #112 fue cerrada después sin merge como supersedida por #115. La integración funcional sigue sin fusionarse; no desplegar a PCs físicas ni ejecutar Android.
 
 ## Avance de persistencia de task_id en #115 — validación pendiente
 
@@ -227,7 +227,7 @@ HEAD de la ronda: `c90e4960e55c08f512443ae49282503eac0c3468`. Ambos workflows te
 
 Se verificó en el mismo HEAD: journal ACK requiere `expected_assignment_epoch` + `expected_status` + `expected_result`; runtime transmite epoch; hay prueba de ACK de epoch antiguo y se mantiene la cobertura de `task_id` distinto de `operation_id`. El workflow de transporte ya no instala el journal desde un SHA fijo antiguo.
 
-Límite que permanece: los pasos de `cluster-master-admin` y la prueba del rol PostgreSQL readonly se omitieron porque el paquete no existe en esta rama base. No afirmar seguridad readonly de PC-MASTER validada hasta integrar ese paquete desde la rama de Master apropiada y ejecutar sus pruebas. #115 permanece draft y no se fusiona con #52/#74/#112 todavía.
+Límite que permanece: los pasos de `cluster-master-admin` y la prueba del rol PostgreSQL readonly se omitieron porque el paquete no existe en esta rama base. No afirmar seguridad readonly de PC-MASTER validada hasta integrar ese paquete desde la rama Master apropiada y ejecutar sus pruebas. #115 permanece draft y no se ha fusionado con #52/#74; #112 quedó cerrada sin merge como supersedida.
 
 ## Inclusión de corrección de lease de entrega de #113 en #115 — 2026-10-23
 
