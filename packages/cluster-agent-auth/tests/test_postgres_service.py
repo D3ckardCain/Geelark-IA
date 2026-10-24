@@ -1,6 +1,7 @@
 """Pruebas reales contra PostgreSQL; CI proporciona TEST_DATABASE_URL."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+import time
 import os
 from uuid import uuid4
 
@@ -240,6 +241,78 @@ def test_expired_credential_is_rejected():
             with pytest.raises(AuthenticationError):
                 authenticate_bearer(conn, credential.secret)
     finally:
+        cleanup([node_id], [enrollment.record_id])
+
+
+def test_authentication_rejects_credential_expiring_while_waiting_for_lock():
+    node_id = uuid4()
+    with connect() as conn:
+        enrollment = create_enrollment(conn, node_id, "lock-expiry-admin")
+    lock_conn = None
+    pool = None
+    try:
+        with connect() as conn:
+            credential = consume_enrollment(conn, enrollment.secret, "auth-lock-expiry-node")
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.nodes SET admin_state = 'active' WHERE node_id = %s",
+                (node_id,),
+            )
+            expires_at = conn.execute(
+                """
+                UPDATE geelark_control.node_credentials
+                   SET status = 'active', activated_at = clock_timestamp(),
+                       expires_at = clock_timestamp() + interval '2 seconds'
+                 WHERE credential_id = %s
+                 RETURNING expires_at
+                """,
+                (credential.record_id,),
+            ).fetchone()[0]
+
+        lock_conn = connect()
+        lock_conn.execute(
+            "SELECT credential_id FROM geelark_control.node_credentials WHERE credential_id = %s FOR UPDATE",
+            (credential.record_id,),
+        )
+        pool = ThreadPoolExecutor(max_workers=1)
+        attempt = pool.submit(lambda: authenticate_bearer(connect(), credential.secret))
+        deadline = time.monotonic() + 8
+        waiting = False
+        while time.monotonic() < deadline:
+            with connect() as observer:
+                waiting = observer.execute(
+                    """
+                    SELECT EXISTS (
+                        SELECT 1 FROM pg_stat_activity
+                         WHERE wait_event_type = 'Lock'
+                           AND state = 'active'
+                           AND query LIKE '%FROM geelark_control.node_credentials AS c%'
+                    )
+                    """
+                ).fetchone()[0]
+            if waiting:
+                break
+            time.sleep(0.05)
+        assert waiting, "autenticación no llegó a esperar por el lock de la credencial"
+        while True:
+            with connect() as observer:
+                still_valid = observer.execute(
+                    "SELECT clock_timestamp() < %s", (expires_at,)
+                ).fetchone()[0]
+            if not still_valid:
+                break
+            time.sleep(0.05)
+        lock_conn.rollback()
+        lock_conn.close()
+        lock_conn = None
+        with pytest.raises(AuthenticationError):
+            attempt.result(timeout=8)
+    finally:
+        if lock_conn is not None:
+            lock_conn.rollback()
+            lock_conn.close()
+        if pool is not None:
+            pool.shutdown(wait=True)
         cleanup([node_id], [enrollment.record_id])
 
 
