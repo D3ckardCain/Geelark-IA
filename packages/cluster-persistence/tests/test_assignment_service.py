@@ -503,7 +503,14 @@ def test_assignment_rejects_lease_that_expires_while_waiting_for_instance_lock()
         assert epoch == 0
         assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
         assert conn.execute("SELECT count(*) FROM geelark_control.outbox_events").fetchone()[0] == 0
-        assert conn.execute(
-            "SELECT count(*) FROM geelark_control.idempotency_records WHERE idempotency_key = %s",
+        idempotency_row = conn.execute(
+            """
+            SELECT response_snapshot
+              FROM geelark_control.idempotency_records
+             WHERE idempotency_key = %s
+            """,
             (request.idempotency_key,),
-        ).fetchone()[0] == 0
+        ).fetchone()
+        assert idempotency_row is not None
+        assert idempotency_row[0]["status"] == "rejected"
+        assert idempotency_row[0]["error"]["code"] == "ASSIGNMENT_REJECTED"
