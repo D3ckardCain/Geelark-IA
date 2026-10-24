@@ -100,7 +100,7 @@ def test_pending_is_denied_all_task_and_reconciliation_routes_without_handler_ca
         client.post(f"/agent/v1/tasks/{uuid4()}/accept", headers=headers(), json=payload),
         client.post(f"/agent/v1/tasks/{uuid4()}/progress", headers=headers(), json=payload),
         client.post(f"/agent/v1/tasks/{uuid4()}/result", headers=headers(), json=payload),
-        client.post("/agent/v1/reconcile", headers=headers(), json=payload),
+        client.post("/agent/v1/reconcile", headers=headers(), json={"schema_version": 1, "assignments": []}),
     ]
     assert [response.status_code for response in responses] == [403, 403, 403, 403]
     assert calls == []
@@ -113,11 +113,26 @@ def test_active_node_with_unconfigured_task_handlers_gets_503_without_mutation()
         client.post(f"/agent/v1/tasks/{uuid4()}/accept", headers=headers(), json=payload),
         client.post(f"/agent/v1/tasks/{uuid4()}/progress", headers=headers(), json=payload),
         client.post(f"/agent/v1/tasks/{uuid4()}/result", headers=headers(), json=payload),
-        client.post("/agent/v1/reconcile", headers=headers(), json=payload),
+        client.post("/agent/v1/reconcile", headers=headers(), json={"schema_version": 1, "assignments": []}),
     ]
     assert [response.status_code for response in responses] == [503, 503, 503, 503]
     assert calls == []
 
+
+def test_pending_cannot_claim_tasks_and_active_can_claim():
+    pending_client, pending_calls = make_client(PENDING)
+    denied = pending_client.post(
+        "/agent/v1/tasks/claim", headers=headers(), json={"schema_version": 1}
+    )
+    assert denied.status_code == 403
+    assert pending_calls == []
+
+    active_client, active_calls = make_client(ACTIVE)
+    accepted = active_client.post(
+        "/agent/v1/tasks/claim", headers=headers(), json={"schema_version": 1}
+    )
+    assert accepted.status_code == 200
+    assert active_calls == ["task_fetch"]
 
 def test_active_node_can_reach_task_handler():
     client, calls = make_client(ACTIVE)
@@ -148,6 +163,7 @@ def test_plain_http_is_rejected_before_authentication():
     client, _ = make_client(PENDING, base_url="http://testserver")
     response = client.get("/agent/v1/status", headers={"Authorization": "Bearer " + "a" * 64})
     assert response.status_code == 426
+
 
 def test_inconsistent_revoked_and_expired_principal_states_never_reach_handlers():
     denied = (

@@ -88,12 +88,11 @@ Verificar que el SAN coincide exactamente con la IP de conexión. Transferir al 
 ## 6. Distribuir confianza y restringir red
 
 1. Instalar el certificado público `geelark-agent-ca.crt` en cada agente mediante un canal autenticado.
-2. Usar el cliente `AgentHTTPSClient` del paquete `cluster_agent_transport`: valida cadena y SAN, exige TLS 1.2+, rechaza HTTP, redirects, hosts fuera de la LAN privada y rutas con caracteres de control, backslashes o traversal, incluso con codificación URL anidada. En POSIX comprueba que el archivo CA y su directorio pertenezcan al usuario actual o a root y no permitan escritura a grupo/otros; en Windows, proteger ambos con ACL NTFS para que otras identidades no puedan sustituir la raíz de confianza. El cuerpo JSON de cada solicitud se limita a 16 KiB, igual que el límite del servidor agente. No desactivar la verificación TLS ni aceptar certificados autofirmados arbitrarios.
-3. El listener valida en POSIX que la clave privada pertenezca al usuario del proceso y no conceda permisos a grupo/otros; el certificado y sus directorios deben pertenecer al usuario actual o a root, y no pueden ser modificables por grupo/otros. En Windows, proteger clave, certificado y directorios con ACL NTFS.
-4. Permitir en el firewall solo el puerto privado elegido desde las IP de los agentes autorizados.
-5. No configurar NAT/port forwarding, túneles públicos ni DNS público para este listener.
-6. Comprobar que el proceso no escucha en interfaces adicionales.
-7. Registrar la huella SHA-256 del certificado CA y verificarla por un canal independiente.
+2. Usar el cliente `AgentHTTPSClient` del paquete `cluster_agent_transport`: valida cadena y SAN, exige TLS 1.2+, rechaza HTTP, redirects y hosts fuera de la LAN privada. No desactivar la verificación TLS ni aceptar certificados autofirmados arbitrarios.
+3. Permitir en el firewall solo el puerto privado elegido desde las IP de los agentes autorizados.
+4. No configurar NAT/port forwarding, túneles públicos ni DNS público para este listener.
+5. Comprobar que el proceso no escucha en interfaces adicionales.
+6. Registrar la huella SHA-256 del certificado CA y verificarla por un canal independiente.
 
 Ejemplo de uso del cliente HTTPS (reemplazar IP, ruta de CA y placeholders por valores autorizados; nunca poner tokens reales en el repositorio):
 
@@ -218,3 +217,8 @@ La migración `db/migrations/0004_worker_module_inventory.sql` crea la columna J
 ### Contrato del payload
 
 El esquema JSON formal y el ejemplo están en [worker-module-inventory-v1.schema.json](contracts/worker-module-inventory-v1.schema.json) y [worker-module-inventory-v1.example.json](contracts/examples/worker-module-inventory-v1.example.json). La lista cerrada del esquema se prueba contra el registro del código para evitar divergencias. El timestamp `checked_at` y `source` son generados por el Master; el Worker no puede falsificarlos. La lectura de estado propio no equivale todavía a un snapshot administrativo para PC-MASTER.
+
+
+## ACK durable y compatibilidad del journal (21-oct-2026)
+
+La sincronización de recibos debe confirmar exactamente el estado y el resultado enviados. El runtime pasa `expected_status` y `expected_result` al journal y conserva el recibo pendiente si la versión local cambió durante la petición. La CI de integración fija el commit del journal que implementa esa API; no debe sustituirse por un commit anterior que solo admita ACK por `operation_id`.

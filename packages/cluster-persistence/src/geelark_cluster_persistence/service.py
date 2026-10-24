@@ -123,6 +123,7 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
     operation_id = uuid4()
     reservation_id = uuid4()
     outbox_event_id = uuid4()
+    task_id = uuid4()
 
     with conn.transaction():
         with conn.cursor() as cur:
@@ -337,6 +338,17 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
                         new_epoch,
                         operation_id,
                         Jsonb(outbox_payload),
+                    ),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO geelark_control.agent_tasks
+                        (task_id, operation_id, node_id, instance_id, assignment_epoch, payload)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        task_id, operation_id, request.node_id, request.instance_id,
+                        new_epoch, Jsonb(outbox_payload),
                     ),
                 )
                 response = {
