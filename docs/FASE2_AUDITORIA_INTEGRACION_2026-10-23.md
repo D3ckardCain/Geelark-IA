@@ -14,7 +14,7 @@ Se consultaron metadatos de las PR apiladas, comparaciones de commits y Issues d
 | #57 | `mergeable=true` | `feat/agent-task-inbox-v2` → `a27922c2` | Depende de #52; no integrar antes de resolver #52. |
 | #67 | `mergeable=false` | `feat/agent-lifecycle-sync-inbox` → `776a3d54` | Depende de #57; requiere reconciliación tras estabilizar las bases anteriores. |
 | #85 | `mergeable=true` | `feat/agent-supervisor-heartbeat-v2` → `3ef9f065` | Depende de #67; no integrar antes de validar la cadena completa. |
-| #112 | `mergeable=false` | `feat/agent-task-inbox-v2` ← `406936ec` | PR de sincronización del proveedor #74 a la rama de bandeja; resolver conflictos, no fusionar a ciegas. |
+| #112 | cerrada sin merge, supersedida | `feat/agent-task-inbox-v2` ← `406936ec` | El intento conflictivo se reemplazó por #115, que reconcilia proveedor, bandeja y ACK cercado; conservar historial, no reabrir salvo regresión. |
 | #113 | `mergeable=true` | `feat/agent-task-inbox-v2` → `21a5b491` | Corrección de lease validada: transporte #482 y persistencia #609 `success`; mantener draft hasta revisión/integración. |
 
 Los SHA abreviados de la tabla sirven para orientación; usar SHA completos en operaciones. La propiedad `mergeable` es una observación de GitHub en el momento de la consulta y puede cambiar.
@@ -83,7 +83,7 @@ Se compararon las versiones de los 10 archivos tocados por la PR auxiliar #112 e
 | `packages/cluster-agent-transport/tests/test_runtime.py` | Pruebas de bandeja + ACK condicional `expected_status/expected_result`, ACK negativo y retry sin mutación local. |
 | `packages/cluster-persistence/tests/test_status_snapshot.py` | Pruebas de separación entre salud reportada por Worker y salud derivada por Master. |
 
-**Decisión:** no resolver por reemplazo total de archivos. La resolución debe mantener ambos grupos de cambios y ejecutar los workflows en el SHA combinado. Se añadió esta matriz como comentario a #112; la PR permanece sin merge por `mergeable=false`. No se ejecutaron workflows manuales ni se modificaron ramas.
+**Decisión aplicada:** no se intentó arreglar #112 mediante reemplazo total de archivos. Se cerró sin merge como supersedida por #115, que conserva la bandeja, el ACK cercado, el inventario y las pruebas de salud. HEAD #115 `f17bd3651b710ce2baee64cc98c0825c7bc96546`: transporte #502 y persistencia #629 `success`, `mergeable=true`. #115 sigue en draft y requiere revisión final; la cobertura de Master Admin en la línea de bandeja es condicional porque ese paquete no existe en esa base. No se ejecutaron workflows manuales ni se fusionó ninguna PR.
 
 ## Siguiente tarea técnica
 
