@@ -1,6 +1,6 @@
 # Transporte HTTPS privado de agentes
 
-Paquete experimental independiente del dominio y sin listener automático.
+Paquete experimental de transporte, sin listener automático. La autorización por operación se delega al paquete canónico `cluster-agent-auth`, que debe instalarse junto con el transporte.
 
 ## Política de acceso
 
