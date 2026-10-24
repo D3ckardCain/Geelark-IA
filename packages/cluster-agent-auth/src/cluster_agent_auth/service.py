@@ -236,10 +236,10 @@ def begin_credential_rotation(
             conn.execute(
                 """
                 INSERT INTO geelark_control.node_credentials
-                    (credential_id, node_id, token_sha256, status, expires_at, replaces_credential_id)
-                VALUES (%s, %s, %s, 'pending', %s, %s)
+                    (credential_id, node_id, token_sha256, status, created_at, expires_at, replaces_credential_id)
+                VALUES (%s, %s, %s, 'pending', %s, %s, %s)
                 """,
-                (credential_id, node_id, _secret_hash(secret), expires_at, old[0]),
+                (credential_id, node_id, _secret_hash(secret), now, expires_at, old[0]),
             )
     except psycopg.errors.UniqueViolation as exc:
         if exc.diag.constraint_name != "one_pending_credential_rotation_per_node":
