@@ -21,6 +21,7 @@ class FakeConnection(AbstractContextManager):
     def __init__(self, rows):
         self.rows = rows
         self.statements = []
+        self.database_now = datetime(2026, 10, 24, 12, 0, tzinfo=timezone.utc)
 
     def __enter__(self):
         return self
@@ -34,11 +35,18 @@ class FakeConnection(AbstractContextManager):
         assert "INSERT " not in statement.upper()
         assert "UPDATE " not in statement.upper()
         assert "DELETE " not in statement.upper()
-        assert params == (500,)
+        if "FROM geelark_control.nodes" in statement:
+            assert params == (500,)
+        else:
+            assert statement.strip().lower() == "select now()"
+            assert params == ()
         return self
 
     def fetchall(self):
         return self.rows
+
+    def fetchone(self):
+        return (self.database_now,)
 
 
 def make_row(reported_health_state="healthy"):
@@ -202,6 +210,33 @@ def test_panel_preserves_reported_health_separately_from_derived_health(tmp_path
     node = response.json()["snapshots"][0]["node"]
     assert node["reported_health_state"] == "unhealthy"
     assert node["health_state"] == "degraded"
+
+
+def test_snapshots_use_postgres_clock_not_pc_master_clock(tmp_path: Path, monkeypatch) -> None:
+    from geelark_master_admin import app as admin_app_module
+
+    database_now = datetime(2026, 10, 24, 12, 0, tzinfo=timezone.utc)
+    row = list(make_row())
+    row[5] = database_now - __import__("datetime").timedelta(seconds=10)
+    client, connections = make_client(tmp_path, rows=[tuple(row)])
+    # Simula un PC-MASTER cuyo reloj está una hora adelantado.
+    class ApplicationClock:
+        @classmethod
+        def now(cls, tz=None):
+            return database_now + __import__("datetime").timedelta(hours=1)
+
+    monkeypatch.setattr(admin_app_module, "datetime", ApplicationClock)
+    login = client.post(
+        "/admin/v1/login",
+        json={"password": "Correct Horse Battery 2030!"},
+        headers={"Origin": "https://master.test"},
+    )
+    assert login.status_code == 200
+    response = client.get("/admin/v1/status/snapshots")
+    assert response.status_code == 200
+    assert response.json()["generated_at"] == "2026-10-24T12:00:00Z"
+    assert response.json()["snapshots"][0]["freshness"]["state"] == "fresh"
+    assert any(statement.strip().lower() == "select now()" for statement, _ in connections[0].statements)
 
 
 def test_validation_error_never_reflects_submitted_password(tmp_path: Path) -> None:
