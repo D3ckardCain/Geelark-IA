@@ -422,9 +422,49 @@ class PcMasterApp(tk.Tk):
 
         self.destroy()
 
+
+def _acquire_single_instance_mutex():
+    """Prevent two Windows launchers from racing to start the same local backend."""
+    if sys.platform != "win32":
+        return None
+    import ctypes
+
+    kernel32 = ctypes.windll.kernel32
+    mutex = kernel32.CreateMutexW(None, True, "Local\\GeeLarkIA_PC_MASTER_SINGLE_INSTANCE")
+    if not mutex:
+        raise OSError("Windows no pudo crear el bloqueo de instancia única.")
+    if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        kernel32.CloseHandle(mutex)
+        raise RuntimeError("PC-MASTER ya está abierto. Usa la ventana existente.")
+    return kernel32, mutex
+
+
+def _release_single_instance_mutex(lock) -> None:
+    if lock is None:
+        return
+    kernel32, mutex = lock
+    try:
+        kernel32.ReleaseMutex(mutex)
+    finally:
+        kernel32.CloseHandle(mutex)
+
+
 def main() -> None:
-    app = PcMasterApp()
-    app.mainloop()
+    try:
+        instance_lock = _acquire_single_instance_mutex()
+    except RuntimeError as exc:
+        # A second launcher must not create another backend or terminate the
+        # already-running instance.
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showwarning(APP_TITLE, str(exc), parent=root)
+        root.destroy()
+        return
+    try:
+        app = PcMasterApp()
+        app.mainloop()
+    finally:
+        _release_single_instance_mutex(instance_lock)
 
 
 if __name__ == "__main__":
