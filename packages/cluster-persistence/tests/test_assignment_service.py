@@ -242,6 +242,56 @@ def test_unknown_instance_state_blocks_reassignment_even_without_owner():
         assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
 
 
+def test_assignment_lease_validation_uses_postgres_clock_not_application_clock(monkeypatch):
+    import geelark_cluster_persistence.service as service_module
+
+    seed_database()
+    real_datetime = service_module.datetime
+    with psycopg.connect(DATABASE_URL) as conn:
+        database_now = conn.execute("SELECT now()").fetchone()[0]
+
+        class AppClockAhead(real_datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return real_datetime.now(tz) + timedelta(hours=1)
+
+        monkeypatch.setattr(service_module, "datetime", AppClockAhead)
+        future_lease = AppClockAhead.fromtimestamp(
+            (database_now + timedelta(minutes=5)).timestamp(), tz=timezone.utc
+        )
+        accepted = assign_instance(
+            conn,
+            replace(make_request(instance_id=INSTANCE_A), lease_expires_at=future_lease),
+        )
+        assert accepted["status"] == "accepted"
+
+        class AppClockBehind(real_datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return real_datetime.now(tz) - timedelta(hours=1)
+
+        monkeypatch.setattr(service_module, "datetime", AppClockBehind)
+        expired_lease = AppClockBehind.fromtimestamp(
+            (database_now - timedelta(seconds=1)).timestamp(), tz=timezone.utc
+        )
+        with pytest.raises(InvalidAssignmentRequest, match="lease_expires_at"):
+            assign_instance(
+                conn,
+                replace(make_request(instance_id=INSTANCE_B), lease_expires_at=expired_lease),
+            )
+
+        owner, epoch = conn.execute(
+            "SELECT owner_node_id, assignment_epoch FROM geelark_control.instances WHERE instance_id = %s",
+            (INSTANCE_B,),
+        ).fetchone()
+        assert owner is None
+        assert epoch == 0
+        assert conn.execute(
+            "SELECT count(*) FROM geelark_control.outbox_events WHERE instance_id = %s",
+            (INSTANCE_B,),
+        ).fetchone()[0] == 0
+
+
 def test_expired_lease_and_uncertain_reservation_do_not_release_owner():
     expired = datetime.now(timezone.utc) - timedelta(minutes=1)
     seed_database(instance_states={
