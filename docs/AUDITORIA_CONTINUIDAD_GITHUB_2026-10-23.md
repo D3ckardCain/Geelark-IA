@@ -82,3 +82,10 @@ Esta nota registra el estado observado y la secuencia segura. No afirma que los 
 - PR #112 no es mergeable; se dejó comentario y no se fusionó. PR #113 pasó transporte y la prueba PostgreSQL afectada después de ampliar el workflow para ejecutar `test_task_inbox_postgres.py` ante cambios en `cluster-agent-transport`.
 - El HEAD actual consultado de #104 es `75764c435f488f617a07c0003ce088829e6dbd41`, con transporte #473 y persistencia #602 `success`; siguen pendientes aceptación manual #77 y comparación local #88.
 - No se cerraron issues de implementación con criterios pendientes; #64 es la única decisión de sistema base cerrada en esta pasada. No se ejecutó Android ni se modificó hardware físico.
+
+
+## Recuento más reciente confirmado — 2026-10-23
+
+Tras cerrar la Issue #64 como decisión de sistema base resuelta y actualizar la Issue #63, se volvió a consultar GitHub: **40 Issues abiertas, 7 cerradas y 27 PR abiertas; las 27 PR abiertas están en draft**. El recuento inicial 39/10/23 de la primera sección corresponde a una fotografía anterior del mismo día y queda como histórico, no como total actual. El recuento puede variar con nuevas operaciones. No se cerraron issues de implementación pendientes ni se fusionaron PR como resultado de esta reconsulta.
+
+La sincronización auxiliar #112 continúa sin ser mergeable. Se documentaron sus 10 archivos y los cambios exclusivos que deben coexistir; no se reemplazaron archivos completos ni se lanzó CI manual. La siguiente operación técnica sigue siendo resolver ese conflicto mediante un merge real que preserve proveedor de snapshots y bandeja durable, y comprobar CI en el SHA combinado.
