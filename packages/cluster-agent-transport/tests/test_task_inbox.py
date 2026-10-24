@@ -32,9 +32,14 @@ def test_claim_task_returns_durable_task_and_lease_only_for_active_node():
     task_id, operation_id, instance_id = uuid4(), uuid4(), uuid4()
     instance_lease_expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
     delivery_lease_expires_at = datetime.now(timezone.utc) + timedelta(seconds=30)
+    credential_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    database_now = datetime.now(timezone.utc)
     conn = FakeConnection([
-        ("active", "active"),
-        (task_id, operation_id, instance_id, 7, {"desired_state": "running"}, 2, instance_lease_expires_at),
+        ("active", "active", credential_expires_at),
+        (database_now,),
+        (task_id, operation_id, instance_id, 7, {"desired_state": "running"}, 2,
+         instance_lease_expires_at, None, database_now),
+        (database_now,),
         (delivery_lease_expires_at,),
     ])
     handlers = make_postgres_agent_handlers(lambda: conn)
@@ -53,13 +58,16 @@ def test_claim_task_returns_durable_task_and_lease_only_for_active_node():
     assert response["task"]["delivery_attempt"] == 3
     assert response["task"]["lease_expires_at"] == delivery_lease_expires_at.isoformat()
     assert response["task"]["instance_lease_expires_at"] == instance_lease_expires_at.isoformat()
-    assert "FOR UPDATE OF t, i, o SKIP LOCKED" in conn.calls[1][0]
-    assert conn.calls[2][1] == (task_id,)
+    assert "FOR UPDATE OF t, i, o SKIP LOCKED" in conn.calls[2][0]
+    assert conn.calls[4][1] == (task_id,)
 
 
 def test_pending_node_is_rejected_before_task_claim_query():
     node_id, credential_id = uuid4(), uuid4()
-    conn = FakeConnection([("pending", "pending")])
+    conn = FakeConnection([
+        ("pending", "pending", datetime.now(timezone.utc) + timedelta(hours=1)),
+        (datetime.now(timezone.utc),),
+    ])
     handlers = make_postgres_agent_handlers(lambda: conn)
     auth_now = datetime.now(timezone.utc)
     principal = AgentPrincipal(str(node_id), str(credential_id), "pending", "pending", auth_now + timedelta(hours=1), auth_now)
@@ -70,4 +78,4 @@ def test_pending_node_is_rejected_before_task_claim_query():
         )
 
     assert exc.value.status_code == 403
-    assert len(conn.calls) == 1
+    assert len(conn.calls) == 2

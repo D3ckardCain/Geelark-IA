@@ -1,5 +1,6 @@
 import hashlib
 import secrets
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
@@ -157,6 +158,72 @@ def test_active_node_claims_assignment_and_reports_fenced_result(monkeypatch):
         claim_key, claim = winners[0]
         assert claim.json()["task"]["task_id"] == str(task_id)
         assert claim.json()["task"]["assignment_epoch"] == 1
+
+        # Regresión: una aceptación que espera por el lock de la instancia no
+        # puede usar el timestamp anterior a la espera si la lease vence.
+        with connect() as conn:
+            lease_expiry = conn.execute(
+                "UPDATE geelark_control.instances SET lease_expires_at = clock_timestamp() + interval '2 seconds' WHERE instance_id = %s RETURNING lease_expires_at",
+                (instance_id,),
+            ).fetchone()[0]
+        lock_conn = connect()
+        pool = ThreadPoolExecutor(max_workers=1)
+        blocked_request = None
+        try:
+            lock_conn.execute(
+                "SELECT instance_id FROM geelark_control.instances WHERE instance_id = %s FOR UPDATE",
+                (instance_id,),
+            )
+            blocked_request = pool.submit(
+                lambda: client.post(
+                    f"/agent/v1/tasks/{task_id}/accept",
+                    headers=headers("task-accept-lock-expiry-" + str(uuid4())),
+                    json={"schema_version": 1, "state": "accepted", "details": {}},
+                )
+            )
+            deadline = time.monotonic() + 8
+            waiting = False
+            while time.monotonic() < deadline:
+                with connect() as observer:
+                    waiting = observer.execute(
+                        """
+                        SELECT EXISTS (
+                            SELECT 1 FROM pg_stat_activity
+                             WHERE wait_event_type = 'Lock'
+                               AND state = 'active'
+                               AND query LIKE '%FROM geelark_control.agent_tasks AS t%'
+                        )
+                        """
+                    ).fetchone()[0]
+                if waiting:
+                    break
+                time.sleep(0.05)
+            assert waiting, "la petición no llegó a esperar por el lock PostgreSQL"
+            while True:
+                with connect() as observer:
+                    still_valid = observer.execute(
+                        "SELECT clock_timestamp() < %s", (lease_expiry,)
+                    ).fetchone()[0]
+                if not still_valid:
+                    break
+                time.sleep(0.05)
+        finally:
+            lock_conn.rollback()
+            lock_conn.close()
+        pool.shutdown(wait=True)
+        assert blocked_request is not None
+        blocked_response = blocked_request.result(timeout=8)
+        assert blocked_response.status_code == 409
+        assert blocked_response.json()["detail"]["code"] == "STALE_ASSIGNMENT"
+        with connect() as conn:
+            assert conn.execute(
+                "SELECT status FROM geelark_control.agent_tasks WHERE task_id = %s",
+                (task_id,),
+            ).fetchone()[0] == "delivered"
+            conn.execute(
+                "UPDATE geelark_control.instances SET lease_expires_at = clock_timestamp() + interval '5 minutes' WHERE instance_id = %s",
+                (instance_id,),
+            )
 
         # La misma clave devuelve el snapshot, no reclama otra tarea.
         repeated_claim = client.post(
