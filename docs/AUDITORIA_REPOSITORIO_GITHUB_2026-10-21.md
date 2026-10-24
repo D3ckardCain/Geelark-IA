@@ -1,7 +1,7 @@
 ## Revalidación final de PRs y CI — 2026-10-23
 
 Consulta en vivo de GitHub:
-- **39 Issues abiertas, 10 cerradas y 23 PR abiertas** en la consulta más reciente del 2026-10-23; todas las PR abiertas están en draft.
+- **39 Issues abiertas, 10 cerradas y 22 PR abiertas** en la consulta más reciente del 2026-10-23; todas las PR abiertas están en draft.
 - **#101 (observación histórica, 2026-10-23 temprano):** HEAD `b84da93881f5869e8832e5888e5dce02433e85cc` no tenía workflows asociados en esa consulta. Fue reemplazado por HEAD `043a4e23efd063949577f758eacc326d74bb7ce5`, que posteriormente pasó transporte #479/#478, esquema #308 y persistencia #607.
 - **#74** HEAD `406936ecef181eb4a7a34d6e25316079ee8b29ea`, base #101: transporte #480 y persistencia #608 `success`; GitHub la muestra mergeable. No integrar antes de revisar la PR #115 (sustituta de #112) y validar la bandeja.
 - **#52** HEAD `20e618aaeadc1866457f637522b755540f795dfa`: `mergeable=false`; resultados CI anteriores exitosos no eliminan el conflicto.
@@ -13,7 +13,7 @@ Consulta en vivo de GitHub:
 - **#87** HEAD `386da22f1dca3f2a1f489e2d9a898d30350d3eb0`: persistencia run #578 cancelada. Su ascendencia continúa basada en la rama de #76 cerrada sin merge; reconciliar con #104 sin retarget automático.
 - **#48** HEAD `f2301e9b1673c57b74a9d625f3f4788f603a83ed`: transporte #471 pasó 54 pruebas, 1 warning y `pip check` limpio. La rama sigue draft por el orden de integración y revisión de seguridad, no por ese workflow.
 - **#112** sincronización del proveedor a la bandeja: cerrada sin merge como supersedida por #115; se conserva su historial y la matriz de 10 archivos.
-- **#113** HEAD `21a5b4915086959eaf7dece15b6095de333612ce`: transporte #482 (63 passed) y persistencia #609 (prueba PostgreSQL de bandeja 1 passed; persistencia/guard/auth 32 + 12 + 54 passed), `pip check` limpio; ambos workflows `success`.
+- **#113 (histórico)** HEAD `21a5b4915086959eaf7dece15b6095de333612ce` pasó transporte #482 (63 passed) y persistencia #609 (1 + 32 + 12 + 54 passed), `pip check` limpio; se cerró sin merge como supersedida por #115.
 
 **Decisión de auditoría:** no cerrar ni fusionar las PR apiladas únicamente por CI verde. #101 y #74 ya tienen CI verde y son mergeables en los HEAD actuales. La acción de mayor valor es revisar #115, que sustituye a #112 y preserva los cambios de proveedor/bandeja con ACK cercado; #52 y #67 siguen no mergeables. Después validar el stack base → descendiente (#101 → #74 → #52 → #57 → #67 → #85). Mantener aparte la línea Windows (#87/#103/#104) hasta reconciliar su ascendencia. La prioridad de runtime permanece redroid; #27 continúa como bloqueo de seguridad físico.
 
@@ -132,4 +132,4 @@ Esta actualización reemplaza recuentos históricos de Issues/PR que podrían ha
 - PR #101 y #74 cambiaron de HEAD tras la auditoría anterior. Se verificó CI actual: #101 HEAD `043a4e23efd063949577f758eacc326d74bb7ce5` con transporte #479/#478, esquema #308 y persistencia #607 en `success`; #74 HEAD `406936ecef181eb4a7a34d6e25316079ee8b29ea` con transporte #480 y persistencia #608 en `success`.
 - PR #112 se cerró sin merge como supersedida por #115 tras inspeccionar sus 10 archivos. #115 HEAD `f17bd3651b710ce2baee64cc98c0825c7bc96546` tiene transporte #502 (66 passed) y persistencia #629 (33 + 20 + 54 + 1 passed), `pip check` limpio y `mergeable=true`; permanece en draft para revisión.
 - PR #113 corrige el uso de lease de entrega tras aceptación. HEAD `21a5b4915086959eaf7dece15b6095de333612ce`: transporte #482 `success` (**63 passed**, `pip check` limpio); persistencia #609 `success` (prueba PostgreSQL de bandeja **1 passed**, suites persistencia/guard/auth **32 + 12 + 54 passed**, `pip check` limpio). Se amplió el filtro del workflow para que los cambios de `cluster-agent-transport` ejecuten esta prueba PostgreSQL.
-- La cadena no se considera integrada: mantener #52/#57/#67/#85, #113 y #115 en draft hasta resolver dependencias, CI completa y aceptación manual. #112 ya está cerrada sin merge como supersedida. No se despliega ni se ejecuta Android.
+- La cadena no se considera integrada: mantener #52/#57/#67/#85 y #115 en draft; #113 se cerró sin merge como supersedida hasta resolver dependencias, CI completa y aceptación manual. #112 ya está cerrada sin merge como supersedida. No se despliega ni se ejecuta Android.
