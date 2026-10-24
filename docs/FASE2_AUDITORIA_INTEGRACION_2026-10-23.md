@@ -324,3 +324,37 @@ La #87 aporta el lanzador/configurador Windows; #104 aporta el panel web/API aut
 
 **Estado al cierre de esta revisión:** integración no resuelta; no se ha fusionado ni desplegado ningún cambio.
 
+## Reconciliación combinada ejecutada y CI — actualización 2026-10-23 (UTC 2026-10-24)
+
+### PR de integración
+
+Se creó la [PR #117](https://github.com/D3ckardCain/Geelark-IA/pull/117), rama `feat/pc-master-task-inbox-reconciliation-v1`, en draft y sin merge. Su historial contiene un merge real de PC-MASTER (#104) y la bandeja/snapshot/ACK (#115), seguido de la incorporación del head actual del proveedor (#74).
+
+- HEAD combinado: `d443a4b59a7fcdb29b13d9d9e113a10edf686024`.
+- GitHub informa `mergeable=true`; la comparación contra la base actual `406936ecef181eb4a7a34d6e25316079ee8b29ea` muestra 180 commits por delante y 0 por detrás.
+- Diff: 48 archivos añadidos/modificados; **ningún archivo eliminado**.
+- Se preservaron el paquete `cluster-master-admin`, panel, autenticación local, TLS, ACL Windows y probes negativos del rol PostgreSQL lector.
+- Se incorporaron migración y smoke SQL de la bandeja, journal con `task_id`, handlers/runtime de tareas y pruebas PostgreSQL.
+- El workflow de persistencia conserva Windows ACL y suite raíz, ejecuta el test PostgreSQL de bandeja y activa suite raíz para esta rama. El workflow HTTPS valida el código actual sin fijar un checkout histórico del journal.
+
+### CI del HEAD combinado
+
+Los tres workflows terminaron en `success` sobre el mismo HEAD `d443a4b59a7fcdb29b13d9d9e113a10edf686024`:
+
+- [Transporte HTTPS #40056081545](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40056081545): **133 passed**, `pip check` limpio.
+- [Migraciones/invariantes PostgreSQL #40056081543](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40056081543): success.
+- [Persistencia + Windows ACL + suite raíz #40056081523](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40056081523):
+  - Suite raíz: **310 passed, 2 skipped**, `pip check` limpio.
+  - Windows ACL: **50 passed, 8 skipped**, `pip check` limpio.
+  - Persistencia: **33 passed**; guard: **20 passed**; autenticación: **54 passed**; Master Admin: **70 passed, 2 skipped**; prueba PostgreSQL de bandeja: **1 passed**; `pip check` limpio.
+- Los mensajes PostgreSQL de error que aparecen en logs corresponden a pruebas negativas/inyección de fallos esperadas; todos los jobs finalizaron en éxito.
+
+### Qué sigue pendiente
+
+1. Revisión humana del diff y de los contratos de tareas/ACK.
+2. Aceptación manual de PC-MASTER en el Windows real según issue #77. CI no demuestra ACL/TLS/configuración efectiva del equipo del usuario.
+3. Resolver el orden de la pila: #117 sigue basada en la rama del proveedor snapshot (#74), mientras #52 y las PR descendientes #57/#67/#85 siguen abiertas. No fusionar fuera de orden ni asumir que sus ramas descendientes ya contienen el nuevo HEAD combinado.
+4. Mantener #117 en draft hasta completar la revisión humana y resolver la estrategia de la pila. No desplegar, no conectar bases productivas y no ejecutar Android/ADB/shell en hardware físico.
+
+**Estado actualizado:** integración de código entre PC-MASTER, snapshots y bandeja validada por CI en un único HEAD; aceptación del panel y orden de integración de la pila siguen pendientes.
+
