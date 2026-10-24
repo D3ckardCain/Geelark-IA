@@ -26,7 +26,7 @@ Orden de dependencia documentado: **#101 → #74 → #52 → #57 → #67 → #85
 
 - #101 HEAD `043a4e23efd063949577f758eacc326d74bb7ce5`: transporte #479/#478, esquema #308 y persistencia #607 `success`; GitHub indica `mergeable=true`.
 - #74 HEAD `406936ecef181eb4a7a34d6e25316079ee8b29ea`: transporte #480 y persistencia #608 `success`; GitHub indica `mergeable=true`.
-- #52 y #67 siguen `mergeable=false`. La sincronización auxiliar #112 también está `mergeable=false` por conflictos entre proveedor y bandeja.
+- #52 y #67 siguen `mergeable=false`. La sincronización auxiliar #112 se cerró sin merge como supersedida por #115, que integra proveedor/bandeja/ACK cercado; #115 tiene `mergeable=true` y CI verde, pero permanece en draft.
 - #113 HEAD `21a5b4915086959eaf7dece15b6095de333612ce`: transporte #482 (63 passed, `pip check` limpio) y persistencia #609 (prueba PostgreSQL de bandeja 1 passed; persistencia/guard/auth 32 + 12 + 54 passed, `pip check` limpio) `success`.
 - No fusionar descendientes ni actualizar sus bases a ciegas. Siguiente paso: resolver #112 preservando los cambios de ambas ramas y validar el SHA combinado; después seguir en orden.
 
@@ -88,7 +88,7 @@ Esta nota registra el estado observado y la secuencia segura. No afirma que los 
 
 Tras cerrar la Issue #64 como decisión de sistema base resuelta y actualizar la Issue #63, se volvió a consultar GitHub: **40 Issues abiertas, 7 cerradas y 27 PR abiertas; las 27 PR abiertas están en draft**. El recuento inicial 39/10/23 de la primera sección corresponde a una fotografía anterior del mismo día y queda como histórico, no como total actual. El recuento puede variar con nuevas operaciones. No se cerraron issues de implementación pendientes ni se fusionaron PR como resultado de esta reconsulta.
 
-La sincronización auxiliar #112 continúa sin ser mergeable. Se documentaron sus 10 archivos y los cambios exclusivos que deben coexistir; no se reemplazaron archivos completos ni se lanzó CI manual. La siguiente operación técnica sigue siendo resolver ese conflicto mediante un merge real que preserve proveedor de snapshots y bandeja durable, y comprobar CI en el SHA combinado.
+La sincronización auxiliar #112 se cerró sin merge como supersedida por #115. Se documentaron sus 10 archivos y los cambios exclusivos que debían coexistir; #115 conserva esas funciones y añade ACK cercado por epoch/estado/resultado. Su HEAD `f17bd3651b710ce2baee64cc98c0825c7bc96546` tiene transporte #502 y persistencia #629 en `success` y `mergeable=true`, pero permanece en draft. La siguiente operación técnica es revisar el diff y la integración de #115, no reabrir #112.
 
 
 ## Revisión ampliada de enlaces y coherencia documental — 2026-10-23
