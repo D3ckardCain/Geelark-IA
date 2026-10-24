@@ -1,6 +1,6 @@
 # Manual técnico — bandeja durable de tareas del agente
 
-**Estado:** implementación en borrador en PR #52, rebasada sobre el proveedor de snapshots y el inventario Worker. La CI del HEAD rebasado está pendiente; no activar en producción hasta completar revisión de seguridad, integración del bucle real del agente y reconciliación de estados inciertos.
+**Estado al 2026-10-24:** esta implementación está incluida en la rama de integración de la PR #117 (HEAD de referencia: `cd903704fe1d3cc1a547f93d8f543473b97325bf`), cuyos workflows de CI registrados terminaron en éxito. La PR #117 sigue abierta en draft y sin fusionar; la aceptación manual del panel PC-MASTER (#77), la revisión de seguridad y la integración del sincronizador en el bucle real del agente siguen pendientes. Esta guía describe el contrato técnico candidato, no autoriza despliegue ni ejecución real de tareas.
 
 ## Objetivo y límites
 
