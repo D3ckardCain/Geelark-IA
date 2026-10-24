@@ -89,3 +89,10 @@ Esta nota registra el estado observado y la secuencia segura. No afirma que los 
 Tras cerrar la Issue #64 como decisión de sistema base resuelta y actualizar la Issue #63, se volvió a consultar GitHub: **40 Issues abiertas, 7 cerradas y 27 PR abiertas; las 27 PR abiertas están en draft**. El recuento inicial 39/10/23 de la primera sección corresponde a una fotografía anterior del mismo día y queda como histórico, no como total actual. El recuento puede variar con nuevas operaciones. No se cerraron issues de implementación pendientes ni se fusionaron PR como resultado de esta reconsulta.
 
 La sincronización auxiliar #112 continúa sin ser mergeable. Se documentaron sus 10 archivos y los cambios exclusivos que deben coexistir; no se reemplazaron archivos completos ni se lanzó CI manual. La siguiente operación técnica sigue siendo resolver ese conflicto mediante un merge real que preserve proveedor de snapshots y bandeja durable, y comprobar CI en el SHA combinado.
+
+
+## Revisión ampliada de enlaces y coherencia documental — 2026-10-23
+
+Se recorrieron los 36 archivos Markdown/YAML de `README.md`, `docs/` y `.github/workflows/` incluidos en la revisión. En los 36 documentos principales examinados para enlaces Markdown, las rutas relativas se validaron respecto al directorio de cada documento y normalizando `..`: **no quedaron enlaces relativos rotos**. La ruta `docs/decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md` → `../ARQUITECTURA_CLUSTER_HETEROGENEO.md` es válida tras normalizar el directorio; no requiere cambio.
+
+La búsqueda de contradicciones de prioridad tampoco encontró en los documentos operativos revisados una instrucción vigente que coloque Cuttlefish por delante de redroid. Las menciones de Cuttlefish son históricas o lo identifican como contingencia; las menciones a QEMU + Android-x86 + VNC indican que esa ruta está retirada. La auditoría conserva esos antecedentes para no borrar el historial de decisiones.
