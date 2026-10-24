@@ -209,3 +209,17 @@ def test_oversized_request_body_is_rejected_without_reflecting_content(tmp_path:
     assert response.status_code == 413
     assert response.json() == {"error": {"code": "BODY_TOO_LARGE"}}
     assert "A" * 100 not in response.text
+
+
+def test_panel_matches_preview_tabs_without_fabricating_real_workers() -> None:
+    panel = Path(__file__).parents[1] / "src" / "geelark_master_admin" / "panel.html"
+    source = panel.read_text(encoding="utf-8")
+    assert 'data-page="nodes"' in source
+    assert 'data-page="tasks"' in source
+    assert 'data-page="system"' in source
+    assert "GeeLark-IA" in source and "PC-MASTER" in source
+    assert "Redroid" in source and "Planificado" in source
+    assert "No se mostrarán datos ficticios" in source
+    assert "WORKER-DEMO-01" not in source
+    assert "localStorage" not in source
+    assert "sessionStorage" not in source
