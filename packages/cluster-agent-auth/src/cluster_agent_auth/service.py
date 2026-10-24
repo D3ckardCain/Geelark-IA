@@ -129,7 +129,7 @@ def consume_enrollment(
             raise EnrollmentError("Token de enrolamiento inválido, vencido o ya consumido.")
         if row[2] is None or row[2] <= conn.execute("SELECT clock_timestamp()").fetchone()[0]:
             raise EnrollmentError("Token de enrolamiento inválido, vencido o ya consumido.")
-        _, node_id = row
+        _, node_id, _ = row
         # El UUID esperado no puede registrarse dos veces.
         exists = conn.execute(
             "SELECT 1 FROM geelark_control.nodes WHERE node_id = %s FOR UPDATE",
