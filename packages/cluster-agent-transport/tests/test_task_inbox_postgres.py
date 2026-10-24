@@ -73,7 +73,7 @@ def test_active_node_claims_assignment_and_reports_fenced_result(monkeypatch):
     try:
         with connect() as conn:
             conn.execute(
-                "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state, health_state, last_seen_at) VALUES (%s, %s, 'active', 'healthy', now())",
+                "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state, health_state, reported_health_state, last_seen_at) VALUES (%s, %s, 'active', 'healthy', 'healthy', now())",
                 (node_id, "task-test-" + str(node_id)),
             )
             conn.execute(
@@ -220,6 +220,23 @@ def test_active_node_claims_assignment_and_reports_fenced_result(monkeypatch):
                 return real_datetime.now(tz) + timedelta(hours=1)
 
         monkeypatch.setattr(domain_handlers, "datetime", AppClockAhead)
+        # El reloj local adelantado no debe convertir el heartbeat reciente en offline.
+        module_report = client.put(
+            "/agent/v1/modules",
+            headers=headers("module-report-clock-ahead-" + str(uuid4())),
+            json={"schema_version": 1, "modules": [
+                {"module_id": "agent-supervisor", "state": "operational", "version": "0.1.0", "error_code": None}
+            ]},
+        )
+        assert module_report.status_code == 200
+        own_status = client.get(
+            "/agent/v1/status",
+            headers=headers("status-clock-ahead-" + str(uuid4())),
+        )
+        assert own_status.status_code == 200
+        assert own_status.json()["health_state"] == "healthy"
+        assert own_status.json()["modules"][0]["state"] == "operational"
+
         ahead_progress = client.post(
             f"/agent/v1/tasks/{task_id}/progress",
             headers=headers("task-progress-clock-ahead-" + str(uuid4())),
