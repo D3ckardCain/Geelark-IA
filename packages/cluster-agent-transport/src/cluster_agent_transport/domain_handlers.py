@@ -205,7 +205,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
     def modules(*, conn: psycopg.Connection, principal: AgentPrincipal, payload: dict[str, Any]) -> dict[str, Any]:
         """Persiste inventario; el UPDATE solo permite nodos active."""
         _assert_principal_current(conn, principal)
-        received_at = datetime.now(timezone.utc)
+        received_at = conn.execute("SELECT now()").fetchone()[0].astimezone(timezone.utc)
         normalized = [
             {"module_id": item["module_id"], "state": item["state"], "version": item.get("version"),
              "checked_at": received_at.isoformat(), "source": "agent-report", "error_code": item.get("error_code")}
@@ -231,7 +231,8 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             row = conn.execute(
                 """
                 SELECT node_id, display_name, admin_state, reported_health_state, agent_version,
-                       protocol_version, last_seen_at, last_sequence, capabilities, module_reports
+                       protocol_version, last_seen_at, last_sequence, capabilities, module_reports,
+                       now() AS database_now
                   FROM geelark_control.nodes
                  WHERE node_id = %s
                 """,
@@ -244,13 +245,13 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                 "display_name": row[1],
                 "admin_state": row[2],
                 "reported_health_state": row[3],
-                "health_state": _derive_health_state(row[3], row[6]),
+                "health_state": _derive_health_state(row[3], row[6], now=row[10]),
                 "agent_version": row[4],
                 "protocol_version": row[5],
                 "last_seen_at": row[6].astimezone(timezone.utc).isoformat() if row[6] else None,
                 "sequence": row[7],
                 "capabilities": row[8],
-                "modules": _derive_module_reports(row[9], row[6]),
+                "modules": _derive_module_reports(row[9], row[6], now=row[10]),
             }
 
     def _locked_task(
