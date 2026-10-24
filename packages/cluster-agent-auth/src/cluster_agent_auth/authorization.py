@@ -7,7 +7,7 @@ antes de invocar esta política. La autorización falla cerrada.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import StrEnum
 
 
@@ -49,13 +49,15 @@ def authorize_agent_operation(
     context: AgentAuthorizationContext,
     operation: AgentOperation | str,
     *,
-    now: datetime | None = None,
+    now: datetime,
 ) -> None:
     """Autoriza una operación o lanza un error tipado.
 
     Nodos pending solo pueden enviar telemetría básica y consultar su propio
     estado. La aprobación no se infiere de la autenticación. Nodos o credenciales
     revocados, expirados o con estados desconocidos se rechazan siempre.
+    El caller debe pasar `now` desde el reloj autoritativo (PostgreSQL en el
+    servidor); esta política no sustituye ese reloj con la hora local.
     """
     if not isinstance(context, AgentAuthorizationContext):
         raise AgentAuthorizationError("AUTHORIZATION_CONTEXT_INVALID")
@@ -67,7 +69,7 @@ def authorize_agent_operation(
     except (ValueError, TypeError):
         raise AgentAuthorizationError("OPERATION_NOT_ALLOWED") from None
 
-    current_time = now if now is not None else datetime.now(timezone.utc)
+    current_time = now
     if (
         not isinstance(current_time, datetime)
         or current_time.tzinfo is None
