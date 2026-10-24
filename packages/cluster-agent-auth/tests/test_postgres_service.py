@@ -1,6 +1,6 @@
 """Pruebas reales contra PostgreSQL; CI proporciona TEST_DATABASE_URL."""
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 import os
 from uuid import uuid4
 
