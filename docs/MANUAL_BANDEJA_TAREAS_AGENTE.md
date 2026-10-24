@@ -1,6 +1,6 @@
 # Manual técnico — bandeja durable de tareas del agente
 
-**Estado al 2026-10-24:** esta implementación está incluida en la rama de integración de la PR #117 (HEAD de referencia: `cd903704fe1d3cc1a547f93d8f543473b97325bf`), cuyos workflows de CI registrados terminaron en éxito. La PR #117 sigue abierta en draft y sin fusionar; la aceptación manual del panel PC-MASTER (#77), la revisión de seguridad y la integración del sincronizador en el bucle real del agente siguen pendientes. Esta guía describe el contrato técnico candidato, no autoriza despliegue ni ejecución real de tareas.
+**Estado al 2026-10-24:** esta implementación está incluida en la rama de integración de la PR #117 (HEAD validado: `7295735fbcb396db991bf9bbde0fc9b03eb66f7c`), cuyos workflows de CI registrados terminaron en éxito. La PR #117 sigue abierta en draft y sin fusionar; la aceptación manual del panel PC-MASTER (#77), la aceptación manual #77 y la integración del sincronizador en el bucle real del agente siguen pendientes. Las correcciones de heartbeat obsoleto (#120) y reloj autoritativo de leases (#121) pasan CI en el HEAD indicado; esto no equivale a aprobación de despliegue. Esta guía describe el contrato técnico candidato, no autoriza despliegue ni ejecución real de tareas.
 
 ## Objetivo y límites
 
