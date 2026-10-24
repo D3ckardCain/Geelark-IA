@@ -3,7 +3,7 @@ from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import os
-from threading import Barrier
+from threading import Barrier, Event
 import time
 from uuid import UUID, uuid4
 
@@ -280,7 +280,7 @@ def test_assignment_lease_validation_uses_postgres_clock_not_application_clock(m
             replace(make_request(instance_id=INSTANCE_B, key="expired-lease-clock-check"), lease_expires_at=expired_lease),
         )
         assert rejected["status"] == "rejected"
-        assert rejected["error"]["code"] == "INVALID_ASSIGNMENT_REQUEST"
+        assert rejected["error"]["code"] == "ASSIGNMENT_REJECTED"
         assert "lease_expires_at" in rejected["error"]["message"]
 
         owner, epoch = conn.execute(
@@ -431,6 +431,7 @@ def test_assignment_rejects_lease_that_expires_while_waiting_for_instance_lock()
     seed_database()
     application_name = f"lease-lock-test-{uuid4().hex}"
     result = {}
+    connected = Event()
 
     with ThreadPoolExecutor(max_workers=1) as pool:
         with psycopg.connect(DATABASE_URL) as blocker:
@@ -448,11 +449,16 @@ def test_assignment_rejects_lease_that_expires_while_waiting_for_instance_lock()
                 try:
                     with psycopg.connect(DATABASE_URL, application_name=application_name) as conn:
                         result["pid"] = conn.execute("SELECT pg_backend_pid()").fetchone()[0]
+                        connected.set()
                         result["response"] = assign_instance(conn, request)
                 except Exception as exc:
                     result["error"] = exc
 
             future = pool.submit(assign_while_locked)
+            if not connected.wait(timeout=5):
+                if "error" in result:
+                    raise AssertionError(f"la petición no llegó a conectarse a PostgreSQL: {result['error']!r}") from result["error"]
+                raise AssertionError("la petición no estableció conexión con PostgreSQL dentro del plazo")
             deadline = time.monotonic() + 5
             blocked = False
             while time.monotonic() < deadline:
@@ -486,7 +492,7 @@ def test_assignment_rejects_lease_that_expires_while_waiting_for_instance_lock()
 
     assert "error" not in result, f"la asignación falló inesperadamente: {result.get('error')!r}"
     assert result["response"]["status"] == "rejected"
-    assert result["response"]["error"]["code"] == "INVALID_ASSIGNMENT_REQUEST"
+    assert result["response"]["error"]["code"] == "ASSIGNMENT_REJECTED"
     assert "lease_expires_at" in result["response"]["error"]["message"]
     with psycopg.connect(DATABASE_URL) as conn:
         owner, epoch = conn.execute(
