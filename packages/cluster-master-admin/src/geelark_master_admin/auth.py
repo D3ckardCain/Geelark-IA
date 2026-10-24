@@ -76,17 +76,23 @@ def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
         identity = subprocess.run(
             [str(whoami)], check=True, capture_output=True, text=True, timeout=3
         ).stdout.strip()
+        if not identity:
+            raise OSError("whoami returned no valid user identity.")
         grant = f"{identity}:(OI)(CI)F" if directory else f"{identity}:F"
-        # /grant:r solo reemplaza las ACE de la identidad indicada; no elimina
-        # permisos explícitos de otras identidades. /reset elimina esas ACE
-        # preexistentes restaurando primero la ACL heredada; después se corta
-        # la herencia y se concede acceso únicamente al usuario actual.
-        subprocess.run(
-            [str(icacls), str(path), "/reset", "/inheritance:r", "/grant:r", grant],
-            check=True, capture_output=True, text=True, timeout=5,
-        )
+
+        # Windows rechaza /reset y /inheritance:r en una misma llamada.
+        # Descartar la salida de icacls evita errores de decodificación
+        # causados por la página de códigos local de Windows.
+        for args in (["/reset"], ["/inheritance:r"], ["/grant:r", grant]):
+            subprocess.run(
+                [str(icacls), str(path), *args],
+                check=True, stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL, timeout=5
+            )
     except (OSError, subprocess.SubprocessError) as exc:
-        raise PermissionError("No se pudieron restringir las ACL NTFS del almacén de sesiones.") from exc
+        raise PermissionError(
+            "No se pudieron restringir las ACL NTFS del almacén de sesiones."
+        ) from exc
 
 
 class SessionStore:

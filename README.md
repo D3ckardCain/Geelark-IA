@@ -44,9 +44,9 @@ Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la refer
 - `docs/ESPECIFICACION_MOTOR_RPA.md`: diseño de automatización por bloques tipados.
 - GitHub Issues: tareas, dudas, incidencias, decisiones y soluciones.
 
-## Decisiones aún no tomadas
+## Arquitectura acordada y validación pendiente
 
-El alcance detallado, el inventario de hardware, el sistema operativo/hipervisor, el método para ejecutar Android, la arquitectura, las tecnologías y la capacidad real se decidirán y validarán paso a paso. Las metas preliminares no se consideran promesas de rendimiento.
+El PC-MASTER se mantiene como aplicación Windows. Los PC WORKER son equipos físicos con Debian 13 como sistema base previsto; PC-MASTER deberá descubrirlos, solicitar aprobación de adopción y automatizar el aprovisionamiento del agente y del entorno Android. Las capacidades y el rendimiento se validarán paso a paso.
 
 ## Seguridad
 
@@ -71,7 +71,8 @@ El diseño contempla una PC principal para administrar y varios nodos físicos d
 
 - [Arquitectura del clúster](docs/ARQUITECTURA_CLUSTER_HETEROGENEO.md)
 - [Contrato del agente y planificador](docs/CONTRATO_AGENTE_NODO_PLANIFICADOR.md)
-- [Comparativa Proxmox VE vs Linux directo](docs/COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md)
+- [Arquitectura de clúster heterogéneo](docs/ARQUITECTURA_CLUSTER_HETEROGENEO.md)
+- [Plan de prueba de concepto del aprovisionamiento](docs/PLAN_PRUEBA_CONCEPTO_CLUSTER.md)
 - [ADR-003 — Arquitectura distribuida](docs/decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md)
 - [Issue #14 — Integrar clúster y planificador](https://github.com/D3ckardCain/Geelark-IA/issues/14)
 

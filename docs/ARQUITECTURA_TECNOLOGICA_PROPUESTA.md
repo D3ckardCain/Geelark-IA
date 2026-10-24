@@ -178,11 +178,11 @@ Documentos que definen esta parte:
 - [Arquitectura de clúster heterogéneo](ARQUITECTURA_CLUSTER_HETEROGENEO.md).
 - [ADR-003 — Arquitectura distribuida](decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md).
 - [Contrato del agente de nodo y planificador](CONTRATO_AGENTE_NODO_PLANIFICADOR.md).
-- [Comparativa Proxmox VE frente a Linux directo](COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md).
+- [Arquitectura de clúster físico heterogéneo](ARQUITECTURA_CLUSTER_HETEROGENEO.md).
 - [Issue #14 — Integrar clúster y planificador](https://github.com/D3ckardCain/Geelark-IA/issues/14).
 
 El diseño se separa en plano de administración, plano de control, agentes por nodo, planificador de recursos y adaptadores de motor Android. Cada nodo anuncia capacidades observadas y probadas; el planificador filtra por compatibilidad, RAM, disco, CPU y capacidades de motor. No se supone migración en vivo entre nodos heterogéneos.
 
-Proxmox VE y Linux directo siguen siendo candidatos. La documentación oficial indica que Proxmox VE es AGPLv3 y ofrece el software sin coste de licencia, mientras que la suscripción añade repositorio Enterprise y soporte; el repositorio no-subscription no requiere clave, pero la propia documentación no lo recomienda para producción por el menor nivel de validación. El clúster Proxmox es multi-master y usa quorum: la PC Master de Geelark-IA será el centro de operación elegido, no una afirmación de que Proxmox requiera un único nodo maestro. Véase la [comparativa documentada](COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md).
+La decisión operativa es mantener PC-MASTER como aplicación Windows y utilizar Debian 13 directamente en los PC WORKER físicos. La administración central, el descubrimiento, la adopción, el despliegue del agente y la preparación de Android serán responsabilidad de GeeLark-IA. El aprovisionamiento desde equipos sin sistema operativo se implementará mediante arranque por red cuando el hardware y la LAN sean compatibles, y se validará con pruebas reproducibles.
 
 No se aprobará la infraestructura hasta probar dos nodos heterogéneos, registrar métricas, comprobar recuperación y revisar licencias/versiones. El objetivo de 0 USD para software/servicios obligatorios se mantiene.

@@ -1,16 +1,16 @@
-# Plan de prueba de concepto del clúster — Geelark-IA
+# Plan de prueba de concepto del aprovisionamiento de PC WORKER — GeeLark-IA
 
 **Fecha:** 2026-10-09. **Estado:** pendiente de ejecución.  
 **Coste objetivo:** 0 USD en software/servicios obligatorios.
 
 ## Objetivo
-Comparar Linux directo y Proxmox VE con al menos dos PC heterogéneas, para determinar compatibilidad Android, aislamiento, rendimiento, operación, mantenimiento y recuperación. No se presupone que un motor o imagen funcione en ambos entornos. Verificar licencias y seguridad antes de instalar artefactos.
+Validar con al menos dos PC físicas el flujo objetivo: descubrimiento de equipos, aprobación de adopción desde PC-MASTER Windows, instalación desatendida de Debian 13 por red cuando sea compatible, enrolamiento del agente, despliegue de herramientas de virtualización Android y puesta en servicio. Verificar compatibilidad, licencias y seguridad antes de instalar artefactos.
 
 ## Registro previo
 Crear un registro GitHub por ejecución con fecha, protocolo, IDs lógicos de nodos, CPU/arquitectura, RAM, GPU/aceleración, disco, red, virtualización, OS/kernel, motor/imagen Android, ABI, versiones, licencias, comandos, logs redactados, resultados y desviaciones. No subir secretos, claves privadas, tokens, datos personales ni imágenes sin autorización. Usar datos sintéticos y una APK de prueba autorizada.
 
 ## Fase A — licencias y preparación
-1. Verificar requisitos de OS/hipervisor y virtualización.
+1. Verificar requisitos de arranque por red, Debian 13, virtualización por hardware y motor Android.
 2. Revisar licencias del motor, imagen, SDK, APK y herramientas, incluido uso comercial y redistribución si corresponde.
 3. Separar descargas puntuales de componentes que exigen conectividad permanente.
 4. Rechazar componentes con licencia incompatible o procedencia dudosa.
@@ -44,7 +44,7 @@ Probar por separado: caída del agente, pérdida de red, caída del controlador,
 Si no se demuestra que la instancia anterior dejó de ejecutarse, no iniciar otra copia. Si una acción externa RPA tiene resultado incierto, no repetirla automáticamente.
 
 ## Fase F — comparación
-Ejecutar la misma carga e imagen en Linux directo y Proxmox cuando sea legal y técnicamente posible, con reservas y mediciones equivalentes. Puntuar del 1 al 5 con evidencia: compatibilidad, aislamiento, rendimiento, administración, recuperación, mantenimiento, complejidad de diagnóstico, seguridad, licencias/coste y facilidad de migración. Un bloqueo crítico de seguridad, licencia o compatibilidad descarta la opción independientemente de la puntuación.
+Ejecutar el aprovisionamiento completo en dos nodos compatibles y registrar evidencia por etapa: arranque por red, instalación Debian, identidad y autenticación del agente, instalación del runtime Android, verificación de artefactos, inicio de una instancia, persistencia, reinicio y recuperación de fallos. Registrar compatibilidad, seguridad, rendimiento, coste y problemas reproducibles.
 
 ## Criterios de aprobación
 - Carga Android reproducible en dos nodos heterogéneos.
@@ -74,7 +74,7 @@ Repetir si se desconoce una licencia, las mediciones no son comparables, cambian
 | Campo | Resultado |
 |---|---|
 | ID de ejecución / fecha / protocolo | Pendiente |
-| Nodos / OS / hipervisor | Pendiente |
+| Nodos / firmware / Debian / runtime Android | Pendiente |
 | Motor / imagen / ABI | Pendiente |
 | Licencias verificadas | Pendiente |
 | Inicio Android (mediana/p95) | Pendiente |
@@ -86,4 +86,4 @@ Repetir si se desconoce una licencia, las mediciones no son comparables, cambian
 | Incidencias y soluciones | Pendiente |
 | Recomendación y evidencia | Pendiente |
 
-**Estado real:** plan documental pendiente de ejecución. No hay resultados medidos ni decisión final entre Proxmox VE y Linux directo.
+**Estado real:** plan documental pendiente de ejecución. El aprovisionamiento integral todavía no está validado en hardware físico.

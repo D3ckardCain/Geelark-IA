@@ -14,7 +14,7 @@ Definir el contrato entre el plano de control de Geelark-IA y cada PC del clúst
 - El agente se ejecuta como servicio local con usuario y permisos mínimos; no acepta shell arbitrario.
 - Cada nodo tiene un UUID interno estable, nombre legible, credencial propia y estado de revocación.
 - El agente no confía en mensajes no autenticados ni en identificadores enviados por la interfaz sin validación.
-- La API de administración, ADB, sockets de Docker/Podman, hipervisor y consola del sistema no se exponen a Internet.
+- La API de administración, ADB, sockets de Docker/Podman, shell y demás interfaces administrativas del sistema no se exponen a Internet.
 - El controlador solo puede solicitar operaciones incluidas en una lista permitida y versionada.
 - Las credenciales de nodo se almacenan fuera de logs, reportes y payloads genéricos.
 - Las capacidades llevan versión, fecha de medición y nivel de confianza: `observed`, `configured` o `unknown`.

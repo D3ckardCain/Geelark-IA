@@ -53,30 +53,15 @@ Las instancias pertenecen a un nodo en cada momento. La capa de abstracción del
 
 La primera versión debe preferir asignación, parada controlada, copia/backup y recuperación en otro nodo cuando sea compatible, antes de intentar migración en vivo.
 
-## 4. Hipervisor y sistema operativo: opciones por validar
+## 4. Sistema base y aprovisionamiento de los nodos
 
-### Opción A — Proxmox VE en los nodos
-
-Ventajas: administración de nodos y máquinas virtuales, inventario central, herramientas de red/almacenamiento y un modelo operativo conocido para un laboratorio con varios PC.
-
-Condiciones/riesgos:
-- comprobar requisitos y limitaciones reales de clúster, quorum y versiones;
-- el quorum no se resuelve simplemente designando una Master; clústeres pequeños pueden requerir una estrategia adicional y bien documentada;
-- no asumir que las funciones de HA o almacenamiento compartido están disponibles sin hardware/red adecuados;
-- ejecutar Android dentro de una VM/contenedor puede añadir capas de virtualización y requerir passthrough/aceleración;
-- las diferencias de CPU, GPU y almacenamiento pueden limitar compatibilidad y densidad;
-- validar licencias de componentes y que el funcionamiento no requiera suscripciones pagadas.
-
-### Opción B — Linux directo por nodo
-
-Cada PC ejecuta Linux y el agente de Geelark-IA, con el motor Android instalado directamente o en contenedores. El plano de control propio programa las instancias.
-
-Ventajas: menos capas, mayor control del agente y posible menor sobrecarga.  
-Riesgos: Geelark-IA tendría que implementar más gestión de nodos, seguridad, inventario, actualizaciones, aislamiento y recuperación.
-
-### Enfoque recomendado por ahora
-
-Mantener **Proxmox VE como candidato de infraestructura** y Linux directo como alternativa comparativa. No se aprueba ninguno hasta realizar una prueba de concepto con al menos dos nodos heterogéneos y medir arranque Android, aislamiento, estabilidad, rendimiento, administración y recuperación. La aplicación Geelark-IA debe abstraer la infraestructura para reducir el bloqueo a un proveedor/hipervisor.
+- Los PC WORKER físicos utilizarán Debian 13 directamente como sistema operativo base previsto.
+- PC-MASTER se mantiene como aplicación Windows y será el plano central para descubrir, adoptar, preparar, administrar y supervisar los WORKER.
+- Para equipos sin sistema operativo, se diseñará el arranque por red y la instalación desatendida de Debian cuando el firmware, la tarjeta de red y la infraestructura LAN lo permitan.
+- El descubrimiento será automático, pero la adopción requerirá aprobación explícita desde PC-MASTER. Los nodos pendientes no ejecutarán tareas de producción.
+- Tras la adopción, PC-MASTER distribuirá y configurará el agente, instalará las herramientas locales de virtualización Android, obtendrá los artefactos autorizados y verificará el resultado.
+- El agente y las herramientas de ejecución serán componentes locales del WORKER; el control y la orquestación propios corresponderán a GeeLark-IA. No se añade una plataforma externa de administración de infraestructura.
+- La instalación por red depende de la compatibilidad UEFI/BIOS, el arranque PXE/iPXE y la configuración de la LAN; estas condiciones se probarán antes de prometer aprovisionamiento universal.
 
 ## 5. Planificador de recursos para PC heterogéneas
 
@@ -109,7 +94,7 @@ Definir política de backup, cifrado, retención, integridad, recuperación y pr
 
 - Red privada entre nodos; preferir segmentación de red y firewall por defecto.
 - Acceso remoto autenticado para administración desde PC/teléfono.
-- No publicar directamente en Internet la API, ADB, el daemon del motor ni interfaces del hipervisor.
+- No publicar directamente en Internet la API, ADB, el daemon del motor ni interfaces administrativas de los nodos.
 - Una VPN autogestionada puede evaluarse si el acceso debe cruzar redes; revisar coste, requisitos y modo de operación. El sistema local debe seguir funcionando en LAN sin una cuenta cloud obligatoria.
 - Registrar cambios administrativos y aplicar permisos por usuario/rol.
 - Definir TLS/autenticación de nodo, rotación/revocación de credenciales y procedimiento para retirar un nodo comprometido.
@@ -135,7 +120,7 @@ La política por defecto debe ser segura: una tarea no idempotente no se repite 
 2. Hacer prueba de concepto con dos nodos Linux heterogéneos.
 3. Medir un motor Android candidato en un nodo y después en ambos.
 4. Probar distribución de instancias y tareas, desconexión y recuperación.
-5. Comparar Proxmox VE frente a Linux directo en esfuerzo, rendimiento, aislamiento y mantenimiento.
+5. Implementar y probar el aprovisionamiento por red, la instalación de Debian, el enrolamiento seguro del agente y la preparación automática del entorno Android.
 6. Implementar autenticación, permisos, auditoría y administración remota segura.
 7. Documentar instalación, alta/baja de nodos, actualizaciones, backups, recuperación y resolución de problemas en español.
 8. Actualizar la matriz de paridad de GeeLark: la arquitectura de clúster es infraestructura propia y no se marcará como función equivalente de GeeLark salvo que corresponda a una función observada.
@@ -154,4 +139,4 @@ La política por defecto debe ser segura: una tarea no idempotente no se repite 
 
 ## 11. Estado y límites actuales
 
-Este documento registra la dirección arquitectónica y los requisitos; no significa que exista un clúster, agente, planificador o recuperación implementados. Proxmox VE, Linux directo y el motor Android siguen pendientes de pruebas. La capacidad máxima de instancias no se calculará hasta medir cargas reales en los nodos disponibles.
+Este documento registra la dirección arquitectónica y los requisitos; no significa que el aprovisionamiento completo, el agente o el motor Android ya estén validados en hardware físico. La capacidad máxima de instancias se calculará después de medir cargas reales en los nodos disponibles.

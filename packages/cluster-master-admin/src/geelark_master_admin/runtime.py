@@ -5,6 +5,8 @@ import ipaddress
 import json
 import os
 import stat
+import sys
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -142,6 +144,27 @@ def build_app():
     )
 
 
+
+def _request_shutdown(server: Any, command: str) -> bool:
+    """Accept only the private STOP command from the launcher's stdin pipe."""
+    if command.strip() != "STOP":
+        return False
+    server.should_exit = True
+    return True
+
+
+def _watch_stdin_for_shutdown(server: Any) -> None:
+    """Stop the server when the private control pipe closes or fails."""
+    try:
+        for line in sys.stdin:
+            if _request_shutdown(server, line):
+                return
+    except (OSError, ValueError):
+        # A failed private control pipe must not leave an orphaned server.
+        pass
+    server.should_exit = True
+
+
 def main() -> None:
     """Arranque explícito con TLS; el valor predeterminado es loopback."""
     host = os.environ.get("GEELARK_ADMIN_BIND_HOST", "127.0.0.1").strip()
@@ -168,7 +191,7 @@ def main() -> None:
     key = _required_path("GEELARK_ADMIN_TLS_KEY")
     _check_private_file(key, "La clave privada TLS")
 
-    uvicorn.run(
+    config = uvicorn.Config(
         build_app(),
         host=host,
         port=port,
@@ -182,6 +205,14 @@ def main() -> None:
         timeout_keep_alive=5,
         log_level="warning",
     )
+    server = uvicorn.Server(config)
+    threading.Thread(
+        target=_watch_stdin_for_shutdown,
+        args=(server,),
+        name="pc-master-shutdown-control",
+        daemon=True,
+    ).start()
+    server.run()
 
 
 if __name__ == "__main__":
