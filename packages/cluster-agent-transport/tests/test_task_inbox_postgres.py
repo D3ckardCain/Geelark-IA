@@ -352,6 +352,38 @@ def test_active_node_claims_assignment_and_reports_fenced_result(monkeypatch):
         assert reconciled.json()["mutations_applied"] == 0
         assert reconciled.json()["items"][0]["status"] == "in_sync"
 
+        # La reconciliación también debe usar el reloj de PostgreSQL.
+        # Un reloj de aplicación adelantado no invalida una lease aún vigente.
+        monkeypatch.setattr(domain_handlers, "datetime", AppClockAhead)
+        ahead_reconcile = client.post(
+            "/agent/v1/reconcile",
+            headers=headers("task-reconcile-clock-ahead-" + str(uuid4())),
+            json=reconcile_payload,
+        )
+        assert ahead_reconcile.status_code == 200
+        assert ahead_reconcile.json()["items"][0]["status"] == "in_sync"
+
+        # Un reloj de aplicación atrasado no debe ocultar una lease vencida.
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.instances SET lease_expires_at = now() - interval '1 second' WHERE instance_id = %s",
+                (instance_id,),
+            )
+        monkeypatch.setattr(domain_handlers, "datetime", AppClockBehind)
+        behind_reconcile = client.post(
+            "/agent/v1/reconcile",
+            headers=headers("task-reconcile-clock-behind-" + str(uuid4())),
+            json=reconcile_payload,
+        )
+        assert behind_reconcile.status_code == 200
+        assert behind_reconcile.json()["items"][0]["status"] == "stale_assignment"
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.instances SET lease_expires_at = now() + interval '5 minutes' WHERE instance_id = %s",
+                (instance_id,),
+            )
+        monkeypatch.setattr(domain_handlers, "datetime", real_datetime)
+
         with connect() as conn:
             task = conn.execute(
                 "SELECT status, result_summary, completed_at FROM geelark_control.agent_tasks WHERE task_id = %s",
