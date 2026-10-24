@@ -275,11 +275,13 @@ def test_assignment_lease_validation_uses_postgres_clock_not_application_clock(m
         expired_lease = AppClockBehind.fromtimestamp(
             (database_now - timedelta(seconds=1)).timestamp(), tz=timezone.utc
         )
-        with pytest.raises(InvalidAssignmentRequest, match="lease_expires_at"):
-            assign_instance(
-                conn,
-                replace(make_request(instance_id=INSTANCE_B, key="expired-lease-clock-check"), lease_expires_at=expired_lease),
-            )
+        rejected = assign_instance(
+            conn,
+            replace(make_request(instance_id=INSTANCE_B, key="expired-lease-clock-check"), lease_expires_at=expired_lease),
+        )
+        assert rejected["status"] == "rejected"
+        assert rejected["error"]["code"] == "INVALID_ASSIGNMENT_REQUEST"
+        assert "lease_expires_at" in rejected["error"]["message"]
 
         owner, epoch = conn.execute(
             "SELECT owner_node_id, assignment_epoch FROM geelark_control.instances WHERE instance_id = %s",
@@ -445,6 +447,7 @@ def test_assignment_rejects_lease_that_expires_while_waiting_for_instance_lock()
             def assign_while_locked():
                 try:
                     with psycopg.connect(DATABASE_URL, application_name=application_name) as conn:
+                        result["pid"] = conn.execute("SELECT pg_backend_pid()").fetchone()[0]
                         result["response"] = assign_instance(conn, request)
                 except Exception as exc:
                     result["error"] = exc
@@ -455,11 +458,11 @@ def test_assignment_rejects_lease_that_expires_while_waiting_for_instance_lock()
             while time.monotonic() < deadline:
                 row = blocker.execute(
                     """
-                    SELECT state, wait_event_type, wait_event
+                    SELECT state, wait_event_type, wait_event, application_name
                       FROM pg_stat_activity
-                     WHERE application_name = %s
+                     WHERE pid = %s
                     """,
-                    (application_name,),
+                    (result.get("pid", -1),),
                 ).fetchone()
                 if row is not None and row[0] == "active" and row[1] == "Lock":
                     blocked = True
@@ -481,8 +484,10 @@ def test_assignment_rejects_lease_that_expires_while_waiting_for_instance_lock()
         # esperamos al trabajador, evitando un ciclo de espera entre ambos.
         future.result(timeout=5)
 
-    assert isinstance(result.get("error"), InvalidAssignmentRequest)
-    assert "lease_expires_at" in str(result["error"])
+    assert "error" not in result, f"la asignación falló inesperadamente: {result.get('error')!r}"
+    assert result["response"]["status"] == "rejected"
+    assert result["response"]["error"]["code"] == "INVALID_ASSIGNMENT_REQUEST"
+    assert "lease_expires_at" in result["response"]["error"]["message"]
     with psycopg.connect(DATABASE_URL) as conn:
         owner, epoch = conn.execute(
             "SELECT owner_node_id, assignment_epoch FROM geelark_control.instances WHERE instance_id = %s",
