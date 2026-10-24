@@ -224,10 +224,13 @@ class PostgresStatusSnapshotProvider:
             row = conn.execute(
                 """
                 SELECT node_id, display_name, admin_state, reported_health_state,
-                       agent_version, last_seen_at, capabilities, module_reports, revoked_at
+                       agent_version, last_seen_at, capabilities, module_reports, revoked_at,
+                       now() AS database_now
                   FROM geelark_control.nodes
                  WHERE node_id = %s
                 """,
                 (node_id,),
             ).fetchone()
-        return build_status_snapshot(row) if row is not None else None
+        if row is None:
+            return None
+        return build_status_snapshot(row[:9], now=row[9])
