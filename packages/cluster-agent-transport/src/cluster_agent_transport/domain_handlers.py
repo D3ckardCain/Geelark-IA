@@ -461,7 +461,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         if not isinstance(items, list) or len(items) > 500:
             raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_BATCH"})
         comparisons = []
-        now = datetime.now(timezone.utc)
+        now = conn.execute("SELECT now()").fetchone()[0]
         for item in items:
             try:
                 task_id = UUID(item["task_id"])
