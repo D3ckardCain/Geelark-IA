@@ -86,7 +86,7 @@ Esta nota registra el estado observado y la secuencia segura. No afirma que los 
 
 ## Recuento más reciente confirmado — 2026-10-23
 
-Tras cerrar la Issue #64 como decisión de sistema base resuelta y actualizar la Issue #63, se volvió a consultar GitHub: **40 Issues abiertas, 7 cerradas y 27 PR abiertas; las 27 PR abiertas están en draft**. El recuento inicial 39/10/23 de la primera sección corresponde a una fotografía anterior del mismo día y queda como histórico, no como total actual. El recuento puede variar con nuevas operaciones. No se cerraron issues de implementación pendientes ni se fusionaron PR como resultado de esta reconsulta.
+Tras cerrar la Issue #64 como decisión de sistema base resuelta y actualizar la Issue #63, se volvió a consultar GitHub: **39 Issues abiertas, 10 cerradas y 23 PR abiertas; las 23 PR abiertas están en draft**. El recuento inicial 39/10/23 de la primera sección corresponde a una fotografía anterior del mismo día y queda como histórico, no como total actual. El recuento puede variar con nuevas operaciones. No se cerraron issues de implementación pendientes ni se fusionaron PR como resultado de esta reconsulta.
 
 La sincronización auxiliar #112 se cerró sin merge como supersedida por #115. Se documentaron sus 10 archivos y los cambios exclusivos que debían coexistir; #115 conserva esas funciones y añade ACK cercado por epoch/estado/resultado. Su HEAD `f17bd3651b710ce2baee64cc98c0825c7bc96546` tiene transporte #502 y persistencia #629 en `success` y `mergeable=true`, pero permanece en draft. La siguiente operación técnica es revisar el diff y la integración de #115, no reabrir #112.
 
