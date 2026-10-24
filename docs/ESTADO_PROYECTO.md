@@ -68,9 +68,29 @@ La investigación y la matriz son preliminares: aún falta desglosar cada pantal
 - [ ] Definir una prueba técnica reproducible de una instancia Android virtual.
 - [ ] Ejecutar y documentar la prueba antes de seleccionar stack definitivo.
 
-## Decisiones pendientes
+## Decisiones vigentes y pendientes (revisión 2026-10-24)
 
-No están aprobados el sistema operativo anfitrión, el stack, la base de datos, el motor de control, el virtualizador, las imágenes Android, el número simultáneo de instancias ni la tecnología de IA local. Estas decisiones requieren investigación de licencias, compatibilidad, rendimiento, seguridad y costes.
+**Decisiones vigentes de trabajo (no equivalen a aceptación de producción):**
+
+- **PC-MASTER:** aplicación Windows existente en fase de aceptación manual; la integración candidata de panel y bandeja es la PR #117.
+- **Workers:** Debian 13 Stable es la base prevista para la primera prueba de nodos; Proxmox VE no está descartado y sigue siendo una alternativa que debe compararse con criterios medibles.
+- **Motor Android:** redroid es el primer candidato acordado para evaluación local; no se debe iniciar hasta cerrar el bloqueo de seguridad #27.
+- **Control y coordinación distribuida:** arquitectura Master/Worker; los nodos pendientes solo pueden reportar heartbeat/capacidades/estado propio y no pueden reclamar tareas.
+- **Persistencia de la integración del clúster:** PostgreSQL local/autohospedado para los contratos distribuidos y las pruebas de integración; no convertir un servicio cloud de pago en requisito.
+- **Autenticación del panel:** gestionada localmente en PC-MASTER; conexión PostgreSQL con rol de solo lectura.
+- **Coste:** objetivo obligatorio de 0 USD en servicios operativos; CI solo con runners estándar gratuitos para repositorios públicos, sin asumir que el saldo de facturación de la cuenta esté verificado.
+- **GitHub:** registro principal de requisitos, decisiones, hallazgos, pruebas y aceptación.
+
+**Pendiente de validar con pruebas reales o investigación:**
+
+- Capacidad por worker y cantidad sostenible de instancias simultáneas.
+- Kernel Debian, módulos y requisitos exactos de cada digest redroid.
+- Compatibilidad de APK objetivo, ABI y servicios de Google cuando correspondan.
+- Rendimiento de CPU/RAM/almacenamiento, aislamiento, persistencia, recuperación y distribución LAN de imágenes.
+- Aceptación manual de PC-MASTER en Windows (#77) y revisión final del diff de la PR #117.
+- El uso/cargo real de GitHub Actions solo puede confirmarse desde el panel de facturación de la cuenta.
+
+Las secciones siguientes conservan el registro histórico del 2026-10-09 y días posteriores. Las frases históricas como «no se ha seleccionado motor/stack/base de datos» no representan el estado vigente por sí solas; contrastar siempre esta sección con las issues y ADR enlazadas antes de ejecutar cambios.
 
 ## Registro de cambios
 
