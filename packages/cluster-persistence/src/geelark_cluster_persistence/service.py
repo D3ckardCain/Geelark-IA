@@ -91,8 +91,6 @@ def _validate_request(request: AssignmentRequest) -> Decimal:
         raise InvalidAssignmentRequest("storage_bytes debe ser un entero positivo")
     if not isinstance(request.lease_expires_at, datetime) or request.lease_expires_at.tzinfo is None or request.lease_expires_at.utcoffset() is None:
         raise InvalidAssignmentRequest("lease_expires_at debe ser datetime con zona horaria")
-    if request.lease_expires_at <= datetime.now(timezone.utc):
-        raise InvalidAssignmentRequest("lease_expires_at debe estar en el futuro")
     if request.desired_state not in {"running", "stopped"}:
         raise InvalidAssignmentRequest("desired_state debe ser running o stopped")
     if not isinstance(request.engine_name, str) or not request.engine_name.strip() or len(request.engine_name) > 128:
@@ -159,6 +157,12 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
             # it was created by this transaction.
             if stored_operation_id is not None or not inserted_this_transaction:
                 raise IdempotencyRecordIncomplete("La clave idempotente quedó incompleta; requiere reconciliación")
+
+            # Validar la lease solo para una asignación nueva, usando el reloj
+            # de PostgreSQL y dentro de la transacción de reserva/outbox.
+            database_now = cur.execute("SELECT now()").fetchone()[0]
+            if request.lease_expires_at <= database_now:
+                raise InvalidAssignmentRequest("lease_expires_at debe estar en el futuro")
 
             try:
                 cur.execute(
