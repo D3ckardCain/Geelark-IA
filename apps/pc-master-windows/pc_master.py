@@ -429,7 +429,14 @@ def _acquire_single_instance_mutex():
         return None
     import ctypes
 
+    from ctypes import wintypes
+
     kernel32 = ctypes.windll.kernel32
+    kernel32.CreateMutexW.restype = wintypes.HANDLE
+    kernel32.CreateMutexW.argtypes = [wintypes.LPVOID, wintypes.BOOL, wintypes.LPCWSTR]
+    kernel32.GetLastError.restype = wintypes.DWORD
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.ReleaseMutex.argtypes = [wintypes.HANDLE]
     mutex = kernel32.CreateMutexW(None, True, "Local\\GeeLarkIA_PC_MASTER_SINGLE_INSTANCE")
     if not mutex:
         raise OSError("Windows no pudo crear el bloqueo de instancia única.")
