@@ -1,6 +1,6 @@
 # Manual de usuario — Panel de control PC-MASTER
 
-**Estado:** panel y autenticación están implementados en la PR #104, abierta en draft y sin fusionar. En el HEAD actual de la PR #104, la suite integral desde la raíz pasó **293 pruebas, 3 omitidas**, `pip check` limpio; el job Windows ACL pasó **50 pruebas, 8 omitidas**, y el job PostgreSQL/persistencia, incluido el verificador del rol lector, terminó correctamente. Transporte HTTPS también pasó. Esto valida CI automatizada, no la configuración del PC-MASTER real. La aceptación manual de la issue #77 sigue pendiente: completar el checklist de este manual en el equipo Windows del proyecto y registrar evidencia sanitizada antes de declarar operativo el panel.
+**Estado al 2026-10-24:** el panel y la bandeja durable están combinados en la PR de integración #117, actualmente abierta en draft y sin fusionar. En el HEAD de referencia `cd903704fe1d3cc1a547f93d8f543473b97325bf`, la suite raíz pasó **310 pruebas, 2 omitidas**; Windows ACL, persistencia, transporte HTTPS y esquema PostgreSQL también terminaron correctamente según los workflows registrados en la PR. Esta evidencia automatizada no valida la configuración del PC-MASTER físico ni resuelve la revisión pendiente del reloj de leases (#121). La aceptación manual de la issue #77 sigue pendiente: completar el checklist en el equipo Windows del proyecto y registrar evidencia sanitizada antes de declarar operativo el panel.
 
 ## 1. Acceso inicial
 
