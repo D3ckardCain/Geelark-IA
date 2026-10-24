@@ -430,25 +430,25 @@ def test_assignment_rejects_lease_that_expires_while_waiting_for_instance_lock()
     application_name = f"lease-lock-test-{uuid4().hex}"
     result = {}
 
-    with psycopg.connect(DATABASE_URL) as blocker:
-        database_now = blocker.execute("SELECT clock_timestamp()").fetchone()[0]
-        blocker.execute(
-            "SELECT instance_id FROM geelark_control.instances WHERE instance_id = %s FOR UPDATE",
-            (INSTANCE_A,),
-        )
-        request = replace(
-            make_request(instance_id=INSTANCE_A),
-            lease_expires_at=database_now + timedelta(seconds=2),
-        )
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with psycopg.connect(DATABASE_URL) as blocker:
+            database_now = blocker.execute("SELECT clock_timestamp()").fetchone()[0]
+            blocker.execute(
+                "SELECT instance_id FROM geelark_control.instances WHERE instance_id = %s FOR UPDATE",
+                (INSTANCE_A,),
+            )
+            request = replace(
+                make_request(instance_id=INSTANCE_A),
+                lease_expires_at=database_now + timedelta(seconds=2),
+            )
 
-        def assign_while_locked():
-            try:
-                with psycopg.connect(DATABASE_URL, application_name=application_name) as conn:
-                    result["response"] = assign_instance(conn, request)
-            except Exception as exc:
-                result["error"] = exc
+            def assign_while_locked():
+                try:
+                    with psycopg.connect(DATABASE_URL, application_name=application_name) as conn:
+                        result["response"] = assign_instance(conn, request)
+                except Exception as exc:
+                    result["error"] = exc
 
-        with ThreadPoolExecutor(max_workers=1) as pool:
             future = pool.submit(assign_while_locked)
             deadline = time.monotonic() + 5
             blocked = False
@@ -469,6 +469,8 @@ def test_assignment_rejects_lease_that_expires_while_waiting_for_instance_lock()
             remaining = (request.lease_expires_at - datetime.now(timezone.utc)).total_seconds()
             if remaining > 0:
                 time.sleep(remaining + 0.15)
+        # Al salir del contexto del bloqueador se libera el lock; solo entonces
+        # esperamos al trabajador, evitando un ciclo de espera entre ambos.
         future.result(timeout=5)
 
     assert isinstance(result.get("error"), InvalidAssignmentRequest)
