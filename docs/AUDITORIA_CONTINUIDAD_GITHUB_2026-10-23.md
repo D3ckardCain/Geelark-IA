@@ -93,6 +93,6 @@ La sincronización auxiliar #112 continúa sin ser mergeable. Se documentaron su
 
 ## Revisión ampliada de enlaces y coherencia documental — 2026-10-23
 
-Se recorrieron los 36 archivos Markdown/YAML de `README.md`, `docs/` y `.github/workflows/` incluidos en la revisión. En los 36 documentos principales examinados para enlaces Markdown, las rutas relativas se validaron respecto al directorio de cada documento y normalizando `..`: **no quedaron enlaces relativos rotos**. La ruta `docs/decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md` → `../ARQUITECTURA_CLUSTER_HETEROGENEO.md` es válida tras normalizar el directorio; no requiere cambio.
+Se recorrieron los 36 documentos Markdown de `README.md` y `docs/` incluidos en la revisión. Las rutas relativas se validaron respecto al directorio de cada documento y normalizando `..`: **no quedaron enlaces relativos rotos**. Esta comprobación no incluye enlaces internos de los archivos YAML de workflows. La ruta `docs/decisiones/ADR-003-ARQUITECTURA-DISTRIBUIDA-CLUSTER.md` → `../ARQUITECTURA_CLUSTER_HETEROGENEO.md` es válida tras normalizar el directorio; no requiere cambio.
 
 La búsqueda de contradicciones de prioridad tampoco encontró en los documentos operativos revisados una instrucción vigente que coloque Cuttlefish por delante de redroid. Las menciones de Cuttlefish son históricas o lo identifican como contingencia; las menciones a QEMU + Android-x86 + VNC indican que esa ruta está retirada. La auditoría conserva esos antecedentes para no borrar el historial de decisiones.
