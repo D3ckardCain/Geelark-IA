@@ -169,7 +169,7 @@ Los dos workflows para el HEAD vigente terminaron `completed/success`:
 - Transporte HTTPS [#40030143045](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40030143045): **63 passed**, comprobación de dependencias limpia.
 - Persistencia [#40030143221](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40030143221): prueba PostgreSQL de bandeja **1 passed**, además de suites de persistencia/guard/auth **32 + 12 + 54 passed** y comprobación de dependencias limpia.
 
-La ampliación del workflow de persistencia es parte de la PR y hace que cambios bajo `packages/cluster-agent-transport/**` ejecuten también la prueba PostgreSQL de bandeja. Queda corregida la nota anterior que decía que faltaba comprobar este workflow: ya está validado en el mismo HEAD. #113 permanece en draft porque la integración combinada con #74/#52 aún requiere reconciliar runtime, ACK cercado, task_id/endpoints, esquema, pruebas y workflows. No se ha fusionado la cadena ni se ha ejecutado Android.
+La ampliación del workflow de persistencia es parte de la PR y hace que cambios bajo `packages/cluster-agent-transport/**` ejecuten también la prueba PostgreSQL de bandeja. Queda corregida la nota anterior que decía que faltaba comprobar este workflow: fue validado en el mismo HEAD. #113 permaneció en draft en esa observación; luego se cerró sin merge como supersedida por #115, que incluye ese cambio. No se ha fusionado la cadena ni se ha ejecutado Android.
 
 ## Primera reconciliación combinada #115 — 2026-10-23
 
@@ -246,7 +246,7 @@ HEAD `64f4a7f344ac94f15c75313171bdc2dc9218cd8f` validado por ambos workflows:
 
 Esta ronda incorpora a la rama combinada el cambio que estaba separado en #113: la lease de entrega solo restringe tareas `delivered`; después de `accepted`, la validez sigue dependiendo de propiedad, epoch y lease de instancia. La prueba PostgreSQL acepta la tarea, expira la lease de entrega y exige que progreso siga funcionando. El test de aceptación tardía tras expiración permanece intacto.
 
-La integración combinada está verde para transporte, journal/guard, auth, persistencia y bandeja PostgreSQL. Aún no se ha probado el rol readonly de Master Admin porque el paquete no existe en la base de #115; ese límite se mantiene explícito. #115 permanece draft/no fusionada. #113 se conserva abierta hasta aprobar/fusionar la integración combinada, evitando perder la corrección auxiliar antes de tiempo.
+La integración combinada está verde para transporte, journal/guard, auth, persistencia y bandeja PostgreSQL. Aún no se ha probado el rol readonly de Master Admin porque el paquete no existe en la base de #115; ese límite se mantiene explícito. #115 permanece draft/no fusionada. #113 se conservó abierta en ese momento para no perder la corrección; posteriormente se cerró sin merge como supersedida por #115 después de verificar equivalencia del handler/test y CI verde.
 
 ## Documentación de transporte alineada con el ACK/lease final — 2026-10-23
 
@@ -275,3 +275,11 @@ HEAD `f17bd3651b710ce2baee64cc98c0825c7bc96546` pasó los dos workflows:
 - Persistencia/PostgreSQL #629: [40041315731](https://github.com/D3ckardCain/Geelark-IA/actions/runs/40041315731), success, incluida la prueba de bandeja PostgreSQL.
 
 Se confirma que el runtime usa el `task_id` del recibo durable en reportes inmediatos si se omite el argumento, y rechaza discrepancias explícitas; los tests de progreso/resultado con `task_id != operation_id` pasaron. La documentación, la corrección de lease de entrega y el ACK cercado por epoch/estado/resultado también están incluidos en este HEAD. #115 permanece draft y no fusionada. Los pasos de Master Admin readonly siguen omitidos porque ese paquete no existe en esta rama base.
+
+
+## Cierre de PR auxiliares #112/#113 — 2026-10-23
+
+- #112 se cerró sin merge como supersedida por #115 tras inspeccionar sus 10 archivos de solapamiento.
+- #113 se cerró sin merge como supersedida por #115 después de comparar `domain_handlers.py` y `test_task_inbox_postgres.py` (contenido idéntico en ambas ramas) y verificar que el workflow de #115 conserva los filtros y la prueba PostgreSQL.
+- La PR activa de integración es #115, HEAD `f17bd3651b710ce2baee64cc98c0825c7bc96546`, mergeable=true, transporte #502 (**66 passed**) y persistencia #629 (**33 + 20 + 54 + 1 passed**), `pip check` limpio. Sigue en draft y no fusionada.
+- La seguridad de Master Admin/rol PostgreSQL readonly no queda validada por esta línea porque el paquete no está presente en su base; debe comprobarse en la línea #104. La issue #27 sigue bloqueando la ejecución física de redroid.
