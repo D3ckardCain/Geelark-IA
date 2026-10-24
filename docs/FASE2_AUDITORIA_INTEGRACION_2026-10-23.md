@@ -66,6 +66,25 @@ Los contadores de commits describen la divergencia del historial, no que todos e
 4. Resolver conflictos por orden de dependencia, sin cambiar bases automáticamente.
 5. Mantener redroid como único motor en preparación y coste objetivo 0 USD.
 
+## Conflictos de sincronización #112 — inspección por archivo (2026-10-23)
+
+Se compararon las versiones de los 10 archivos tocados por la PR auxiliar #112 entre la rama de proveedor (#74) y la rama de bandeja (#52). Se identificaron cambios exclusivos que deben conservarse:
+
+| Archivo | Cambios que deben coexistir |
+|---|---|
+| `.github/workflows/cluster-agent-transport.yml` | Pin del journal compatible con ACK condicional y pruebas reproducibles; verificar contrato de API del SHA pinneado. |
+| `.github/workflows/cluster-persistence-service.yml` | Triggers y tests del paquete Master Admin/rol de solo lectura + suite de persistencia/bandeja de tareas. |
+| `docs/MANUAL_TRANSPORTE_HTTPS_AGENTES.md` | Advertencias de enrolamiento no operativo + documentación de ACK durable. |
+| `docs/contracts/worker-module-inventory-v1.schema.json` | Restricciones de unicidad `maxContains` para módulos de inventario. |
+| `packages/cluster-agent-transport/README.md` | Contratos de bandeja claim/accept/progress/result + ACK fail-closed del journal. |
+| `packages/cluster-agent-transport/pyproject.toml` | Dependencia explícita de auth + cliente HTTP compatible con Starlette TestClient. |
+| `packages/cluster-agent-transport/src/cluster_agent_transport/runtime.py` | Métodos de bandeja claim/accept + transmisión de recibos durables sin reescribir el journal durante reintentos. |
+| `packages/cluster-agent-transport/tests/test_domain_handlers_postgres.py` | Pruebas de persistencia de salud reportada separada de salud derivada. |
+| `packages/cluster-agent-transport/tests/test_runtime.py` | Pruebas de bandeja + ACK condicional `expected_status/expected_result`, ACK negativo y retry sin mutación local. |
+| `packages/cluster-persistence/tests/test_status_snapshot.py` | Pruebas de separación entre salud reportada por Worker y salud derivada por Master. |
+
+**Decisión:** no resolver por reemplazo total de archivos. La resolución debe mantener ambos grupos de cambios y ejecutar los workflows en el SHA combinado. Se añadió esta matriz como comentario a #112; la PR permanece sin merge por `mergeable=false`. No se ejecutaron workflows manuales ni se modificaron ramas.
+
 ## Siguiente tarea técnica
 
 Inspeccionar los commits que divergen en #101 respecto de la base actual y determinar el conjunto mínimo de cambios que debe preservarse. Luego resolver únicamente #101 y validar CI del nuevo HEAD. No continuar a #74 hasta que #101 tenga base reconciliada y CI relevante en verde.
