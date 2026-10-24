@@ -1,8 +1,13 @@
-# Estado del proyecto Geelark-IA
+# Estado del proyecto GeeLark-IA
 
-**Actualizado:** 2026-10-09  
-**Fase:** A — inventario funcional de GeeLark y estudio de viabilidad de Android virtualizado local.  
-**Implementación:** no hay módulos declarados como terminados o verificados.
+**Actualizado:** 2026-10-24  
+**Estado operativo:** ningún módulo se considera aceptado para producción; la aceptación manual de PC-MASTER en Windows sigue pendiente en [issue #77](https://github.com/D3ckardCain/Geelark-IA/issues/77).  
+**Integración candidata:** la PR #117 combina el panel autenticado, snapshots y bandeja durable; permanece en draft y sin fusionar. Su CI verde no sustituye las pruebas manuales ni la revisión de seguridad.  
+**Workers:** la adopción independiente de redroid está especificada en [issue #118](https://github.com/D3ckardCain/Geelark-IA/issues/118) y bloqueada por la aceptación de #77. Los nodos pendientes no deben ejecutar tareas.  
+**Android:** redroid es el motor candidato acordado; no arrancar contenedores ni instalar imágenes hasta resolver el bloqueo de seguridad [#27](https://github.com/D3ckardCain/Geelark-IA/issues/27). La investigación de imágenes ligeras sigue abierta en [#119](https://github.com/D3ckardCain/Geelark-IA/issues/119).  
+**Seguridad de tareas:** quedan registrados el bloqueo de heartbeat obsoleto [#120](https://github.com/D3ckardCain/Geelark-IA/issues/120) y la validación de leases con reloj PostgreSQL [#121](https://github.com/D3ckardCain/Geelark-IA/issues/121).  
+
+> **Nota de vigencia:** las secciones posteriores de este documento contienen apuntes históricos desde el 2026-10-09 y aún incluyen decisiones que han cambiado. Este encabezado resume el estado más reciente; antes de tomar decisiones operativas, contrastar las issues enlazadas y los ADR vigentes. La reconciliación completa del documento sigue pendiente.
 
 ## Objetivo acordado
 
