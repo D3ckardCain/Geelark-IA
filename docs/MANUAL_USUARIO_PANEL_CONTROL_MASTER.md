@@ -1,6 +1,6 @@
 # Manual de usuario — Panel de control PC-MASTER
 
-**Estado al 2026-10-24:** el panel y la bandeja durable están combinados en la PR de integración #117, actualmente abierta en draft y sin fusionar. En el HEAD de referencia `cd903704fe1d3cc1a547f93d8f543473b97325bf`, la suite raíz pasó **310 pruebas, 2 omitidas**; Windows ACL, persistencia, transporte HTTPS y esquema PostgreSQL también terminaron correctamente según los workflows registrados en la PR. Esta evidencia automatizada no valida la configuración del PC-MASTER físico ni resuelve la revisión pendiente del reloj de leases (#121). La aceptación manual de la issue #77 sigue pendiente: completar el checklist en el equipo Windows del proyecto y registrar evidencia sanitizada antes de declarar operativo el panel.
+**Estado al 2026-10-24:** el panel y la bandeja durable están combinados en la PR de integración #117, actualmente abierta en draft y sin fusionar. En el HEAD validado `7295735fbcb396db991bf9bbde0fc9b03eb66f7c`, la suite raíz pasó **310 pruebas, 2 omitidas**; Windows ACL, persistencia, transporte HTTPS y esquema PostgreSQL terminaron correctamente. También quedó validado el uso del reloj PostgreSQL para leases en #121 y el rechazo de claims con heartbeat obsoleto en #120. Esta evidencia automatizada no valida la configuración del PC-MASTER físico ni sustituye la aceptación manual de #77. La aceptación manual de la issue #77 sigue pendiente: completar el checklist en el equipo Windows del proyecto y registrar evidencia sanitizada antes de declarar operativo el panel.
 
 ## 1. Acceso inicial
 
