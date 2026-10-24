@@ -36,6 +36,7 @@ class AgentPrincipal:
     admin_state: str
     credential_status: str
     credential_expires_at: datetime
+    authorized_at: datetime
 
 
 class PermissionDenied(Exception):
@@ -67,7 +68,7 @@ def authorize_operation(principal: AgentPrincipal, operation: Operation) -> None
             credential_status=principal.credential_status,
             credential_expires_at=principal.credential_expires_at,
         )
-        authorize_agent_operation(context, canonical_operation)
+        authorize_agent_operation(context, canonical_operation, now=principal.authorized_at)
     except (AgentAuthorizationError, KeyError, TypeError, ValueError) as exc:
         code = getattr(exc, "code", "OPERATION_NOT_ALLOWED")
         raise PermissionDenied(code) from None

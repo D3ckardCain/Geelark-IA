@@ -40,6 +40,7 @@ def test_database_authenticator_allows_pending_limited_principal_then_active_and
         assert pending.node_id == str(node_id)
         assert pending.credential_id == str(credential_id)
         assert (pending.admin_state, pending.credential_status) == ("pending", "pending")
+        assert pending.authorized_at.tzinfo is not None
 
         with connect() as conn:
             conn.execute(
@@ -50,6 +51,7 @@ def test_database_authenticator_allows_pending_limited_principal_then_active_and
 
         active = authenticate(token)
         assert (active.admin_state, active.credential_status) == ("active", "active")
+        assert active.authorized_at.tzinfo is not None
 
         with connect() as conn:
             conn.execute("UPDATE geelark_control.nodes SET revoked_at = now() WHERE node_id = %s", (node_id,))

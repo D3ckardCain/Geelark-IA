@@ -38,7 +38,8 @@ def test_claim_task_returns_durable_task_and_lease_only_for_active_node():
         (delivery_lease_expires_at,),
     ])
     handlers = make_postgres_agent_handlers(lambda: conn)
-    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active", datetime.now(timezone.utc) + timedelta(hours=1))
+    auth_now = datetime.now(timezone.utc)
+    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active", auth_now + timedelta(hours=1), auth_now)
 
     response = handlers[Operation.TASK_FETCH](
         conn=conn, principal=principal, payload={"schema_version": 1}
@@ -60,7 +61,8 @@ def test_pending_node_is_rejected_before_task_claim_query():
     node_id, credential_id = uuid4(), uuid4()
     conn = FakeConnection([("pending", "pending")])
     handlers = make_postgres_agent_handlers(lambda: conn)
-    principal = AgentPrincipal(str(node_id), str(credential_id), "pending", "pending", datetime.now(timezone.utc) + timedelta(hours=1))
+    auth_now = datetime.now(timezone.utc)
+    principal = AgentPrincipal(str(node_id), str(credential_id), "pending", "pending", auth_now + timedelta(hours=1), auth_now)
 
     with pytest.raises(HTTPException) as exc:
         handlers[Operation.TASK_FETCH](
