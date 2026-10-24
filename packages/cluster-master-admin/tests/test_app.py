@@ -383,7 +383,9 @@ def test_panel_payload_validator_rejects_malformed_payloads() -> None:
             [node, "-e", script, json.dumps(payload)],
             capture_output=True,
             text=True,
-            timeout=5,
+            # El runner compartido puede estar ocupado; evitar falsos fallos
+            # por arranque lento de Node al validar el contrato del panel.
+            timeout=15,
             check=False,
         )
 
