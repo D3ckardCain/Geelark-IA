@@ -294,3 +294,33 @@ La comparación de los cinco archivos compartidos entre #103 y #104 confirma div
 - Workflow: #103 añade un job Windows específico; #104 mantiene pruebas adicionales del rol PostgreSQL readonly. Reconciliar cobertura al integrar.
 
 La #87 aporta el lanzador/configurador Windows; #104 aporta el panel web/API autenticado. #103 no se cierra como duplicada: se mantiene como corrección apilada pendiente de reconciliación. El objetivo es conservar el lanzador sin reintroducir la implementación antigua del backend/ACL. No se cambió ninguna base ni se fusionaron ramas.
+
+## Revisión adicional de divergencia de ramas — 2026-10-23
+
+### Evidencia comprobada
+
+- PR #104: head `fix/windows-ca-test-fixture-v1`, commit `75764c435f488f617a07c0003ce088829e6dbd41`, base `feat/master-status-snapshot-provider-v1`.
+- PR #115: head `fix/integrate-snapshot-task-inbox-fenced-ack-v1`, commit `f17bd3651b710ce2baee64cc98c0825c7bc96546`, base `feat/agent-task-inbox-v2`.
+- La comparación directa de ambos heads devuelve `diverged`, con 57 commits exclusivos de la rama de tareas y 130 commits exclusivos de la rama PC-MASTER en la comparación de GitHub; merge base `a8ce049458e94ae2587caeb8a42269a0b094b09a`.
+- El diff directo incluye 27 rutas, entre ellas workflows, migración y smoke SQL de bandeja, journal SQLite, handlers/runtime, contratos y pruebas PostgreSQL. Por tanto no es correcto resolver la integración cambiando únicamente la base de la PR.
+- PR auxiliar #116 fue cerrada sin merge porque GitHub informó `mergeable=false`; era un registro de integración, no una resolución de código.
+
+### Decisiones de seguridad
+
+1. No fusionar #104 ni #115 por separado como si la otra línea no existiera.
+2. Preservar los archivos exclusivos de PC-MASTER: panel web, autenticación local, TLS, ACL NTFS y pruebas negativas del rol PostgreSQL de solo lectura.
+3. Preservar la bandeja durable: migración `0005_agent_task_inbox.sql`, smoke SQL, journal con `task_id`, fencing del ACK por epoch/estado/resultado, y operaciones claim/accept/progress/result.
+4. Resolver semánticamente al menos `domain_handlers.py`, `runtime.py`, `journal.py`, `cluster-agent-transport.yml`, `cluster-persistence-service.yml` y `MANUAL_TRANSPORTE_HTTPS_AGENTES.md`.
+5. La suite de persistencia combinada debe mantener los jobs Windows ACL, suite raíz y verificaciones negativas del rol lector; además debe ejecutar las pruebas PostgreSQL de la bandeja. No reducir silenciosamente los controles existentes.
+6. La CI verde de cada head separado no demuestra que el head combinado compile ni que pase las pruebas.
+7. No iniciar listeners, despliegues ni pruebas en hardware físico. La aceptación manual de PC-MASTER (issue #77) sigue siendo un bloqueo separado.
+
+### Próximos pasos verificables
+
+- Crear un merge real de Git con ambos heads como padres y una única resolución de árbol, conservando todo el contenido exclusivo de PC-MASTER.
+- Ejecutar CI en ese head combinado y revisar los logs de cada job; no reutilizar checks de commits anteriores como prueba de integración.
+- Mantener la PR de integración en draft hasta que el diff y la CI del head combinado estén validados.
+- Registrar el resultado manual del panel en la issue #77 antes de aceptar el módulo.
+
+**Estado al cierre de esta revisión:** integración no resuelta; no se ha fusionado ni desplegado ningún cambio.
+
