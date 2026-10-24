@@ -358,3 +358,15 @@ Los tres workflows terminaron en `success` sobre el mismo HEAD `d443a4b59a7fcdb2
 
 **Estado actualizado:** integración de código entre PC-MASTER, snapshots y bandeja validada por CI en un único HEAD; aceptación del panel y orden de integración de la pila siguen pendientes.
 
+## Auditoría de la siguiente pila de agente — después de #117
+
+La siguiente línea funcional no forma parte de la PR #117 y no debe darse por integrada:
+
+- #57 — ciclo de vida y sincronización durable (`feat/agent-lifecycle-sync-inbox`), base #52; 9 rutas en su diff directo con #117, incluida la nueva implementación `lifecycle.py` y pruebas de sincronización.
+- #67 — supervisor/heartbeat (`feat/agent-supervisor-heartbeat-v2`), base #57; GitHub lo marca `mergeable=false` en su propia pila actual. Añade bootstrap, conectividad, credenciales, supervisor y pruebas asociadas.
+- #85 — reconciliación, retención y guard de frescura (`feat/agent-reconciliation-retention-clean-v2`), base #67; añade migraciones `0006_agent_reconciliation_reports.sql` y `0007_agent_storage_retention.sql`, handlers/pruebas de reconciliación y retención.
+
+La comparación de cada rama descendiente contra #117 indica divergencia de historial y muestra 9/30/50 rutas cambiadas, respectivamente. Eso no demuestra que las funcionalidades sean incompatibles, pero sí que sus CI históricas no validan el árbol combinado actual. En particular, #85 modifica `journal.py`, `runtime.py`, `test_task_inbox_postgres.py` y workflows; se requiere merge semántico para conservar el ACK cercado y `task_id` durable de #117 junto con las nuevas funciones de ciclo de vida/supervisor/reconciliación.
+
+**Acción segura:** no fusionar ni cerrar #57/#67/#85 por ahora. Mantenerlas draft, revisar el diff y sus dependencias después de completar la aceptación manual de PC-MASTER en #77. No crear otra PR combinada grande antes de aceptar el módulo actual.
+
