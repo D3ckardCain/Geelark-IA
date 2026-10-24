@@ -278,7 +278,7 @@ def test_assignment_lease_validation_uses_postgres_clock_not_application_clock(m
         with pytest.raises(InvalidAssignmentRequest, match="lease_expires_at"):
             assign_instance(
                 conn,
-                replace(make_request(instance_id=INSTANCE_B), lease_expires_at=expired_lease),
+                replace(make_request(instance_id=INSTANCE_B, key="expired-lease-clock-check"), lease_expires_at=expired_lease),
             )
 
         owner, epoch = conn.execute(
@@ -455,17 +455,25 @@ def test_assignment_rejects_lease_that_expires_while_waiting_for_instance_lock()
             while time.monotonic() < deadline:
                 row = blocker.execute(
                     """
-                    SELECT wait_event_type
+                    SELECT state, wait_event_type, wait_event
                       FROM pg_stat_activity
                      WHERE application_name = %s
                     """,
                     (application_name,),
                 ).fetchone()
-                if row is not None and row[0] == "Lock":
+                if row is not None and row[0] == "active" and row[1] == "Lock":
                     blocked = True
                     break
+                if future.done():
+                    break
                 time.sleep(0.02)
-            assert blocked, "la petición de asignación no llegó a esperar por el lock"
+            if not blocked:
+                if "error" in result:
+                    raise AssertionError(
+                        f"la petición terminó antes de esperar por el lock: {result['error']!r}"
+                    ) from result["error"]
+                assert not future.done(), "la petición terminó antes de esperar por el lock"
+                assert blocked, f"la petición no esperó por el lock; último estado observado: {row!r}"
             remaining = (request.lease_expires_at - datetime.now(timezone.utc)).total_seconds()
             if remaining > 0:
                 time.sleep(remaining + 0.15)
