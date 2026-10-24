@@ -264,7 +264,8 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             """
             SELECT t.status, t.node_id, t.instance_id, t.assignment_epoch,
                    t.result_summary, i.owner_node_id, i.assignment_epoch,
-                   i.lease_expires_at, o.status, t.delivery_lease_until
+                   i.lease_expires_at, o.status, t.delivery_lease_until,
+                   now() AS database_now
               FROM geelark_control.agent_tasks AS t
               JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
               JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
@@ -288,10 +289,10 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             or (
                 not terminal_replay
                 and (
-                    row[7] is None or row[7] <= datetime.now(timezone.utc)
+                    row[7] is None or row[7] <= row[10]
                     or (
                         row[0] == "delivered"
-                        and (row[9] is None or row[9] <= datetime.now(timezone.utc))
+                        and (row[9] is None or row[9] <= row[10])
                     )
                 )
             )
