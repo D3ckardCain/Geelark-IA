@@ -71,7 +71,7 @@ def test_active_node_claims_assignment_and_reports_fenced_result():
     try:
         with connect() as conn:
             conn.execute(
-                "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state, health_state) VALUES (%s, %s, 'active', 'healthy')",
+                "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state, health_state, last_seen_at) VALUES (%s, %s, 'active', 'healthy', now())",
                 (node_id, "task-test-" + str(node_id)),
             )
             conn.execute(
@@ -109,6 +109,32 @@ def test_active_node_claims_assignment_and_reports_fenced_result():
                 VALUES (%s, %s, %s, %s, 1, %s)
                 """,
                 (task_id, operation_id, node_id, instance_id, Jsonb(payload)),
+            )
+
+        # Un nodo que dejó de enviar heartbeat no puede reclamar una tarea,
+        # aunque su último health_state persistido siga siendo "healthy".
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.nodes SET last_seen_at = now() - interval '2 minutes' WHERE node_id = %s",
+                (node_id,),
+            )
+
+        stale_claim = client.post(
+            "/agent/v1/tasks/claim",
+            headers=headers("stale-heartbeat-claim-" + str(uuid4())),
+            json={"schema_version": 1},
+        )
+        assert stale_claim.status_code == 200
+        assert stale_claim.json() == {"task": None}
+        with connect() as conn:
+            untouched = conn.execute(
+                "SELECT status, delivery_lease_until FROM geelark_control.agent_tasks WHERE task_id = %s",
+                (task_id,),
+            ).fetchone()
+            assert untouched == ("queued", None)
+            conn.execute(
+                "UPDATE geelark_control.nodes SET last_seen_at = now() WHERE node_id = %s",
+                (node_id,),
             )
 
         claim_keys = ["task-claim-" + str(uuid4()), "task-claim-" + str(uuid4())]
