@@ -353,9 +353,9 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             UPDATE geelark_control.agent_tasks
                SET status = 'delivered',
                    delivery_attempts = delivery_attempts + 1,
-                   delivery_lease_until = now() + interval '30 seconds',
-                   delivered_at = COALESCE(delivered_at, now()),
-                   updated_at = now()
+                   delivery_lease_until = clock_timestamp() + interval '30 seconds',
+                   delivered_at = COALESCE(delivered_at, clock_timestamp()),
+                   updated_at = clock_timestamp()
              WHERE task_id = %s
              RETURNING delivery_lease_until
             """,
