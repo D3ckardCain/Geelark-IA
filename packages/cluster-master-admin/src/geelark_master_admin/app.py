@@ -140,7 +140,6 @@ def _same_origin(request: Request) -> bool:
 
 def _read_snapshots(connect: Callable[[], Any]) -> tuple[str, list[dict[str, Any]]]:
     """Una consulta SELECT acotada; no lee payloads de tareas ni registros arbitrarios."""
-    now = datetime.now(timezone.utc)
     with connect() as conn:
         rows = conn.execute(
             """
@@ -152,8 +151,12 @@ def _read_snapshots(connect: Callable[[], Any]) -> tuple[str, list[dict[str, Any
             """,
             (MAX_SNAPSHOTS,),
         ).fetchall()
-    snapshots = [build_status_snapshot(row, now=now) for row in rows]
-    return now.isoformat().replace("+00:00", "Z"), [item for item in snapshots if item is not None]
+        # PostgreSQL es el reloj autoritativo para last_seen_at y checked_at.
+        # Obtenerlo dentro de la misma transacción evita clasificaciones erróneas
+        # si el reloj local de PC-MASTER difiere del servidor de base de datos.
+        database_now = conn.execute("SELECT now()").fetchone()[0].astimezone(timezone.utc)
+    snapshots = [build_status_snapshot(row, now=database_now) for row in rows]
+    return database_now.isoformat().replace("+00:00", "Z"), [item for item in snapshots if item is not None]
 
 
 def create_admin_app(
