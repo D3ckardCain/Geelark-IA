@@ -18,10 +18,10 @@ from geelark_master_admin.app import BodyLimitMiddleware, SESSION_COOKIE, _panel
 
 
 class FakeConnection(AbstractContextManager):
-    def __init__(self, rows):
+    def __init__(self, rows, database_now=None):
         self.rows = rows
         self.statements = []
-        self.database_now = datetime(2026, 10, 24, 12, 0, tzinfo=timezone.utc)
+        self.database_now = database_now or datetime.now(timezone.utc)
 
     def __enter__(self):
         return self
@@ -63,11 +63,11 @@ def make_row(reported_health_state="healthy"):
     )
 
 
-def make_client(tmp_path: Path, rows=None):
+def make_client(tmp_path: Path, rows=None, database_now=None):
     connections = []
 
     def connect():
-        conn = FakeConnection(rows if rows is not None else [make_row()])
+        conn = FakeConnection(rows if rows is not None else [make_row()], database_now=database_now)
         connections.append(conn)
         return conn
 
@@ -218,7 +218,7 @@ def test_snapshots_use_postgres_clock_not_pc_master_clock(tmp_path: Path, monkey
     database_now = datetime(2026, 10, 24, 12, 0, tzinfo=timezone.utc)
     row = list(make_row())
     row[5] = database_now - __import__("datetime").timedelta(seconds=10)
-    client, connections = make_client(tmp_path, rows=[tuple(row)])
+    client, connections = make_client(tmp_path, rows=[tuple(row)], database_now=database_now)
     # Simula un PC-MASTER cuyo reloj está una hora adelantado.
     class ApplicationClock:
         @classmethod
