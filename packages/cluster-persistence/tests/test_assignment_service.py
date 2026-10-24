@@ -3,7 +3,8 @@ from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import os
-from threading import Barrier
+from threading import Barrier, Event
+import time
 from uuid import UUID, uuid4
 
 import psycopg
@@ -274,11 +275,13 @@ def test_assignment_lease_validation_uses_postgres_clock_not_application_clock(m
         expired_lease = AppClockBehind.fromtimestamp(
             (database_now - timedelta(seconds=1)).timestamp(), tz=timezone.utc
         )
-        with pytest.raises(InvalidAssignmentRequest, match="lease_expires_at"):
-            assign_instance(
-                conn,
-                replace(make_request(instance_id=INSTANCE_B), lease_expires_at=expired_lease),
-            )
+        rejected = assign_instance(
+            conn,
+            replace(make_request(instance_id=INSTANCE_B, key="expired-lease-clock-check"), lease_expires_at=expired_lease),
+        )
+        assert rejected["status"] == "rejected"
+        assert rejected["error"]["code"] == "ASSIGNMENT_REJECTED"
+        assert "lease_expires_at" in rejected["error"]["message"]
 
         owner, epoch = conn.execute(
             "SELECT owner_node_id, assignment_epoch FROM geelark_control.instances WHERE instance_id = %s",
@@ -422,3 +425,92 @@ def test_rejected_response_is_cached_for_same_idempotency_key():
     with psycopg.connect(DATABASE_URL) as conn:
         assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
         assert conn.execute("SELECT count(*) FROM geelark_control.idempotency_records WHERE response_snapshot->>'status' = 'rejected'").fetchone()[0] == 1
+
+
+def test_assignment_rejects_lease_that_expires_while_waiting_for_instance_lock():
+    seed_database()
+    application_name = f"lease-lock-test-{uuid4().hex}"
+    result = {}
+    connected = Event()
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with psycopg.connect(DATABASE_URL) as blocker:
+            database_now = blocker.execute("SELECT clock_timestamp()").fetchone()[0]
+            blocker.execute(
+                "SELECT instance_id FROM geelark_control.instances WHERE instance_id = %s FOR UPDATE",
+                (INSTANCE_A,),
+            )
+            request = replace(
+                make_request(instance_id=INSTANCE_A),
+                lease_expires_at=database_now + timedelta(seconds=2),
+            )
+
+            def assign_while_locked():
+                try:
+                    with psycopg.connect(DATABASE_URL, application_name=application_name) as conn:
+                        result["pid"] = conn.execute("SELECT pg_backend_pid()").fetchone()[0]
+                        connected.set()
+                        result["response"] = assign_instance(conn, request)
+                except Exception as exc:
+                    result["error"] = exc
+
+            future = pool.submit(assign_while_locked)
+            if not connected.wait(timeout=5):
+                if "error" in result:
+                    raise AssertionError(f"la petición no llegó a conectarse a PostgreSQL: {result['error']!r}") from result["error"]
+                raise AssertionError("la petición no estableció conexión con PostgreSQL dentro del plazo")
+            deadline = time.monotonic() + 5
+            blocked = False
+            while time.monotonic() < deadline:
+                row = blocker.execute(
+                    """
+                    SELECT state, wait_event_type, wait_event, application_name
+                      FROM pg_stat_activity
+                     WHERE pid = %s
+                    """,
+                    (result.get("pid", -1),),
+                ).fetchone()
+                if row is not None and row[0] == "active" and row[1] == "Lock":
+                    blocked = True
+                    break
+                if future.done():
+                    break
+                time.sleep(0.02)
+            if not blocked:
+                if "error" in result:
+                    raise AssertionError(
+                        f"la petición terminó antes de esperar por el lock: {result['error']!r}"
+                    ) from result["error"]
+                assert not future.done(), "la petición terminó antes de esperar por el lock"
+                assert blocked, f"la petición no esperó por el lock; último estado observado: {row!r}"
+            remaining = (request.lease_expires_at - datetime.now(timezone.utc)).total_seconds()
+            if remaining > 0:
+                time.sleep(remaining + 0.15)
+        # Al salir del contexto del bloqueador se libera el lock; solo entonces
+        # esperamos al trabajador, evitando un ciclo de espera entre ambos.
+        future.result(timeout=5)
+
+    assert "error" not in result, f"la asignación falló inesperadamente: {result.get('error')!r}"
+    assert result["response"]["status"] == "rejected"
+    assert result["response"]["error"]["code"] == "ASSIGNMENT_REJECTED"
+    assert "lease_expires_at" in result["response"]["error"]["message"]
+    with psycopg.connect(DATABASE_URL) as conn:
+        owner, epoch = conn.execute(
+            "SELECT owner_node_id, assignment_epoch FROM geelark_control.instances WHERE instance_id = %s",
+            (INSTANCE_A,),
+        ).fetchone()
+        assert owner is None
+        assert epoch == 0
+        assert conn.execute("SELECT count(*) FROM geelark_control.operations").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM geelark_control.outbox_events").fetchone()[0] == 0
+        idempotency_row = conn.execute(
+            """
+            SELECT response_snapshot
+              FROM geelark_control.idempotency_records
+             WHERE idempotency_key = %s
+            """,
+            (request.idempotency_key,),
+        ).fetchone()
+        assert idempotency_row is not None
+        assert idempotency_row[0]["status"] == "rejected"
+        assert idempotency_row[0]["error"]["code"] == "ASSIGNMENT_REJECTED"
