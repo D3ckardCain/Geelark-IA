@@ -151,7 +151,7 @@ def test_postgres_provider_executes_select_only_and_returns_none_for_missing_nod
     assert result["node"]["node_id"] == str(NODE_ID)
     assert result["generated_at"] == "2026-10-10T23:00:00Z"
     assert connection.sql.lstrip().upper().startswith("SELECT")
-    assert "now() AS database_now" in connection.sql.lower()
+    assert "now() as database_now" in connection.sql.lower()
     assert "reported_health_state" in connection.sql
     assert "health_state AS reported_health_state" not in connection.sql
     assert not any(word in connection.sql.upper() for word in ("INSERT ", "UPDATE ", "DELETE "))
