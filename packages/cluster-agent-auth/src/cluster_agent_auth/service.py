@@ -137,6 +137,16 @@ def consume_enrollment(
         ).fetchone()
         if exists:
             raise EnrollmentError("El nodo ya existe; se requiere un flujo administrativo de recuperación.")
+        # El lock del nodo pudo consumir tiempo; valida el token otra vez y
+        # ancla el TTL de la credencial al instante exacto de creación.
+        now = conn.execute("SELECT clock_timestamp()").fetchone()[0]
+        still_valid = conn.execute(
+            "SELECT expires_at > %s FROM geelark_control.node_enrollments WHERE enrollment_id = %s",
+            (now, row[0]),
+        ).fetchone()
+        if still_valid is None or not still_valid[0]:
+            raise EnrollmentError("Token de enrolamiento inválido, vencido o ya consumido.")
+        expires_at = now + credential_ttl
         conn.execute(
             """
             INSERT INTO geelark_control.nodes
@@ -148,13 +158,13 @@ def consume_enrollment(
         conn.execute(
             """
             INSERT INTO geelark_control.node_credentials
-                (credential_id, node_id, token_sha256, status, expires_at)
-            VALUES (%s, %s, %s, 'pending', %s)
+                (credential_id, node_id, token_sha256, status, created_at, expires_at)
+            VALUES (%s, %s, %s, 'pending', %s, %s)
             """,
-            (credential_id, node_id, _secret_hash(credential), expires_at),
+            (credential_id, node_id, _secret_hash(credential), now, expires_at),
         )
-        # La espera por el lock del nodo también puede consumir el tiempo restante
-        # del enrolamiento; comprobar otra vez justo antes de marcarlo consumido.
+        # Comprueba una última vez el token tras las inserciones; si venció, la
+        # transacción revierte el nodo y la credencial recién creados.
         now = conn.execute("SELECT clock_timestamp()").fetchone()[0]
         still_valid = conn.execute(
             "SELECT expires_at > %s FROM geelark_control.node_enrollments WHERE enrollment_id = %s",
