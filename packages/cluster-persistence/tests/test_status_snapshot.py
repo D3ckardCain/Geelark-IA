@@ -41,6 +41,11 @@ def make_row(*, display_name="WORKER-01", admin_state="active", reported="health
     )
 
 
+def test_snapshot_builder_requires_authoritative_now():
+    with pytest.raises(TypeError):
+        build_status_snapshot(make_row())
+
+
 def test_fresh_snapshot_uses_master_clock_and_closed_capability_list():
     snapshot = build_status_snapshot(make_row(), now=NOW)
 

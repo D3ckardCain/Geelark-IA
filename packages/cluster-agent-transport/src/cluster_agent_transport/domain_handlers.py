@@ -53,9 +53,9 @@ def _validate_result_summary(value: Any) -> dict[str, Any]:
     return value
 
 
-def _derive_module_reports(reports: list[dict[str, Any]], last_seen_at: datetime | None, *, now: datetime | None = None) -> list[dict[str, Any]]:
+def _derive_module_reports(reports: list[dict[str, Any]], last_seen_at: datetime | None, *, now: datetime) -> list[dict[str, Any]]:
     """Sanea filas persistidas y degrada a unknown datos obsoletos o incoherentes."""
-    current_time = now or datetime.now(timezone.utc)
+    current_time = now.astimezone(timezone.utc)
     node_stale = last_seen_at is None or last_seen_at <= current_time - HEARTBEAT_STALE_AFTER
     allowed_states = {"operational", "degraded", "not-installed", "unknown"}
     error_code_pattern = re.compile(r"^[A-Z0-9_]{1,64}$")
@@ -115,9 +115,9 @@ def _derive_module_reports(reports: list[dict[str, Any]], last_seen_at: datetime
         })
     return result
 
-def _derive_health_state(reported_health_state: str, last_seen_at: datetime | None, *, now: datetime | None = None) -> str:
+def _derive_health_state(reported_health_state: str, last_seen_at: datetime | None, *, now: datetime) -> str:
     """Deriva salud usando el reloj del controlador, nunca solo el valor del agente."""
-    current_time = now or datetime.now(timezone.utc)
+    current_time = now.astimezone(timezone.utc)
     if last_seen_at is None or last_seen_at <= current_time - HEARTBEAT_STALE_AFTER:
         return "offline"
     if reported_health_state in {"degraded", "unhealthy"}:
