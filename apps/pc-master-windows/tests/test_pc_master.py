@@ -238,5 +238,43 @@ class PcMasterRuntimeLogRegressionTests(unittest.TestCase):
             self.assertIs(app.process, process)
 
 
+class PcMasterSingleInstanceTests(unittest.TestCase):
+    @mock.patch.object(module.sys, "platform", "linux")
+    def test_non_windows_does_not_create_global_mutex(self):
+        self.assertIsNone(module._acquire_single_instance_mutex())
+
+    @mock.patch.object(module.sys, "platform", "win32")
+    def test_windows_acquires_named_mutex(self):
+        import ctypes
+
+        kernel32 = mock.Mock()
+        kernel32.CreateMutexW.return_value = 123
+        kernel32.GetLastError.return_value = 0
+        with mock.patch.object(ctypes, "windll", mock.Mock(kernel32=kernel32), create=True):
+            lock = module._acquire_single_instance_mutex()
+        self.assertEqual(lock, (kernel32, 123))
+        kernel32.CreateMutexW.assert_called_once_with(
+            None, True, "Local\\GeeLarkIA_PC_MASTER_SINGLE_INSTANCE"
+        )
+
+    @mock.patch.object(module.sys, "platform", "win32")
+    def test_windows_duplicate_closes_new_handle_and_refuses_second_instance(self):
+        import ctypes
+
+        kernel32 = mock.Mock()
+        kernel32.CreateMutexW.return_value = 456
+        kernel32.GetLastError.return_value = 183
+        with mock.patch.object(ctypes, "windll", mock.Mock(kernel32=kernel32), create=True):
+            with self.assertRaisesRegex(RuntimeError, "ya está abierto"):
+                module._acquire_single_instance_mutex()
+        kernel32.CloseHandle.assert_called_once_with(456)
+
+    def test_release_mutex_releases_ownership_and_handle(self):
+        kernel32 = mock.Mock()
+        module._release_single_instance_mutex((kernel32, 789))
+        kernel32.ReleaseMutex.assert_called_once_with(789)
+        kernel32.CloseHandle.assert_called_once_with(789)
+
+
 if __name__ == "__main__":
     unittest.main()
