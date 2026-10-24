@@ -9,6 +9,8 @@ import pytest
 from fastapi.testclient import TestClient
 from psycopg.types.json import Jsonb
 
+import cluster_agent_transport.domain_handlers as domain_handlers
+
 from cluster_agent_transport import (
     PostgresRateLimiter,
     create_agent_app,
@@ -22,7 +24,7 @@ DATABASE_URL = __import__("os").environ.get("TEST_DATABASE_URL")
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="requiere PostgreSQL de integración")
 
 
-def test_active_node_claims_assignment_and_reports_fenced_result():
+def test_active_node_claims_assignment_and_reports_fenced_result(monkeypatch):
     node_id, credential_id, instance_id = uuid4(), uuid4(), uuid4()
     operation_id, task_id, request_id = uuid4(), uuid4(), uuid4()
     token = secrets.token_hex(32)
@@ -207,6 +209,51 @@ def test_active_node_claims_assignment_and_reports_fenced_result():
             json={"schema_version": 1, "state": "accepted", "details": {}},
         )
         assert accepted.status_code == 200
+
+        # La validación de leases debe usar el reloj PostgreSQL, no el del proceso.
+        # Con el reloj de aplicación adelantado una hora, una lease vigente sigue válida.
+        real_datetime = domain_handlers.datetime
+
+        class AppClockAhead(real_datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return real_datetime.now(tz) + timedelta(hours=1)
+
+        monkeypatch.setattr(domain_handlers, "datetime", AppClockAhead)
+        ahead_progress = client.post(
+            f"/agent/v1/tasks/{task_id}/progress",
+            headers=headers("task-progress-clock-ahead-" + str(uuid4())),
+            json={"schema_version": 1, "state": "running", "details": {"clock_test": "ahead"}},
+        )
+        assert ahead_progress.status_code == 200
+
+        # Con el reloj de aplicación atrasado una hora, una lease vencida debe
+        # seguir rechazándose porque la decisión se toma con now() de PostgreSQL.
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.instances SET lease_expires_at = now() - interval '1 second' WHERE instance_id = %s",
+                (instance_id,),
+            )
+
+        class AppClockBehind(real_datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return real_datetime.now(tz) - timedelta(hours=1)
+
+        monkeypatch.setattr(domain_handlers, "datetime", AppClockBehind)
+        behind_progress = client.post(
+            f"/agent/v1/tasks/{task_id}/progress",
+            headers=headers("task-progress-clock-behind-" + str(uuid4())),
+            json={"schema_version": 1, "state": "running", "details": {"clock_test": "behind"}},
+        )
+        assert behind_progress.status_code == 409
+        assert behind_progress.json()["detail"]["code"] == "STALE_ASSIGNMENT"
+        with connect() as conn:
+            conn.execute(
+                "UPDATE geelark_control.instances SET lease_expires_at = now() + interval '5 minutes' WHERE instance_id = %s",
+                (instance_id,),
+            )
+        monkeypatch.setattr(domain_handlers, "datetime", real_datetime)
 
         # La lease de entrega solo protege la fase delivered. Una vez aceptada,
         # el progreso depende de la lease de instancia y del assignment_epoch.
