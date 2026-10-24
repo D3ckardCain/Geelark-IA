@@ -32,3 +32,15 @@ Referencias:
 - [Comparativa de infraestructura](../COMPARATIVA_INFRAESTRUCTURA_CLUSTER.md)
 
 Ubuntu LTS/Linux directo queda como opción de nodo candidata, no como decisión final para todos los equipos. Proxmox VE también se evaluará. La interfaz, API y modelo de dominio deben mantenerse desacoplados de ambos.
+
+## Reconciliación de decisiones posteriores — 2026-10-24
+
+Este ADR conserva la propuesta inicial del 2026-10-09; los puntos siguientes aclaran su vigencia y no implican que el despliegue esté aceptado:
+
+- **PC-MASTER:** el panel administrativo en desarrollo se ejecuta en Windows. La aceptación física/manual continúa pendiente en [issue #77](https://github.com/D3ckardCain/Geelark-IA/issues/77).
+- **PC-WORKERS:** Debian 13 Stable es la base de la primera prueba de nodos Linux. Ubuntu LTS queda como alternativa histórica, no como sistema ya instalado ni como requisito. Proxmox VE no está descartado; se comparará por aislamiento, operación, consumo, actualización y recuperación antes de decidir si conviene usarlo como hipervisor.
+- **Android:** redroid es el primer candidato para evaluación multiinstancia, no un motor aprobado para producción. No instalar módulos ni arrancar contenedores hasta resolver [bloqueo de seguridad #27](https://github.com/D3ckardCain/Geelark-IA/issues/27) y fijar/auditar el digest exacto.
+- **Persistencia:** SQLite sigue siendo adecuado para almacenamiento local acotado, como el journal del agente y sesiones del panel; no se debe confundir con la persistencia transaccional compartida del plano de control distribuido, que en la integración candidata usa PostgreSQL autohospedado.
+- **Integración:** la PR [#117](https://github.com/D3ckardCain/Geelark-IA/pull/117) sigue en draft y sin fusionar. Los resultados CI no sustituyen la aceptación manual del equipo ni autorizan ejecución de tareas reales.
+
+Cualquier cambio de estas decisiones debe quedar en un ADR versionado y enlazado desde el estado del proyecto. El objetivo de coste obligatorio continúa siendo 0 USD; no se añade una dependencia cloud ni un servicio de pago.
