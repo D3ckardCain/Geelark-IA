@@ -16,7 +16,7 @@ Revisión de solo lectura de `D3ckardCain/Geelark-IA` para priorizar limpieza e 
 
 ## Fotografía de GitHub
 
-La consulta inicial del día devolvió 21 PR abiertas; la revalidación posterior del 2026-10-23 devuelve **39 Issues abiertas, 10 cerradas y 23 PR abiertas**, todas en draft. Estos números son fotografías temporales y pueden cambiar; confirmar estado antes de cualquier cierre.
+La consulta inicial del día devolvió 21 PR abiertas; la revalidación posterior del 2026-10-23 devuelve **39 Issues abiertas, 10 cerradas y 22 PR abiertas**, todas en draft. Estos números son fotografías temporales y pueden cambiar; confirmar estado antes de cualquier cierre.
 
 ## Bloqueos principales
 
@@ -27,7 +27,7 @@ Orden de dependencia documentado: **#101 → #74 → #52 → #57 → #67 → #85
 - #101 HEAD `043a4e23efd063949577f758eacc326d74bb7ce5`: transporte #479/#478, esquema #308 y persistencia #607 `success`; GitHub indica `mergeable=true`.
 - #74 HEAD `406936ecef181eb4a7a34d6e25316079ee8b29ea`: transporte #480 y persistencia #608 `success`; GitHub indica `mergeable=true`.
 - #52 y #67 siguen `mergeable=false`. La sincronización auxiliar #112 se cerró sin merge como supersedida por #115, que integra proveedor/bandeja/ACK cercado; #115 tiene `mergeable=true` y CI verde, pero permanece en draft.
-- #113 HEAD `21a5b4915086959eaf7dece15b6095de333612ce`: transporte #482 (63 passed, `pip check` limpio) y persistencia #609 (prueba PostgreSQL de bandeja 1 passed; persistencia/guard/auth 32 + 12 + 54 passed, `pip check` limpio) `success`.
+- #113 (histórico) HEAD `21a5b4915086959eaf7dece15b6095de333612ce` pasó transporte #482 (63 passed) y persistencia #609 (1 + 32 + 12 + 54 passed, `pip check` limpio); luego se cerró sin merge como supersedida por #115, que incorpora la misma corrección y pasa CI en el HEAD actual.
 - No fusionar descendientes ni actualizar sus bases a ciegas. Siguiente paso: revisar #115, que sustituyó a #112 y conserva los cambios de ambas ramas; validar el diff/contrato del SHA actual antes de integrar, después seguir en orden.
 
 ### 2. Línea PC-MASTER Windows
