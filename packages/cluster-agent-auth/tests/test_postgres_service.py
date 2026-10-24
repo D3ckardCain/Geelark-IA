@@ -275,7 +275,10 @@ def test_authentication_rejects_credential_expiring_while_waiting_for_lock():
             (credential.record_id,),
         )
         pool = ThreadPoolExecutor(max_workers=1)
-        attempt = pool.submit(lambda: authenticate_bearer(connect(), credential.secret))
+        def authenticate():
+            with connect() as auth_conn:
+                return authenticate_bearer(auth_conn, credential.secret)
+        attempt = pool.submit(authenticate)
         deadline = time.monotonic() + 8
         waiting = False
         while time.monotonic() < deadline:
