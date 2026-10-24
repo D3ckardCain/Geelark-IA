@@ -83,7 +83,7 @@ Se compararon las versiones de los 10 archivos tocados por la PR auxiliar #112 e
 | `packages/cluster-agent-transport/tests/test_runtime.py` | Pruebas de bandeja + ACK condicional `expected_status/expected_result`, ACK negativo y retry sin mutación local. |
 | `packages/cluster-persistence/tests/test_status_snapshot.py` | Pruebas de separación entre salud reportada por Worker y salud derivada por Master. |
 
-**Decisión aplicada:** no se intentó arreglar #112 mediante reemplazo total de archivos. Se cerró sin merge como supersedida por #115, que conserva la bandeja, el ACK cercado, el inventario y las pruebas de salud. HEAD #115 `f17bd3651b710ce2baee64cc98c0825c7bc96546`: transporte #502 y persistencia #629 `success`, `mergeable=true`. #115 sigue en draft y requiere revisión final; la cobertura de Master Admin en la línea de bandeja es condicional porque ese paquete no existe en esa base. No se ejecutaron workflows manuales ni se fusionó ninguna PR.
+**Decisión aplicada:** no se intentó arreglar #112 mediante reemplazo total de archivos. Se cerró sin merge como supersedida por #115, que conserva la bandeja, el ACK cercado, el inventario y las pruebas de salud. HEAD #115 `f17bd3651b710ce2baee64cc98c0825c7bc96546`: transporte #502 **66 passed**, persistencia #629 **33 + 20 + 54 + 1 passed**, ambos `pip check` limpios y `mergeable=true`. #115 sigue en draft y requiere revisión final; la cobertura de Master Admin en la línea de bandeja es condicional porque ese paquete no existe en esa base. No se ejecutaron workflows manuales ni se fusionó ninguna PR.
 
 ## Siguiente tarea técnica
 
