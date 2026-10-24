@@ -44,7 +44,7 @@ La última reconsulta registra **39 Issues abiertas, 10 cerradas y 22 PR abierta
 
 ## Próximas etapas
 
-1. Resolver la sincronización conflictiva #112 y revisar el stack de control en orden base → descendiente; después reconciliar la línea Windows (#87/#103/#104).
+1. Revisar la integración de #115 (sustituta de #112) y el stack de control en orden base → descendiente; después reconciliar la línea Windows (#87/#103/#104).
 2. Evaluar redroid primero: seguridad de la imagen/digest, requisitos kernel/Binder, licencia, compatibilidad de APK, operación multiinstancia y recursos. Cuttlefish solo si redroid se descarta.
 3. Mantener #27 abierta mientras redroid no tenga mitigación verificable para la imagen exacta.
 4. Aprobar el procedimiento de aprovisionamiento Debian 13 para WORKER-01.
