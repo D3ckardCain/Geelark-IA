@@ -90,10 +90,9 @@ class BodyLimitMiddleware:
             if not delivered:
                 delivered = True
                 return {"type": "http.request", "body": body, "more_body": False}
-            # The complete body was replayed in one message. Returning another
-            # empty http.request forever can spin Starlette's disconnect listener
-            # and prevent TestClient/ASGI requests from finishing.
-            return {"type": "http.disconnect"}
+            # Preserve the original ASGI receive channel after replaying the
+            # complete buffered body so the app can observe http.disconnect.
+            return await receive()
 
         await self.app(scope, replay_receive, send)
 
