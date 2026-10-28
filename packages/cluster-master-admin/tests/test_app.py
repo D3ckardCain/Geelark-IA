@@ -223,3 +223,55 @@ def test_panel_matches_preview_tabs_without_fabricating_real_workers() -> None:
     assert "WORKER-DEMO-01" not in source
     assert "localStorage" not in source
     assert "sessionStorage" not in source
+
+
+def test_body_limit_middleware_propagates_disconnect_after_replaying_body() -> None:
+    import asyncio
+
+    from geelark_master_admin.app import BodyLimitMiddleware
+
+    incoming = [
+        {"type": "http.request", "body": b"hello", "more_body": False},
+        {"type": "http.disconnect"},
+    ]
+    received_by_app = []
+    sent = []
+
+    async def receive():
+        if incoming:
+            return incoming.pop(0)
+        return {"type": "http.disconnect"}
+
+    async def send(message):
+        sent.append(message)
+
+    async def inner_app(scope, receive_from_middleware, send_to_client):
+        received_by_app.append(await receive_from_middleware())
+        received_by_app.append(await receive_from_middleware())
+        await send_to_client({"type": "http.response.start", "status": 200, "headers": []})
+        await send_to_client({"type": "http.response.body", "body": b"ok"})
+
+    middleware = BodyLimitMiddleware(inner_app, max_bytes=16)
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "https",
+        "path": "/",
+        "raw_path": b"/",
+        "query_string": b"",
+        "headers": [(b"content-length", b"5")],
+        "server": ("testserver", 443),
+        "client": ("testclient", 12345),
+    }
+
+    asyncio.run(middleware(scope, receive, send))
+
+    assert received_by_app[0] == {
+        "type": "http.request",
+        "body": b"hello",
+        "more_body": False,
+    }
+    assert received_by_app[1] == {"type": "http.disconnect"}
+    assert sent[0]["status"] == 200
