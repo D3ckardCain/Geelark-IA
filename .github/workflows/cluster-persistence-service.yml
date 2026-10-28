@@ -34,6 +34,7 @@ jobs:
   integration:
     name: Python 3.11 — PostgreSQL assignment service
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:16-alpine
@@ -94,13 +95,13 @@ jobs:
         if: hashFiles('packages/cluster-agent-auth/pyproject.toml') != ''
         run: python -m pytest packages/cluster-agent-auth/tests -q
 
-      - name: Install Master Admin API and tests when present
+      - name: Install Master Admin API and test timeout support when present
         if: hashFiles('packages/cluster-master-admin/pyproject.toml') != ''
-        run: python -m pip install -e "packages/cluster-master-admin[test]"
+        run: python -m pip install "pytest-timeout>=2.3,<3" -e "packages/cluster-master-admin[test]"
 
       - name: Run Master Admin API security tests when present
         if: hashFiles('packages/cluster-master-admin/pyproject.toml') != ''
-        run: python -m pytest packages/cluster-master-admin/tests -q
+        run: python -m pytest packages/cluster-master-admin/tests -vv --timeout=60
 
       - name: Verify PostgreSQL read-only role when present
         if: hashFiles('packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql') != ''
