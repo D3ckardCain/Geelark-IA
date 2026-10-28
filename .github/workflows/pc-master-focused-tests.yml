@@ -36,10 +36,10 @@ jobs:
             packages/cluster-master-admin/pyproject.toml
 
       - name: Install only required packages and test dependencies
-        run: python -m pip install -e "packages/cluster-persistence[test]" -e "packages/cluster-master-admin[test]"
+        run: python -m pip install "pytest-timeout>=2.3,<3" -e "packages/cluster-persistence[test]" -e "packages/cluster-master-admin[test]"
 
       - name: Run PC-MASTER tests with per-test diagnostics
-        run: python -m pytest packages/cluster-master-admin/tests -vv -o faulthandler_timeout=30 --durations=20
+        run: python -m pytest packages/cluster-master-admin/tests -vv --timeout=60 -o faulthandler_timeout=30 --durations=20
 
       - name: Check dependency consistency
         if: always()
