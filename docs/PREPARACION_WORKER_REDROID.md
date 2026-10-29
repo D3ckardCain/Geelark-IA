@@ -1,6 +1,6 @@
 # Preparación del primer worker GeeLark-IA con redroid
 
-**Fecha de revisión:** 2026-10-22  
+**Fecha de revisión:** 2026-10-28  
 **Estado:** preparación documental; NO instalado, NO probado en hardware físico y NO aprobado para producción.  
 **Objetivo de coste:** 0 USD en licencias y servicios obligatorios.  
 **Control central:** PC-MASTER Windows existente.  
@@ -23,7 +23,7 @@
 
 La guía oficial de redroid documenta una ejecución Docker con `--privileged` y advierte que ADB no debe exponerse a redes públicas. La issue upstream [remote-android/redroid-doc #932](https://github.com/remote-android/redroid-doc/issues/932) describe que el init de Android puede escribir en `/proc/sys/kernel/modprobe` desde el contenedor privilegiado, afectando al host porque ese sysctl no está aislado por namespaces. El reporte incluye redroid 14 y redroid 16.
 
-La issue upstream aparece cerrada por quien la abrió como “completed”, pero la página consultada no documenta un commit, parche publicado ni versión corregida. Además, la fuente oficial de AOSP `platform/system/core` para `android16-qpr2-release` sigue conteniendo la escritura `write /proc/sys/kernel/modprobe \\n` en `rootdir/init.rc` (fuente: https://android.googlesource.com/platform/system/core/+/android16-qpr2-release/rootdir/init.rc). La versión consultada de AOSP Android 16 contiene esa instrucción; además, la rama upstream actual de AOSP también la contiene en https://chromium.googlesource.com/aosp/platform/system/core/+/refs/heads/upstream/rootdir/init.rc. Esto refuerza el riesgo, pero no demuestra por sí solo el comportamiento de cada digest de redroid, que debe comprobarse por separado. Por tanto, **no interpretamos ese cierre como prueba de mitigación**.
+La issue upstream #932 fue cerrada como completed por su autor, pero no enlaza una PR/branch de corrección ni identifica una versión de imagen corregida. Además, la fuente oficial de AOSP `platform/system/core` para `android16-qpr2-release` sigue conteniendo la escritura `write /proc/sys/kernel/modprobe \\n` en `rootdir/init.rc` (fuente: https://android.googlesource.com/platform/system/core/+/android16-qpr2-release/rootdir/init.rc). La versión consultada de AOSP Android 16 contiene esa instrucción; además, la rama upstream actual de AOSP también la contiene en https://chromium.googlesource.com/aosp/platform/system/core/+/refs/heads/upstream/rootdir/init.rc. Esto refuerza el riesgo, pero no demuestra por sí solo el comportamiento de cada digest de redroid, que debe comprobarse por separado. Por tanto, **no interpretamos ese cierre como prueba de mitigación**.
 
 ### Puerta de seguridad previa a cualquier prueba
 
@@ -179,3 +179,12 @@ La conexión a Internet disponible es 10/10 Mbps. Para evitar descargar repetida
 - No se ha modificado PC-MASTER, BIOS, particiones, Supabase ni los discos de los workers.
 - No se declara redroid aprobado ni se declara resuelta la issue #27.
 - Próximo paso: completar evidencia de la puerta de seguridad y preparar la matriz de comandos de solo lectura para Debian 13; solo después decidir si se autoriza el primer despliegue.
+
+
+## Revalidación documental — 2026-10-28
+
+- La búsqueda de tags públicos incluye Android 10–16. Android 12/13 64only son comparadores de menor tamaño comprimido que las variantes estándar, pero el catálogo de Android 11–14 muestra antigüedad superior a dos años. No seleccionar una versión solo por tamaño; fijar digest completo y verificar plataforma/licencia antes de cualquier descarga.
+- La alternativa upstream [#591](https://github.com/remote-android/redroid-doc/issues/591) que intenta evitar `--privileged` usa `--cap-add=ALL`, seccomp/AppArmor sin confinamiento y reglas amplias de dispositivos; no es privilegio mínimo ni demuestra mitigación de `kernel.modprobe`. No usarla como desbloqueo de #27.
+- La guía pública de despliegue requiere revisar binderfs, ashmem/memfd, IPv6, ION/DMA-BUF heaps y páginas de 4 KiB. La guía Debian pública consultada documenta Debian 11/12, no valida el kernel Debian 13 del worker: https://github.com/remote-android/redroid-doc/blob/master/deploy/debian.md.
+- Docker Hub tiene límites de pulls gratuitos (100/6 h anónimos por IP, 200/6 h para Personal autenticado, además de límites antiabuso); la arquitectura propuesta es descarga única del manifest amd64 exacto, caché local y distribución LAN, no pulls repetidos por worker: https://docs.docker.com/docker-hub/usage/pulls/.
+- No se ha descargado ni arrancado ninguna imagen. WORKER-01 sigue sin tocarse; no ejecutar los comandos de diagnóstico hasta que Debian 13 esté instalado físicamente y el usuario autorice la prueba.
