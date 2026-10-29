@@ -101,7 +101,7 @@ jobs:
 
       - name: Run Master Admin API security tests when present
         if: hashFiles('packages/cluster-master-admin/pyproject.toml') != ''
-        run: python -m pytest packages/cluster-master-admin/tests -vv --timeout=60
+        run: timeout 120s python -m pytest packages/cluster-master-admin/tests -vv --timeout=60
 
       - name: Verify PostgreSQL read-only role when present
         if: hashFiles('packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql') != ''
