@@ -163,6 +163,15 @@ Contrato de integración propuesto:
 4. Mantener el camino de claim/accept/progress/result/reconcile separado y denegado para `pending`; no reutilizar el permiso de heartbeat como permiso de tarea.
 5. Comprobar estado y aplicar la escritura de heartbeat bajo la protección transaccional/concurrencia apropiada para que una revocación concurrente no deje el nodo autorizado ni actualice su estado como si siguiera vigente.
 
+**Hallazgo concreto del servicio actual:** `authenticate_bearer()` en `packages/cluster-agent-auth/src/cluster_agent_auth/service.py` exige simultáneamente `nodes.admin_state = 'active'` y `node_credentials.status = 'active'`. Por tanto, el transporte no puede reutilizar esa función para un nodo `pending` y esperar que funcione; hoy el rechazo es intencional y seguro.
+
+Para implementar la política sin debilitar la función existente:
+- Mantener `authenticate_bearer()` como camino de autenticación para operaciones de nodos aprobados.
+- Añadir, dentro del mismo paquete y usando la misma fuente de credenciales, una operación de autenticación de alcance restringido para telemetría de enrolamiento, o un resultado autenticado neutral seguido de autorización central. No duplicar SQL/esquema/almacenamiento de secretos.
+- El resultado neutral debe incluir `node_id`, estado administrativo actual y estado de credencial; el middleware debe pasar por una allowlist exacta de rutas y rechazar cualquier operación fuera de ella.
+- No permitir que una credencial `pending` llegue a la autorización operativa por reutilización accidental del resultado; los handlers de tareas deben exigir estado/credencial aprobados de forma independiente.
+- Bloquear nodo y credencial en un orden consistente y probar carrera con revocación/activación para evitar decisiones basadas en estado obsoleto.
+
 Esta es una decisión de **diseño**, no un cambio de código ya implementado. Antes de habilitarla, la implementación debe añadir pruebas de matriz estado × operación, credencial expirada/revocada, identidad A intentando actuar como B y carrera heartbeat-vs-revocación. Si la persistencia existente no permite garantizar atomicidad suficiente, el endpoint debe permanecer deshabilitado hasta resolverlo; no se permite un bypass ni una API paralela. No abrir puertos ni desplegar agentes para validar esta decisión.
 
 Este punto debe resolverse dentro de la cadena existente de transporte/auth, respetando sus bases y pruebas, no mediante una API paralela. Referencias: [#40](https://github.com/D3ckardCain/Geelark-IA/issues/40), [#44](https://github.com/D3ckardCain/Geelark-IA/issues/44), [#46](https://github.com/D3ckardCain/Geelark-IA/issues/46).
