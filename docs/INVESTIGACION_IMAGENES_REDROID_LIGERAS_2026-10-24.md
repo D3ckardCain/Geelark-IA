@@ -14,17 +14,33 @@ Los candidatos de comparación inicial son Android 12, 13 y 14 64only; Android 1
 
 **Ningún candidato puede arrancarse en PC-MASTER o en un WORKER físico mientras #27 permanezca abierta.** No basta con que una incidencia upstream esté cerrada: se necesita inspeccionar la imagen exacta y demostrar una mitigación que impida que Android init modifique el host.
 
+## Revalidación de fuentes — 2026-10-28
+
+Se volvió a consultar el catálogo público de Docker Hub y las incidencias upstream el 2026-10-28. Los tags visibles siguen mostrando antigüedad aproximada de más de un año para Android 10 y Android 15/16, y más de dos años para Android 11–14. Esto no demuestra que una imagen sea vulnerable, pero sí impide asumir mantenimiento reciente a partir del nombre `latest`.
+
+- El catálogo oficial publica Android 10, 11, 12, 13, 14, 15 y 16, con variantes 64only para 12–16. Android 10 amd64 aparece en 766,86 MB comprimidos; Android 11 amd64 en 814,15 MB; Android 12/13/14 64only son menores en descarga que sus variantes estándar. Estos tamaños son solo una métrica de transferencia, no RAM ni almacenamiento final. Fuente: [Docker Hub — tags](https://hub.docker.com/r/redroid/redroid/tags) y [vista de Android 11 amd64](https://hub.docker.com/layers/redroid/redroid/11.0.0-latest/images/sha256-d1ca0815eb68139a43d25a835e374559e9d18f5d5cea1a4288d4657c0074fb8d).
+- La incidencia [#932](https://github.com/remote-android/redroid-doc/issues/932) está cerrada, pero su descripción documenta una reproducción en Android 14 64only y la misma instrucción en AOSP Android 16. El cierre de una issue no prueba que los digests publicados hayan eliminado el comportamiento.
+- La incidencia [#933](https://github.com/remote-android/redroid-doc/issues/933) continúa abierta; describe que ciertas imágenes x86_64 desde Android 15 anuncian `arm64-v8a` sin incluir el traductor esperado, por lo que una APK ARM-only puede instalarse y luego fallar al iniciar. No asumir que el problema está resuelto sin probar el digest exacto.
+- La guía de despliegue upstream enumera como requisitos del host `binderfs`, `ashmem`/`memfd`, IPv6, ION/DMA-BUF heaps y páginas de 4 KiB. La guía Debian visible cubre Debian 11/12, no demuestra compatibilidad con el kernel exacto de Debian 13 previsto para GeeLark-IA. Fuentes: [requisitos de despliegue](https://github.com/remote-android/redroid-doc/blob/master/deploy/README.md) y [guía Debian](https://github.com/remote-android/redroid-doc/blob/master/deploy/debian.md).
+
+**Decisión provisional:** para el estudio estático priorizar Android 12 y 13 64only como comparadores de menor tamaño de descarga; conservar Android 10 y 11 como comparadores de compatibilidad, y Android 14 como comparador con bloqueo de seguridad explícito. Esto no constituye aprobación ni recomendación de despliegue. No se descargó ni arrancó ninguna imagen, y #27 sigue bloqueando pruebas físicas.
+
 ## 2. Catálogo público preliminar
 
 Fuente: [Docker Hub — tags de redroid](https://hub.docker.com/r/redroid/redroid/tags). Tamaños publicados como comprimidos para linux/amd64; pueden cambiar.
 
-| Tag | Prefijo de digest mostrado | Tamaño comprimido | Señal de antigüedad del catálogo | Estado para GeeLark-IA |
+| Tag | Prefijo de digest linux/amd64 | Tamaño comprimido | Señal de antigüedad del catálogo | Estado para GeeLark-IA |
 |---|---|---:|---|---|
+| redroid/redroid:10.0.0-latest | e03a15291e76 | 766.86 MB | Más de 1 año | Comparador; no aprobado |
+| redroid/redroid:11.0.0-latest | d1ca0815eb68 | 814.15 MB | Más de 2 años | Comparador; no aprobado |
 | redroid/redroid:12.0.0_64only-latest | e6f799d56b9a | 616.13 MB | Más de 2 años | Comparador; no aprobado |
+| redroid/redroid:12.0.0-latest | d176f5e7bf33 | 769.48 MB | Más de 2 años | Comparador; no aprobado |
 | redroid/redroid:13.0.0_64only-latest | 36d6d21bcf7e | 651.29 MB | Más de 2 años | Comparador; no aprobado |
-| redroid/redroid:14.0.0_64only-latest | 68ae34dfbdb1 | 676.23 MB | Más de 2 años | Comparador; no aprobado |
-| redroid/redroid:15.0.0_64only-latest | 58e548d78c48 | 695.98 MB | Más de 1 año | Condicional; ABI/compatibilidad por comprobar |
-| redroid/redroid:16.0.0_64only-latest | 18eaf7058f1f | 739.72 MB | Más de 1 año | No promover hasta resolver reportes de kernel/arranque |
+| redroid/redroid:13.0.0-latest | 524987f1fc48 | 799.58 MB | Más de 2 años | Comparador; no aprobado |
+| redroid/redroid:14.0.0_64only-latest | 68ae34dfbdb1 | 676.23 MB | Más de 2 años | Comparador; riesgo kernel.modprobe por resolver |
+| redroid/redroid:14.0.0-latest | 11d58a64bfbd | 832.88 MB | Más de 2 años | Comparador; riesgo kernel.modprobe por resolver |
+| redroid/redroid:15.0.0_64only-latest | 58e548d78c48 | 695.98 MB | Más de 1 año | No promover; ABI/compatibilidad por comprobar |
+| redroid/redroid:16.0.0_64only-latest | 18eaf7058f1f | 739.72 MB | Más de 1 año | No promover; reportes de kernel/ABI pendientes |
 
 Los prefijos son referencias de catálogo para esta investigación, **no pinning operativo**. Antes de cualquier prueba se debe obtener el digest completo correspondiente a linux/amd64, guardar la fecha de consulta y fijar la imagen por digest. No usar latest como identificador reproducible.
 
