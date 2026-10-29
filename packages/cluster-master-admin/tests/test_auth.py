@@ -427,28 +427,3 @@ def test_existing_windows_session_db_acl_is_repaired_before_sqlite_open(
         ("restrict", path, False),
         ("restrict", path, False),
     ]
-
-    path = tmp_path / "private" / "sessions.sqlite3"
-    path.parent.mkdir()
-    with sqlite3.connect(path) as conn:
-        conn.execute(
-            "CREATE TABLE operator_sessions (token_hash TEXT PRIMARY KEY, "
-            "created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL)"
-        )
-
-    acl_calls: list[tuple[Path, bool]] = []
-    monkeypatch.setattr(
-        auth_module, "os", SimpleNamespace(name="nt", environ=os.environ)
-    )
-    monkeypatch.setattr(
-        auth_module, "_restrict_windows_acl",
-        lambda target, *, directory: acl_calls.append((Path(target), directory)),
-    )
-
-    SessionStore(path)
-
-    assert acl_calls == [
-        (path.parent, True),
-        (path, False),
-        (path, False),
-    ]
