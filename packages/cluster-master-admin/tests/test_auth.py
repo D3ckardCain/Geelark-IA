@@ -63,6 +63,40 @@ def test_session_database_permissions_are_restricted(tmp_path: Path) -> None:
         assert path.stat().st_mode & 0o077 == 0
 
 
+def test_existing_windows_session_db_acl_is_repaired_before_sqlite_open(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import sqlite3
+    from types import SimpleNamespace
+
+    from geelark_master_admin import auth as auth_module
+
+    path = tmp_path / "private" / "sessions.sqlite3"
+    path.parent.mkdir()
+    with sqlite3.connect(path) as conn:
+        conn.execute(
+            "CREATE TABLE operator_sessions (token_hash TEXT PRIMARY KEY, "
+            "created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL)"
+        )
+
+    acl_calls: list[tuple[Path, bool]] = []
+    monkeypatch.setattr(
+        auth_module, "os", SimpleNamespace(name="nt", environ=os.environ)
+    )
+    monkeypatch.setattr(
+        auth_module, "_restrict_windows_acl",
+        lambda target, *, directory: acl_calls.append((Path(target), directory)),
+    )
+
+    SessionStore(path)
+
+    assert acl_calls == [
+        (path.parent, True),
+        (path, False),
+        (path, False),
+    ]
+
+
 @pytest.mark.parametrize(
     ("directory", "expected_grant"),
     [

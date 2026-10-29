@@ -106,6 +106,11 @@ class SessionStore:
                 raise PermissionError("El directorio de sesiones debe tener permisos privados (0700).")
         elif os.name == "nt":
             _restrict_windows_acl(self.path.parent, directory=True)
+            # Existing databases may have protected, empty ACLs. Repair the
+            # file ACL before SQLite opens it; doing this only after the first
+            # connection succeeds cannot recover that state.
+            if self.path.exists():
+                _restrict_windows_acl(self.path, directory=False)
         with self._connect() as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS operator_sessions (
