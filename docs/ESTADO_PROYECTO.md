@@ -62,3 +62,38 @@ La última reconsulta registra **39 Issues abiertas, 10 cerradas y 22 PR abierta
 - [Modelo de amenazas](MODELO_AMENAZAS_SEGURIDAD.md)
 - [Inventario de licencias y costes](INVENTARIO_LICENCIAS_COSTE.md)
 - [Plan de trabajo](PLAN_TRABAJO.md)
+
+---
+
+## Revalidación del estado — 2026-10-28
+
+Esta sección sustituye las fotografías históricas anteriores cuando exista contradicción. Los apartados fechados en 2026-10-23 se conservan como historial, no como estado operativo actual.
+
+### PC-MASTER Windows
+
+- La línea de interfaz actual está propuesta en la cadena apilada [PR #136](https://github.com/D3ckardCain/Geelark-IA/pull/136) → [PR #138](https://github.com/D3ckardCain/Geelark-IA/pull/138) → [PR #139](https://github.com/D3ckardCain/Geelark-IA/pull/139). La CI reportada para los HEAD revisados fue verde en Linux/Windows e integración PostgreSQL; esto no equivale a integración en `main` ni a aceptación manual.
+- La aceptación manual permanece pendiente en [Issue #77](https://github.com/D3ckardCain/Geelark-IA/issues/77). No afirmar que el panel fue aceptado en el equipo físico.
+- La PR #141 propone refrescar el plan de trabajo; sigue siendo propuesta hasta fusionarse.
+
+### Adopción de workers Linux
+
+- [Issue #118](https://github.com/D3ckardCain/Geelark-IA/issues/118) continúa bloqueada para implementación/despliegue real por la aceptación #77 y la necesidad de reconciliar el stack existente.
+- [PR #142](https://github.com/D3ckardCain/Geelark-IA/pull/142) propone el diseño documental de adopción segura. No instala ni despliega agente, no genera credenciales reales, no abre puertos y no toca workers físicos.
+- Hallazgo de integración que debe resolverse antes de programar: el contrato de #40/#46 describe telemetría limitada para nodos `pending`, mientras el servicio de dominio descrito en #44 autentica credenciales activas de nodos aprobados. No resolver con bypass ni API paralela. Decidir dentro del servicio existente y añadir pruebas negativas por estado/operación y carrera con revocación.
+- Los nodos pendientes nunca pueden recibir, reclamar ni ejecutar tareas; conectividad y salud reportada deben mantenerse separadas.
+
+### Redroid y coste
+
+- [Issue #27](https://github.com/D3ckardCain/Geelark-IA/issues/27) continúa abierta como puerta obligatoria de seguridad. [PR #122](https://github.com/D3ckardCain/Geelark-IA/pull/122) es investigación documental; no se ha descargado ni iniciado una imagen como parte de esta preparación.
+- No ejecutar Redroid en PC-MASTER ni en workers físicos hasta fijar un digest concreto, revisar el init/patches y demostrar mitigación efectiva y reproducible para el riesgo de `kernel.modprobe`.
+- Objetivo de operación: 0 USD. No introducir servicios, APIs o almacenamiento de pago como dependencia crítica; verificar límites y licencias antes de adoptar herramientas.
+
+### Próximo orden de trabajo
+
+1. Revisar la ascendencia, bases y diff de las cadenas de autenticación/transporte existentes; no crear implementación duplicada.
+2. Resolver la discrepancia `pending` frente a autenticación activa con contrato y pruebas negativas.
+3. Mantener las PR de PC-MASTER sin fusionar hasta la aceptación manual #77.
+4. Mantener Redroid bloqueado por #27 y workers físicos sin despliegue.
+5. Registrar en GitHub decisiones, evidencias de CI asociadas al SHA exacto y limitaciones de validación.
+
+**Límites de esta revalidación:** estado derivado de PRs, Issues y resultados de CI reportados en GitHub. No constituye prueba física, prueba de seguridad completa ni confirmación de que las PR estén fusionadas.
