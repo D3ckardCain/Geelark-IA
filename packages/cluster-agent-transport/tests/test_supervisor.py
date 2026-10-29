@@ -309,3 +309,32 @@ def test_heartbeat_never_reports_healthy_with_unknown_or_exhausted_critical_reso
     assert sent[0]["health_state"] == expected_health
     assert sent[0]["memory_total_bytes"] == snapshot["memory_total_bytes"]
     assert sent[0]["storage_available_bytes"] == snapshot["storage_available_bytes"]
+
+
+def test_unreadable_linux_memory_and_storage_do_not_produce_false_healthy(monkeypatch, tmp_path):
+    import cluster_agent_transport.supervisor as module
+
+    actual_open = module.Path.open
+
+    def deny_meminfo(path, *args, **kwargs):
+        if str(path) == "/proc/meminfo":
+            raise OSError("unavailable")
+        return actual_open(path, *args, **kwargs)
+
+    def deny_disk(_path):
+        raise OSError("unavailable")
+
+    monkeypatch.setattr(module.Path, "open", deny_meminfo)
+    monkeypatch.setattr(module, "shutil_disk_usage", deny_disk)
+
+    fallback_snapshot = module.linux_resource_snapshot(tmp_path)
+    assert fallback_snapshot["memory_total_bytes"] == 0
+    assert fallback_snapshot["storage_available_bytes"] == 0
+
+    supervisor, runtime, _sync = make_supervisor()
+    supervisor.metrics_provider = lambda: fallback_snapshot
+    supervisor._heartbeat()
+    with runtime.lock:
+        sent = [payload for kind, payload in runtime.calls if kind == "heartbeat"]
+    assert len(sent) == 1
+    assert sent[0]["health_state"] == "unknown"
