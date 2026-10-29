@@ -34,16 +34,22 @@ def _derive_health_state(reported_health_state: str, last_seen_at: datetime | No
 def _assert_principal_current(conn: psycopg.Connection, principal: AgentPrincipal) -> None:
     row = conn.execute(
         """
-        SELECT n.admin_state, c.status
+        SELECT n.admin_state, c.status, c.expires_at
           FROM geelark_control.nodes AS n
           JOIN geelark_control.node_credentials AS c ON c.node_id = n.node_id
          WHERE n.node_id = %s AND c.credential_id = %s
-           AND c.expires_at > now() AND n.revoked_at IS NULL
+           AND n.revoked_at IS NULL
          FOR UPDATE OF n, c
         """,
         (principal.node_id, principal.credential_id),
     ).fetchone()
     if row is None:
+        raise HTTPException(status_code=401, detail={"code": "AUTHENTICATION_FAILED"})
+    # El reloj de now() queda fijado al inicio de la transacción PostgreSQL.
+    # La espera por FOR UPDATE puede atravesar la caducidad de la credencial:
+    # verificar el vencimiento DESPUÉS de adquirir ambos bloqueos, con reloj real DB.
+    database_now = conn.execute("SELECT clock_timestamp()").fetchone()[0]
+    if row[2] <= database_now:
         raise HTTPException(status_code=401, detail={"code": "AUTHENTICATION_FAILED"})
     if (row[0], row[1]) != (principal.admin_state, principal.credential_status):
         raise HTTPException(status_code=403, detail={"code": "PERMISSION_DENIED"})
