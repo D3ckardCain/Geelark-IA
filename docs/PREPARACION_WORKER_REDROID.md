@@ -1,6 +1,6 @@
 # Preparación del primer worker GeeLark-IA con redroid
 
-**Fecha de revisión:** 2026-10-22  
+**Fecha de revisión:** 2026-10-28  
 **Estado:** preparación documental; NO instalado, NO probado en hardware físico y NO aprobado para producción.  
 **Objetivo de coste:** 0 USD en licencias y servicios obligatorios.  
 **Control central:** PC-MASTER Windows existente.  
