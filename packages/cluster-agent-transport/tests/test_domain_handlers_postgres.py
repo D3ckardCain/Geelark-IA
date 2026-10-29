@@ -174,7 +174,7 @@ def test_expired_credential_waiting_for_row_lock_is_rejected():
                 VALUES (%s, %s, %s, 'pending', clock_timestamp() + interval '2 seconds')
                 RETURNING expires_at
                 """,
-                (credential_id, hashlib.sha256(str(uuid4()).encode()).hexdigest()),
+                (credential_id, node_id, hashlib.sha256(str(uuid4()).encode()).hexdigest()),
             ).fetchone()[0]
 
         principal = AgentPrincipal(str(node_id), str(credential_id), "pending", "pending", expires_at)
