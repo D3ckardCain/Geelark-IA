@@ -113,7 +113,9 @@ class BodyLimitMiddleware:
             if not delivered:
                 delivered = True
                 return {"type": "http.request", "body": body, "more_body": False}
-            return {"type": "http.request", "body": b"", "more_body": False}
+            # Tras repetir el cuerpo, conservar el canal ASGI original:
+            # Starlette necesita recibir http.disconnect y no requests vacías infinitas.
+            return await receive()
 
         await self.app(scope, replay_receive, send)
 
