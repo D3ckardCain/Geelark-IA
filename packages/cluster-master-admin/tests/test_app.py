@@ -209,3 +209,69 @@ def test_oversized_request_body_is_rejected_without_reflecting_content(tmp_path:
     assert response.status_code == 413
     assert response.json() == {"error": {"code": "BODY_TOO_LARGE"}}
     assert "A" * 100 not in response.text
+
+
+def test_panel_matches_preview_tabs_without_fabricating_real_workers() -> None:
+    panel = Path(__file__).parents[1] / "src" / "geelark_master_admin" / "panel.html"
+    source = panel.read_text(encoding="utf-8")
+    assert 'data-page="nodes"' in source
+    assert 'data-page="tasks"' in source
+    assert 'data-page="system"' in source
+    assert "GeeLark-IA" in source and "PC-MASTER" in source
+    assert "Redroid" in source and "Planificado" in source
+    assert "No se mostrarán datos ficticios" in source
+    assert "WORKER-DEMO-01" not in source
+    assert "localStorage" not in source
+    assert "sessionStorage" not in source
+
+
+def test_body_limit_middleware_propagates_disconnect_after_replaying_body() -> None:
+    import asyncio
+
+    from geelark_master_admin.app import BodyLimitMiddleware
+
+    incoming = [
+        {"type": "http.request", "body": b"hello", "more_body": False},
+        {"type": "http.disconnect"},
+    ]
+    received_by_app = []
+    sent = []
+
+    async def receive():
+        if incoming:
+            return incoming.pop(0)
+        return {"type": "http.disconnect"}
+
+    async def send(message):
+        sent.append(message)
+
+    async def inner_app(scope, receive_from_middleware, send_to_client):
+        received_by_app.append(await receive_from_middleware())
+        received_by_app.append(await receive_from_middleware())
+        await send_to_client({"type": "http.response.start", "status": 200, "headers": []})
+        await send_to_client({"type": "http.response.body", "body": b"ok"})
+
+    middleware = BodyLimitMiddleware(inner_app, max_bytes=16)
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "https",
+        "path": "/",
+        "raw_path": b"/",
+        "query_string": b"",
+        "headers": [(b"content-length", b"5")],
+        "server": ("testserver", 443),
+        "client": ("testclient", 12345),
+    }
+
+    asyncio.run(middleware(scope, receive, send))
+
+    assert received_by_app[0] == {
+        "type": "http.request",
+        "body": b"hello",
+        "more_body": False,
+    }
+    assert received_by_app[1] == {"type": "http.disconnect"}
+    assert sent[0]["status"] == 200

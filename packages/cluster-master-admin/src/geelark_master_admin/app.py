@@ -15,7 +15,7 @@ from typing import Any, Callable
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from geelark_cluster_persistence.status_snapshot import build_status_snapshot
@@ -90,7 +90,9 @@ class BodyLimitMiddleware:
             if not delivered:
                 delivered = True
                 return {"type": "http.request", "body": body, "more_body": False}
-            return {"type": "http.request", "body": b"", "more_body": False}
+            # Preserve the original ASGI receive channel after replaying the
+            # complete buffered body so the app can observe http.disconnect.
+            return await receive()
 
         await self.app(scope, replay_receive, send)
 
@@ -184,14 +186,14 @@ def create_admin_app(
     async def panel() -> Response:
         if panel_path is None or not Path(panel_path).is_file():
             return _security_headers(JSONResponse({"error": {"code": "PANEL_NOT_CONFIGURED"}}, status_code=503))
-        return FileResponse(
-            path=Path(panel_path),
-            media_type="text/html; charset=utf-8",
+        panel_file = Path(panel_path)
+        return HTMLResponse(
+            content=panel_file.read_text(encoding="utf-8"),
             headers={
                 "Cache-Control": "no-store, max-age=0",
                 "X-Content-Type-Options": "nosniff",
                 "Referrer-Policy": "no-referrer",
-                "Content-Security-Policy": _panel_csp(Path(panel_path)),
+                "Content-Security-Policy": _panel_csp(panel_file),
             },
         )
 
