@@ -91,3 +91,31 @@ Solo tras aprobar la fase 2:
 - Bloqueo activo del stack de control: #101 HEAD `043a4e23efd063949577f758eacc326d74bb7ce5` y #74 HEAD `406936ecef181eb4a7a34d6e25316079ee8b29ea` tienen CI verde y `mergeable=true`; #52 y #67 siguen `mergeable=false`. La PR auxiliar #112 para sincronizar proveedor→bandeja también es `mergeable=false` y tiene 8 archivos solapados con #52, incluido `runtime.py`; resolver la integración explícitamente, sin reemplazar archivos completos a ciegas. #113 corrigió la lease de entrega: HEAD `21a5b4915086959eaf7dece15b6095de333612ce`, transporte #482 y persistencia #609 `success` (63 tests de transporte y prueba PostgreSQL de bandeja 1 passed, `pip check` limpio). Después revalidar la cadena #101 → #74 → #52 → #57 → #67 → #85 en orden y sobre cada SHA nuevo. La CI de SHA anteriores es histórica.
 - La issue #27 sigue bloqueando cualquier ejecución física de redroid. #24 cubre caché de artefactos; #92 cubre aprovisionamiento Debian 13.
 - La aceptación manual de PC-MASTER en Windows (#77) y la identificación del artefacto local (#88) siguen pendientes; no declarar el panel operativo hasta resolverlas.
+
+
+## Estado consolidado — 2026-10-28 (fuente operativa vigente)
+
+Esta sección prevalece sobre los recuentos históricos anteriores de Issues/PR y refleja el trabajo verificado en GitHub al 28-oct-2026 (los runs de CI pueden figurar con fecha UTC 29-oct).
+
+### PC-MASTER Windows
+
+- PR #136 (interfaz Nodos/Tareas/Sistema y corrección de middleware ASGI): suites Linux y Windows 33/33, integración PostgreSQL correcta; sigue abierta, no fusionada.
+- PR #138 (reparación ACL de SQLite existente antes de abrir la base): suites Linux y Windows 34/34, integración PostgreSQL correcta; sigue abierta en draft, apilada sobre #136.
+- PR #139 (verificación de ACL/propietario, permisos POSIX y límites del rate limiter): Linux 42 aprobadas/2 omitidas; Windows 42 aprobadas/2 omitidas, incluidas pruebas reales NTFS; integración PostgreSQL correcta y `pip check` limpio. Sigue abierta en draft, apilada sobre #138.
+- PR #103 y #134 se cerraron sin merge como supersedidas; sus cambios relevantes se trasladaron y validaron en la pila vigente. No cerrar otras PR solo por antigüedad: hay cadenas intencionales de dependencias.
+- Issue #77 sigue bloqueando la aceptación final: falta revisar la nueva interfaz en el PC Windows real y completar TLS, ACL/configuración efectiva y permisos del rol PostgreSQL de solo lectura. La CI no sustituye estas comprobaciones.
+- Hasta completar #77: no declarar PC-MASTER aceptado, no fusionar la pila #136 → #138 → #139, no conectar/adoptar workers reales ni habilitar ejecución remota.
+
+### Workers, Debian y Redroid
+
+- Issue #118 permite continuar diseño/documentación estática de adopción Linux independiente del motor, pero la implementación/despliegue real permanece bloqueada por #77. El worker pendiente solo podrá informar telemetría limitada; no tareas.
+- Issue #27 continúa como puerta de seguridad obligatoria de Redroid. No se encontró una receta verificada de privilegio mínimo que neutralice el riesgo de escritura en `/proc/sys/kernel/modprobe` para un digest concreto.
+- PR #122 documenta la investigación estática de imágenes Android 10–16, límites de Docker Hub, caché/distribución LAN y riesgos ABI/seguridad. Permanece en draft; no se descargó ni arrancó imagen y ninguna etiqueta está aprobada para hardware físico.
+- Issue #24 sigue siendo la línea de trabajo de caché local de artefactos verificados; #92 es la referencia de aprovisionamiento Debian 13. La guía upstream de Redroid consultada cubre Debian 11/12, así que el kernel Debian 13 concreto debe validarse por separado.
+- No reactivar el experimento QEMU/Android-x86/WSL retirado. No asumir compatibilidad, capacidad por instancia ni número de instancias sin medición reproducible.
+
+### Registro y coste
+
+- GitHub sigue siendo la fuente de verdad para código, documentación, decisiones, tareas, defectos, soluciones y evidencia.
+- Objetivo operativo obligatorio: 0 USD; el presupuesto de GitHub Actions dejó de ser bloqueo, pero esto no autoriza servicios de pago, tarjetas obligatorias, pruebas temporales ni cargos automáticos.
+- No se ejecutaron workers físicos ni contenedores Android durante esta actualización. El siguiente paso que requiere el usuario es la aceptación manual de #77 cuando esté en su PC Windows; mientras tanto se puede continuar la auditoría estática y resolver documentación obsoleta sin alterar el hardware.
