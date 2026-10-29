@@ -152,3 +152,54 @@ def test_inconsistent_revoked_and_expired_principal_states_never_reach_handlers(
         )
         assert response.status_code == 403
         assert calls == []
+
+
+def test_body_limit_middleware_propagates_disconnect_after_replaying_body():
+    """ASGI no debe convertir http.disconnect en una sucesión de requests vacías."""
+    import asyncio
+
+    from cluster_agent_transport.app import BodyLimitMiddleware
+
+    incoming = [
+        {"type": "http.request", "body": b"hello", "more_body": False},
+        {"type": "http.disconnect"},
+    ]
+    received_by_app = []
+    sent = []
+
+    async def receive():
+        if incoming:
+            return incoming.pop(0)
+        return {"type": "http.disconnect"}
+
+    async def send(message):
+        sent.append(message)
+
+    async def inner_app(scope, receive_from_middleware, send_to_client):
+        received_by_app.append(await receive_from_middleware())
+        received_by_app.append(await receive_from_middleware())
+        await send_to_client({"type": "http.response.start", "status": 200, "headers": []})
+        await send_to_client({"type": "http.response.body", "body": b"ok"})
+
+    middleware = BodyLimitMiddleware(inner_app, max_bytes=16)
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "https",
+        "path": "/",
+        "raw_path": b"/",
+        "query_string": b"",
+        "headers": [(b"content-length", b"5")],
+        "server": ("testserver", 443),
+        "client": ("testclient", 12345),
+    }
+
+    asyncio.run(middleware(scope, receive, send))
+
+    assert received_by_app == [
+        {"type": "http.request", "body": b"hello", "more_body": False},
+        {"type": "http.disconnect"},
+    ]
+    assert sent[0]["status"] == 200
