@@ -1,6 +1,6 @@
 # Estado del proyecto Geelark-IA
 
-**Actualizado:** 2026-10-09  
+**Actualizado:** 2026-10-12  
 **Fase:** A — inventario funcional de GeeLark y estudio de viabilidad de Android virtualizado local.  
 **Implementación:** no hay módulos declarados como terminados o verificados.
 
@@ -304,11 +304,35 @@ Se creó [ESPECIFICACION_PERSISTENCIA_ASIGNACIONES.md](ESPECIFICACION_PERSISTENC
 - No hay despliegue físico ni ejecución Android/ADB/shell.
 
 
+### Reconciliación de inventario separada de reconciliación de tareas — 2026-10-11
+
+La integración con el supervisor actual conserva `POST /agent/v1/reconcile` para comparar asignaciones (`assignments`) y añade `POST /agent/v1/reconcile/inventory` para informes de inventario local (`inventory`). El transporte usa `Operation.RECONCILE_INVENTORY`, mapeada a la autorización canónica `AgentOperation.RECONCILE`; ambas rutas son solo lectura y no resuelven `unknown`, conflictos terminales ni epochs obsoletos automáticamente.
+
+La migración de informes se renombró a `db/migrations/0006_agent_reconciliation_reports.sql`, porque esta pila ya contiene `0004_worker_module_inventory.sql` y `0005_agent_task_inbox.sql`. El supervisor mantiene un worker separado para reconciliación, UUID/snapshot estable en reintentos, renovación tras reconexión y errores genéricos; el proveedor de inventario es opcional, por lo que la CLI no ejecuta reconciliación sin un proveedor explícito. Pendiente CI del HEAD combinado y revisión de seguridad.
+
+
+## Retención del almacenamiento de agentes — rama draft 2026-10-12
+
+Se añade `db/migrations/0007_agent_storage_retention.sql`, TTL por operación en `idempotency_records` y función manual `geelark_control.prune_agent_storage(false,false)`. El preview no borra; la confirmación genérica elimina nonces con una hora de gracia, snapshots conocidos vencidos y reportes seguros (>90 días o fuera de los últimos 10.000 por nodo). Scopes desconocidos quedan sin expiración. Informes con unknown/conflicto/decisión desconocida requieren más de 365 días y segunda confirmación explícita de exportación. Cada preview/poda registra actor, flags y conteos en `agent_storage_maintenance_runs`.
+
+Los límites propuestos son 24 h para telemetría, 90 días para operaciones/tareas/reconciliación y 100 elementos por inventario. Se añadió y exportó `create_postgres_agent_app(connect)`, que ensambla autenticación, nonces, idempotencia, handlers PostgreSQL y `PostgresRateLimiter` (60 solicitudes/minuto por nodo, compartido entre workers mediante PostgreSQL). `create_agent_app` mantiene el limitador en memoria por defecto para pruebas/desarrollo. La fábrica no abre sockets ni configura TLS: el runtime de producción debe usarla y servir exclusivamente por HTTPS. Los informes de revisión pueden crecer más allá de 10.000 si no se archivan; ese riesgo queda documentado porque la evidencia incierta no se borra automáticamente.
+
+CI revalidada en el HEAD actual de PR #81 tras añadir pruebas del rate limiter en [transporte #38267898544](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38267898544), [esquema PostgreSQL 16 #38267898515](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38267898515) y [persistencia/assignment #38267898581](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38267898581): 178 pruebas de transporte, 18 journal/SQLite, 32 persistencia, 18 guard y 54 autorización; migraciones correctas, `pip check` limpio y sin warning Starlette. El rate limiter se prueba con 8 solicitudes concurrentes (3 admitidas), reset de ventana, nodo revocado, UUID inválido y configuración no entera. La CI verifica TTL, preview sin borrado, nonce vencido, scope desconocido, límite de 10.000 informes seguros, snapshot de tarea aún vigente y preservación de UNKNOWN_TASK/conflicto terminal hasta doble confirmación. No se ejecutó contra una base real. La limpieza es manual, sin cron ni servicio externo; coste operativo objetivo $0 USD.
+
+
 ## Revalidación del ciclo offline del agente — 2026-10-12
 
 - La sincronización durable exige ACK de versión exacta: `mark_receipt_synced(operation_id, expected_status, expected_result)` compara el estado y resultado actuales dentro de una transacción SQLite. ACK tardío de un progreso anterior no marca como sincronizado un recibo más nuevo.
 - `unknown` puede sincronizarse como incertidumbre, pero no se convierte automáticamente en `succeeded`, `failed` ni `rejected`. Se añadió una prueba PostgreSQL que verifica replay idéntico y rechazo de auto-resolución con `TASK_TERMINAL_CONFLICT`.
 - La prueba SQLite→HTTPS ya no usa `pytest.skip()` para ocultar la falta de API. El workflow fija el journal a `5815bc6e8f4146099e5fff028008fdf9f0ede5d6` y ejecuta ambas suites.
 - Evidencia CI para el código de ACK versionado: [transporte #38193374440](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38193374440) success (18 pruebas journal, 130 pruebas transporte y `pip check`); [persistencia #38193374433](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38193374433) success (32 persistencia, 18 guard, 54 autorización y `pip check`).
-- La prueba de no auto-resolución está en el HEAD actual de PR #52 y su CI está en curso: [transporte #38193643044](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38193643044), [persistencia #38193643087](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38193643087), [esquema #38193643239](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38193643239).
+- La validación integrada de no auto-resolución, reconciliación, retención y ensamblado PostgreSQL quedó cubierta por la CI verde de PR #81: transporte #38196186577, persistencia #38196186614 y esquema #38196186611. Esta CI es desechable; no valida un listener ni una base de producción.
 - Las pruebas anteriores son Linux/PostgreSQL desechable. El agente no se ha instalado en hardware real; el panel PC-MASTER en Windows sigue bloqueado por issue #77. PR #67 permanece draft, sin merge ni despliegue.
+
+
+## Revalidación de frescura antes de reclamar tareas — 2026-10-12
+
+- Hallazgo: la consulta de `POST /agent/v1/tasks/claim` comprobaba el campo almacenado `health_state='healthy'` pero no exigía heartbeat reciente; el valor podía quedar saludable después de perder conectividad.
+- Corrección en la rama de trabajo: la consulta ahora exige además `reported_health_state='healthy'` y `last_seen_at > now() - interval '90 seconds'` en PostgreSQL. El guard se aplica dentro de la misma consulta que reclama la tarea.
+- Se añadió una prueba de integración PostgreSQL: crea una tarea reclamable, fuerza un heartbeat de hace dos minutos conservando el campo almacenado como `healthy`, y verifica que el claim no devuelve tarea ni modifica su estado/lease.
+- CI aprobada para PR #85 en [transporte #38274253344](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38274253344), [persistencia/assignment #38274253350](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38274253350) y [migraciones PostgreSQL #38274253515](https://github.com/D3ckardCain/Geelark-IA/actions/runs/38274253515). No se desplegó ni se conectó una base real; la PR permanece draft.

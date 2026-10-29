@@ -28,6 +28,28 @@ El supervisor no contiene lógica de dominio de tareas, no reclama asignaciones,
 - **Apagado:** stop() fija la señal de cancelación, despierta la espera y comparte un presupuesto de tiempo entre ambos hilos.
 - **Apagado incompleto:** stop() devuelve False si alguno de los hilos sigue vivo al agotarse el presupuesto. No se debe declarar una parada limpia ni iniciar una segunda instancia para ocultar el problema.
 
+## Salud informada y métricas incompletas
+
+El campo `health_state` del heartbeat es **un reporte del Worker**, no un estado
+autoritativo de conectividad. El Master deriva por separado si el heartbeat
+continúa vigente; no debe inferir que un nodo está online o autorizado solamente
+porque el último reporte diga `healthy`.
+
+El supervisor calcula conservadoramente el reporte a partir de las métricas
+críticas disponibles:
+
+- `unknown` si `memory_total_bytes = 0` (por ejemplo, no se pudo leer
+  `/proc/meminfo`).
+- `degraded` si hay memoria total conocida, pero la memoria disponible o el
+  almacenamiento libre son cero (incluye un fallo al leer la capacidad de disco).
+- `healthy` solo si memoria total, memoria disponible y almacenamiento
+  disponible son mayores que cero.
+
+No se infieren diagnósticos de hardware a partir de estas heurísticas. Una
+lectura parcial no debe presentarse como salud sana para habilitar la
+reclamación de tareas; `unknown` y `degraded` no autorizan claim.
+Este ajuste no inicia tareas ni reemplaza la aprobación explícita del nodo.
+
 ## Errores y observabilidad
 
 Los únicos códigos enviados al callback son:

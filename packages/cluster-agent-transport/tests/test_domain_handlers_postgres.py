@@ -141,3 +141,132 @@ def test_active_module_inventory_is_persisted_and_stale_reports_become_unknown()
             conn.execute("DELETE FROM geelark_control.agent_request_nonces WHERE node_id = %s", (node_id,))
             conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
             conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))
+
+
+def test_expired_credential_waiting_for_row_lock_is_rejected():
+    """El timestamp de transacción no extiende una credencial durante FOR UPDATE."""
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    connect = lambda: psycopg.connect(DATABASE_URL)
+    handlers = make_postgres_agent_handlers(connect)
+    node_id, credential_id = uuid4(), uuid4()
+    payload = {
+        "schema_version": 1,
+        "agent_version": "0.1.0",
+        "health_state": "healthy",
+        "cpu_load_percent": 12,
+        "memory_total_bytes": 1000,
+        "memory_available_bytes": 500,
+        "storage_available_bytes": 2000,
+    }
+    try:
+        with connect() as conn:
+            conn.execute(
+                "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state) VALUES (%s, %s, 'pending')",
+                (node_id, "expiry-wait-" + str(node_id)),
+            )
+            expires_at = conn.execute(
+                """
+                INSERT INTO geelark_control.node_credentials
+                    (credential_id, node_id, token_sha256, status, expires_at)
+                VALUES (%s, %s, %s, 'pending', clock_timestamp() + interval '2 seconds')
+                RETURNING expires_at
+                """,
+                (credential_id, node_id, hashlib.sha256(str(uuid4()).encode()).hexdigest()),
+            ).fetchone()[0]
+
+        principal = AgentPrincipal(str(node_id), str(credential_id), "pending", "pending", expires_at)
+        started = Event()
+
+        def write_after_lock():
+            started.set()
+            with connect() as agent_conn:
+                return handlers[Operation.HEARTBEAT](
+                    conn=agent_conn, principal=principal, payload=payload,
+                )
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            with connect() as lock_conn:
+                lock_conn.execute(
+                    "SELECT node_id FROM geelark_control.nodes WHERE node_id = %s FOR UPDATE",
+                    (node_id,),
+                )
+                future = executor.submit(write_after_lock)
+                assert started.wait(timeout=5)
+                while datetime.now(timezone.utc) <= expires_at + timedelta(milliseconds=200):
+                    time.sleep(0.02)
+                assert not future.done()
+            with pytest.raises(HTTPException) as exc:
+                future.result(timeout=10)
+            assert exc.value.status_code == 401
+
+        with connect() as conn:
+            assert conn.execute(
+                "SELECT last_sequence FROM geelark_control.nodes WHERE node_id = %s", (node_id,),
+            ).fetchone()[0] == 0
+    finally:
+        with connect() as conn:
+            conn.execute("DELETE FROM geelark_control.agent_request_nonces WHERE node_id = %s", (node_id,))
+            conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
+            conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))
+
+
+def test_other_nodes_credential_cannot_read_or_update_this_node():
+    """El principal no puede hacer spoof de node_id manteniendo otra credential_id."""
+    connect = lambda: psycopg.connect(DATABASE_URL)
+    handlers = make_postgres_agent_handlers(connect)
+    first_node, target_node = uuid4(), uuid4()
+    first_credential, target_credential = uuid4(), uuid4()
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    payload = {
+        "schema_version": 1,
+        "agent_version": "0.1.0",
+        "health_state": "healthy",
+        "cpu_load_percent": 12,
+        "memory_total_bytes": 1000,
+        "memory_available_bytes": 500,
+        "storage_available_bytes": 2000,
+    }
+    try:
+        with connect() as conn:
+            for node_id, credential_id in (
+                (first_node, first_credential), (target_node, target_credential),
+            ):
+                conn.execute(
+                    "INSERT INTO geelark_control.nodes (node_id, display_name, admin_state) VALUES (%s, %s, 'pending')",
+                    (node_id, "cross-node-" + str(node_id)),
+                )
+                conn.execute(
+                    """
+                    INSERT INTO geelark_control.node_credentials
+                        (credential_id, node_id, token_sha256, status, expires_at)
+                    VALUES (%s, %s, %s, 'pending', %s)
+                    """,
+                    (credential_id, node_id, hashlib.sha256(str(uuid4()).encode()).hexdigest(), expires_at),
+                )
+
+        forged = AgentPrincipal(
+            str(target_node), str(first_credential), "pending", "pending", expires_at,
+        )
+        with pytest.raises(HTTPException) as denied_read:
+            handlers[Operation.STATUS_READ](principal=forged)
+        assert denied_read.value.status_code == 401
+
+        with connect() as conn:
+            with pytest.raises(HTTPException) as denied_write:
+                handlers[Operation.HEARTBEAT](conn=conn, principal=forged, payload=payload)
+        assert denied_write.value.status_code == 401
+
+        with connect() as conn:
+            assert conn.execute(
+                "SELECT last_sequence FROM geelark_control.nodes WHERE node_id = %s",
+                (target_node,),
+            ).fetchone()[0] == 0
+    finally:
+        with connect() as conn:
+            for node_id in (first_node, target_node):
+                conn.execute("DELETE FROM geelark_control.agent_request_nonces WHERE node_id = %s", (node_id,))
+                conn.execute("DELETE FROM geelark_control.node_credentials WHERE node_id = %s", (node_id,))
+                conn.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))

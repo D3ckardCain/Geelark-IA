@@ -9,10 +9,33 @@ import hashlib
 import json
 import re
 from collections.abc import Callable
+from datetime import timedelta
 from typing import Any
 
 import psycopg
 from psycopg.types.json import Jsonb
+
+
+# Garantía de replay por tipo de operación. Scopes desconocidos quedan sin expiración.
+_IDEMPOTENCY_TTL_SECONDS = {
+    "heartbeat": 24 * 60 * 60,
+    "capabilities": 24 * 60 * 60,
+    "modules_report": 24 * 60 * 60,
+    "status_read": 24 * 60 * 60,
+    "task_fetch": 90 * 24 * 60 * 60,
+    "task_accept": 90 * 24 * 60 * 60,
+    "task_progress": 90 * 24 * 60 * 60,
+    "task_result": 90 * 24 * 60 * 60,
+    "reconcile": 90 * 24 * 60 * 60,
+    "reconcile_inventory": 90 * 24 * 60 * 60,
+}
+
+
+def _idempotency_ttl_seconds(scope: str) -> int | None:
+    if not scope.startswith("agent:"):
+        return None
+    operation = scope.rsplit(":", 1)[-1]
+    return _IDEMPOTENCY_TTL_SECONDS.get(operation)
 
 
 class IdempotencyConflict(Exception):
@@ -45,17 +68,19 @@ def execute_idempotent(
     if not isinstance(key, str) or not 16 <= len(key) <= 200 or not re.fullmatch(r"[A-Za-z0-9._:-]+", key):
         raise ValueError("Idempotency-Key debe tener 16-200 caracteres seguros.")
     digest = payload_digest(payload)
+    ttl_seconds = _idempotency_ttl_seconds(scope)
+    ttl_interval = timedelta(seconds=ttl_seconds) if ttl_seconds is not None else None
 
     with conn.transaction():
         inserted = conn.execute(
             """
             INSERT INTO geelark_control.idempotency_records
-                (scope, idempotency_key, payload_sha256, response_snapshot)
-            VALUES (%s, %s, %s, NULL)
+                (scope, idempotency_key, payload_sha256, response_snapshot, expires_at)
+            VALUES (%s, %s, %s, NULL, now() + %s)
             ON CONFLICT (scope, idempotency_key) DO NOTHING
             RETURNING scope
             """,
-            (scope, key, digest),
+            (scope, key, digest, ttl_interval),
         ).fetchone()
         row = conn.execute(
             """

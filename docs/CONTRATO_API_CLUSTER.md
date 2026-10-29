@@ -192,3 +192,16 @@ Los conflictos se registran y requieren una regla de reconciliación explícita;
 - Contrato OpenAPI exportable y pruebas de conformidad del agente.
 
 **Estado real:** los endpoints administrativos `/api/v1` siguen siendo diseño. El protocolo privado `/agent/v1` tiene implementación parcial con pruebas automatizadas de autenticación, telemetría, inventario de módulos y bandeja durable. No hay ejecución Android/ADB/shell ni despliegue en nodos físicos.
+
+
+## Reconciliación de inventario local (solo lectura)
+
+**Endpoint:** `POST /agent/v1/reconcile/inventory`
+
+Este endpoint es distinto de `POST /agent/v1/reconcile`, que conserva la reconciliación de asignaciones de la bandeja durable. No se debe enviar el payload `assignments` a la ruta de inventario ni el payload `inventory` a la ruta de tareas.
+
+El payload de inventario contiene `schema_version: 1` y una lista `inventory` de hasta 100 elementos. Cada elemento declara `task_id`, `operation_id`, `instance_id`, `assignment_epoch`, `local_state` (`accepted`, `running`, `succeeded`, `failed` o `unknown`) y un `result_summary` JSON de hasta 64 KiB. No debe incluir credenciales, tokens, cookies ni datos personales innecesarios. Los `task_id` deben ser únicos en el snapshot.
+
+La operación de transporte es `RECONCILE_INVENTORY`; la autorización se delega al permiso canónico `AgentOperation.RECONCILE`. Los nodos pending no pueden usarla; se exige nodo activo y credencial activa no vencida.
+
+El servidor persiste un reporte auditable y devuelve decisiones de comparación como `in_sync`, `stale_assignment`, `terminal_conflict` o `review_required`. El endpoint no reclama, ejecuta, reasigna ni modifica estados de tareas. `unknown`, epochs obsoletos y conflictos terminales requieren revisión explícita.

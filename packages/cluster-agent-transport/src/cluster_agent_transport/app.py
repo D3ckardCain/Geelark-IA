@@ -6,14 +6,15 @@ que un despliegue accidental detrás de HTTP acepte credenciales bearer.
 from __future__ import annotations
 
 from datetime import datetime
+import json
 import re
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 from uuid import UUID
 
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, field_validator
 
-from .limits import InMemoryRateLimiter
+from .limits import InMemoryRateLimiter, PostgresRateLimiter
 from .module_registry import SUPPORTED_MODULE_IDS
 from .policy import AgentPrincipal, Operation, PermissionDenied, authorize_operation
 from .replay import ReplayRejected
@@ -93,22 +94,6 @@ class TaskClaimPayload(BaseModel):
     schema_version: int = Field(ge=1, le=1)
 
 
-class ReconcileAssignment(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    task_id: UUID
-    operation_id: UUID
-    instance_id: UUID
-    assignment_epoch: int = Field(ge=1, le=2**31 - 1)
-    observed_state: str = Field(pattern="^(queued|delivered|accepted|running|succeeded|failed|unknown)$")
-    result_summary: dict[str, Any] = Field(default_factory=dict)
-
-
-class ReconcilePayload(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    schema_version: int = Field(ge=1, le=1)
-    assignments: list[ReconcileAssignment] = Field(max_length=128)
-
-
 class ReconcileItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
     task_id: UUID
@@ -126,6 +111,60 @@ class ReconcilePayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
     schema_version: int = Field(ge=1, le=1)
     assignments: list[ReconcileItem] = Field(max_length=500)
+
+class InventoryReconcileItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    task_id: UUID
+    operation_id: UUID
+    instance_id: UUID
+    assignment_epoch: int = Field(ge=1, le=2**63 - 1, strict=True)
+    local_state: Literal["accepted", "running", "succeeded", "failed", "unknown"]
+    result_summary: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("result_summary")
+    @classmethod
+    def validate_inventory_result_summary(cls, value: dict[str, Any]) -> dict[str, Any]:
+        forbidden = (
+            "token", "password", "secret", "authorization", "cookie",
+            "credential", "apikey", "privatekey", "accesskey",
+        )
+
+        def inspect(item: Any) -> None:
+            if isinstance(item, dict):
+                for key, nested in item.items():
+                    if not isinstance(key, str):
+                        raise ValueError("result_summary debe usar claves de texto.")
+                    normalized = "".join(character for character in key.casefold() if character.isalnum())
+                    if any(term in normalized for term in forbidden):
+                        raise ValueError("result_summary contiene una clave sensible.")
+                    inspect(nested)
+            elif isinstance(item, list):
+                for nested in item:
+                    inspect(nested)
+
+        inspect(value)
+        try:
+            encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+        except (TypeError, ValueError):
+            raise ValueError("result_summary debe ser JSON válido.") from None
+        if len(encoded) > 65_536:
+            raise ValueError("result_summary no puede superar 64 KiB.")
+        return value
+
+
+class InventoryReconcilePayload(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    schema_version: int = Field(ge=1, le=1, strict=True)
+    inventory: list[InventoryReconcileItem] = Field(max_length=100)
+
+    @field_validator("inventory")
+    @classmethod
+    def validate_unique_inventory_tasks(cls, value: list[InventoryReconcileItem]) -> list[InventoryReconcileItem]:
+        task_ids = [item.task_id for item in value]
+        if len(task_ids) != len(set(task_ids)):
+            raise ValueError("inventory no puede contener task_id duplicados.")
+        return value
+
 
 class RequireHTTPSMiddleware:
     """Falla cerrada si el servidor ASGI recibe una solicitud HTTP sin TLS."""
@@ -205,10 +244,13 @@ def create_agent_app(
     consume_nonce: Callable[..., None],
     handlers: dict[Operation, Callable[..., Any]],
     idempotency_runner: Callable[..., Any] | None = None,
-    rate_limiter: InMemoryRateLimiter | None = None,
+    rate_limiter: InMemoryRateLimiter | PostgresRateLimiter | None = None,
     max_body_bytes: int = 1_048_576,
 ) -> FastAPI:
-    """Crea la API sin listener; las acciones de dominio requieren callbacks."""
+    """Crea la API sin listener; el limitador predeterminado es solo por proceso.
+
+    Para el ensamblado respaldado por PostgreSQL, usa create_postgres_agent_app.
+    """
     limiter = rate_limiter or InMemoryRateLimiter()
     app = FastAPI(title="GeeLark-IA Agent API", version="0.1.0", docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(BodyLimitMiddleware, max_bytes=max_body_bytes)
@@ -384,4 +426,41 @@ def create_agent_app(
         principal = authorize(Operation.RECONCILE, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
         return invoke_write(Operation.RECONCILE, principal, payload.model_dump(mode="json"), idempotency_key)
 
+    @app.post("/agent/v1/reconcile/inventory")
+    def reconcile_inventory(
+        payload: InventoryReconcilePayload,
+        authorization: str | None = Header(default=None),
+        x_agent_nonce: str | None = Header(default=None),
+        x_agent_timestamp: str | None = Header(default=None),
+        x_request_id: str | None = Header(default=None),
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    ) -> Any:
+        principal = authorize(Operation.RECONCILE_INVENTORY, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
+        return invoke_write(Operation.RECONCILE_INVENTORY, principal, payload.model_dump(mode="json"), idempotency_key)
+
     return app
+
+
+def create_postgres_agent_app(
+    connect: Callable[[], Any],
+    *,
+    max_body_bytes: int = 1_048_576,
+) -> FastAPI:
+    """Construye la API con autenticación, nonces, idempotencia y rate limit PostgreSQL.
+
+    No abre sockets ni configura TLS/listener: el runtime debe servir esta app
+    únicamente por HTTPS y configurar el DSN/PGPASSFILE de forma segura.
+    """
+    from .db_auth import make_database_authenticator
+    from .domain_handlers import make_postgres_agent_handlers
+    from .idempotency import make_database_idempotency_runner
+    from .replay import make_database_nonce_consumer
+
+    return create_agent_app(
+        authenticate=make_database_authenticator(connect),
+        consume_nonce=make_database_nonce_consumer(connect),
+        handlers=make_postgres_agent_handlers(connect),
+        idempotency_runner=make_database_idempotency_runner(connect),
+        rate_limiter=PostgresRateLimiter(connect),
+        max_body_bytes=max_body_bytes,
+    )
