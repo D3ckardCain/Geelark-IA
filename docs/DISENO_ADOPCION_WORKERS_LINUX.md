@@ -149,10 +149,20 @@ Esta propuesta no sustituye ni duplica la ADR-005, el esquema de credenciales o 
 - El servicio de dominio descrito en #44 autentica únicamente credenciales activas asociadas a nodos aprobados (`admin_state='active'`). Por ello, hoy no debe asumirse que un nodo pendiente pueda autenticarse por HTTP solo porque el contrato lo desea.
 - No resolver esta diferencia creando un endpoint alternativo, saltándose el servicio de autenticación o marcando automáticamente el nodo como activo.
 
-Antes de programar, la revisión de integración debe decidir y documentar una de estas opciones:
-1. Extender de forma segura la autenticación existente para reconocer credenciales válidas de nodos pendientes y aplicar una allowlist estricta de rutas de telemetría/consulta; o
-2. Mantener la autenticación de nodos pendientes cerrada y posponer heartbeat HTTP hasta que el diseño completo de enrolamiento y aprobación se implemente de manera coherente.
+### Decisión de diseño para resolver la discrepancia
 
-La opción elegida debe tener pruebas negativas por estado y operación, incluida una prueba de carrera entre revocación y heartbeat. No puede conceder reclamación/aceptación/progreso/resultado de tareas, reconciliación operativa ni ejecución a nodos pendientes. No abrir puertos ni desplegar agentes para validar esta decisión.
+Se adopta la separación de responsabilidades descrita en el alcance de #46: **autenticar la identidad y el estado de la credencial no concede autorización para cualquier ruta**. El servicio existente debe conservar una ruta estricta para operaciones operativas y añadir una decisión explícita, testeable y limitada para la telemetría de nodos pendientes; no se debe convertir el nodo a activo ni relajar la política global.
+
+Contrato de integración propuesto:
+1. Validar token, hash, expiración, revocación e identidad vinculada usando el servicio de credenciales existente.
+2. Obtener el estado administrativo actual del nodo desde la fuente autoritativa, no desde el payload del agente ni desde caché no invalidable.
+3. Autorizar la operación por una política central explícita:
+   - `pending`: solo heartbeat, publicación limitada de capacidades y consulta de su propio estado.
+   - `approved/active`: solo las operaciones adicionales ya enumeradas por contrato.
+   - `rejected`, `revoked`, credencial expirada o identidad inconsistente: denegar.
+4. Mantener el camino de claim/accept/progress/result/reconcile separado y denegado para `pending`; no reutilizar el permiso de heartbeat como permiso de tarea.
+5. Comprobar estado y aplicar la escritura de heartbeat bajo la protección transaccional/concurrencia apropiada para que una revocación concurrente no deje el nodo autorizado ni actualice su estado como si siguiera vigente.
+
+Esta es una decisión de **diseño**, no un cambio de código ya implementado. Antes de habilitarla, la implementación debe añadir pruebas de matriz estado × operación, credencial expirada/revocada, identidad A intentando actuar como B y carrera heartbeat-vs-revocación. Si la persistencia existente no permite garantizar atomicidad suficiente, el endpoint debe permanecer deshabilitado hasta resolverlo; no se permite un bypass ni una API paralela. No abrir puertos ni desplegar agentes para validar esta decisión.
 
 Este punto debe resolverse dentro de la cadena existente de transporte/auth, respetando sus bases y pruebas, no mediante una API paralela. Referencias: [#40](https://github.com/D3ckardCain/Geelark-IA/issues/40), [#44](https://github.com/D3ckardCain/Geelark-IA/issues/44), [#46](https://github.com/D3ckardCain/Geelark-IA/issues/46).
