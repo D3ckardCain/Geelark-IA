@@ -283,3 +283,29 @@ def test_start_is_single_use_and_stop_before_start_is_final():
     with pytest.raises(RuntimeError, match="ya se inició o se detuvo"):
         fresh.start()
     assert fresh_sync.started == 0
+
+
+@pytest.mark.parametrize(
+    ("reported_metrics", "expected_health"),
+    [
+        ({"memory_total_bytes": 0, "memory_available_bytes": 0}, "unknown"),
+        ({"memory_available_bytes": 0}, "degraded"),
+        ({"storage_available_bytes": 0}, "degraded"),
+        ({}, "healthy"),
+    ],
+)
+def test_heartbeat_never_reports_healthy_with_unknown_or_exhausted_critical_resources(
+    reported_metrics, expected_health,
+):
+    # Un Worker con métricas ausentes puede estar conectado, pero no debe
+    # anunciar salud sana y habilitar el claim de tareas.
+    supervisor, runtime, _sync = make_supervisor()
+    snapshot = {**metrics(), **reported_metrics}
+    supervisor.metrics_provider = lambda: snapshot
+    supervisor._heartbeat()
+    with runtime.lock:
+        sent = [payload for kind, payload in runtime.calls if kind == "heartbeat"]
+    assert len(sent) == 1
+    assert sent[0]["health_state"] == expected_health
+    assert sent[0]["memory_total_bytes"] == snapshot["memory_total_bytes"]
+    assert sent[0]["storage_available_bytes"] == snapshot["storage_available_bytes"]
