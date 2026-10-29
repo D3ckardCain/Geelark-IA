@@ -261,10 +261,20 @@ class AgentNodeSupervisor:
 
     def _heartbeat(self) -> None:
         metrics = self._metrics()
+        # Una lectura de /proc/meminfo fallida deja memory_total_bytes a 0;
+        # una lectura de disco fallida deja storage_available_bytes a 0.
+        # No declarar healthy si las métricas críticas son desconocidas o
+        # el Worker no dispone de memoria/almacenamiento utilizable.
+        if metrics["memory_total_bytes"] == 0:
+            health_state = "unknown"
+        elif metrics["memory_available_bytes"] == 0 or metrics["storage_available_bytes"] == 0:
+            health_state = "degraded"
+        else:
+            health_state = "healthy"
         payload = {
             "schema_version": 1,
             "agent_version": self.agent_version,
-            "health_state": "healthy",
+            "health_state": health_state,
             **metrics,
         }
         was_offline = self._offline
