@@ -116,6 +116,30 @@ Tratar los datos del agente como entrada no confiable: validar tipos, rangos, ta
 9. Redacción de secretos en logs/respuestas y límite de rate limiter.
 10. Pruebas contra PostgreSQL desechable, CI en Linux/Windows cuando corresponda y `pip check` limpio.
 
+### Matriz mínima de autorización para convertir el contrato en pruebas
+
+Esta matriz es normativa para las pruebas del transporte; cualquier ruta nueva debe incorporarse explícitamente antes de implementarse.
+
+| Estado del nodo | Estado de credencial | Heartbeat/capacidades propias | Consulta de estado propio | Aceptar/progresar/resultado de tarea | Reconciliación operativa |
+|---|---|---|---|---|---|
+| `pending` | `pending` | Permitir solo tras autenticación limitada y validación de esquema | Permitir solo recurso propio | Denegar | Denegar |
+| `active` | `active`, vigente | Permitir según contrato | Permitir según contrato | Permitir únicamente tareas asignadas y con fencing/lease vigentes | Permitir con idempotencia y validación de propiedad |
+| `rejected` | cualquier estado | Denegar | Denegar | Denegar | Denegar |
+| `revoked` o nodo revocado | cualquier estado | Denegar | Denegar | Denegar | Denegar |
+| cualquier estado | `revoked` o expirada | Denegar | Denegar | Denegar | Denegar |
+| nodo y credencial no coinciden | cualquiera | Denegar | Denegar | Denegar | Denegar |
+| estado desconocido/inconsistente | cualquiera | Denegar (fail closed) | Denegar | Denegar | Denegar |
+
+Pruebas negativas concretas:
+- Una credencial `pending` no puede acceder a ninguna ruta de tarea aunque el cuerpo indique un `node_id` activo.
+- Cambiar el `node_id` del payload no cambia la identidad autenticada ni el recurso de consulta propio.
+- Credencial expirada o revocada durante una espera de lock no autoriza la escritura después de adquirir el lock.
+- Si la revocación confirma primero, heartbeat debe fallar y no modificar `last_seen_at`, capacidades ni secuencia.
+- Si heartbeat confirma primero, la revocación posterior debe dejar al nodo revocado; ningún retry puede volverlo activo.
+- Repetir el mismo `request_id`/idempotency key con el mismo payload no duplica cambios; con payload distinto devuelve conflicto.
+- Rutas no registradas y métodos HTTP no declarados se rechazan por defecto.
+- Los logs y respuestas de denegación no incluyen bearer token, hash, nonce ni payload sensible.
+
 ## 10. Orden de implementación propuesto
 
 1. Completar aceptación manual de PC-MASTER (#77) y revisar la pila existente antes de integrar.
