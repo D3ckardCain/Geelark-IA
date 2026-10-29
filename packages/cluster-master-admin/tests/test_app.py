@@ -275,3 +275,33 @@ def test_body_limit_middleware_propagates_disconnect_after_replaying_body() -> N
     }
     assert received_by_app[1] == {"type": "http.disconnect"}
     assert sent[0]["status"] == 200
+
+
+def test_panel_node_search_visible_accessible_and_wired() -> None:
+    from html.parser import HTMLParser
+
+    source = (
+        Path(__file__).parents[1] / "src" / "geelark_master_admin" / "panel.html"
+    ).read_text(encoding="utf-8")
+
+    class ControlParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.inputs = []
+            self.labels = []
+
+        def handle_starttag(self, tag, attrs):
+            attributes = dict(attrs)
+            if tag == "input" and attributes.get("id") == "node-search":
+                self.inputs.append(attributes)
+            if tag == "label" and attributes.get("for") == "node-search":
+                self.labels.append(attributes)
+
+    controls = ControlParser()
+    controls.feed(source)
+    assert len(controls.inputs) == 1
+    assert controls.inputs[0]["type"] == "search"
+    assert controls.labels and controls.labels[0]["class"] == "sr-only"
+    assert 'el("node-search")?.addEventListener("input",render)' in source
+    assert "const visibleNodes=filterNodes()" in source
+    assert "Sin nodos que coincidan con la búsqueda." in source
