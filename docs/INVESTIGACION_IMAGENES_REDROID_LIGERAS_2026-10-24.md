@@ -124,7 +124,9 @@ Solo considerar una imagen personalizada después de medir la imagen oficial y d
 
 ## 6. Coste y dependencia externa
 
-La investigación y las pruebas locales propuestas no requieren APIs de pago ni un servicio cloud de pago. Docker Hub es una fuente pública de imágenes, pero sus límites de descarga/disponibilidad deben comprobarse y no deben tratarse como garantía ilimitada. La arquitectura debe permitir almacenar y distribuir los digests por LAN y reconstruir o migrar sin depender de un proveedor único.
+La investigación y las pruebas locales propuestas no requieren APIs de pago ni un servicio cloud de pago. Docker Hub es una fuente pública de imágenes, pero no es una dependencia de descarga ilimitada: la documentación oficial consultada el 2026-10-28 indica un límite de 100 pulls por ventana de 6 horas para usuarios anónimos por IPv4/IPv6 /64 y 200 pulls por 6 horas para cuentas Personal autenticadas; planes de pago tienen límites distintos y no forman parte del diseño objetivo $0. También existe un límite antiabuso variable por tasa de peticiones. Fuente: [Docker Hub pull usage and limits](https://docs.docker.com/docker-hub/usage/pulls/) y [troubleshooting](https://docs.docker.com/docker-hub/troubleshoot/).
+
+La arquitectura no debe depender de superar esos límites: descargar cada digest verificado una vez desde una máquina designada, conservarlo en caché local, distribuirlo por LAN y verificar integridad en cada worker. La caché debe registrar fecha, digest completo, plataforma, origen, licencia y hash; los workers no deben hacer pulls repetidos al iniciar instancias. La arquitectura debe permitir almacenar y distribuir los digests por LAN y reconstruir o migrar sin depender de un proveedor único.
 
 La compilación AOSP personalizada no se justifica en esta fase: requiere mucho almacenamiento, ancho de banda y CPU; primero hay que medir las imágenes existentes y sus requisitos reales.
 
