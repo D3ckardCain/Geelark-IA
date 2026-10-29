@@ -139,3 +139,20 @@ Tratar los datos del agente como entrada no confiable: validar tipos, rangos, ta
 ## Registro de cambios
 
 - 2026-10-28: primera especificación documental de adopción segura desacoplada del motor Android. No representa implementación ni prueba física.
+
+
+## 12. Integración obligatoria con la autenticación ya existente
+
+Esta propuesta no sustituye ni duplica la ADR-005, el esquema de credenciales o el servicio de dominio existente. La revisión de Issues #40, #44 y #46 detecta una decisión de integración que debe resolverse antes de implementar:
+
+- ADR-005/#40 y transporte #46 describen que un nodo `pending` puede reportar heartbeat/capacidades y consultar su propio estado, sin recibir tareas.
+- El servicio de dominio descrito en #44 autentica únicamente credenciales activas asociadas a nodos aprobados (`admin_state='active'`). Por ello, hoy no debe asumirse que un nodo pendiente pueda autenticarse por HTTP solo porque el contrato lo desea.
+- No resolver esta diferencia creando un endpoint alternativo, saltándose el servicio de autenticación o marcando automáticamente el nodo como activo.
+
+Antes de programar, la revisión de integración debe decidir y documentar una de estas opciones:
+1. Extender de forma segura la autenticación existente para reconocer credenciales válidas de nodos pendientes y aplicar una allowlist estricta de rutas de telemetría/consulta; o
+2. Mantener la autenticación de nodos pendientes cerrada y posponer heartbeat HTTP hasta que el diseño completo de enrolamiento y aprobación se implemente de manera coherente.
+
+La opción elegida debe tener pruebas negativas por estado y operación, incluida una prueba de carrera entre revocación y heartbeat. No puede conceder reclamación/aceptación/progreso/resultado de tareas, reconciliación operativa ni ejecución a nodos pendientes. No abrir puertos ni desplegar agentes para validar esta decisión.
+
+Este punto debe resolverse dentro de la cadena existente de transporte/auth, respetando sus bases y pruebas, no mediante una API paralela. Referencias: [#40](https://github.com/D3ckardCain/Geelark-IA/issues/40), [#44](https://github.com/D3ckardCain/Geelark-IA/issues/44), [#46](https://github.com/D3ckardCain/Geelark-IA/issues/46).
