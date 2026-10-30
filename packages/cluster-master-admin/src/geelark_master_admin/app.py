@@ -138,12 +138,11 @@ def _same_origin(request: Request) -> bool:
 
 
 def _read_snapshots(connect: Callable[[], Any]) -> tuple[str, list[dict[str, Any]]]:
-    """Una consulta SELECT acotada; no lee payloads de tareas ni registros arbitrarios."""
-    now = datetime.now(timezone.utc)
+    """Lecturas SELECT acotadas; vigencia calculada con el reloj de PostgreSQL."""
     with connect() as conn:
         rows = conn.execute(
             """
-            SELECT node_id, display_name, admin_state, health_state AS reported_health_state,
+            SELECT node_id, display_name, admin_state, reported_health_state,
                    agent_version, last_seen_at, capabilities, module_reports, revoked_at
               FROM geelark_control.nodes
              ORDER BY display_name ASC NULLS LAST, node_id ASC
@@ -151,6 +150,10 @@ def _read_snapshots(connect: Callable[[], Any]) -> tuple[str, list[dict[str, Any
             """,
             (MAX_SNAPSHOTS,),
         ).fetchall()
+        # Tomar el reloj después de leer las filas: no reutilizar la hora local
+        # ni el timestamp fijado al inicio de una transacción prolongada.
+        now: datetime = conn.execute("SELECT clock_timestamp()").fetchone()[0]
+        now = now.astimezone(timezone.utc)
     snapshots = [build_status_snapshot(row, now=now) for row in rows]
     return now.isoformat().replace("+00:00", "Z"), [item for item in snapshots if item is not None]
 
