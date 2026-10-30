@@ -166,6 +166,15 @@ jobs:
           grep -q "CREATE sobre un esquema no permitido" /tmp/geelark-admin-owner-probe.log || { cat /tmp/geelark-admin-owner-probe.log; exit 1; }
           docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "DROP SCHEMA geelark_admin_owner_probe"
 
+          # Negative test: la allowlist no debe admitir una columna sensible.
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "GRANT SELECT(payload) ON geelark_control.agent_tasks TO geelark_master_reader"
+          if PGPASSWORD=test-only-password psql "$reader_dsn" -v ON_ERROR_STOP=1 -f packages/cluster-master-admin/sql/verify_readonly_role.sql > /tmp/geelark-admin-task-payload.log 2>&1; then
+            echo "ERROR: el verificador aceptó SELECT(payload)"
+            exit 1
+          fi
+          grep -q "Columnas no permitidas" /tmp/geelark-admin-task-payload.log || { cat /tmp/geelark-admin-task-payload.log; exit 1; }
+          docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "REVOKE SELECT(payload) ON geelark_control.agent_tasks FROM geelark_master_reader"
+
       - name: Install agent transport and tests
         run: python -m pip install -e "packages/cluster-agent-transport[test]"
 

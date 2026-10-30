@@ -67,9 +67,15 @@ body{background:var(--bg)}.app{display:grid;grid-template-columns:180px minmax(0
   </section>
 </section>
 <section id="page-tasks" class="page hidden">
-  <div class="pagehead"><div><div class="eyebrow">ORQUESTACIÓN</div><h2>Tareas</h2><p>Cola de trabajo centralizada y trazable.</p></div></div>
-  <section class="panel"><div class="task-state"><div class="task-symbol" aria-hidden="true">Ⅱ</div><div><h3 style="margin:1px 0 5px">Ejecución de tareas aún no habilitada</h3><p class="muted" style="margin:0;font-size:12px">Esta versión del panel no consulta ni ejecuta tareas. La cola aparecerá cuando la API de tareas esté integrada, con permisos por nodo, idempotencia, auditoría y aprobación explícita. No se enviarán órdenes a workers desde esta pantalla.</p></div></div></section>
-  <section class="panel"><div class="panel-head"><h3>Flujo previsto</h3><span class="pill amber">No activo</span></div><div class="feature-list"><div class="feature-row"><span>1 · Registrar y verificar worker</span><strong>Requisito</strong></div><div class="feature-row"><span>2 · Autorizar explícitamente</span><strong>Requisito</strong></div><div class="feature-row"><span>3 · Validar capacidad y salud</span><strong>Requisito</strong></div><div class="feature-row"><span>4 · Aprobar tarea tipada</span><strong>Bloqueado</strong></div></div></section>
+  <div class="pagehead"><div><div class="eyebrow">ORQUESTACIÓN · SOLO LECTURA</div><h2>Tareas</h2><p>Seguimiento de la bandeja durable. La ejecución desde el panel no está habilitada.</p></div><button id="tasks-refresh" class="btn" type="button">Actualizar tareas</button></div>
+  <form id="tasks-filters" class="tools">
+    <label class="sr-only" for="tasks-node">UUID del worker</label><input id="tasks-node" placeholder="UUID del worker (opcional)" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" autocomplete="off">
+    <label class="sr-only" for="tasks-status">Estado de tarea</label><select id="tasks-status"><option value="">Todos los estados</option><option value="queued">En cola</option><option value="delivered">Entregada</option><option value="accepted">Aceptada</option><option value="running">En curso</option><option value="succeeded">Completada</option><option value="rejected">Rechazada</option><option value="failed">Fallida</option><option value="unknown">Desconocida</option><option value="cancelled">Cancelada</option></select><button class="btn" type="submit">Aplicar filtros</button>
+  </form>
+  <div id="tasks-notice" role="status" aria-live="polite" class="muted">Sin consultar.</div>
+  <section class="panel"><div class="table-wrap"><table><caption class="sr-only">Tareas reales del Master</caption><thead><tr><th>Tarea</th><th>Worker</th><th>Estado</th><th>Creada</th></tr></thead><tbody id="tasks-table"></tbody></table></div><p id="tasks-empty" class="empty">Consulta la bandeja para ver tareas reales.</p>
+  <div class="top-actions"><button id="tasks-prev" class="btn" type="button" disabled>Anterior</button><span id="tasks-page" class="muted">—</span><button id="tasks-next" class="btn" type="button" disabled>Siguiente</button></div></section>
+  <section id="task-detail" class="panel hidden" aria-labelledby="task-detail-title"><div class="panel-head"><h3 id="task-detail-title" tabindex="-1">Detalle de tarea</h3><button id="task-detail-close" class="btn" type="button">Cerrar detalle</button></div><div id="task-detail-body"></div></section>
 </section>
 <section id="page-system" class="page hidden">
   <div class="pagehead"><div><div class="eyebrow">CONFIGURACIÓN Y EVIDENCIA</div><h2>Sistema</h2><p>Estado de conexión, seguridad y documentación del proyecto.</p></div><a class="btn" href="https://github.com/D3ckardCain/Geelark-IA" target="_blank" rel="noopener noreferrer">Repositorio ↗</a></div>
@@ -89,7 +95,7 @@ body{background:var(--bg)}.app{display:grid;grid-template-columns:180px minmax(0
 <script>
 "use strict";
 const API_PATH="/admin/v1/status/snapshots";
-const state={snapshots:[],connected:false,busy:false,lastRefresh:null,error:null,authenticated:false,authBusy:false,selectedNodeId:null};
+const state={snapshots:[],connected:false,busy:false,lastRefresh:null,error:null,authenticated:false,authBusy:false,selectedNodeId:null,tasks:[],tasksBusy:false,tasksOffset:0,tasksHasMore:false,tasksGenerated:null,tasksError:null,selectedTaskId:null,sessionVersion:0,tasksRequest:0};
 const labels={active:"Autorizado",pending:"Pendiente",revoked:"Revocado",unknown:"Desconocido",healthy:"Saludable",degraded:"Degradado",offline:"Desconectado",operational:"Operativo","not-installed":"No instalado",fresh:"Reciente",stale:"Antiguo",missing:"Sin señal"};
 const classes={active:"green",healthy:"green",operational:"green",pending:"amber",degraded:"amber",stale:"amber",revoked:"red",offline:"red",unknown:"gray","not-installed":"gray",fresh:"green",missing:"gray"};
 function el(id){return document.getElementById(id)}
@@ -117,10 +123,58 @@ function renderNodeDetails(){
   if(!snapshot)state.selectedNodeId=null;
 }
 
-function render(){const nodes=state.snapshots.map(s=>s.node);const visibleNodes=filterNodes();const modules=state.snapshots.flatMap(s=>s.node.modules.map(m=>({m,n:s.node})));const healthy=nodes.filter(n=>n.health_state==="healthy"&&n.authorization_state==="active").length;const alerts=nodes.filter(n=>n.health_state!=="healthy"||n.authorization_state!=="active").length;el("metric-nodes").textContent=String(nodes.length);el("metric-healthy").textContent=String(healthy);el("metric-alerts").textContent=String(alerts);el("metric-modules").textContent=String(modules.length);el("nodes-count").textContent=visibleNodes.length===nodes.length?nodes.length+" nodos":visibleNodes.length+" de "+nodes.length+" nodos";el("nodes-table").innerHTML=visibleNodes.map(nodeRow).join("");el("nodes-empty").classList.toggle("hidden",visibleNodes.length>0);el("nodes-empty").textContent=nodes.length?"Sin nodos que coincidan con la búsqueda.":"Aún no hay snapshots reales disponibles.";el("modules-summary").innerHTML=modules.slice(0,8).map(({m,n})=>'<div class="feature-row"><span>'+esc(m.module_id)+' · '+esc(n.display_name)+'</span>'+pill(m.state)+'</div>').join("");el("modules-empty").classList.toggle("hidden",modules.length>0);el("data-mode").textContent=(state.connected?"Fuente: Master · "+API_PATH:"Fuente: no disponible")+" · última consulta: "+(state.lastRefresh?date(state.lastRefresh):"nunca");el("last-refresh").textContent="Última consulta: "+(state.lastRefresh?date(state.lastRefresh):"nunca");el("audit-api").textContent=state.connected?"Conectado · "+nodes.length+" snapshots":state.error||"Sin conectar";el("logout").classList.toggle("hidden",!state.authenticated);renderNodeDetails()}
+
+const taskLabels={"queued":"En cola","delivered":"Entregada","accepted":"Aceptada","running":"En curso","succeeded":"Completada","rejected":"Rechazada","failed":"Fallida","unknown":"Desconocida","cancelled":"Cancelada"};
+function taskDetails(t){
+  const fields={Tarea:t.task_id,Worker:t.node_id,Instancia:t.instance_id,Operación:t.operation_id,
+    "Epoch de asignación":t.assignment_epoch,Estado:taskLabels[t.status]||t.status,
+    "Intentos de entrega":t.delivery_attempts,Creada:date(t.created_at),Actualizada:date(t.updated_at),
+    Entregada:date(t.delivered_at),Aceptada:date(t.accepted_at),Finalizada:date(t.completed_at),
+    "Código de error":t.last_error_code||"Sin código"};
+  return '<dl class="detail-grid">'+Object.entries(fields).map(([k,v])=>'<div><dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd></div>').join("")+'</dl><p class="muted">El resultado visible es el estado registrado y su código de error. Los payloads y resultados libres no se consultan.</p>';
+}
+function clearTasks(){state.tasks=[];state.selectedTaskId=null;state.tasksHasMore=false;state.tasksGenerated=null;state.tasksError=null;state.tasksOffset=0;state.tasksRequest++;state.tasksBusy=false}
+function renderTasks(){
+  const tasks=state.authenticated?state.tasks:[];
+  el("tasks-table").innerHTML=tasks.map(t=>'<tr><td><button class="node-open" type="button" data-task-id="'+esc(t.task_id)+'">'+esc(t.task_id)+'</button></td><td>'+esc(t.node_id)+'</td><td>'+esc(taskLabels[t.status]||t.status)+'</td><td>'+esc(date(t.created_at))+'</td></tr>').join("");
+  el("tasks-empty").classList.toggle("hidden",tasks.length>0);
+  el("tasks-empty").textContent=state.tasksError?"No se pudieron consultar las tareas.":state.tasksGenerated?"Sin tareas para estos filtros.":"Consulta la bandeja para ver tareas reales.";
+  el("tasks-notice").textContent=state.tasksBusy?"Consultando tareas…":state.tasksError|| (state.tasksGenerated?"Consulta PostgreSQL: "+date(state.tasksGenerated)+" · solo lectura":"Sin consultar.");
+  el("tasks-refresh").disabled=state.tasksBusy||!state.authenticated;
+  el("tasks-prev").disabled=state.tasksBusy||state.tasksOffset===0||!state.authenticated;
+  el("tasks-next").disabled=state.tasksBusy||!state.tasksHasMore||state.tasksOffset>=10000||!state.authenticated;
+  el("tasks-page").textContent=state.tasksGenerated?"Página "+(state.tasksOffset/50+1)+" · "+tasks.length+" tareas":"—";
+  const selected=tasks.find(t=>t.task_id===state.selectedTaskId);
+  el("task-detail").classList.toggle("hidden",!selected);
+  el("task-detail-body").innerHTML=selected?taskDetails(selected):"";
+  if(!selected)state.selectedTaskId=null;
+}
+async function refreshTasks(reset=false){
+  if(!state.authenticated)return;
+  if(reset)state.tasksOffset=0;
+  const version=state.sessionVersion, request=++state.tasksRequest;
+  state.tasksBusy=true;state.tasks=[];state.tasksHasMore=false;state.selectedTaskId=null;state.tasksError=null;renderTasks();
+  const params=new URLSearchParams({limit:"50",offset:String(state.tasksOffset)});
+  const node=el("tasks-node").value.trim(), status=el("tasks-status").value;
+  if(node)params.set("node_id",node);if(status)params.set("status",status);
+  try{
+    const r=await fetch("/admin/v1/tasks?"+params,{credentials:"same-origin",cache:"no-store",redirect:"error",headers:{Accept:"application/json"}});
+    if(version!==state.sessionVersion||request!==state.tasksRequest||!state.authenticated)return;
+    if(r.status===401||r.status===403){state.authenticated=false;showLogin("Sesión requerida para consultar tareas.");render();return}
+    if(!r.ok)throw new Error("No se pudo consultar la bandeja ("+r.status+").");
+    const data=await r.json();
+    if(version!==state.sessionVersion||request!==state.tasksRequest||!state.authenticated)return;
+    if(data.schema_version!=="1.0"||!Array.isArray(data.tasks)||data.tasks.length>50||typeof data.has_more!=="boolean")throw new Error("Respuesta de tareas inválida.");
+    for(const t of data.tasks)if(!t||typeof t.task_id!=="string"||typeof t.node_id!=="string"||!Object.hasOwn(taskLabels,t.status))throw new Error("Metadatos de tarea inválidos.");
+    state.tasks=data.tasks;state.tasksGenerated=data.generated_at;state.tasksHasMore=data.has_more;
+  }catch(e){if(version===state.sessionVersion&&request===state.tasksRequest){state.tasks=[];state.tasksGenerated=null;state.tasksError=e instanceof Error?e.message:"Servicio no disponible."}}
+  finally{if(request===state.tasksRequest){state.tasksBusy=false;renderTasks()}}
+}
+
+function render(){const nodes=state.snapshots.map(s=>s.node);const visibleNodes=filterNodes();const modules=state.snapshots.flatMap(s=>s.node.modules.map(m=>({m,n:s.node})));const healthy=nodes.filter(n=>n.health_state==="healthy"&&n.authorization_state==="active").length;const alerts=nodes.filter(n=>n.health_state!=="healthy"||n.authorization_state!=="active").length;el("metric-nodes").textContent=String(nodes.length);el("metric-healthy").textContent=String(healthy);el("metric-alerts").textContent=String(alerts);el("metric-modules").textContent=String(modules.length);el("nodes-count").textContent=visibleNodes.length===nodes.length?nodes.length+" nodos":visibleNodes.length+" de "+nodes.length+" nodos";el("nodes-table").innerHTML=visibleNodes.map(nodeRow).join("");el("nodes-empty").classList.toggle("hidden",visibleNodes.length>0);el("nodes-empty").textContent=nodes.length?"Sin nodos que coincidan con la búsqueda.":"Aún no hay snapshots reales disponibles.";el("modules-summary").innerHTML=modules.slice(0,8).map(({m,n})=>'<div class="feature-row"><span>'+esc(m.module_id)+' · '+esc(n.display_name)+'</span>'+pill(m.state)+'</div>').join("");el("modules-empty").classList.toggle("hidden",modules.length>0);el("data-mode").textContent=(state.connected?"Fuente: Master · "+API_PATH:"Fuente: no disponible")+" · última consulta: "+(state.lastRefresh?date(state.lastRefresh):"nunca");el("last-refresh").textContent="Última consulta: "+(state.lastRefresh?date(state.lastRefresh):"nunca");el("audit-api").textContent=state.connected?"Conectado · "+nodes.length+" snapshots":state.error||"Sin conectar";el("logout").classList.toggle("hidden",!state.authenticated);renderNodeDetails();renderTasks()}
 async function refresh(){if(state.busy||!state.authenticated)return;state.busy=true;el("refresh").disabled=true;state.error=null;try{const response=await fetch(API_PATH,{method:"GET",headers:{"Accept":"application/json"},credentials:"same-origin",cache:"no-store",redirect:"error"});if(!response.ok)throw new Error(response.status===401||response.status===403?"Autenticación requerida ("+response.status+").":"Servicio no disponible ("+response.status+").");if(!(response.headers.get("content-type")||"").includes("application/json"))throw new Error("El servicio no devolvió JSON.");state.snapshots=validatePayload(await response.json());state.connected=true;state.lastRefresh=new Date().toISOString();updateNotice("ok","Conectado al PC-MASTER",state.snapshots.length+" snapshots reales recibidos. El panel permanece en modo de solo lectura.");}catch(error){state.connected=false;state.snapshots=[];state.error=error instanceof Error?error.message:"Error de conexión";if(state.error.includes("(401)")||state.error.includes("(403)")||state.error.includes("Autenticación")){state.authenticated=false;showLogin(state.error);return;}updateNotice("error","No se pudo consultar el estado real",state.error+" No se mostrarán datos ficticios.");}finally{state.busy=false;el("refresh").disabled=false;render()}}
-function showPage(page){document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));el("page-"+page).classList.remove("hidden");document.querySelectorAll("[data-page]").forEach(b=>{const active=b.dataset.page===page;b.classList.toggle("active",active);if(active)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")})}
-function showLogin(message=""){el("login-gate").classList.remove("hidden");el("login-error").textContent=message;el("logout").classList.add("hidden");el("operator-password").focus({preventScroll:true})}
+function showPage(page){if(page==="tasks"&&state.authenticated)refreshTasks();document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));el("page-"+page).classList.remove("hidden");document.querySelectorAll("[data-page]").forEach(b=>{const active=b.dataset.page===page;b.classList.toggle("active",active);if(active)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")})}
+function showLogin(message=""){state.sessionVersion++;clearTasks();state.snapshots=[];state.connected=false;el("login-gate").classList.remove("hidden");el("login-error").textContent=message;el("logout").classList.add("hidden");el("operator-password").focus({preventScroll:true})}
 function hideLogin(){el("login-gate").classList.add("hidden");el("login-error").textContent=""}
 async function checkSession(){try{const r=await fetch("/admin/v1/session",{method:"GET",headers:{"Accept":"application/json"},credentials:"same-origin",cache:"no-store",redirect:"error"});if(!r.ok)throw new Error("No se pudo comprobar la sesión.");const data=await r.json();state.authenticated=data.authenticated===true;if(state.authenticated){hideLogin();await refresh()}else{state.snapshots=[];state.connected=false;showLogin("")}}catch(e){state.authenticated=false;showLogin("Servicio local no disponible. Comprueba que PC-MASTER esté iniciado con HTTPS.")}render()}
 el("login-form").addEventListener("submit",async event=>{event.preventDefault();if(state.authBusy)return;state.authBusy=true;el("login-submit").disabled=true;el("login-error").textContent="";const password=el("operator-password").value;try{const r=await fetch("/admin/v1/login",{method:"POST",headers:{"Accept":"application/json","Content-Type":"application/json"},credentials:"same-origin",cache:"no-store",redirect:"error",body:JSON.stringify({password})});if(!r.ok)throw new Error(r.status===401?"Contraseña incorrecta.":r.status===429?"Demasiados intentos. Espera 15 minutos.":r.status===403?"Origen rechazado por el servicio.":"Servicio no disponible ("+r.status+").");const data=await r.json();if(data.authenticated!==true)throw new Error("No se pudo iniciar sesión.");el("operator-password").value="";state.authenticated=true;hideLogin();await refresh()}catch(e){el("login-error").textContent=e instanceof Error?e.message:"No se pudo iniciar sesión."}finally{state.authBusy=false;el("login-submit").disabled=false;render()}});
@@ -135,6 +189,14 @@ el("nodes-table").addEventListener("click",event=>{
   el("node-detail-title").focus({preventScroll:true});
 });
 el("node-detail-close").addEventListener("click",()=>{state.selectedNodeId=null;render();el("node-search").focus({preventScroll:true})});
+
+el("tasks-filters").addEventListener("submit",event=>{event.preventDefault();refreshTasks(true)});
+el("tasks-refresh").addEventListener("click",()=>{if(el("tasks-filters").reportValidity())refreshTasks()});
+el("tasks-prev").addEventListener("click",()=>{if(state.tasksBusy)return;state.tasksOffset=Math.max(0,state.tasksOffset-50);refreshTasks()});
+el("tasks-next").addEventListener("click",()=>{if(state.tasksBusy||!state.tasksHasMore||state.tasksOffset>=10000)return;state.tasksOffset+=50;refreshTasks()});
+el("tasks-table").addEventListener("click",event=>{const button=event.target.closest("button[data-task-id]");if(!button)return;state.selectedTaskId=button.dataset.taskId;renderTasks();el("task-detail-title").focus({preventScroll:true})});
+el("task-detail-close").addEventListener("click",()=>{state.selectedTaskId=null;renderTasks();el("tasks-refresh").focus({preventScroll:true})});
+
 render();checkSession();
 </script>
 </body>

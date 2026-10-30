@@ -25,7 +25,7 @@ La barra lateral ofrece Nodos, Tareas y Sistema. En pantallas estrechas aparece 
 - La API devuelve como máximo 500 nodos por consulta. No hay paginación en esta versión.
 
 ### Tareas
-Pantalla informativa. Aunque la bandeja durable existe en el backend del agente, esta versión administrativa no consulta ni ejecuta tareas. No ofrece órdenes remotas, shell ni ADB.
+Consulta real de la bandeja durable, con filtros por worker/estado, páginas de 50 y detalle de metadatos. No ejecuta tareas ni ofrece shell o ADB. Véase [Manual de consulta de tareas](MANUAL_CONSULTA_TAREAS_PC_MASTER.md) para preparación del rol lector, límites y estados.
 
 ### Sistema
 Muestra la conexión con la API y enlaces a GitHub/Actions. Las descripciones de configuración son el diseño previsto; no sustituyen la verificación efectiva de TLS, ACL y loopback del equipo.

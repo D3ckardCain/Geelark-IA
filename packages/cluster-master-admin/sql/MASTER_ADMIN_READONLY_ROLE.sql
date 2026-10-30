@@ -33,5 +33,8 @@ GRANT USAGE ON SCHEMA geelark_control TO geelark_master_reader;
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA geelark_control FROM geelark_master_reader;
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA geelark_control FROM geelark_master_reader;
 GRANT SELECT ON TABLE geelark_control.nodes TO geelark_master_reader;
+-- Metadatos exclusivamente; payload y result_summary permanecen inaccesibles.
+GRANT SELECT (task_id, operation_id, node_id, instance_id, assignment_epoch, status, delivery_attempts, created_at, updated_at, delivered_at, accepted_at, completed_at, last_error_code)
+    ON TABLE geelark_control.agent_tasks TO geelark_master_reader;
 
 COMMIT;
