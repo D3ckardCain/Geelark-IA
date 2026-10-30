@@ -427,3 +427,54 @@ def test_existing_windows_session_db_acl_is_repaired_before_sqlite_open(
         ("restrict", path, False),
         ("restrict", path, False),
     ]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Integración real OWNER RIGHTS en Windows.")
+def test_windows_acl_accepts_owner_rights_for_validated_owner(tmp_path: Path) -> None:
+    import subprocess
+    from geelark_master_admin import auth as auth_module
+
+    target = tmp_path / "owner-rights"
+    target.mkdir()
+    auth_module._restrict_windows_acl(target, directory=True)
+    subprocess.run(["icacls", str(target), "/grant", "*S-1-3-4:(OI)(CI)(F)"],
+                   check=True, capture_output=True, text=True)
+    auth_module._verify_windows_acl_no_untrusted_writers(target)
+    # La misma ACE OWNER RIGHTS no debe ocultar un escritor adicional.
+    subprocess.run(["icacls", str(target), "/grant", "*S-1-5-32-545:(OI)(CI)(M)"],
+                   check=True, capture_output=True, text=True)
+    with pytest.raises(PermissionError, match="ACL NTFS"):
+        auth_module._verify_windows_acl_no_untrusted_writers(target)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Integración PowerShell de propietario no confiable.")
+def test_windows_owner_rights_never_authorizes_untrusted_owner(tmp_path: Path, monkeypatch) -> None:
+    from geelark_master_admin import auth as auth_module
+
+    # Construye la DACL en memoria: no cambia el propietario del sistema de archivos.
+    original_run = auth_module.subprocess.run
+    results = []
+
+    def run_with_untrusted_owner(command, **kwargs):
+        script = command[-1]
+        replacement = r"""
+$acl = New-Object System.Security.AccessControl.DirectorySecurity
+$acl.SetOwner([System.Security.Principal.SecurityIdentifier]::new('S-1-5-32-545'))
+$rule = [System.Security.AccessControl.FileSystemAccessRule]::new(
+    [System.Security.Principal.SecurityIdentifier]::new('S-1-3-4'),
+    [System.Security.AccessControl.FileSystemRights]::FullControl,
+    [System.Security.AccessControl.AccessControlType]::Allow)
+$acl.AddAccessRule($rule)
+"""
+        assert "$acl = Get-Acl -LiteralPath $target" in script
+        command = [*command[:-1], script.replace("$acl = Get-Acl -LiteralPath $target", replacement)]
+        result = original_run(command, **kwargs)
+        results.append(result)
+        return result
+
+    monkeypatch.setattr(auth_module.subprocess, "run", run_with_untrusted_owner)
+    with pytest.raises(PermissionError, match="ACL NTFS"):
+        auth_module._verify_windows_acl_no_untrusted_writers(tmp_path)
+    assert len(results) == 1
+    assert results[0].returncode == 13
+    assert "UNTRUSTED_OWNER" in results[0].stderr

@@ -131,6 +131,9 @@ foreach ($entry in $acl.Access) {
     if ($entry.AccessControlType -ne [System.Security.AccessControl.AccessControlType]::Allow) { continue }
     if (($entry.PropagationFlags -band [System.Security.AccessControl.PropagationFlags]::InheritOnly) -ne 0) { continue }
     $sid = $entry.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value
+    # OWNER RIGHTS representa al propietario efectivo, validado arriba.
+    # No se añade a trustedSids: nunca puede autorizar a un propietario ajeno.
+    if ($sid -eq 'S-1-3-4') { continue }
     $rights = [int]$entry.FileSystemRights
     if (($trustedSids -notcontains $sid) -and (($rights -band $writeMask) -ne 0)) {
         [Console]::Error.WriteLine('UNTRUSTED_WRITE_ACE')
