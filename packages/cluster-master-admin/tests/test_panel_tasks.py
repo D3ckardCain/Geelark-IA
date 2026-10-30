@@ -23,7 +23,7 @@ global.document={getElementById(id){
 """ + functions + r"""
 (async()=>{
 const task={task_id:"task-1",node_id:"node-1",status:"failed",last_error_code:"ENGINE_ERROR",delivery_attempts:2};
-state.authenticated=true;state.tasksOffset=50;
+state.authenticated=true;state.tasksOffset=50;state.tasksFilterKey=JSON.stringify(["node-1","failed"]);
 el("tasks-node").value="node-1";el("tasks-status").value="failed";
 let requested;
 global.fetch=async(url,options)=>{requested={url,options};return {status:200,ok:true,
@@ -34,6 +34,10 @@ assert.ok(requested.url.includes("offset=50"));assert.equal(requested.options.ca
 assert.equal(requested.options.credentials,"same-origin");
 assert.equal(requested.options.method,undefined); // fetch usa GET por defecto
 assert.deepEqual(state.tasks,[task]);assert.equal(state.tasksHasMore,true);
+el("tasks-status").value="queued";
+await refreshTasks();
+assert.ok(requested.url.includes("offset=0"));assert.ok(requested.url.includes("status=queued"));
+state.tasksOffset=50;await refreshTasks();assert.ok(requested.url.includes("offset=50"));
 state.selectedTaskId="task-1";renderTasks();assert.ok(el("task-detail-body").innerHTML.includes("ENGINE_ERROR"));
 const hostile=taskDetails({...task,task_id:"<script>alert(1)</script>",node_id:'<img src=x onerror=alert(1)>'});
 assert.ok(!hostile.includes("<script>"));assert.ok(!hostile.includes("<img"));

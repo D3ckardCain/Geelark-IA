@@ -95,7 +95,7 @@ body{background:var(--bg)}.app{display:grid;grid-template-columns:180px minmax(0
 <script>
 "use strict";
 const API_PATH="/admin/v1/status/snapshots";
-const state={snapshots:[],connected:false,busy:false,lastRefresh:null,error:null,authenticated:false,authBusy:false,selectedNodeId:null,tasks:[],tasksBusy:false,tasksOffset:0,tasksHasMore:false,tasksGenerated:null,tasksError:null,selectedTaskId:null,sessionVersion:0,tasksRequest:0};
+const state={snapshots:[],connected:false,busy:false,lastRefresh:null,error:null,authenticated:false,authBusy:false,selectedNodeId:null,tasks:[],tasksBusy:false,tasksOffset:0,tasksHasMore:false,tasksGenerated:null,tasksError:null,selectedTaskId:null,sessionVersion:0,tasksRequest:0,snapshotsRequest:0,tasksFilterKey:null};
 const labels={active:"Autorizado",pending:"Pendiente",revoked:"Revocado",unknown:"Desconocido",healthy:"Saludable",degraded:"Degradado",offline:"Desconectado",operational:"Operativo","not-installed":"No instalado",fresh:"Reciente",stale:"Antiguo",missing:"Sin señal"};
 const classes={active:"green",healthy:"green",operational:"green",pending:"amber",degraded:"amber",stale:"amber",revoked:"red",offline:"red",unknown:"gray","not-installed":"gray",fresh:"green",missing:"gray"};
 function el(id){return document.getElementById(id)}
@@ -133,7 +133,7 @@ function taskDetails(t){
     "Código de error":t.last_error_code||"Sin código"};
   return '<dl class="detail-grid">'+Object.entries(fields).map(([k,v])=>'<div><dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd></div>').join("")+'</dl><p class="muted">El resultado visible es el estado registrado y su código de error. Los payloads y resultados libres no se consultan.</p>';
 }
-function clearTasks(){state.tasks=[];state.selectedTaskId=null;state.tasksHasMore=false;state.tasksGenerated=null;state.tasksError=null;state.tasksOffset=0;state.tasksRequest++;state.tasksBusy=false}
+function clearTasks(){state.tasks=[];state.selectedTaskId=null;state.tasksHasMore=false;state.tasksGenerated=null;state.tasksError=null;state.tasksOffset=0;state.tasksFilterKey=null;state.tasksRequest++;state.tasksBusy=false}
 function renderTasks(){
   const tasks=state.authenticated?state.tasks:[];
   el("tasks-table").innerHTML=tasks.map(t=>'<tr><td><button class="node-open" type="button" data-task-id="'+esc(t.task_id)+'">'+esc(t.task_id)+'</button></td><td>'+esc(t.node_id)+'</td><td>'+esc(taskLabels[t.status]||t.status)+'</td><td>'+esc(date(t.created_at))+'</td></tr>').join("");
@@ -151,11 +151,13 @@ function renderTasks(){
 }
 async function refreshTasks(reset=false){
   if(!state.authenticated)return;
-  if(reset)state.tasksOffset=0;
+  const node=el("tasks-node").value.trim(), status=el("tasks-status").value;
+  const filterKey=JSON.stringify([node,status]);
+  if(reset||state.tasksFilterKey!==filterKey)state.tasksOffset=0;
+  state.tasksFilterKey=filterKey;
   const version=state.sessionVersion, request=++state.tasksRequest;
   state.tasksBusy=true;state.tasks=[];state.tasksHasMore=false;state.selectedTaskId=null;state.tasksError=null;renderTasks();
   const params=new URLSearchParams({limit:"50",offset:String(state.tasksOffset)});
-  const node=el("tasks-node").value.trim(), status=el("tasks-status").value;
   if(node)params.set("node_id",node);if(status)params.set("status",status);
   try{
     const r=await fetch("/admin/v1/tasks?"+params,{credentials:"same-origin",cache:"no-store",redirect:"error",headers:{Accept:"application/json"}});
@@ -172,9 +174,31 @@ async function refreshTasks(reset=false){
 }
 
 function render(){const nodes=state.snapshots.map(s=>s.node);const visibleNodes=filterNodes();const modules=state.snapshots.flatMap(s=>s.node.modules.map(m=>({m,n:s.node})));const healthy=nodes.filter(n=>n.health_state==="healthy"&&n.authorization_state==="active").length;const alerts=nodes.filter(n=>n.health_state!=="healthy"||n.authorization_state!=="active").length;el("metric-nodes").textContent=String(nodes.length);el("metric-healthy").textContent=String(healthy);el("metric-alerts").textContent=String(alerts);el("metric-modules").textContent=String(modules.length);el("nodes-count").textContent=visibleNodes.length===nodes.length?nodes.length+" nodos":visibleNodes.length+" de "+nodes.length+" nodos";el("nodes-table").innerHTML=visibleNodes.map(nodeRow).join("");el("nodes-empty").classList.toggle("hidden",visibleNodes.length>0);el("nodes-empty").textContent=nodes.length?"Sin nodos que coincidan con la búsqueda.":"Aún no hay snapshots reales disponibles.";el("modules-summary").innerHTML=modules.slice(0,8).map(({m,n})=>'<div class="feature-row"><span>'+esc(m.module_id)+' · '+esc(n.display_name)+'</span>'+pill(m.state)+'</div>').join("");el("modules-empty").classList.toggle("hidden",modules.length>0);el("data-mode").textContent=(state.connected?"Fuente: Master · "+API_PATH:"Fuente: no disponible")+" · última consulta: "+(state.lastRefresh?date(state.lastRefresh):"nunca");el("last-refresh").textContent="Última consulta: "+(state.lastRefresh?date(state.lastRefresh):"nunca");el("audit-api").textContent=state.connected?"Conectado · "+nodes.length+" snapshots":state.error||"Sin conectar";el("logout").classList.toggle("hidden",!state.authenticated);renderNodeDetails();renderTasks()}
-async function refresh(){if(state.busy||!state.authenticated)return;state.busy=true;el("refresh").disabled=true;state.error=null;try{const response=await fetch(API_PATH,{method:"GET",headers:{"Accept":"application/json"},credentials:"same-origin",cache:"no-store",redirect:"error"});if(!response.ok)throw new Error(response.status===401||response.status===403?"Autenticación requerida ("+response.status+").":"Servicio no disponible ("+response.status+").");if(!(response.headers.get("content-type")||"").includes("application/json"))throw new Error("El servicio no devolvió JSON.");state.snapshots=validatePayload(await response.json());state.connected=true;state.lastRefresh=new Date().toISOString();updateNotice("ok","Conectado al PC-MASTER",state.snapshots.length+" snapshots reales recibidos. El panel permanece en modo de solo lectura.");}catch(error){state.connected=false;state.snapshots=[];state.error=error instanceof Error?error.message:"Error de conexión";if(state.error.includes("(401)")||state.error.includes("(403)")||state.error.includes("Autenticación")){state.authenticated=false;showLogin(state.error);return;}updateNotice("error","No se pudo consultar el estado real",state.error+" No se mostrarán datos ficticios.");}finally{state.busy=false;el("refresh").disabled=false;render()}}
+async function refresh(){
+  if(state.busy||!state.authenticated)return;
+  const version=state.sessionVersion, request=++state.snapshotsRequest;
+  const current=()=>state.authenticated&&version===state.sessionVersion&&request===state.snapshotsRequest;
+  state.busy=true;el("refresh").disabled=true;state.error=null;
+  try{
+    const response=await fetch(API_PATH,{method:"GET",headers:{Accept:"application/json"},credentials:"same-origin",cache:"no-store",redirect:"error"});
+    if(!current())return;
+    if(response.status===401||response.status===403){state.authenticated=false;showLogin("Autenticación requerida ("+response.status+").");render();return}
+    if(!response.ok)throw new Error("Servicio no disponible ("+response.status+").");
+    if(!(response.headers.get("content-type")||"").includes("application/json"))throw new Error("El servicio no devolvió JSON.");
+    const payload=await response.json();
+    if(!current())return;
+    state.snapshots=validatePayload(payload);state.connected=true;state.lastRefresh=new Date().toISOString();
+    updateNotice("ok","Conectado al PC-MASTER",state.snapshots.length+" snapshots reales recibidos. El panel permanece en modo de solo lectura.");
+  }catch(error){
+    if(!current())return;
+    state.connected=false;state.snapshots=[];state.error=error instanceof Error?error.message:"Error de conexión";
+    updateNotice("error","No se pudo consultar el estado real",state.error+" No se mostrarán datos ficticios.");
+  }finally{
+    if(request===state.snapshotsRequest){state.busy=false;el("refresh").disabled=!state.authenticated;render()}
+  }
+}
 function showPage(page){if(page==="tasks"&&state.authenticated)refreshTasks();document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));el("page-"+page).classList.remove("hidden");document.querySelectorAll("[data-page]").forEach(b=>{const active=b.dataset.page===page;b.classList.toggle("active",active);if(active)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")})}
-function showLogin(message=""){state.sessionVersion++;clearTasks();state.snapshots=[];state.connected=false;el("login-gate").classList.remove("hidden");el("login-error").textContent=message;el("logout").classList.add("hidden");el("operator-password").focus({preventScroll:true})}
+function showLogin(message=""){state.sessionVersion++;state.snapshotsRequest++;state.busy=false;state.lastRefresh=null;state.selectedNodeId=null;el("refresh").disabled=true;clearTasks();state.snapshots=[];state.connected=false;el("login-gate").classList.remove("hidden");el("login-error").textContent=message;el("logout").classList.add("hidden");el("operator-password").focus({preventScroll:true})}
 function hideLogin(){el("login-gate").classList.add("hidden");el("login-error").textContent=""}
 async function checkSession(){try{const r=await fetch("/admin/v1/session",{method:"GET",headers:{"Accept":"application/json"},credentials:"same-origin",cache:"no-store",redirect:"error"});if(!r.ok)throw new Error("No se pudo comprobar la sesión.");const data=await r.json();state.authenticated=data.authenticated===true;if(state.authenticated){hideLogin();await refresh()}else{state.snapshots=[];state.connected=false;showLogin("")}}catch(e){state.authenticated=false;showLogin("Servicio local no disponible. Comprueba que PC-MASTER esté iniciado con HTTPS.")}render()}
 el("login-form").addEventListener("submit",async event=>{event.preventDefault();if(state.authBusy)return;state.authBusy=true;el("login-submit").disabled=true;el("login-error").textContent="";const password=el("operator-password").value;try{const r=await fetch("/admin/v1/login",{method:"POST",headers:{"Accept":"application/json","Content-Type":"application/json"},credentials:"same-origin",cache:"no-store",redirect:"error",body:JSON.stringify({password})});if(!r.ok)throw new Error(r.status===401?"Contraseña incorrecta.":r.status===429?"Demasiados intentos. Espera 15 minutos.":r.status===403?"Origen rechazado por el servicio.":"Servicio no disponible ("+r.status+").");const data=await r.json();if(data.authenticated!==true)throw new Error("No se pudo iniciar sesión.");el("operator-password").value="";state.authenticated=true;hideLogin();await refresh()}catch(e){el("login-error").textContent=e instanceof Error?e.message:"No se pudo iniciar sesión."}finally{state.authBusy=false;el("login-submit").disabled=false;render()}});
