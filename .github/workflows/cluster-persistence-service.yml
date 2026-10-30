@@ -166,6 +166,12 @@ jobs:
           grep -q "CREATE sobre un esquema no permitido" /tmp/geelark-admin-owner-probe.log || { cat /tmp/geelark-admin-owner-probe.log; exit 1; }
           docker exec "$container_id" psql -U postgres -d geelark_test -v ON_ERROR_STOP=1 -c "DROP SCHEMA geelark_admin_owner_probe"
 
+      - name: Install agent transport and tests
+        run: python -m pip install -e "packages/cluster-agent-transport[test]"
+
+      - name: Run durable task inbox PostgreSQL tests
+        run: python -m pytest packages/cluster-agent-transport/tests/test_task_inbox_postgres.py -vv --timeout=60
+
       - name: Check dependency consistency
         if: hashFiles('packages/cluster-persistence/pyproject.toml') != '' || hashFiles('packages/cluster-agent-guard/pyproject.toml') != '' || hashFiles('packages/cluster-agent-auth/pyproject.toml') != '' || hashFiles('packages/cluster-master-admin/pyproject.toml') != ''
         run: python -m pip check

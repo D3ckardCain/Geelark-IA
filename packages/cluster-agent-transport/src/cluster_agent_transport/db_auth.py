@@ -32,7 +32,7 @@ def make_database_authenticator(
         with connect() as conn:
             row = conn.execute(
                 """
-                SELECT n.node_id, c.credential_id, n.admin_state, c.status
+                SELECT n.node_id, c.credential_id, n.admin_state, c.status, c.expires_at, now() AS authorized_at
                   FROM geelark_control.node_credentials AS c
                   JOIN geelark_control.nodes AS n ON n.node_id = c.node_id
                  WHERE c.token_sha256 = %s
@@ -55,5 +55,7 @@ def make_database_authenticator(
             credential_id=str(row[1]),
             admin_state=row[2],
             credential_status=row[3],
+            credential_expires_at=row[4],
+            authorized_at=row[5],
         )
     return authenticate

@@ -1,6 +1,6 @@
 # Transporte HTTPS privado de agentes
 
-Paquete experimental independiente del dominio y sin listener automático.
+Paquete experimental de transporte, sin listener automático. La autorización por operación se delega al paquete canónico `cluster-agent-auth`, que debe instalarse junto con el transporte.
 
 ## Política de acceso
 
@@ -21,7 +21,7 @@ Paquete experimental independiente del dominio y sin listener automático.
 - `InMemoryRateLimiter` limita a 60 solicitudes/minuto/nodo por proceso y solo es apropiado para pruebas o un único worker.
 - `PostgresRateLimiter` usa un UPDATE atómico en la fila del nodo y aplica el límite global entre workers/procesos. Requiere la migración `db/migrations/0003_agent_rate_limit.sql`; el contador se satura para evitar desbordamiento.
 - El cliente `AgentHTTPSClient` usa la CA explícita, verifica cadena y hostname/IP, exige TLS 1.2+, no sigue redirects, rechaza path traversal y limita timeout, cuerpos y respuestas.
-- `AgentTransportRuntime` conecta el cliente con un journal compatible: persiste progreso/resultados antes de enviarlos y ofrece `sync_pending_receipts(limit=100)` para recorrer un lote acotado. El journal debe exponer `list_pending_receipts(limit=...)` y `mark_receipt_synced(operation_id)`; el ACK terminal solo se registra tras una respuesta HTTP 2xx. Los estados `accepted` no se envían como resultados. No ejecuta tareas ni inicia polling por sí solo.
+- `AgentTransportRuntime` conecta el cliente con un journal compatible: persiste progreso/resultados antes de enviarlos y ofrece `sync_pending_receipts(limit=100)` para recorrer un lote acotado. El journal debe exponer `list_pending_receipts(limit=...)` y `mark_receipt_synced(operation_id, expected_assignment_epoch=..., expected_status=..., expected_result=...)`. Un HTTP 2xx solo confirma la versión exacta enviada; si el epoch, estado o resultado ya cambió, el ACK devuelve `False` y el recibo más reciente permanece pendiente. Las APIs antiguas sin este contrato fallan cerradas. Los estados `accepted` no se envían como resultados. No ejecuta tareas ni inicia polling por sí solo.
 - Las respuestas no incluyen tokens, SQL ni excepciones internas.
 - Los handlers de dominio no configurados responden 503; el paquete no ejecuta shell/ADB ni comandos Android.
 
@@ -35,7 +35,7 @@ Para el primer tramo de telemetría, usar:
 - `handlers=make_postgres_agent_handlers(connect)`
 - `AgentTransportRuntime(client=https_client, bearer_token=token, journal=agent_journal, local_node_id=node_id)` para integrar el cliente con el journal local del agente.
 
-Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fila antes de mutar; guardan heartbeat/capacidades y consultan únicamente el nodo autenticado. Los handlers de tareas/reconciliación siguen sin configurarse y devuelven 503; no deben conectarse a operaciones reales hasta integrar el servicio de dominio/outbox y revisarlo.
+Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fila antes de mutar; guardan heartbeat/capacidades y consultan únicamente el nodo autenticado. Los handlers de tareas/reconciliación están implementados en la rama de bandeja durable y se conectan solo al crear explícitamente `make_postgres_agent_handlers`; esta PR sigue draft y no habilita ningún listener ni despliegue. La reconciliación permanece de solo lectura; no se ejecuta Android, ADB ni shell.
 
 ## Validación pendiente
 
@@ -48,9 +48,22 @@ Los handlers incluidos vuelven a comprobar estado/credencial bajo bloqueo de fil
 
 Los tests de configuración TLS usan archivos ficticios para probar restricciones del listener, no para simular certificados válidos. El paquete no instala software en PCs físicas ni requiere APIs o servicios de pago.
 
+## Instalación local del monorepo
+
+El transporte delega la autorización en el paquete canónico `cluster-agent-auth`. Instala ambos paquetes desde la raíz del repositorio; no instales el transporte de forma aislada.
+
+```sh
+python -m pip install -e "packages/cluster-agent-auth[test]"
+python -m pip install -e "packages/cluster-agent-transport[test]"
+python -m pip check
+```
+
+La autenticación PostgreSQL devuelve `credential_expires_at`; la política canónica vuelve a validar ese timestamp en cada operación. Los nodos pending no pueden reclamar tareas ni reportar módulos.
+
 ## Pruebas locales
 
 ```sh
+python -m pip install -e "packages/cluster-agent-auth[test]"
 python -m pip install -e "packages/cluster-agent-transport[test]"
 python -m pytest packages/cluster-agent-transport/tests -q
 ```
@@ -65,3 +78,20 @@ python -m pytest packages/cluster-agent-transport/tests -q
 - Migración requerida: `db/migrations/0004_worker_module_inventory.sql`. No está desplegado ni conectado a PCs físicas.
 
 - Esquema normativo del payload: [worker-module-inventory-v1.schema.json](../../docs/contracts/worker-module-inventory-v1.schema.json); [ejemplo](../../docs/contracts/examples/worker-module-inventory-v1.example.json).
+
+## Bandeja durable de tareas (en revisión)
+
+- `POST /agent/v1/tasks/claim` entrega una única asignación tipada a un nodo `active/active` y saludable; los nodos `pending` reciben 403.
+- Claim, aceptación, progreso y resultado usan idempotencia, nonce anti-replay, propietario, epoch y leases de entrega/asignación. La lease de entrega solo limita la aceptación mientras la tarea siga `delivered`; después de `accepted`, progreso/resultado siguen sujetos al propietario, `assignment_epoch` y lease de instancia.
+- El claim bloquea la tarea, instancia y operación con `FOR UPDATE ... SKIP LOCKED`; la respuesta incluye las dos expiraciones de lease.
+- Los resúmenes de resultado se limitan a 1 MB y rechazan claves sensibles en snake_case, kebab-case o camelCase.
+- `POST /agent/v1/reconcile` es estrictamente read-only: devuelve discrepancias y `mutations_applied=0`; `unknown` requiere revisión.
+- Migración secuencial al inventario de módulos: `db/migrations/0005_agent_task_inbox.sql`; smoke SQL: `db/tests/0005_agent_task_inbox_smoke.sql`.
+- La prueba de integración PostgreSQL cubre doble claim concurrente, recuperación idempotente, lease de entrega, estados terminales, campos sensibles y epoch obsoleto. La integración con el bucle real del agente sigue pendiente.
+
+No activar listeners ni desplegar en nodos físicos hasta que la pila completa esté revisada y sus pruebas pasen sobre el HEAD actualizado.
+
+
+## Snapshot de estado para PC-MASTER (componente interno)
+
+El proveedor `PostgresStatusSnapshotProvider` del paquete `cluster-persistence` transforma el estado persistido en el contrato `master-worker-status-v1`. Ejecuta solo `SELECT`, no crea listeners ni cambia permisos; la capa que lo consuma debe autenticar y autorizar al operador y usar un rol PostgreSQL de solo lectura. Manual operativo: [MANUAL_PROVEEDOR_SNAPSHOT_PC_MASTER.md](../../docs/MANUAL_PROVEEDOR_SNAPSHOT_PC_MASTER.md). No está conectado al panel ni aprobado para despliegue.

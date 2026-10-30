@@ -1,5 +1,6 @@
 """Pruebas reales contra PostgreSQL; CI proporciona TEST_DATABASE_URL."""
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 import os
 from uuid import uuid4
 
@@ -128,6 +129,67 @@ def test_rotation_revokes_old_and_activates_new_atomically():
     finally:
         cleanup([node_id], [enrollment.record_id])
 
+
+
+def test_credential_expiry_uses_postgres_clock_not_application_clock(monkeypatch):
+    import cluster_agent_auth.service as service_module
+
+    real_datetime = service_module.datetime
+    node_id = uuid4()
+    with connect() as conn:
+        database_now = conn.execute("SELECT now()").fetchone()[0]
+
+        class AppClockAhead(real_datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return real_datetime.now(tz) + timedelta(hours=1)
+
+        monkeypatch.setattr(service_module, "datetime", AppClockAhead)
+        enrollment = create_enrollment(conn, node_id, "clock-test-admin", ttl=timedelta(minutes=10))
+        assert enrollment.expires_at == database_now + timedelta(minutes=10)
+
+    try:
+        with connect() as conn:
+            credential = consume_enrollment(
+                conn, enrollment.secret, "auth-clock-test-node", credential_ttl=timedelta(days=90)
+            )
+        with connect() as conn:
+            created_at, expires_at = conn.execute(
+                "SELECT created_at, expires_at FROM geelark_control.node_credentials WHERE credential_id = %s",
+                (credential.record_id,),
+            ).fetchone()
+            assert expires_at - created_at == timedelta(days=90)
+            conn.execute("UPDATE geelark_control.nodes SET admin_state = 'active' WHERE node_id = %s", (node_id,))
+            conn.execute(
+                "UPDATE geelark_control.node_credentials SET status = 'active', activated_at = now() WHERE credential_id = %s",
+                (credential.record_id,),
+            )
+
+        with connect() as conn:
+            rotation = begin_credential_rotation(conn, node_id, ttl=timedelta(days=30))
+        with connect() as conn:
+            created_at, expires_at = conn.execute(
+                "SELECT created_at, expires_at FROM geelark_control.node_credentials WHERE credential_id = %s",
+                (rotation.record_id,),
+            ).fetchone()
+            assert expires_at - created_at == timedelta(days=30)
+            rotate_credential(conn, node_id, rotation.record_id)
+
+        with connect() as conn:
+            database_now, activated_at, revoked_at = conn.execute(
+                """
+                SELECT now(), replacement.activated_at, original.revoked_at
+                  FROM geelark_control.node_credentials AS replacement
+                  JOIN geelark_control.node_credentials AS original
+                    ON original.credential_id = replacement.replaces_credential_id
+                 WHERE replacement.credential_id = %s
+                """,
+                (rotation.record_id,),
+            ).fetchone()
+        assert activated_at == revoked_at
+        assert abs((database_now - activated_at).total_seconds()) < 5
+    finally:
+        cleanup([node_id], [enrollment.record_id])
 
 
 def test_expired_enrollment_is_rejected():

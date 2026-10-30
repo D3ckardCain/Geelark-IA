@@ -21,7 +21,8 @@ def test_pending_telemetry_persists_and_status_is_scoped_to_own_node():
     token_hash = hashlib.sha256(secrets.token_hex(32).encode()).hexdigest()
     connect = lambda: psycopg.connect(DATABASE_URL)
     handlers = make_postgres_agent_handlers(connect)
-    principal = AgentPrincipal(str(node_id), str(credential_id), "pending", "pending")
+    auth_now = datetime.now(timezone.utc)
+    principal = AgentPrincipal(str(node_id), str(credential_id), "pending", "pending", auth_now + timedelta(hours=1), auth_now)
     heartbeat = {
         "agent_version": "0.1.0",
         "health_state": "healthy",
@@ -62,6 +63,12 @@ def test_pending_telemetry_persists_and_status_is_scoped_to_own_node():
         assert hb["health_state"] == "healthy"
         assert state["reported_health_state"] == "healthy"
         assert state["health_state"] == "healthy"
+        with connect() as conn:
+            persisted_health = conn.execute(
+                "SELECT reported_health_state, health_state FROM geelark_control.nodes WHERE node_id = %s",
+                (node_id,),
+            ).fetchone()
+        assert persisted_health == ("healthy", "healthy")
         assert state["capabilities"] == {"version": 1, "items": ["heartbeat", "status"]}
 
         # A stale report must not remain authoritative just because the Worker
@@ -93,7 +100,8 @@ def test_active_module_inventory_is_persisted_and_stale_reports_become_unknown()
     token_hash = hashlib.sha256(secrets.token_hex(32).encode()).hexdigest()
     connect = lambda: psycopg.connect(DATABASE_URL)
     handlers = make_postgres_agent_handlers(connect)
-    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active")
+    auth_now = datetime.now(timezone.utc)
+    principal = AgentPrincipal(str(node_id), str(credential_id), "active", "active", auth_now + timedelta(hours=1), auth_now)
     payload = {"schema_version": 1, "modules": [
         {"module_id": "agent-supervisor", "state": "operational", "version": "0.1.0", "error_code": None},
         {"module_id": "android-engine", "state": "not-installed", "version": None, "error_code": None},

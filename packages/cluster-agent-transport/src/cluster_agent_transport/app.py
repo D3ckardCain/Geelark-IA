@@ -88,6 +88,29 @@ class TaskMessage(BaseModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
+class TaskClaimPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: int = Field(ge=1, le=1)
+
+
+class ReconcileItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    task_id: UUID
+    operation_id: UUID
+    instance_id: UUID
+    assignment_epoch: int = Field(ge=1, le=2**63 - 1)
+    observed_state: str = Field(
+        pattern="^(queued|delivered|accepted|running|succeeded|rejected|failed|unknown|reserved|starting|stopping|stopped)$",
+        max_length=32,
+    )
+    result_summary: dict[str, Any] = Field(default_factory=dict)
+
+
+class ReconcilePayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: int = Field(ge=1, le=1)
+    assignments: list[ReconcileItem] = Field(max_length=500)
+
 class RequireHTTPSMiddleware:
     """Falla cerrada si el servidor ASGI recibe una solicitud HTTP sin TLS."""
 
@@ -301,6 +324,18 @@ def create_agent_app(
     ) -> Any:
         principal = authorize(Operation.STATUS_READ, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
         return invoke(Operation.STATUS_READ, principal)
+    @app.post("/agent/v1/tasks/claim")
+    def claim_task(
+        payload: TaskClaimPayload,
+        authorization: str | None = Header(default=None),
+        x_agent_nonce: str | None = Header(default=None),
+        x_agent_timestamp: str | None = Header(default=None),
+        x_request_id: str | None = Header(default=None),
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    ) -> Any:
+        principal = authorize(Operation.TASK_FETCH, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
+        return invoke_write(Operation.TASK_FETCH, principal, payload.model_dump(), idempotency_key)
+
 
     def task_route(operation: Operation) -> Callable[..., Any]:
         def endpoint(
@@ -323,7 +358,7 @@ def create_agent_app(
 
     @app.post("/agent/v1/reconcile")
     def reconcile(
-        payload: TaskMessage,
+        payload: ReconcilePayload,
         authorization: str | None = Header(default=None),
         x_agent_nonce: str | None = Header(default=None),
         x_agent_timestamp: str | None = Header(default=None),
@@ -331,6 +366,6 @@ def create_agent_app(
         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     ) -> Any:
         principal = authorize(Operation.RECONCILE, authorization, x_agent_nonce, x_agent_timestamp, x_request_id)
-        return invoke_write(Operation.RECONCILE, principal, payload.model_dump(), idempotency_key)
+        return invoke_write(Operation.RECONCILE, principal, payload.model_dump(mode="json"), idempotency_key)
 
     return app
