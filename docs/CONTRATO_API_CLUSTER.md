@@ -3,7 +3,7 @@
 **Versión:** 0.1  
 **Fecha:** 2026-10-09  
 **Estado:** especificación preliminar; no implementada ni validada con pruebas.  
-**Objetivo:** definir una API local y privada para administrar clúster, nodos, instancias Android y tareas sin acoplar el dominio a una implementación concreta del runtime Android.
+**Objetivo:** definir una API local y privada para administrar clúster, nodos, instancias Android y tareas sin acoplar el dominio a Proxmox VE o a un motor Android concreto.
 
 ## 1. Reglas de diseño
 
@@ -80,10 +80,12 @@ El protocolo de agente puede compartir el host y el dominio de API, pero debe te
 - `POST /agent/v1/session`: validar identidad y establecer sesión corta.
 - `POST /agent/v1/heartbeat`: informar salud, versión y estado resumido.
 - `PUT /agent/v1/capabilities`: publicar inventario de capacidades versionado.
+- `PUT /agent/v1/modules`: publicar inventario versionado de módulos del registro cerrado; el Master fija `checked_at` y los reportes obsoletos o con timestamps futuros se degradan a `unknown`.
+- `POST /agent/v1/tasks/claim`: reclamar de forma idempotente la siguiente asignación de la bandeja durable (solo nodo activo; devuelve una tarea o `task: null`).
 - `POST /agent/v1/tasks/{task_id}/accept`: aceptar una asignación vigente.
 - `POST /agent/v1/tasks/{task_id}/progress`: informar progreso y etapa.
-- `POST /agent/v1/tasks/{task_id}/result`: publicar resultado tipado y redactado.
-- `POST /agent/v1/reconcile`: intercambiar inventario real tras reconexión.
+- `POST /agent/v1/tasks/{task_id}/result`: publicar resultado tipado y redactado. Los resúmenes JSON se limitan a 1 MiB y rechazan claves con secretos (tokens, contraseñas, cookies, credenciales, etc.).
+- `POST /agent/v1/reconcile`: comparar inventario local y estado central; en esta fase es estrictamente de solo lectura y devuelve discrepancias sin mutar operaciones ni convertir estados `unknown` en terminales.
 
 Si el agente no puede alcanzar el controlador, conservará un diario local mínimo y no aceptará tareas nuevas que dependan de una autoridad vigente. El controlador no interpretará la ausencia de heartbeat como prueba de que el nodo está apagado.
 
@@ -189,4 +191,4 @@ Los conflictos se registran y requieren una regla de reconciliación explícita;
 - Paginación y orden estable de eventos.
 - Contrato OpenAPI exportable y pruebas de conformidad del agente.
 
-**No hay endpoints implementados ni pruebas ejecutadas. Este documento solo define el contrato de diseño.**
+**Estado real:** los endpoints administrativos `/api/v1` siguen siendo diseño. El protocolo privado `/agent/v1` tiene implementación parcial con pruebas automatizadas de autenticación, telemetría, inventario de módulos y bandeja durable. No hay ejecución Android/ADB/shell ni despliegue en nodos físicos.

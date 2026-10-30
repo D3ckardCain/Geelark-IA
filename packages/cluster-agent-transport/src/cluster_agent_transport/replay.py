@@ -22,14 +22,16 @@ def consume_request_nonce(
     window: timedelta = timedelta(minutes=5),
 ) -> None:
     """Consume nonce en PostgreSQL; la clave única impide replay entre workers."""
-    if timestamp.tzinfo is None:
+    if timestamp.tzinfo is None or timestamp.utcoffset() is None:
         raise ReplayRejected("Timestamp sin zona horaria.")
-    now = datetime.now(timezone.utc)
-    if abs(now - timestamp.astimezone(timezone.utc)) > window:
-        raise ReplayRejected("Timestamp fuera de la ventana permitida.")
 
     try:
         with conn.transaction():
+            # La ventana anti-replay y la expiración del nonce deben usar el
+            # mismo reloj autoritativo que las credenciales y leases PostgreSQL.
+            now = conn.execute("SELECT now()").fetchone()[0]
+            if abs(now - timestamp.astimezone(timezone.utc)) > window:
+                raise ReplayRejected("Timestamp fuera de la ventana permitida.")
             conn.execute(
                 """
                 INSERT INTO geelark_control.agent_request_nonces

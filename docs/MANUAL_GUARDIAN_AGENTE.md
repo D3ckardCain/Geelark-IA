@@ -37,4 +37,15 @@ El guardián funciona sin PostgreSQL ni conectividad una vez que el comando aute
 
 Un epoch local solo permite rechazar comandos viejos que llegan al mismo nodo. **No puede detener por sí solo una instancia antigua que continúa ejecutándose en otro nodo aislado de la red.** La Master no debe reasignar una instancia por la mera expiración del lease; necesita confirmar que el propietario anterior paró o aplicar un mecanismo externo de fencing probado.
 
+### Bloqueo adicional: lease local y reloj (issue #128, 2026-10-24)
+
+La validación actual de `lease_expires_at` en `AgentJournal.accept_command()` compara contra el reloj de pared del Worker. Esta comparación aislada **no es una garantía segura de vigencia** si el reloj del Worker difiere del reloj autoritativo de PostgreSQL, y no debe reutilizarse como permiso tras reiniciar.
+
+Hasta implementar el diseño de la issue #128:
+- No conectar este journal a un supervisor que ejecute operaciones reales ni usarlo para autorizar efectos Android.
+- En una futura sesión conectada, derivar una deadline monotónica local a partir de una validación autoritativa del Master, con margen conservador por latencia; no permitir que el Worker amplíe leases por su cuenta.
+- La deadline monotónica solo vale durante esa sesión del proceso. Tras reinicio, salto de reloj o pérdida de evidencia fiable, fallar cerrado y reconciliar con Master antes de continuar.
+- No iniciar tareas nuevas offline. La continuidad offline de una operación ya aceptada requiere una deadline monotónica fiable y explícita; tras reboot no se presume vigente.
+- Añadir pruebas de reloj de pared ±1 hora, expiración monotónica, reinicio/reapertura de SQLite, pérdida de respuesta y cambio de epoch antes de levantar el bloqueo.
+
 Este módulo no aporta autenticación, firmas, TLS, permisos de sistema operativo, revocación ni quorum. Tampoco expone ADB/shell ni abre puertos. No desplegar en las PC físicas hasta validar todo el plano de control.

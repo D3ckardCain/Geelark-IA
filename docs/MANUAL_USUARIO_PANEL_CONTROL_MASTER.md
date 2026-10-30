@@ -1,85 +1,57 @@
-# Manual de usuario — Panel de control PC-MASTER
+# Manual de usuario — Panel PC-MASTER
 
-**Estado actualizado al 2026-10-19:** se han completado comprobaciones operativas adicionales en el PC-MASTER local, documentadas al final de este manual. La aceptación integral de producción y varias pruebas de seguridad siguen pendientes. La CI de la PR #84 está aprobada para su HEAD publicado, pero eso no valida los cambios locales sin publicar.
+## Estado y alcance vigente
+Panel web local para Windows, estilo GitHub Dark. Rama de desarrollo: `fix/pc-master-session-acl-hardening`, PR #139. Workers previstos: Debian 13 y redroid.
+Las funciones descritas están en la rama; la aceptación manual Windows sigue pendiente en #77. Redroid continúa bloqueado por #27. No se declara validación de hardware.
 
-## 1. Acceso inicial
+## Acceso
+Inicia el panel desde el lanzador Windows y abre la URL HTTPS local configurada (por defecto https://localhost:8765/). Verifica el certificado y usa la contraseña local del operador. La sesión usa cookie segura y caduca a las ocho horas.
+Cerrar sesión revoca la sesión en el servidor. Un error de red no se presenta como cierre confirmado.
 
-1. Instala el paquete local y configura TLS, hash de operador, directorio privado y DSN PostgreSQL siguiendo [la guía de instalación](../packages/cluster-master-admin/README.md).
-2. Inicia manualmente `python -m geelark_master_admin.runtime`.
-3. Abre `https://localhost:8765/` en el mismo PC-MASTER. No abras el HTML como archivo local para acceder a datos reales.
-4. Verifica que el certificado corresponda a `localhost` y esté confiado por el sistema. No ignores advertencias TLS sin verificar la huella y procedencia del certificado.
-5. Escribe la contraseña local del operador. No hay cuenta externa ni recuperación remota; conserva la contraseña de forma segura.
-6. Al entrar, el panel consulta snapshots por GET y solo muestra datos que devuelve el servicio.
+## Navegación
+La barra lateral ofrece Nodos, Tareas y Sistema. En pantallas estrechas aparece sobre el contenido.
 
-## 2. Cerrar sesión
+### Nodos
+- Actualizar estado consulta el Master autenticado. No se generan workers de ejemplo.
+- Busca por nombre o identificador. Combina la búsqueda con filtros de autorización y salud; todos deben coincidir.
+- Los contadores generales corresponden al inventario recibido; el contador de la tabla indica cuántos nodos coinciden.
+- Pulsa el nombre de un worker para abrir su ficha. El nombre es un botón accesible con teclado.
+- La ficha muestra ID, versión del agente, último heartbeat, fecha del snapshot, autorización, salud derivada, salud reportada y frescura.
+- Capacidades: lista completa de lo reportado. Un listado vacío significa ausencia de evidencia.
+- Módulos: inventario completo del worker, con estado, versión, fecha, fuente y código de error. El resumen general solo muestra los ocho primeros; la ficha no tiene ese recorte.
+- Cerrar ficha vuelve el foco a la búsqueda.
+- Al actualizar, la ficha toma los datos del nuevo snapshot. Si desaparece el nodo, falla la consulta o se cierra la sesión, se elimina el detalle anterior.
+- La antigüedad se calcula en PostgreSQL cuando se genera el snapshot; no es un contador en vivo. Pulsa Actualizar estado para renovarla.
+- La API devuelve como máximo 500 nodos por consulta. No hay paginación en esta versión.
 
-Pulsa **Cerrar sesión** en la cabecera. El servidor revoca la sesión en SQLite y elimina la cookie. Si no se recibe confirmación, el panel no afirma que la sesión se haya cerrado; comprueba la conexión e inténtalo de nuevo. La sesión también caduca tras ocho horas.
+### Tareas
+Consulta real de la bandeja durable, con filtros por worker/estado, páginas de 50 y detalle de metadatos. No ejecuta tareas ni ofrece shell o ADB. Véase [Manual de consulta de tareas](MANUAL_CONSULTA_TAREAS_PC_MASTER.md) para preparación del rol lector, límites y estados.
 
-## 3. Navegación
+### Sistema
+Muestra la conexión con la API y enlaces a GitHub/Actions. Las descripciones de configuración son el diseño previsto; no sustituyen la verificación efectiva de TLS, ACL y loopback del equipo.
 
-- **Resumen:** contadores y últimos snapshots.
-- **Nodos Worker:** búsqueda por nombre o identificador, estado de autorización, salud, heartbeat, versión y capacidades.
-- **Módulos:** estado de los módulos reportados y frescura del reporte.
-- **Auditoría y CI:** enlaces a las ejecuciones de GitHub. Consultar GitHub requiere Internet.
+## Estados
+Autorización y salud son señales distintas. Un nodo pendiente no queda autorizado porque reporte salud.
+- Saludable: evidencia fresca y reporte saludable.
+- Degradado: reporte de salud degradado o no saludable.
+- Desconectado: heartbeat antiguo o ausente.
+- Desconocido: evidencia insuficiente o incoherente.
+Los módulos ausentes o desconocidos no se consideran instalados.
 
-## 4. Estados
+## Errores
+401/403: comprobar sesión y origen local. 429: límite de intentos, esperar la ventana indicada. 503 o fallo de conexión: actualizar de nuevo cuando el servicio y PostgreSQL estén disponibles. No se conservan datos antiguos como si fueran actuales.
+No ignores errores del certificado. No compartas contraseña, cookies, pgpass ni claves TLS.
 
-- **Saludable:** estado derivado por el Master con evidencia fresca.
-- **Degradado:** el reporte de salud indica degradación o problema.
-- **Desconectado:** el heartbeat está obsoleto.
-- **Pendiente:** el nodo no está autorizado para aceptar tareas.
-- **Revocado:** autorización revocada.
-- **Desconocido:** evidencia ausente, obsoleta o inconsistente.
-- **Fresco / obsoleto / ausente:** frescura del heartbeat, no salud por sí sola.
+## Operación sin Internet
+El panel y sus consultas funcionan sin Internet mientras el servicio local y PostgreSQL sean accesibles. GitHub y Actions requieren Internet. No hay caché persistente ni modo PWA; con el servicio detenido no se garantiza abrir la página. No se almacenan snapshots ni credenciales en localStorage/IndexedDB.
 
-Autorización y salud son señales distintas. La API no ejecuta tareas ni modifica nodos.
+## Validación
+Las pruebas automáticas verifican API, ACL, lanzador, PostgreSQL y comportamiento JavaScript de filtros/ficha, incluido escape de texto y eliminación de datos sin sesión.
+La revisión visual y de teclado en Windows real sigue pendiente en #77. Las cifras de CI pertenecen a cada SHA y se registran en #139; no sustituyen esa aceptación.
 
-## 5. Ejemplo ficticio
+## Historial de validación local (conservado)
 
-El botón **Ver ejemplo ficticio** permite probar navegación sin iniciar sesión. Los datos son generados localmente y no representan equipos reales. El ejemplo no crea una sesión ni concede acceso al backend. Para volver a datos reales, el panel exige comprobar la sesión local.
-
-## 6. Errores y solución
-
-- **No se puede iniciar sesión:** revisa la contraseña local; tras cinco intentos fallidos en 15 minutos se limita el acceso.
-- **401:** inicia sesión; la sesión no existe, expiró o fue revocada.
-- **403:** el origen de la solicitud no coincide con el origen del panel.
-- **429:** espera a que pase la ventana del limitador.
-- **503:** servicio o base de datos no disponible, o respuesta demasiado grande. Revisa logs locales sin registrar contraseñas, cookies, DSN ni tokens.
-- **No hay nodos:** puede ser una tabla vacía o ausencia de snapshots; no se interpreta como clúster saludable.
-- **Error de certificado:** confirma el certificado y su SAN; no desactives TLS.
-
-## 7. Seguridad
-
-- Autenticación local gestionada por PC-MASTER; no se envían contraseñas a proveedores externos.
-- Cookie HttpOnly, Secure, SameSite=Strict y Path=/; el navegador no puede leerla desde JavaScript.
-- La API exige HTTPS y comprueba Origin para login/logout.
-- El backend usa el rol PostgreSQL `geelark_master_reader`, con transacciones read-only, timeouts y una consulta SELECT limitada.
-- No hay controles de mutación, ejecución shell, ADB, tareas, ni reconciliación.
-- No se persisten credenciales ni snapshots en almacenamiento del navegador.
-- La interfaz sirve desde el mismo origen que la API, evitando tener que habilitar CORS.
-- El servidor escucha en loopback por defecto; no lo expongas a la LAN sin revisión de seguridad específica.
-
-## 8. Funciones offline
-
-| Función | ¿Funciona sin conexión? |
-|---|---|
-| Abrir la página empaquetada en el servidor local | Sí, mientras PC-MASTER esté ejecutándose |
-| Navegar por la interfaz | Sí |
-| Ejemplo ficticio | Sí |
-| Iniciar sesión | Requiere el servicio local |
-| Consultar snapshots | Requiere PostgreSQL disponible |
-| Consultar GitHub Actions | Requiere Internet |
-| Ejecutar operaciones en Workers | No implementado |
-
-Si PostgreSQL está alojado remotamente, consultar datos reales requiere Internet y depende de la disponibilidad/límites del proveedor. Para mayor autonomía y coste controlado, PostgreSQL local es preferible.
-
-## 9. Limitaciones conocidas
-
-- Una sola instancia de servidor; el limitador de login es en memoria.
-- La sesión se guarda en SQLite local y expira en ocho horas.
-- CI verifica los permisos del rol en PostgreSQL desechable. Los permisos efectivos de la instancia real deben verificarse ejecutando `packages/cluster-master-admin/sql/verify_readonly_role.sql` como el usuario lector.
-- La CI aprobada incluye pruebas de la API y verificación de grants en una base PostgreSQL desechable; no sustituye la validación de credenciales, permisos ni conectividad en la instancia real de PC-MASTER ni la revisión manual de seguridad.
-- Las pruebas locales no equivalen a una aceptación completa en producción. La PR #76 se cerró sin fusionarse; la PR de reemplazo es la #84, que permanece en borrador y sin fusionar. Completar la lista de aceptación de la issue #77 antes de declarar operativo el módulo.
+Los registros siguientes son históricos. Sus referencias a PR y estados locales corresponden a aquellas fechas; para el funcionamiento vigente usa las secciones anteriores.
 
 ## 10. Inicio, diagnostico y cierre desde PC-MASTER para Windows
 

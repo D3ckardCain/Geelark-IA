@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import os
+
+import pytest
 from pathlib import Path
 from uuid import uuid4
 
@@ -12,8 +15,9 @@ from geelark_master_admin.app import SESSION_COOKIE, _panel_csp
 
 
 class FakeConnection(AbstractContextManager):
-    def __init__(self, rows):
+    def __init__(self, rows, database_now=None):
         self.rows = rows
+        self.database_now = database_now if database_now is not None else datetime.now(timezone.utc)
         self.statements = []
 
     def __enter__(self):
@@ -28,11 +32,20 @@ class FakeConnection(AbstractContextManager):
         assert "INSERT " not in statement.upper()
         assert "UPDATE " not in statement.upper()
         assert "DELETE " not in statement.upper()
-        assert params == (500,)
+        if 'FROM geelark_control.nodes' in statement:
+            assert params == (500,)
+            assert 'health_state AS reported_health_state' not in statement
+            assert 'admin_state, reported_health_state,' in statement
+        else:
+            assert statement.strip().lower() == 'select clock_timestamp()'
+            assert params == ()
         return self
 
     def fetchall(self):
         return self.rows
+
+    def fetchone(self):
+        return (self.database_now,)
 
 
 def make_row():
@@ -49,11 +62,11 @@ def make_row():
     )
 
 
-def make_client(tmp_path: Path, rows=None):
+def make_client(tmp_path: Path, rows=None, database_now=None):
     connections = []
 
     def connect():
-        conn = FakeConnection(rows if rows is not None else [make_row()])
+        conn = FakeConnection(rows if rows is not None else [make_row()], database_now=database_now)
         connections.append(conn)
         return conn
 
@@ -275,3 +288,113 @@ def test_body_limit_middleware_propagates_disconnect_after_replaying_body() -> N
     }
     assert received_by_app[1] == {"type": "http.disconnect"}
     assert sent[0]["status"] == 200
+
+
+def test_panel_node_search_visible_accessible_and_wired() -> None:
+    from html.parser import HTMLParser
+
+    source = (
+        Path(__file__).parents[1] / "src" / "geelark_master_admin" / "panel.html"
+    ).read_text(encoding="utf-8")
+
+    class ControlParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.inputs = []
+            self.labels = []
+
+        def handle_starttag(self, tag, attrs):
+            attributes = dict(attrs)
+            if tag == "input" and attributes.get("id") == "node-search":
+                self.inputs.append(attributes)
+            if tag == "label" and attributes.get("for") == "node-search":
+                self.labels.append(attributes)
+
+    controls = ControlParser()
+    controls.feed(source)
+    assert len(controls.inputs) == 1
+    assert controls.inputs[0]["type"] == "search"
+    assert controls.labels and controls.labels[0]["class"] == "sr-only"
+    assert 'el("node-search")?.addEventListener("input",render)' in source
+    assert "const visibleNodes=filterNodes()" in source
+    assert "Sin nodos que coincidan con la búsqueda." in source
+
+
+@pytest.mark.parametrize("database_offset", [-3600, 3600])
+def test_snapshots_use_database_clock_for_stale_heartbeat(tmp_path, database_offset):
+    database_now = datetime.now(timezone.utc) + timedelta(seconds=database_offset)
+    row = list(make_row())
+    row[5] = database_now - timedelta(seconds=90)
+    client, connections = make_client(tmp_path, rows=[tuple(row)], database_now=database_now)
+    client.post(
+        "/admin/v1/login",
+        json={"password": "Correct Horse Battery 2030!"},
+        headers={"Origin": "https://master.test"},
+    )
+    response = client.get("/admin/v1/status/snapshots")
+    assert response.status_code == 200
+    payload = response.json()
+    snapshot = payload["snapshots"][0]
+    expected = database_now.isoformat().replace("+00:00", "Z")
+    assert payload["generated_at"] == snapshot["generated_at"] == expected
+    assert snapshot["freshness"]["age_seconds"] == 90
+    assert snapshot["freshness"]["state"] == "stale"
+    assert snapshot["node"]["health_state"] == "offline"
+    assert snapshot["node"]["reported_health_state"] == "healthy"
+    assert len(connections[0].statements) == 2
+
+
+def test_empty_snapshots_still_use_database_clock():
+    from geelark_master_admin.app import _read_snapshots
+
+    database_now = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    generated_at, snapshots = _read_snapshots(
+        lambda: FakeConnection([], database_now=database_now)
+    )
+    assert generated_at == "2020-01-01T00:00:00Z"
+    assert snapshots == []
+
+
+def test_snapshot_clock_failure_does_not_fall_back_to_local_time():
+    from geelark_master_admin.app import _read_snapshots
+
+    class UnavailableClock(FakeConnection):
+        def execute(self, statement, params=()):
+            if statement.strip().lower() == "select clock_timestamp()":
+                raise RuntimeError("database clock unavailable")
+            return super().execute(statement, params)
+
+    with pytest.raises(RuntimeError, match="database clock unavailable"):
+        _read_snapshots(lambda: UnavailableClock([]))
+
+
+@pytest.mark.skipif(not os.getenv("TEST_DATABASE_URL"), reason="Requiere PostgreSQL desechable")
+def test_admin_snapshots_read_reported_health_and_database_clock_in_postgres():
+    import psycopg
+    from geelark_master_admin.app import _read_snapshots
+
+    dsn = os.environ["TEST_DATABASE_URL"]
+    node_id = uuid4()
+    with psycopg.connect(dsn, autocommit=True) as admin:
+        try:
+            admin.execute(
+                """
+                INSERT INTO geelark_control.nodes
+                    (node_id, display_name, admin_state, health_state,
+                     reported_health_state, last_seen_at)
+                VALUES (%s, %s, 'active', 'healthy', 'unhealthy', clock_timestamp())
+                """,
+                (node_id, "SNAPSHOT-" + node_id.hex[:12]),
+            )
+            before = admin.execute("SELECT clock_timestamp()").fetchone()[0]
+            generated_at, snapshots = _read_snapshots(lambda: psycopg.connect(dsn))
+            after = admin.execute("SELECT clock_timestamp()").fetchone()[0]
+            snapshot = next(item for item in snapshots if item["node"]["node_id"] == str(node_id))
+            assert snapshot["node"]["reported_health_state"] == "unhealthy"
+            assert snapshot["node"]["health_state"] == "degraded"
+            assert snapshot["freshness"]["state"] == "fresh"
+            assert snapshot["generated_at"] == generated_at
+            observed = datetime.fromisoformat(generated_at.replace("Z", "+00:00"))
+            assert before <= observed <= after
+        finally:
+            admin.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))

@@ -175,11 +175,11 @@ def _safe_modules(value: Any, *, now: datetime, freshness_state: str) -> list[di
     return result
 
 
-def build_status_snapshot(row: Sequence[Any], *, now: datetime | None = None) -> dict[str, Any]:
+def build_status_snapshot(row: Sequence[Any], *, now: datetime) -> dict[str, Any]:
     """Convierte una fila SQL en el contrato de snapshot v1, fallando conservador."""
     if len(row) != 9:
         raise ValueError("La fila del snapshot debe contener exactamente nueve columnas")
-    current = _as_utc(now or datetime.now(timezone.utc))
+    current = _as_utc(now)
     if current is None:
         raise ValueError("now debe incluir zona horaria")
     node_id, display_name, admin_state, reported_health, agent_version, last_seen, capabilities, modules, revoked_at = row
@@ -223,11 +223,14 @@ class PostgresStatusSnapshotProvider:
         with self._connect() as conn:
             row = conn.execute(
                 """
-                SELECT node_id, display_name, admin_state, health_state AS reported_health_state,
-                       agent_version, last_seen_at, capabilities, module_reports, revoked_at
+                SELECT node_id, display_name, admin_state, reported_health_state,
+                       agent_version, last_seen_at, capabilities, module_reports, revoked_at,
+                       now() AS database_now
                   FROM geelark_control.nodes
                  WHERE node_id = %s
                 """,
                 (node_id,),
             ).fetchone()
-        return build_status_snapshot(row) if row is not None else None
+        if row is None:
+            return None
+        return build_status_snapshot(row[:9], now=row[9])

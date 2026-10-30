@@ -11,9 +11,10 @@ import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Literal
+from uuid import UUID
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
@@ -138,12 +139,11 @@ def _same_origin(request: Request) -> bool:
 
 
 def _read_snapshots(connect: Callable[[], Any]) -> tuple[str, list[dict[str, Any]]]:
-    """Una consulta SELECT acotada; no lee payloads de tareas ni registros arbitrarios."""
-    now = datetime.now(timezone.utc)
+    """Lecturas SELECT acotadas; vigencia calculada con el reloj de PostgreSQL."""
     with connect() as conn:
         rows = conn.execute(
             """
-            SELECT node_id, display_name, admin_state, health_state AS reported_health_state,
+            SELECT node_id, display_name, admin_state, reported_health_state,
                    agent_version, last_seen_at, capabilities, module_reports, revoked_at
               FROM geelark_control.nodes
              ORDER BY display_name ASC NULLS LAST, node_id ASC
@@ -151,8 +151,47 @@ def _read_snapshots(connect: Callable[[], Any]) -> tuple[str, list[dict[str, Any
             """,
             (MAX_SNAPSHOTS,),
         ).fetchall()
+        # Tomar el reloj después de leer las filas: no reutilizar la hora local
+        # ni el timestamp fijado al inicio de una transacción prolongada.
+        now: datetime = conn.execute("SELECT clock_timestamp()").fetchone()[0]
+        now = now.astimezone(timezone.utc)
     snapshots = [build_status_snapshot(row, now=now) for row in rows]
     return now.isoformat().replace("+00:00", "Z"), [item for item in snapshots if item is not None]
+
+
+TaskStatus = Literal["queued", "delivered", "accepted", "running", "succeeded", "rejected", "failed", "unknown", "cancelled"]
+TASK_COLUMNS = ("task_id","operation_id","node_id","instance_id","assignment_epoch","status","delivery_attempts","created_at","updated_at","delivered_at","accepted_at","completed_at","last_error_code",)
+
+
+def _read_tasks(connect: Callable[[], Any], *, node_id: UUID | None, status: str | None,
+                limit: int, offset: int) -> dict[str, Any]:
+    # Solo metadatos autorizados: nunca SELECT *, payload ni result_summary.
+    predicates, params = [], []
+    if node_id is not None:
+        predicates.append("node_id = %s")
+        params.append(node_id)
+    if status is not None:
+        predicates.append("status = %s")
+        params.append(status)
+    where = " WHERE " + " AND ".join(predicates) if predicates else ""
+    query = ("SELECT " + ", ".join(TASK_COLUMNS) + " FROM geelark_control.agent_tasks" +
+             where + " ORDER BY created_at DESC, task_id DESC LIMIT %s OFFSET %s")
+    with connect() as conn:
+        rows = conn.execute(query, (*params, limit + 1, offset)).fetchall()
+        now = conn.execute("SELECT clock_timestamp()").fetchone()[0]
+    tasks = []
+    for row in rows[:limit]:
+        item = dict(zip(TASK_COLUMNS, row, strict=True))
+        for key in ("task_id", "operation_id", "node_id", "instance_id"):
+            item[key] = str(UUID(str(item[key])))
+        for key in ("created_at", "updated_at", "delivered_at", "accepted_at", "completed_at"):
+            value = item[key]
+            item[key] = value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z") if value else None
+        code = item["last_error_code"]
+        item["last_error_code"] = code if isinstance(code, str) and re.fullmatch(r"[A-Z0-9_]{1,64}", code) else None
+        tasks.append(item)
+    return {"schema_version": "1.0", "generated_at": now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "tasks": tasks, "limit": limit, "offset": offset, "has_more": len(rows) > limit}
 
 
 def create_admin_app(
@@ -237,5 +276,19 @@ def create_admin_app(
         if len(encoded) > MAX_RESPONSE_BYTES:
             return _security_headers(JSONResponse({"error": {"code": "RESPONSE_TOO_LARGE"}}, status_code=503))
         return _security_headers(Response(content=encoded, status_code=200, media_type="application/json"))
+
+
+    @app.get("/admin/v1/tasks")
+    async def list_tasks(request: Request, node_id: UUID | None = None,
+                         status: TaskStatus | None = None,
+                         limit: int = Query(default=50, ge=1, le=100),
+                         offset: int = Query(default=0, ge=0, le=10000)) -> Response:
+        if not sessions.valid(request.cookies.get(SESSION_COOKIE)):
+            return _security_headers(JSONResponse({"error": {"code": "AUTHENTICATION_REQUIRED"}}, status_code=401))
+        payload = _read_tasks(connect, node_id=node_id, status=status, limit=limit, offset=offset)
+        encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8")
+        if len(encoded) > MAX_RESPONSE_BYTES:
+            return _security_headers(JSONResponse({"error": {"code": "RESPONSE_TOO_LARGE"}}, status_code=503))
+        return _security_headers(Response(content=encoded, media_type="application/json"))
 
     return app

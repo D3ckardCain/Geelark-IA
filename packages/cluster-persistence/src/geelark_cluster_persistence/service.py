@@ -91,8 +91,6 @@ def _validate_request(request: AssignmentRequest) -> Decimal:
         raise InvalidAssignmentRequest("storage_bytes debe ser un entero positivo")
     if not isinstance(request.lease_expires_at, datetime) or request.lease_expires_at.tzinfo is None or request.lease_expires_at.utcoffset() is None:
         raise InvalidAssignmentRequest("lease_expires_at debe ser datetime con zona horaria")
-    if request.lease_expires_at <= datetime.now(timezone.utc):
-        raise InvalidAssignmentRequest("lease_expires_at debe estar en el futuro")
     if request.desired_state not in {"running", "stopped"}:
         raise InvalidAssignmentRequest("desired_state debe ser running o stopped")
     if not isinstance(request.engine_name, str) or not request.engine_name.strip() or len(request.engine_name) > 128:
@@ -123,6 +121,7 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
     operation_id = uuid4()
     reservation_id = uuid4()
     outbox_event_id = uuid4()
+    task_id = uuid4()
 
     with conn.transaction():
         with conn.cursor() as cur:
@@ -210,6 +209,13 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
                 cpu_capacity, memory_capacity, storage_capacity, memory_margin, storage_margin, capacity_confidence = capacity
                 if capacity_confidence == "unknown":
                     raise NodeCapacityNotConfigured("La confianza de capacidad del nodo es unknown")
+
+                # Revalidar después de adquirir los locks de instancia, nodo y
+                # capacidad: una espera por FOR UPDATE no debe conservar una
+                # decisión basada en el inicio de la transacción.
+                database_now = cur.execute("SELECT clock_timestamp()").fetchone()[0]
+                if request.lease_expires_at <= database_now:
+                    raise InvalidAssignmentRequest("lease_expires_at debe estar en el futuro")
     
                 cur.execute(
                     """
@@ -337,6 +343,17 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
                         new_epoch,
                         operation_id,
                         Jsonb(outbox_payload),
+                    ),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO geelark_control.agent_tasks
+                        (task_id, operation_id, node_id, instance_id, assignment_epoch, payload)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        task_id, operation_id, request.node_id, request.instance_id,
+                        new_epoch, Jsonb(outbox_payload),
                     ),
                 )
                 response = {

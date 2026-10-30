@@ -1,6 +1,6 @@
 -- Ejecutar conectado directamente como geelark_master_reader, tras aplicar
 -- packages/cluster-master-admin/sql/MASTER_ADMIN_READONLY_ROLE.sql y establecer su contraseña.
--- La prueba falla si el rol conserva privilegios fuera del único objeto permitido.
+-- La prueba falla si el rol conserva privilegios fuera de nodes y las columnas de metadatos permitidas.
 BEGIN READ ONLY;
 
 DO $$
@@ -71,7 +71,7 @@ BEGIN
          WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f')
            AND n.nspname NOT LIKE 'pg\_%' ESCAPE '\'
            AND n.nspname <> 'information_schema'
-           AND NOT (n.nspname = 'geelark_control' AND c.relname = 'nodes')
+           AND NOT (n.nspname = 'geelark_control' AND c.relname IN ('nodes', 'agent_tasks'))
            AND (
              has_table_privilege(current_user, format('%I.%I', n.nspname, c.relname), 'SELECT')
              OR has_table_privilege(current_user, format('%I.%I', n.nspname, c.relname), 'INSERT')
@@ -87,6 +87,28 @@ BEGIN
            )
     ) THEN
         RAISE EXCEPTION 'El rol tiene privilegios efectivos sobre un objeto distinto de geelark_control.nodes';
+    END IF;
+
+
+    IF has_table_privilege(current_user, 'geelark_control.agent_tasks', 'SELECT')
+       OR has_table_privilege(current_user, 'geelark_control.agent_tasks', 'INSERT')
+       OR has_table_privilege(current_user, 'geelark_control.agent_tasks', 'UPDATE')
+       OR has_table_privilege(current_user, 'geelark_control.agent_tasks', 'DELETE')
+       OR has_table_privilege(current_user, 'geelark_control.agent_tasks', 'TRUNCATE')
+       OR has_table_privilege(current_user, 'geelark_control.agent_tasks', 'REFERENCES')
+       OR has_table_privilege(current_user, 'geelark_control.agent_tasks', 'TRIGGER')
+       OR has_any_column_privilege(current_user, 'geelark_control.agent_tasks', 'INSERT')
+       OR has_any_column_privilege(current_user, 'geelark_control.agent_tasks', 'UPDATE')
+       OR has_any_column_privilege(current_user, 'geelark_control.agent_tasks', 'REFERENCES') THEN
+        RAISE EXCEPTION 'Privilegios no permitidos sobre agent_tasks';
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM pg_attribute
+         WHERE attrelid = 'geelark_control.agent_tasks'::regclass AND attnum > 0 AND NOT attisdropped
+           AND has_column_privilege(current_user, attrelid, attname, 'SELECT')
+               <> (attname::text = ANY(ARRAY['task_id', 'operation_id', 'node_id', 'instance_id', 'assignment_epoch', 'status', 'delivery_attempts', 'created_at', 'updated_at', 'delivered_at', 'accepted_at', 'completed_at', 'last_error_code']))
+    ) THEN
+        RAISE EXCEPTION 'Columnas no permitidas o faltantes en agent_tasks';
     END IF;
 
     -- No basta con quitar permisos de tablas: una función SECURITY DEFINER
@@ -164,5 +186,7 @@ SELECT node_id, display_name, admin_state, health_state, agent_version,
   FROM geelark_control.nodes
  ORDER BY display_name ASC NULLS LAST, node_id ASC
  LIMIT 500;
+
+SELECT task_id, operation_id, node_id, instance_id, assignment_epoch, status, delivery_attempts, created_at, updated_at, delivered_at, accepted_at, completed_at, last_error_code FROM geelark_control.agent_tasks ORDER BY created_at DESC, task_id DESC LIMIT 100;
 
 ROLLBACK;
