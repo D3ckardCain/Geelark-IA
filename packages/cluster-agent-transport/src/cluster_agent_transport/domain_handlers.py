@@ -130,16 +130,21 @@ def _derive_health_state(reported_health_state: str, last_seen_at: datetime | No
 def _assert_principal_current(conn: psycopg.Connection, principal: AgentPrincipal) -> None:
     row = conn.execute(
         """
-        SELECT n.admin_state, c.status
+        SELECT n.admin_state, c.status, c.expires_at
           FROM geelark_control.nodes AS n
           JOIN geelark_control.node_credentials AS c ON c.node_id = n.node_id
          WHERE n.node_id = %s AND c.credential_id = %s
-           AND c.expires_at > now() AND n.revoked_at IS NULL
+           AND n.revoked_at IS NULL
          FOR UPDATE OF n, c
         """,
         (principal.node_id, principal.credential_id),
     ).fetchone()
     if row is None:
+        raise HTTPException(status_code=401, detail={"code": "AUTHENTICATION_FAILED"})
+    # La validez temporal se decide después de adquirir los locks; now() puede
+    # quedar anclado al inicio de la transacción durante una espera por filas.
+    database_now = conn.execute("SELECT clock_timestamp()").fetchone()[0]
+    if row[2] is None or row[2] <= database_now:
         raise HTTPException(status_code=401, detail={"code": "AUTHENTICATION_FAILED"})
     if (row[0], row[1]) != (principal.admin_state, principal.credential_status):
         raise HTTPException(status_code=403, detail={"code": "PERMISSION_DENIED"})
@@ -265,8 +270,7 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             """
             SELECT t.status, t.node_id, t.instance_id, t.assignment_epoch,
                    t.result_summary, i.owner_node_id, i.assignment_epoch,
-                   i.lease_expires_at, o.status, t.delivery_lease_until,
-                   now() AS database_now
+                   i.lease_expires_at, o.status, t.delivery_lease_until
               FROM geelark_control.agent_tasks AS t
               JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
               JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
@@ -277,6 +281,8 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         ).fetchone()
         if row is None:
             raise HTTPException(status_code=404, detail={"code": "TASK_NOT_FOUND"})
+        # Debe leerse el reloj después de que FOR UPDATE haya adquirido los locks.
+        database_now = conn.execute("SELECT clock_timestamp()").fetchone()[0]
         if str(row[1]) != principal.node_id:
             raise HTTPException(status_code=403, detail={"code": "TASK_NOT_OWNED_BY_NODE"})
         # Un reintento terminal idéntico puede recibir ACK aunque venza la lease,
@@ -290,10 +296,10 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
             or (
                 not terminal_replay
                 and (
-                    row[7] is None or row[7] <= row[10]
+                    row[7] is None or row[7] <= database_now
                     or (
                         row[0] == "delivered"
-                        and (row[9] is None or row[9] <= row[10])
+                        and (row[9] is None or row[9] <= database_now)
                     )
                 )
             )
@@ -308,7 +314,8 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         row = conn.execute(
             """
             SELECT t.task_id, t.operation_id, t.instance_id, t.assignment_epoch,
-                   t.payload, t.delivery_attempts, i.lease_expires_at
+                   t.payload, t.delivery_attempts, i.lease_expires_at,
+                   t.delivery_lease_until, n.last_seen_at
               FROM geelark_control.agent_tasks AS t
               JOIN geelark_control.instances AS i ON i.instance_id = t.instance_id
               JOIN geelark_control.operations AS o ON o.operation_id = t.operation_id
@@ -331,15 +338,24 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         ).fetchone()
         if row is None:
             return {"task": None}
-        task_id, operation_id, instance_id, epoch, task_payload, attempts, instance_lease_expires_at = row
+        task_id, operation_id, instance_id, epoch, task_payload, attempts, instance_lease_expires_at, current_delivery_lease, last_seen_at = row
+        # El SELECT anterior puede haber esperado por locks. Revalidar todas las
+        # condiciones temporales con un reloj tomado después de la espera.
+        database_now = conn.execute("SELECT clock_timestamp()").fetchone()[0]
+        if (
+            instance_lease_expires_at is None or instance_lease_expires_at <= database_now
+            or last_seen_at is None or last_seen_at <= database_now - HEARTBEAT_STALE_AFTER
+            or (current_delivery_lease is not None and current_delivery_lease > database_now)
+        ):
+            return {"task": None}
         delivery_lease_expires_at = conn.execute(
             """
             UPDATE geelark_control.agent_tasks
                SET status = 'delivered',
                    delivery_attempts = delivery_attempts + 1,
-                   delivery_lease_until = now() + interval '30 seconds',
-                   delivered_at = COALESCE(delivered_at, now()),
-                   updated_at = now()
+                   delivery_lease_until = clock_timestamp() + interval '30 seconds',
+                   delivered_at = COALESCE(delivered_at, clock_timestamp()),
+                   updated_at = clock_timestamp()
              WHERE task_id = %s
              RETURNING delivery_lease_until
             """,
@@ -462,7 +478,6 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
         if not isinstance(items, list) or len(items) > 500:
             raise HTTPException(status_code=422, detail={"code": "INVALID_RECONCILIATION_BATCH"})
         comparisons = []
-        now = conn.execute("SELECT now()").fetchone()[0]
         for item in items:
             try:
                 task_id = UUID(item["task_id"])
@@ -498,11 +513,14 @@ def make_postgres_agent_handlers(connect: Callable[[], psycopg.Connection]) -> d
                     "action": "do_not_execute",
                 })
                 continue
+            # Reconciliación es de solo lectura, pero cada lease se evalúa con
+            # el reloj real consultado después de leer el estado de ese elemento.
+            database_now = conn.execute("SELECT clock_timestamp()").fetchone()[0]
             server_state, server_summary = row[0], dict(row[1] or {})
             owner_node, current_epoch, lease_expires_at = row[6], row[7], row[8]
             if (
                 owner_node is None or str(owner_node) != principal.node_id
-                or current_epoch != epoch or lease_expires_at is None or lease_expires_at <= now
+                or current_epoch != epoch or lease_expires_at is None or lease_expires_at <= database_now
             ):
                 comparisons.append({
                     "task_id": str(task_id),

@@ -173,7 +173,9 @@ class BodyLimitMiddleware:
             if not delivered:
                 delivered = True
                 return {"type": "http.request", "body": body, "more_body": False}
-            return {"type": "http.request", "body": b"", "more_body": False}
+            # Once the buffered request body has been replayed, preserve the
+            # original ASGI receive channel so http.disconnect is not hidden.
+            return await receive()
 
         await self.app(scope, replay_receive, send)
 

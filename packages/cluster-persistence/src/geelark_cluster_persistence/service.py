@@ -158,12 +158,6 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
             if stored_operation_id is not None or not inserted_this_transaction:
                 raise IdempotencyRecordIncomplete("La clave idempotente quedó incompleta; requiere reconciliación")
 
-            # Validar la lease solo para una asignación nueva, usando el reloj
-            # de PostgreSQL y dentro de la transacción de reserva/outbox.
-            database_now = cur.execute("SELECT now()").fetchone()[0]
-            if request.lease_expires_at <= database_now:
-                raise InvalidAssignmentRequest("lease_expires_at debe estar en el futuro")
-
             try:
                 cur.execute(
                     """
@@ -215,6 +209,13 @@ def assign_instance(conn: Connection, request: AssignmentRequest) -> dict[str, A
                 cpu_capacity, memory_capacity, storage_capacity, memory_margin, storage_margin, capacity_confidence = capacity
                 if capacity_confidence == "unknown":
                     raise NodeCapacityNotConfigured("La confianza de capacidad del nodo es unknown")
+
+                # Revalidar después de adquirir los locks de instancia, nodo y
+                # capacidad: una espera por FOR UPDATE no debe conservar una
+                # decisión basada en el inicio de la transacción.
+                database_now = cur.execute("SELECT clock_timestamp()").fetchone()[0]
+                if request.lease_expires_at <= database_now:
+                    raise InvalidAssignmentRequest("lease_expires_at debe estar en el futuro")
     
                 cur.execute(
                     """
