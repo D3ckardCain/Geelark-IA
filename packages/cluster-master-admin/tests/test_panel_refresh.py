@@ -32,6 +32,11 @@ let finishOld;
 fetch=()=>new Promise(resolve=>{finishOld=resolve});
 const old=refresh();
 state.authenticated=false;showLogin("Sesión cerrada.");render();
+assert.equal(el("connection-chip").textContent,"Sesión no iniciada");
+assert.equal(el("connection-notice").className,"notice warn");
+assert.ok(!el("connection-notice").innerHTML.includes("snapshots reales recibidos"));
+assert.ok(el("connection-notice").innerHTML.includes("Inicia sesión"));
+
 finishOld(ok());await old;
 assert.deepEqual(state.snapshots,[]);assert.equal(state.connected,false);
 assert.equal(state.lastRefresh,null);assert.equal(notices,0);
