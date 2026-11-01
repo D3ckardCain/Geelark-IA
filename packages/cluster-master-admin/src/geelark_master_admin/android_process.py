@@ -21,6 +21,7 @@ class Controller:
         self.emit = emit
         self.tunnel = None
         self.screen = None
+        self.adb_owned = False
 
     def run(self, args, timeout=20):
         result = subprocess.run(args, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
@@ -78,8 +79,20 @@ class Controller:
     def android_status(self):
         self.start_tunnel()
         adb = self.require("adb")
-        self.run([adb, "connect", self.config.serial])
-        self.run([adb, "-s", self.config.serial, "get-state"])
+        self.adb_owned = True
+        for attempt in range(2):
+            try:
+                self.run([adb, "connect", self.config.serial])
+                self.run([adb, "-s", self.config.serial, "wait-for-device"], timeout=8)
+                state = self.run([adb, "-s", self.config.serial, "get-state"])
+                if state.strip() != "device":
+                    raise RuntimeError("ADB no está disponible para este dispositivo.")
+                break
+            except (RuntimeError, subprocess.TimeoutExpired):
+                if attempt:
+                    raise
+                self.emit("Reconectando únicamente el transporte ADB de este dispositivo…")
+                self.run([adb, "disconnect", self.config.serial], timeout=5)
         return self.run([adb, "-s", self.config.serial, "shell",
                          "getprop sys.boot_completed; service check input; service check activity"])
 
@@ -135,5 +148,13 @@ class Controller:
                     proc.kill()
                     proc.wait(timeout=3)
         self.screen = self.tunnel = None
+        # ADB conserva transports offline al cerrar el túnel. Desregistrar solo
+        # nuestro serial evita reutilizarlo en la siguiente apertura.
+        if self.adb_owned:
+            try:
+                self.run([self.require("adb"), "disconnect", self.config.serial], timeout=5)
+            except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+                self.emit(f"No se confirmó la desconexión ADB: {error}")
+            self.adb_owned = False
         self.emit("Conexiones propias cerradas. Debian y Android continúan ejecutándose.")
 
