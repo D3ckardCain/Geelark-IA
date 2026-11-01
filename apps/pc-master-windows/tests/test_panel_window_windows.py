@@ -35,6 +35,7 @@ def test_owned_panel_stop_preserves_another_browser(tmp_path, monkeypatch):
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10,
                            creationflags=subprocess.CREATE_NO_WINDOW, check=False)
             process.wait(timeout=5)
+    panel = relay = None
     try:
         assert app._open_panel_window(18765)
         panel = app.browser_process
@@ -45,9 +46,25 @@ def test_owned_panel_stop_preserves_another_browser(tmp_path, monkeypatch):
         assert other.poll() is None
         assert app._open_panel_window(18765)
         assert app.browser_process is panel
+        # Edge delega la segunda apertura al proceso existente del mismo perfil.
+        relay = subprocess.Popen([str(executable), '--app=https://localhost:18765/',
+                                  f'--user-data-dir={app.browser_profile_dir}', '--guest',
+                                  '--no-first-run', '--no-default-browser-check', '--disable-background-mode'],
+                                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                 creationflags=subprocess.CREATE_NO_WINDOW)
+        relay.wait(timeout=10)
+        app.browser_process = relay
         assert app._stop_panel()
-        assert panel.poll() is not None
+        panel.wait(timeout=5)
         assert other.poll() is None, 'Se cerró otro navegador ajeno al panel'
+        assert app._open_panel_window(18765)
+        time.sleep(2)
+        assert module._panel_browser_pids(app.browser_profile_dir, executable)
+        assert app._stop_panel()
+        assert module._panel_browser_pids(app.browser_profile_dir, executable) == []
+        assert other.poll() is None
     finally:
         cleanup(app.__dict__.get('browser_process'))
+        cleanup(panel)
+        cleanup(relay)
         cleanup(other)
