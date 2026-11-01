@@ -10,6 +10,7 @@ import hashlib
 import json
 import re
 import asyncio
+import anyio
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,6 +28,22 @@ from .auth import LoginRateLimiter, SessionStore, verify_operator_password
 SESSION_COOKIE = "__Host-geelark_master_session"
 MAX_SNAPSHOTS = 500
 MAX_RESPONSE_BYTES = 1_048_576
+
+
+class _ClosingStream(StreamingResponse):
+    def __init__(self, *args, on_close, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.on_close = on_close
+
+    async def __call__(self, scope, receive, send):
+        try:
+            await super().__call__(scope, receive, send)
+        finally:
+            with anyio.CancelScope(shield=True):
+                try:
+                    await self.body_iterator.aclose()
+                finally:
+                    await self.on_close()
 
 
 class LoginPayload(BaseModel):
@@ -361,7 +378,26 @@ def create_admin_app(
         token = request.cookies.get(SESSION_COOKIE)
         def valid():
             return sessions.valid(token) and android_control.controller.screen is current
-        return _security_headers(StreamingResponse(current.frames(valid), media_type="application/x-ndjson",
+        iterator = current.frames(valid)
+        def next_packet():
+            return next(iterator, None)
+        async def packets():
+            while True:
+                chunk = await anyio.to_thread.run_sync(next_packet)
+                if chunk is None:
+                    break
+                yield chunk
+        async def close_stream():
+            # Liberar también si la respuesta se corta antes del primer paquete.
+            try:
+                await anyio.to_thread.run_sync(iterator.close)
+            finally:
+                try:
+                    await anyio.to_thread.run_sync(current.terminate)
+                finally:
+                    if current.claim.locked():
+                        current.claim.release()
+        return _security_headers(_ClosingStream(packets(), on_close=close_stream, media_type="application/x-ndjson",
                                                    headers={"X-Accel-Buffering": "no"}))
 
     @app.post("/admin/v1/android/input")

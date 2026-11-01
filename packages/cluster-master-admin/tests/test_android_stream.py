@@ -2,6 +2,7 @@ import socket
 import struct
 import threading
 import io
+import asyncio
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -98,6 +99,50 @@ def test_expired_session_cleans_stream_before_reading():
     current.terminate.assert_called_once()
     assert current.claim.acquire(blocking=False)
     current.claim.release()
+
+
+@pytest.mark.parametrize('spec_version',['2.0','2.4'])
+def test_http_disconnect_closes_video_iterator_and_releases_screen(tmp_path,spec_version):
+    current=screen();closed=threading.Event()
+    def frames(valid):
+        try:
+            while valid():
+                yield b'\n'
+        finally:
+            closed.set()
+    current.frames=frames;current.terminate=Mock()
+    service=SimpleNamespace(lock=threading.RLock(),busy=False,controller=SimpleNamespace(screen=current))
+    c=client(tmp_path,service);login(c)
+    token=c.cookies.get('__Host-geelark_master_session')
+    async def request():
+        disconnected=asyncio.Event()
+        delivered=False
+        async def receive():
+            nonlocal delivered
+            if not delivered:
+                delivered=True
+                return {'type':'http.request','body':b'','more_body':False}
+            await disconnected.wait()
+            return {'type':'http.disconnect'}
+        async def send(message):
+            if message['type']=='http.response.body':
+                disconnected.set()
+                if spec_version=='2.4':
+                    raise OSError('Client disconnected')
+        scope={'type':'http','asgi':{'version':'3.0','spec_version':spec_version},
+               'http_version':'1.1','method':'GET','scheme':'https','path':'/admin/v1/android/video',
+               'raw_path':b'/admin/v1/android/video','query_string':f'screen={current.id}'.encode(),
+               'headers':[(b'host',b'master.test'),(b'cookie',f'__Host-geelark_master_session={token}'.encode())],
+               'server':('master.test',443),'client':('127.0.0.1',1)}
+        try:
+            await asyncio.wait_for(c.app(scope,receive,send),timeout=5)
+        except Exception as error:
+            from starlette.requests import ClientDisconnect
+            if not isinstance(error,ClientDisconnect):raise
+    asyncio.run(request())
+    assert closed.is_set()
+    assert not current.claim.locked()
+    current.terminate.assert_called_once()
 
 
 @pytest.mark.parametrize('early_eof',[False,True])
