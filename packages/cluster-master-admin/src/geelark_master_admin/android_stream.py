@@ -14,12 +14,16 @@ VERSION = "5.0.1"
 MAX_PACKET = 4 * 1024 * 1024
 
 
+class StreamClosed(RuntimeError):
+    """ADB puede aceptar y cerrar el forward antes de que escuche el servidor."""
+
+
 def exact(sock, size):
     result = bytearray()
     while len(result) < size:
         block = sock.recv(size - len(result))
         if not block:
-            raise RuntimeError("Se cerró la transmisión Android.")
+            raise StreamClosed("Se cerró la transmisión Android.")
         result.extend(block)
     return bytes(result)
 
@@ -81,18 +85,22 @@ class EmbeddedScreen:
                 self.proc.stdout.close()
             threading.Thread(target=logs, daemon=True).start()
             deadline = time.monotonic() + 12
+            waiting = False
             while time.monotonic() < deadline:
                 try:
                     self.video = socket.create_connection(("127.0.0.1", self.port), timeout=1)
                     if exact(self.video, 1) != b"\0":
                         raise RuntimeError("Respuesta de vídeo inválida")
                     break
-                except OSError:
+                except (OSError, StreamClosed):
                     if self.video:
                         self.video.close()
                     self.video = None
                     if self.proc.poll() is not None:
                         raise RuntimeError("El servidor de pantalla no pudo arrancar.")
+                    if not waiting:
+                        self.emit("Esperando al servidor de pantalla Android antes de completar la conexión…")
+                        waiting = True
                     time.sleep(.1)
             if self.video is None:
                 raise RuntimeError("La pantalla Android no respondió.")
