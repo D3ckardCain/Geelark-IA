@@ -27,7 +27,7 @@ Sustituir los valores por los de la instalación. La clave debe existir y estar 
 
 En el lanzador, seleccionar el archivo en Conexión Android (JSON). La opción es opcional: sin ella, el panel conserva inventario/tareas y muestra Android sin configurar. Para el laboratorio ya probado se incluye examples/worker-lab-android.json: puede seleccionarse directamente sin escribir comandos ni modificar JSON. Sus valores son configuración de ejemplo separada del software operativo. No existe dependencia de la utilidad Tkinter de laboratorio ni de sus archivos.
 
-Para una sesión de soporte, marcar Habilitar diagnóstico técnico solo en esta sesión en el lanzador antes de iniciar el panel (equivale a GEELARK_ADMIN_DIAGNOSTICS=1). La casilla no se guarda en la configuración. El enlace Diagnóstico técnico aparece en Sistema; requiere sesión válida. Desmarcar la casilla y reiniciar PC-MASTER elimina la vista y sus API. Las rutas del diagnóstico y el marcador de navegación no contienen controles operativos permanentes.
+Diagnóstico técnico está siempre disponible en el menú Soporte del panel. No hay casilla de activación en el lanzador ni es necesario reiniciar para habilitarlo. PC-MASTER lo activa al arrancar, independientemente del antiguo GEELARK_ADMIN_DIAGNOSTICS. Estar disponible no ejecuta consultas automáticamente: Recoger diagnóstico se pulsa cuando sea necesario.
 
 ## Operación diaria
 
@@ -40,7 +40,7 @@ La contraseña de recuperación se envía por HTTPS a PC-MASTER y por stdin a su
 
 ## Diagnóstico temporal
 
-En Sistema, abrir Diagnóstico técnico cuando esté habilitado. Recoger diagnóstico consulta Debian, recursos, red, Docker y Android. sudo no interactivo puede rechazar consultas Docker y se documenta ese resultado; los controles habituales siguen disponibles. Copiar registro facilita comunicar una incidencia sin abrir PowerShell. Los registros pueden contener datos del dispositivo: revisar antes de compartir. Se conservan únicamente en memoria acotada del backend; se pierden al cerrarlo.
+En Soporte, abrir Diagnóstico técnico. Recoger diagnóstico consulta Debian, recursos, red, Docker y Android. sudo no interactivo puede rechazar consultas Docker y se documenta ese resultado; los controles habituales siguen disponibles. Copiar registro facilita comunicar una incidencia sin abrir PowerShell. Los registros pueden contener datos del dispositivo: revisar antes de compartir. Se conservan únicamente en memoria acotada del backend; se pierden al cerrarlo.
 
 ## Conexión, concurrencia y cierre
 
