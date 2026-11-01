@@ -2,7 +2,7 @@
 
 ## Separación de operación y diagnóstico
 
-Dispositivos es la vista habitual: nombre configurado, estado de conexión, Abrir pantalla, Cerrar conexión y Recuperar dispositivo. Conserva el estilo oscuro del panel. No contiene terminales, registros, pruebas de memoria, rutas de claves, IP del laboratorio ni comandos técnicos.
+Perfiles es la vista habitual: tabla con nombre configurado, estado de pantalla, Abrir pantalla, Cerrar conexión y Recuperar. Puede buscarse por nombre y filtrarse por pantalla abierta, cerrada o requiere atención. Estos filtros solo cambian la lista, nunca detienen ni reinician Android. Conserva el estilo oscuro del panel. No contiene terminales, registros, pruebas de memoria, rutas de claves, IP del laboratorio ni comandos técnicos.
 
 Diagnóstico técnico es una página independiente (/diagnostics), desactivada por defecto. Su módulo recolector está separado del gestor de procesos. Desactivarla no afecta abrir, cerrar ni recuperar. No es una segunda consola de operación. La página y sus API responden 404 cuando está desactivada; los registros nunca se incluyen en la API operativa.
 
@@ -55,3 +55,14 @@ Funciona en LAN sin APIs externas, tarjeta ni dependencias de pago. No consulta/
 La recuperación, pantalla y cierre/reapertura de la utilidad de laboratorio antecedente fueron confirmados en Windows por el operador. Esta integración web es código nuevo: requiere aceptación gráfica Windows antes de declararse desplegada. Pruebas locales cubren autenticación/origen, diagnóstico opcional, configuración, concurrencia y descarte de respuestas de sesiones anteriores; no sustituyen pruebas LAN, NTFS o PostgreSQL real.
 
 La causa original de Android offline/servicios ausentes sigue pendiente. La recuperación no se presenta como solución de causa raíz. No se cierran automáticamente las puertas de aceptación #77 ni la evaluación #27.
+
+
+## Panel de operación simplificado
+
+El menú contiene Perfiles, Workers, Tareas y Ayuda. No muestra hojas de ruta, GitHub Actions, costes objetivo, endpoints, epochs, capacidades de protocolo ni declaraciones de implementación. Workers conserva nombre, acceso, estado y última señal; Tareas conserva referencia abreviada, nombre del equipo, estado y fechas. La ausencia de nombre del equipo se indica como no disponible, sin inventarlo. El filtro de tareas permite elegir un worker por nombre.
+
+Ayuda explica abrir/cerrar/recuperar y consultar equipos. El enlace Diagnóstico técnico solo aparece si fue habilitado en el lanzador para esa sesión; sigue siendo otra página protegida. No se elimina información de base de datos ni se alteran permisos por limpiar la interfaz.
+
+Esta revisión presenta la conexión existente en una tabla; no crea un inventario persistente multiinstancia, grupos ficticios, nuevas imágenes ni botones sin servicio implementado. El nombre proviene del JSON ya configurado. Cerrar conexión conserva Android; Recuperar reinicia el perfil previa confirmación y contraseña efímera.
+
+Los fallos de consulta de Workers se muestran dentro de Workers, sin sustituir el estado del perfil Android. Sin configuración Android se ofrece una indicación para configurarla y no se muestra una fila operable. Al cerrar sesión se retira la fila y se deshabilitan sus controles; una respuesta tardía no los reactiva.
