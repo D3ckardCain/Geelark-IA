@@ -27,6 +27,51 @@ CONFIG_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "GeeLark-I
 CONFIG_FILE = CONFIG_DIR / "settings.json"
 
 
+def _panel_browser_executable() -> Path:
+    """Detecta Edge/Chrome sin abrir el navegador personal ni usar debugging remoto."""
+    candidates = []
+    for variable in ("ProgramFiles(x86)", "ProgramFiles", "LOCALAPPDATA"):
+        root = os.environ.get(variable)
+        if root:
+            candidates.extend((Path(root) / "Microsoft/Edge/Application/msedge.exe",
+                               Path(root) / "Google/Chrome/Application/chrome.exe"))
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError("Se necesita Microsoft Edge o Google Chrome para la ventana del panel.")
+
+
+def _panel_window_action(pid: int, *, close: bool) -> None:
+    """Actúa solo sobre ventanas del proceso de navegador creado por este lanzador."""
+    import ctypes
+    from ctypes import wintypes
+    user32 = ctypes.windll.user32
+    callback_type = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    user32.EnumWindows.argtypes = [callback_type, wintypes.LPARAM]
+    user32.EnumWindows.restype = wintypes.BOOL
+    user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+    user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+    user32.IsWindowVisible.argtypes = [wintypes.HWND]
+    user32.IsWindowVisible.restype = wintypes.BOOL
+    user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+    user32.PostMessageW.restype = wintypes.BOOL
+    user32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
+    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+
+    @callback_type
+    def visit(window, _):
+        owner = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(window, ctypes.byref(owner))
+        if owner.value == pid and user32.IsWindowVisible(window):
+            if close:
+                user32.PostMessageW(window, 0x0010, 0, 0)  # WM_CLOSE
+            else:
+                user32.ShowWindow(window, 9)  # SW_RESTORE
+                user32.SetForegroundWindow(window)
+        return True
+    user32.EnumWindows(visit, 0)
+
+
 def _safe_dsn(value: str) -> bool:
     """Reject passwords embedded in PostgreSQL URLs or keyword DSNs."""
     value = value.strip()
@@ -85,6 +130,7 @@ class PcMasterApp(tk.Tk):
         self.minsize(min(720, width), min(480, height))
         self.configure(bg="#101827")
         self.process: subprocess.Popen | None = None
+        self.browser_process: subprocess.Popen | None = None
         self.settings = self._load_settings()
         self.vars: dict[str, tk.StringVar] = {}
         self._style()
@@ -254,7 +300,9 @@ class PcMasterApp(tk.Tk):
 
     def _start_panel(self) -> None:
         if self.process and self.process.poll() is None:
-            messagebox.showinfo("Panel ya iniciado", "El proceso del panel ya está ejecutándose.", parent=self)
+            self._open_panel_window(self.__dict__.get("panel_port", int(self._current_settings().get("port", PORT_DEFAULT))))
+            return
+        if not self._close_panel_window():
             return
         settings = self._current_settings()
         errors = validate_settings(settings)
@@ -351,10 +399,61 @@ class PcMasterApp(tk.Tk):
 
     def _server_ready(self, port: int, process: subprocess.Popen) -> None:
         if self.process is process and process.poll() is None:
+            self.panel_port = port
             self.status_var.set(f"Activo · https://localhost:{port}/")
+            self._open_panel_window(port)
+
+    def _open_panel_window(self, port: int) -> bool:
+        if sys.platform != "win32":
             webbrowser.open(f"https://localhost:{port}/")
+            return True
+        browser = self.__dict__.get("browser_process")
+        try:
+            if browser is not None and browser.poll() is None:
+                _panel_window_action(browser.pid, close=False)
+                return True
+            executable = _panel_browser_executable()
+            profile = CONFIG_DIR / "panel-browser"
+            profile.mkdir(parents=True, exist_ok=True)
+            self.browser_process = subprocess.Popen(
+                [str(executable), f"--app=https://localhost:{port}/", f"--user-data-dir={profile}",
+                 "--no-first-run", "--no-default-browser-check", "--disable-background-mode"],
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            return True
+        except OSError as exc:
+            messagebox.showerror("No se pudo abrir la ventana", f"El panel está activo, pero su ventana no se abrió.\n{exc}", parent=self)
+            return False
+
+    def _close_panel_window(self) -> bool:
+        browser = self.__dict__.get("browser_process")
+        if browser is None:
+            return True
+        try:
+            if browser.poll() is None:
+                _panel_window_action(browser.pid, close=True)
+                try:
+                    browser.wait(timeout=4)
+                except subprocess.TimeoutExpired:
+                    taskkill = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32/taskkill.exe"
+                    subprocess.run([str(taskkill), "/PID", str(browser.pid), "/T", "/F"],
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), timeout=10, check=False)
+                    browser.wait(timeout=4)
+            self.browser_process = None
+            return True
+        except (OSError, subprocess.TimeoutExpired):
+            self.status_var.set("Panel detenido · ventana pendiente de cerrar")
+            messagebox.showwarning("Cerrar ventana del panel", "El panel se detuvo, pero no se confirmó el cierre de su ventana. Ciérrala antes de volver a iniciar.", parent=self)
+            return False
 
     def _stop_panel(self) -> bool:
+        if not self._stop_backend():
+            return False
+        return self._close_panel_window()
+
+    def _stop_backend(self) -> bool:
         process = self.process
         if process is None:
             self.status_var.set("Sin iniciar")

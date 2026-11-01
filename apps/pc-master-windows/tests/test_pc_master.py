@@ -280,6 +280,61 @@ class PcMasterSingleInstanceTests(unittest.TestCase):
         kernel32.CloseHandle.assert_called_once_with(789)
 
 
+class PanelWindowTests(unittest.TestCase):
+    @mock.patch.object(module.sys, "platform", "win32")
+    @mock.patch.object(module, "_panel_window_action")
+    @mock.patch.object(module, "_panel_browser_executable", return_value=Path("browser.exe"))
+    @mock.patch.object(module.subprocess, "Popen")
+    def test_open_reuses_owned_process_and_separates_personal_profile(self, popen, executable, window_action):
+        app = _bare_app(None)
+        browser = _FakeProcess()
+        popen.return_value = browser
+        with tempfile.TemporaryDirectory() as folder, mock.patch.object(module, "CONFIG_DIR", Path(folder)):
+            self.assertTrue(app._open_panel_window(8765))
+            self.assertTrue(app._open_panel_window(8765))
+            popen.assert_called_once()
+            args = popen.call_args.args[0]
+            self.assertIn("--app=https://localhost:8765/", args)
+            self.assertIn("--user-data-dir="+str(Path(folder)/"panel-browser"), args)
+            self.assertFalse(any("ignore-certificate" in arg or "remote-debugging" in arg for arg in args))
+            window_action.assert_called_once_with(browser.pid, close=False)
+
+    @mock.patch.object(module, "_panel_window_action")
+    @mock.patch.object(module.subprocess, "run")
+    def test_confirmed_stop_closes_only_tracked_browser(self, run, window_action):
+        app = _bare_app(None)
+        app.browser_process = browser = _FakeProcess()
+        self.assertTrue(app._stop_panel())
+        window_action.assert_called_once_with(browser.pid, close=True)
+        run.assert_not_called()
+        self.assertIsNone(app.browser_process)
+
+    def test_failed_backend_stop_does_not_close_browser(self):
+        app = _bare_app(None)
+        app._stop_backend = mock.Mock(return_value=False)
+        app._close_panel_window = mock.Mock()
+        self.assertFalse(app._stop_panel())
+        app._close_panel_window.assert_not_called()
+
+    @mock.patch.object(module, "_panel_window_action")
+    @mock.patch.object(module.subprocess, "run")
+    def test_browser_fallback_is_pid_scoped(self, run, window_action):
+        app = _bare_app(None)
+        app.browser_process = browser = _FakeProcess()
+        browser.wait_behaviors = [module.subprocess.TimeoutExpired("browser", 4)]
+        self.assertTrue(app._close_panel_window())
+        args = run.call_args.args[0]
+        self.assertEqual(args[1:], ["/PID", str(browser.pid), "/T", "/F"])
+        self.assertNotIn("/IM", args)
+
+    @mock.patch.object(module, "_panel_window_action")
+    @mock.patch.object(module.subprocess, "run")
+    def test_untracked_browser_is_never_closed(self, run, window_action):
+        self.assertTrue(_bare_app(None)._close_panel_window())
+        run.assert_not_called()
+        window_action.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
 

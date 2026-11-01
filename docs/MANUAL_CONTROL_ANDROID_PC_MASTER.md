@@ -73,3 +73,12 @@ Los fallos de consulta de Workers se muestran dentro de Workers, sin sustituir e
 Cada operación aceptada (abrir, cerrar conexión, recuperar o recoger diagnóstico) sustituye el registro temporal anterior e identifica el nuevo intento con fecha UTC. Una operación rechazada porque hay otra en curso no borra su evidencia. Limpiar registro elimina el registro temporal del servidor y de la vista; está bloqueado mientras haya una operación activa. Salida tardía de procesos de intentos anteriores y respuestas HTTP anteriores a la limpieza no vuelven a mezclar registros.
 
 Se conservan como máximo 150 líneas de hasta 2000 caracteres por línea. Las salidas multilínea se separan antes de limitar, evitando perder todo el encabezado de un crash por recortar el bloque completo a sus últimos 2000 caracteres. El diagnóstico consulta el buffer crash de Android en lectura: puede contener eventos históricos con sus fechas. Limpiar esta vista no borra logcat, archivos de Android ni runtime.log. El crash histórico se distingue por su timestamp; no se presenta como nuevo por volver a consultarlo.
+
+
+## Ventana de navegador administrada por el lanzador
+
+En Windows, Iniciar panel abre una ventana propia de Edge o Chrome en modo aplicación con perfil dedicado en %LOCALAPPDATA%/GeeLark-IA/pc-master/panel-browser. Si esa ventana sigue ejecutándose, Iniciar panel la reutiliza; si se cerró, puede reabrirse sin levantar otro backend. Detener panel confirma primero la parada del backend y después cierra la ventana propia. Cerrar el lanzador ejecuta la misma parada.
+
+Se solicita cierre normal por WM_CLOSE solo a ventanas del PID creado por el lanzador. Si no termina, el fallback se limita a ese PID y su árbol; nunca se busca por título, URL o nombre global de navegador. Si no se confirma cierre, se avisa y se bloquea nuevo arranque hasta resolverlo. No se usan puertos de depuración ni se omite verificación TLS.
+
+Se requiere Edge o Chrome instalado. El perfil es independiente del navegador personal: conserva sus propios datos y puede solicitar de nuevo la aceptación del certificado local la primera vez. No se instala un certificado ni se copia el perfil personal. Las pestañas abiertas por el antiguo webbrowser.open no tienen PID propio rastreado y deben cerrarse manualmente una vez; esta mejora controla las nuevas ventanas. Si el lanzador se termina abruptamente fuera del cierre normal, una ventana huérfana puede requerir cierre manual; no se cierran procesos ajenos para recuperarla.
