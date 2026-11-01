@@ -66,3 +66,10 @@ Ayuda explica abrir/cerrar/recuperar y consultar equipos. El enlace Diagnóstico
 Esta revisión presenta la conexión existente en una tabla; no crea un inventario persistente multiinstancia, grupos ficticios, nuevas imágenes ni botones sin servicio implementado. El nombre proviene del JSON ya configurado. Cerrar conexión conserva Android; Recuperar reinicia el perfil previa confirmación y contraseña efímera.
 
 Los fallos de consulta de Workers se muestran dentro de Workers, sin sustituir el estado del perfil Android. Sin configuración Android se ofrece una indicación para configurarla y no se muestra una fila operable. Al cerrar sesión se retira la fila y se deshabilitan sus controles; una respuesta tardía no los reactiva.
+
+
+## Diagnósticos separados por intento
+
+Cada operación aceptada (abrir, cerrar conexión, recuperar o recoger diagnóstico) sustituye el registro temporal anterior e identifica el nuevo intento con fecha UTC. Una operación rechazada porque hay otra en curso no borra su evidencia. Limpiar registro elimina el registro temporal del servidor y de la vista; está bloqueado mientras haya una operación activa. Salida tardía de procesos de intentos anteriores y respuestas HTTP anteriores a la limpieza no vuelven a mezclar registros.
+
+Se conservan como máximo 150 líneas de hasta 2000 caracteres por línea. Las salidas multilínea se separan antes de limitar, evitando perder todo el encabezado de un crash por recortar el bloque completo a sus últimos 2000 caracteres. El diagnóstico consulta el buffer crash de Android en lectura: puede contener eventos históricos con sus fechas. Limpiar esta vista no borra logcat, archivos de Android ni runtime.log. El crash histórico se distingue por su timestamp; no se presenta como nuevo por volver a consultarlo.
