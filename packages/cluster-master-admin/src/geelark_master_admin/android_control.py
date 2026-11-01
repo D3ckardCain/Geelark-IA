@@ -60,6 +60,7 @@ class AndroidControl:
         self.closed = False
         self.phase = "idle"
         self.message = "Listo para conectar"
+        self.action = None
 
     def record(self, text):
         # Registro técnico en memoria acotada; nunca forma parte del estado operativo.
@@ -70,8 +71,14 @@ class AndroidControl:
     def status(self):
         with self.lock:
             screen = self.controller.screen
+            phase, message = self.phase, self.message
+            if not self.busy and self.action == "open" and screen is not None:
+                code = screen.poll()
+                if code is not None:
+                    phase = "idle" if code == 0 else "error"
+                    message = "Pantalla cerrada" if code == 0 else "La pantalla se cerró con un error. Revisa el dispositivo."
             return {"configured": True, "name": self.config.name, "busy": self.busy,
-                    "phase": self.phase, "message": self.message,
+                    "phase": phase, "message": message,
                     "screen_open": bool(screen and screen.poll() is None)}
 
     def submit(self, action, password=None, diagnostic=None):
@@ -83,6 +90,7 @@ class AndroidControl:
             if self.busy or self.closed:
                 return False
             self.busy = True
+            self.action = action
             self.phase = "working"
             self.message = {"open": "Conectando pantalla…", "disconnect": "Cerrando conexión…",
                             "recover": "Recuperando Android…", "diagnose": "Consultando diagnóstico…"}[action]
