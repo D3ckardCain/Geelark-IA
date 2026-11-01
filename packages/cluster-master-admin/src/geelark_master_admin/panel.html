@@ -91,7 +91,6 @@ dialog{width:min(480px,calc(100% - 30px));background:var(--surface);color:var(--
     <div class="tools"><strong>Pantalla Android</strong><button id="viewer-fullscreen" class="btn" type="button">Pantalla completa</button></div>
     <p id="viewer-message" class="muted" role="status">Conectando vídeo…</p>
     <canvas id="android-canvas" tabindex="0" aria-label="Pantalla táctil Android; pulsa y arrastra para navegar" style="display:block;max-width:100%;max-height:70vh;width:auto;height:auto;touch-action:none;background:#000;margin:auto"></canvas>
-    <div class="tools" style="justify-content:center;margin-top:12px"><button class="btn" type="button" data-android-key="4">Atrás</button><button class="btn" type="button" data-android-key="3">Inicio</button><button class="btn" type="button" data-android-key="187">Recientes</button></div>
     <form id="viewer-text-form" class="tools"><label for="viewer-text">Texto</label><input id="viewer-text" maxlength="300" autocomplete="off" placeholder="Escribe para enviar al campo activo"><button class="btn" type="submit">Enviar texto</button></form>
   </section>
 </section>
@@ -379,7 +378,6 @@ function touch(event,action){if(!embedded||!canvas.width||!canvas.height)return;
 canvas.addEventListener("pointerdown",event=>{if(pointerActive||event.button!==0)return;event.preventDefault();pointerActive=true;canvas.setPointerCapture(event.pointerId);touch(event,0)});
 canvas.addEventListener("pointermove",event=>{if(pointerActive&&event.timeStamp-lastMove>50){lastMove=event.timeStamp;touch(event,2)}});
 for(const name of ["pointerup","pointercancel"])canvas.addEventListener(name,event=>{if(pointerActive){touch(event,1);pointerActive=false}});
-document.querySelectorAll("[data-android-key]").forEach(button=>button.addEventListener("click",()=>sendEmbedded({kind:"key",key:Number(button.dataset.androidKey)})));
 el("viewer-fullscreen").addEventListener("click",()=>el("android-viewer").requestFullscreen?.().catch(()=>{}));
 el("viewer-text-form").addEventListener("submit",event=>{event.preventDefault();const text=el("viewer-text").value;if(new TextEncoder().encode(text).length>300){el("viewer-message").textContent="El texto admite hasta 300 bytes por envío.";return}if(text)sendEmbedded({kind:"text",text});el("viewer-text").value=""});
 window.addEventListener("pagehide",stopEmbedded);
