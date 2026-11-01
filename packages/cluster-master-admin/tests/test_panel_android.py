@@ -10,7 +10,7 @@ def test_android_session_race_and_recovery_payload():
     node = shutil.which('node')
     if not node:
         pytest.skip('Node requerido')
-    source = (Path(__file__).parents[1]/'src/geelark_master_admin/panel.html').read_text()
+    source = (Path(__file__).parents[1]/'src/geelark_master_admin/panel.html').read_text(encoding='utf-8')
     functions=source.split('<script>',1)[1].split('</script>',1)[0].split('el("login-form").addEventListener',1)[0]
     harness=r'''
 const assert=require('node:assert/strict');const controls=new Map();
@@ -36,5 +36,5 @@ state.authenticated=false;clearAndroid();
 assert.equal(el('recovery-password').value,'');assert.equal(el('android-name').textContent,'Conexión Android');
 })().catch(e=>{console.error(e);process.exitCode=1});
 '''
-    completed=subprocess.run([node,'-e',harness],capture_output=True,text=True,timeout=10)
+    completed=subprocess.run([node,'-e',harness],capture_output=True,text=True,encoding='utf-8',timeout=10)
     assert completed.returncode==0, completed.stderr
