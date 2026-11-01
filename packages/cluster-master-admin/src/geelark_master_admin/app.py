@@ -24,6 +24,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from geelark_cluster_persistence.status_snapshot import build_status_snapshot
 from .auth import LoginRateLimiter, SessionStore, verify_operator_password
+from .android_discovery import AndroidRegistry
 
 SESSION_COOKIE = "__Host-geelark_master_session"
 MAX_SNAPSHOTS = 500
@@ -54,6 +55,11 @@ class LoginPayload(BaseModel):
 class AndroidActionPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
     action: Literal["open", "disconnect", "recover"]
+    password: str | None = Field(default=None, max_length=1024)
+
+
+class DiscoveryPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     password: str | None = Field(default=None, max_length=1024)
 
 
@@ -339,6 +345,11 @@ def create_admin_app(
             return _security_headers(JSONResponse({"error": {"code": "RESPONSE_TOO_LARGE"}}, status_code=503))
         return _security_headers(Response(content=encoded, media_type="application/json"))
 
+    def selected_control(request):
+        if isinstance(android_control, AndroidRegistry):
+            return android_control.select(request.query_params.get('profile'))
+        return android_control if request.query_params.get('profile') is None else None
+
     def control_error(request, *, write=False):
         if not sessions.valid(request.cookies.get(SESSION_COOKIE)):
             return _security_headers(JSONResponse({"error": {"code": "AUTHENTICATION_REQUIRED"}}, status_code=401))
@@ -346,14 +357,26 @@ def create_admin_app(
             return _security_headers(JSONResponse({"error": {"code": "ORIGIN_REJECTED"}}, status_code=403))
         if android_control is None:
             return _security_headers(JSONResponse({"error": {"code": "ANDROID_NOT_CONFIGURED"}}, status_code=503))
+        if selected_control(request) is None:
+            return _security_headers(JSONResponse({"error": {"code": "PROFILE_NOT_FOUND"}}, status_code=404))
         return None
+
+    @app.post('/admin/v1/android/discover')
+    def discover_android(payload: DiscoveryPayload, request: Request):
+        error=control_error(request,write=True)
+        if error is not None:return error
+        if not isinstance(android_control,AndroidRegistry):
+            return _security_headers(JSONResponse({'error':{'code':'DISCOVERY_UNAVAILABLE'}},status_code=503))
+        accepted=android_control.discover(payload.password)
+        return _security_headers(JSONResponse({'accepted':accepted},status_code=202 if accepted else 409))
 
     @app.get("/admin/v1/android")
     def android_status(request: Request):
         error = control_error(request)
         if error is not None:
             return error
-        return _security_headers(JSONResponse(android_control.status()))
+        control=android_control if request.query_params.get('profile') is None else selected_control(request)
+        return _security_headers(JSONResponse(control.status()))
 
     @app.post("/admin/v1/android/actions")
     def android_action(payload: AndroidActionPayload, request: Request):
@@ -362,7 +385,7 @@ def create_admin_app(
             return error
         if payload.action != "recover" and payload.password is not None:
             return _security_headers(JSONResponse({"error": {"code": "INVALID_REQUEST"}}, status_code=400))
-        accepted = android_control.submit(payload.action, payload.password)
+        accepted = selected_control(request).submit(payload.action, payload.password)
         return _security_headers(JSONResponse({"accepted": accepted}, status_code=202 if accepted else 409))
 
     @app.get("/admin/v1/android/video")
@@ -370,14 +393,15 @@ def create_admin_app(
         error = control_error(request)
         if error is not None:
             return error
-        with android_control.lock:
-            current = android_control.controller.screen
-            if (android_control.busy or current is None or getattr(current, "id", None) != screen
+        control=selected_control(request)
+        with control.lock:
+            current = control.controller.screen
+            if (control.busy or current is None or getattr(current, "id", None) != screen
                     or current.poll() is not None or not current.claim.acquire(blocking=False)):
                 return _security_headers(JSONResponse({"error": {"code": "SCREEN_UNAVAILABLE"}}, status_code=409))
         token = request.cookies.get(SESSION_COOKIE)
         def valid():
-            return sessions.valid(token) and android_control.controller.screen is current
+            return sessions.valid(token) and control.controller.screen is current
         iterator = current.frames(valid)
         def next_packet():
             return next(iterator, None)
@@ -405,9 +429,10 @@ def create_admin_app(
         error = control_error(request, write=True)
         if error is not None:
             return error
-        with android_control.lock:
-            current = android_control.controller.screen
-            if android_control.busy or current is None or getattr(current, "id", None) != payload.screen:
+        control=selected_control(request)
+        with control.lock:
+            current = control.controller.screen
+            if control.busy or current is None or getattr(current, "id", None) != payload.screen:
                 return _security_headers(JSONResponse({"error": {"code": "SCREEN_UNAVAILABLE"}}, status_code=409))
             try:
                 current.input(payload.model_dump())
@@ -434,7 +459,8 @@ def create_admin_app(
         error = control_error(request)
         if error is not None:
             return error
-        return _security_headers(JSONResponse({"status": android_control.status(), "log": android_control.diagnostics()}))
+        control=selected_control(request)
+        return _security_headers(JSONResponse({"status": control.status(), "log": control.diagnostics()}))
 
     @app.post("/admin/v1/diagnostics/android")
     def diagnostics_run(request: Request):
@@ -444,7 +470,7 @@ def create_admin_app(
         if error is not None:
             return error
         from .android_diagnostics import collect
-        accepted = android_control.submit("diagnose", diagnostic=collect)
+        accepted = selected_control(request).submit("diagnose", diagnostic=collect)
         return _security_headers(JSONResponse({"accepted": accepted}, status_code=202 if accepted else 409))
 
     @app.post("/admin/v1/diagnostics/android/clear")
@@ -454,7 +480,7 @@ def create_admin_app(
         error = control_error(request, write=True)
         if error is not None:
             return error
-        accepted = android_control.clear_diagnostics()
+        accepted = selected_control(request).clear_diagnostics()
         return _security_headers(JSONResponse({"cleared": accepted}, status_code=200 if accepted else 409))
 
     return app
