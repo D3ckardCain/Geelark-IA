@@ -17,66 +17,99 @@ body{background:var(--bg)}.app{display:grid;grid-template-columns:180px minmax(0
 @media(max-width:600px){.app{display:block}.nav{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:0 0 18px}.nav button{text-align:center}.detail-grid{grid-template-columns:1fr}.tools select{width:100%}}
 
 dialog{width:min(480px,calc(100% - 30px));background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:24px}dialog::backdrop{background:#000a}dialog input{display:block;width:100%;margin:9px 0;padding:10px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:6px}
+
+/* Superficie de operación: navegación compacta y tabla de perfiles. */
+.app{max-width:1600px;grid-template-columns:192px minmax(0,1fr);padding:22px;gap:22px}
+.topbar{padding-bottom:20px}.brand h1{font-size:25px}.brand p{font-size:12px}
+.logo{border-radius:10px;background:var(--surface2);border-color:var(--line);box-shadow:none}
+.eyebrow{color:var(--muted);letter-spacing:.12em}.nav{padding:10px;gap:5px;border-radius:10px}
+.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:10px 10px 5px}
+.nav button{padding:10px 12px;font-weight:600}.nav button.active{background:#1f6feb22;color:#79c0ff;border-color:#388bfd40}
+.pagehead{margin:0 0 24px;align-items:center}.pagehead h2{font-size:26px;margin:0 0 4px}
+.btn{background:var(--surface2);border-color:var(--line);border-radius:7px}.btn:hover{background:#30363d;border-color:#8b949e}
+.btn.primary{background:#238636;color:#fff;border-color:#2ea043}.btn.primary:hover{background:#2ea043}
+.metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.metric{min-height:105px}.metric:after{display:none}
+.tools input,.tools select{background:var(--surface);border-radius:7px}.profile-filters{align-items:center;margin-bottom:16px}
+.profile-filters input{flex:1;max-width:360px}.profile-filters #profiles-count{margin-left:auto;font-size:12px}
+.profiles-panel{padding:0;overflow:hidden}.profiles-panel th{padding:15px 20px;background:#21262d66;font-size:11px;text-transform:none;letter-spacing:0}
+.profiles-panel td{padding:22px 20px;vertical-align:top}.profiles-panel td:first-child{min-width:250px;white-space:normal}
+.profiles-panel h3{font-size:14px;margin:0 0 7px}.profiles-panel p{font-size:12px;margin:0;max-width:400px}
+.profiles-panel .profile-actions{flex-wrap:wrap;max-width:400px;margin:0}.profile-actions .btn{font-size:12px;padding:8px 11px;white-space:nowrap}
+.profiles-panel .empty{padding:48px 20px;max-width:none;margin:0}.action-help{font-size:12px;margin:14px 2px}
+.help-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.help-grid .panel{margin:0}.help-grid h3{margin:0 0 10px;font-size:14px}
+.help-grid p{margin:0;font-size:13px}.foot{margin-top:28px;border-top:1px solid var(--line);padding-top:14px}
+@media(max-width:980px){.app{grid-template-columns:150px minmax(0,1fr);padding:16px;gap:16px}.profiles-panel td{padding:16px}.profiles-panel td:first-child{min-width:200px}}
+@media(max-width:600px){.app{display:block;padding:12px}.topbar{margin-bottom:18px}.nav{margin-bottom:20px;grid-template-columns:repeat(4,minmax(0,1fr));padding:5px;gap:2px}.nav-label{display:none}.nav button{padding:10px 4px;font-size:12px}.pagehead{flex-direction:row;align-items:center}.pagehead h2{font-size:23px}.profile-filters input{max-width:none}.profile-filters #profiles-count{width:100%;margin:0}.metrics{grid-template-columns:1fr}.help-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <section id="login-gate" class="login-gate" aria-labelledby="login-title">
   <form id="login-form" class="login-card" autocomplete="on">
     <div class="brand"><div class="logo" aria-hidden="true">G</div><div><div class="eyebrow">GeeLark-IA · PC-MASTER</div><h2 id="login-title">Acceso al centro de control</h2></div></div>
-    <p>Introduce la contraseña local del operador. El acceso se valida en este equipo; no se utilizan proveedores externos.</p>
-    <label for="operator-password">Contraseña del operador</label>
+    <p>Inicia sesión para administrar tus perfiles Android.</p>
+    <label for="operator-password">Contraseña</label>
     <input id="operator-password" name="password" type="password" minlength="12" maxlength="1024" autocomplete="current-password" required>
     <div id="login-error" class="login-error" role="alert" aria-live="polite"></div>
     <div class="actions"><button id="login-submit" class="btn primary" type="submit">Iniciar sesión</button></div>
-    <p>La sesión es local, temporal y protegida. No compartas tu contraseña.</p>
+    <p>No compartas tu contraseña.</p>
   </form>
 </section>
 <div class="app">
 <header class="topbar">
-  <div class="brand"><div class="logo" aria-hidden="true">G</div><div><div class="eyebrow">PLANO DE CONTROL · LOCAL</div><h1>GeeLark-IA <span class="muted">PC-MASTER</span></h1><p>Administración central de workers Android · Redroid como motor previsto</p></div></div>
-  <div class="top-actions"><div class="chip" id="connection-chip"><span class="dot amber"></span><span>Conectando al Master</span></div><button class="btn hidden" id="logout" type="button">Cerrar sesión</button></div>
+  <div class="brand"><div class="logo" aria-hidden="true">G</div><div><div class="eyebrow">CENTRO DE CONTROL</div><h1>GeeLark-IA</h1><p>Perfiles Android en tus equipos</p></div></div>
+  <div class="top-actions"><div class="chip" id="connection-chip"><span class="dot amber"></span><span>Comprobando sesión</span></div><button class="btn hidden" id="logout" type="button">Cerrar sesión</button></div>
 </header>
-<section id="connection-notice" class="notice warn" role="status" aria-live="polite"><span aria-hidden="true">◈</span><div><strong>Preparando conexión segura</strong><p>Los indicadores se completarán únicamente con datos reales del backend autenticado. No se inventan nodos ni estados.</p></div></section>
-<nav class="nav" aria-label="Secciones principales"><button class="active" data-page="android" aria-current="page">Dispositivos</button><button data-page="nodes">Nodos</button><button data-page="tasks">Tareas</button><button data-page="system">Sistema</button></nav>
+<nav class="nav" aria-label="Secciones principales">
+  <span class="nav-label">Espacio de trabajo</span>
+  <button class="active" data-page="android" aria-current="page">Perfiles</button>
+  <button data-page="nodes">Workers</button>
+  <button data-page="tasks">Tareas</button>
+  <span class="nav-label">Soporte</span>
+  <button data-page="system">Ayuda</button>
+</nav>
 <main>
 <section id="page-android" class="page" aria-labelledby="android-title">
-  <div class="pagehead"><div><div class="eyebrow">OPERACIÓN</div><h2 id="android-title">Dispositivos Android</h2><p>Abre y recupera tus dispositivos desde este equipo.</p></div><button id="android-refresh" class="btn" type="button">Actualizar conexión</button></div>
-  <article class="panel" aria-labelledby="android-name">
-    <div class="panel-head"><h3 id="android-name">Conexión Android</h3><span id="android-badge" class="pill gray">Sin consultar</span></div>
-    <p id="android-message" class="muted" role="status" aria-live="polite">Inicia sesión para consultar el dispositivo configurado.</p>
-    <div class="tools"><button class="btn primary" id="android-open" disabled>Abrir pantalla</button><button class="btn" id="android-disconnect" disabled>Cerrar conexión</button><button class="btn" id="android-recover" disabled>Recuperar dispositivo</button></div>
-    <p class="muted">Cerrar la conexión conserva Android encendido. Recuperar reinicia el dispositivo e interrumpe sus operaciones en curso.</p>
-  </article>
+  <div class="pagehead"><div><h2 id="android-title">Perfiles</h2><p>Accede a tus entornos Android.</p></div><button id="android-refresh" class="btn" type="button">Actualizar</button></div>
+  <div class="tools profile-filters">
+    <label for="profile-search" class="sr-only">Buscar perfil por nombre</label><input id="profile-search" type="search" placeholder="Buscar perfil" autocomplete="off">
+    <label for="profile-state" class="sr-only">Filtrar estado de pantalla</label><select id="profile-state"><option value="">Todos los estados</option><option value="open">Pantalla abierta</option><option value="closed">Pantalla cerrada</option><option value="error">Requiere atención</option></select>
+    <span id="profiles-count" class="muted">Sin consultar</span>
+  </div>
+  <section class="panel profiles-panel" aria-label="Lista de perfiles">
+    <div class="table-wrap"><table><caption class="sr-only">Perfiles Android configurados</caption><thead><tr><th>Nombre</th><th>Estado de pantalla</th><th>Acciones</th></tr></thead><tbody>
+      <tr id="android-profile-row" class="hidden"><td><h3 id="android-name">Perfil Android</h3><p id="android-message" class="muted" role="status" aria-live="polite">Inicia sesión para consultar tus perfiles.</p></td>
+      <td><span id="android-badge" class="pill gray">Sin consultar</span></td>
+      <td><div class="tools profile-actions"><button class="btn primary" type="button" id="android-open" disabled>Abrir pantalla</button><button class="btn" type="button" id="android-disconnect" disabled>Cerrar conexión</button><button class="btn" type="button" id="android-recover" disabled>Recuperar</button></div></td></tr>
+    </tbody></table></div>
+    <p id="profiles-empty" class="empty" role="status" aria-live="polite">Inicia sesión para consultar tus perfiles.</p>
+  </section>
+  <p class="action-help muted">Cerrar conexión deja Android encendido. Recuperar reinicia el perfil y conserva sus datos.</p>
 </section>
 <dialog id="android-recovery" aria-labelledby="recovery-title">
-  <form id="recovery-form"><h2 id="recovery-title">Recuperar dispositivo</h2><p>Se reiniciará únicamente el dispositivo configurado. Sus datos se conservan; las operaciones en curso se interrumpen.</p>
+  <form id="recovery-form"><h2 id="recovery-title">Recuperar perfil</h2><p>Se reiniciará este perfil. Sus datos se conservan y las operaciones en curso se interrumpen.</p>
   <label for="recovery-password">Contraseña del worker</label><input id="recovery-password" type="password" maxlength="1024" autocomplete="off" required>
-  <p class="muted">Se utilizará una sola vez y no se guardará.</p><div class="tools"><button class="btn primary" type="submit">Reiniciar dispositivo</button><button id="recovery-cancel" class="btn" type="button">Cancelar</button></div></form>
+  <p class="muted">Se utilizará una sola vez y no se guardará.</p><div class="tools"><button class="btn primary" type="submit">Reiniciar perfil</button><button id="recovery-cancel" class="btn" type="button">Cancelar</button></div></form>
 </dialog>
 
 <section id="page-nodes" class="page hidden">
-  <div class="pagehead"><div><div class="eyebrow">VISTA GENERAL</div><h2>Infraestructura de workers</h2><p>Estado de los equipos y sus señales de vida, desde el PC-MASTER.</p></div><button class="btn primary" id="refresh" type="button">↻ Actualizar estado</button></div>
-  <div id="data-mode" class="muted" style="font-size:11px;margin:-6px 0 13px">Fuente: sin conectar · última consulta: nunca</div>
+  <div class="pagehead"><div><h2>Workers</h2><p>Equipos que alojan tus perfiles Android.</p></div><button class="btn primary" id="refresh" type="button">↻ Actualizar estado</button></div>
+  <div id="data-mode" class="muted" style="font-size:12px;margin:0 0 14px">Sin actualizar</div>
+  <section id="connection-notice" class="notice warn" role="status" aria-live="polite"><div><strong>Actualizando equipos</strong><p>Espera un momento.</p></div></section>
   <div class="metrics">
-    <article class="metric"><div class="metric-label">Nodos registrados</div><div class="metric-num cyan-text" id="metric-nodes">—</div><div class="metric-hint">Inventario real del Master</div></article>
-    <article class="metric"><div class="metric-label">Autorizados y saludables</div><div class="metric-num green-text" id="metric-healthy">—</div><div class="metric-hint">Autorización y salud verificadas</div></article>
-    <article class="metric"><div class="metric-label">Requieren atención</div><div class="metric-num amber-text" id="metric-alerts">—</div><div class="metric-hint">Pendientes, desconocidos o degradados</div></article>
-    <article class="metric"><div class="metric-label">Coste operativo objetivo</div><div class="metric-num cyan-text">$0</div><div class="metric-hint">USD · sin servicios de pago obligatorios</div></article>
+    <article class="metric"><div class="metric-label">Equipos registrados</div><div class="metric-num cyan-text" id="metric-nodes">—</div><div class="metric-hint">Total de workers</div></article>
+    <article class="metric"><div class="metric-label">Disponibles</div><div class="metric-num green-text" id="metric-healthy">—</div><div class="metric-hint">Autorizados y con señal reciente</div></article>
+    <article class="metric"><div class="metric-label">Requieren atención</div><div class="metric-num amber-text" id="metric-alerts">—</div><div class="metric-hint">Revisa su estado de conexión</div></article>
   </div>
   <div class="tools">
-    <label for="node-search" class="sr-only">Buscar nodos por nombre o identificador</label>
-    <input id="node-search" type="search" placeholder="Buscar nodo por nombre o ID" autocomplete="off">
+    <label for="node-search" class="sr-only">Buscar workers por nombre</label>
+    <input id="node-search" type="search" placeholder="Buscar worker" autocomplete="off">
     <label for="node-authorization" class="sr-only">Filtrar por autorización</label>
-    <select id="node-authorization"><option value="">Toda autorización</option><option value="active">Autorizados</option><option value="pending">Pendientes</option><option value="revoked">Revocados</option><option value="unknown">Desconocidos</option></select>
+    <select id="node-authorization"><option value="">Todos los permisos</option><option value="active">Autorizados</option><option value="pending">Pendientes</option><option value="revoked">Revocados</option><option value="unknown">Desconocidos</option></select>
     <label for="node-health" class="sr-only">Filtrar por salud</label>
-    <select id="node-health"><option value="">Toda salud</option><option value="healthy">Saludables</option><option value="degraded">Degradados</option><option value="offline">Desconectados</option><option value="unknown">Desconocidos</option></select>
+    <select id="node-health"><option value="">Todos los estados</option><option value="healthy">Saludables</option><option value="degraded">Degradados</option><option value="offline">Desconectados</option><option value="unknown">Desconocidos</option></select>
   </div>
-  <div class="grid-two">
-    <section class="panel"><div class="panel-head"><h3>Nodos worker</h3><span id="nodes-count">0 nodos</span></div><div class="table-wrap"><table><caption class="sr-only">Estado real de los workers</caption><thead><tr><th>Nodo</th><th>Autorización</th><th>Salud</th><th>Heartbeat</th></tr></thead><tbody id="nodes-table"></tbody></table></div><div id="nodes-empty" class="empty">Aún no hay snapshots reales disponibles.</div></section>
-    <div>
-      <section class="feature"><div class="feature-top"><div class="feature-icon" aria-hidden="true">A</div><span class="pill amber">Planificado</span></div><h3>Motor Android · Redroid</h3><p>El motor se instalará como tarea controlada de PC-MASTER después de adoptar y autorizar un worker Linux compatible. No se instala durante el registro.</p><div class="feature-list"><div class="feature-row"><span>Adopción de workers</span><strong>Primero</strong></div><div class="feature-row"><span>Instalación del motor</span><strong>Con aprobación</strong></div><div class="feature-row"><span>Comandos remotos libres</span><strong class="amber-text">Deshabilitados</strong></div></div></section>
-      <section class="panel"><div class="panel-head"><h3>Inventario de módulos</h3><span id="metric-modules">—</span></div><p class="muted" style="font-size:12px;margin:0">Módulos que los agentes hayan reportado explícitamente. Un módulo ausente no se considera instalado.</p><div id="modules-summary" class="feature-list"></div><div id="modules-empty" class="empty">Sin módulos reportados.</div></section>
-    </div>
+  <div>
+    <section class="panel"><div class="panel-head"><h3>Equipos</h3><span id="nodes-count">0 equipos</span></div><div class="table-wrap"><table><caption class="sr-only">Estado real de los workers</caption><thead><tr><th>Equipo</th><th>Acceso</th><th>Estado</th><th>Última señal</th></tr></thead><tbody id="nodes-table"></tbody></table></div><div id="nodes-empty" class="empty">No hay workers registrados.</div></section>
   </div>
   <section id="node-detail" class="panel hidden" aria-labelledby="node-detail-title">
     <div class="panel-head"><h3 id="node-detail-title" tabindex="-1">Ficha del worker</h3><button id="node-detail-close" class="btn" type="button">Cerrar ficha</button></div>
@@ -84,29 +117,27 @@ dialog{width:min(480px,calc(100% - 30px));background:var(--surface);color:var(--
   </section>
 </section>
 <section id="page-tasks" class="page hidden">
-  <div class="pagehead"><div><div class="eyebrow">ORQUESTACIÓN · SOLO LECTURA</div><h2>Tareas</h2><p>Seguimiento de la bandeja durable. La ejecución desde el panel no está habilitada.</p></div><button id="tasks-refresh" class="btn" type="button">Actualizar tareas</button></div>
+  <div class="pagehead"><div><h2>Tareas</h2><p>Consulta el estado y el historial de tus operaciones.</p></div><button id="tasks-refresh" class="btn" type="button">Actualizar tareas</button></div>
   <form id="tasks-filters" class="tools">
-    <label class="sr-only" for="tasks-node">UUID del worker</label><input id="tasks-node" placeholder="UUID del worker (opcional)" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" autocomplete="off">
+    <label class="sr-only" for="tasks-node">Filtrar por worker</label><select id="tasks-node"><option value="">Todos los workers</option></select>
     <label class="sr-only" for="tasks-status">Estado de tarea</label><select id="tasks-status"><option value="">Todos los estados</option><option value="queued">En cola</option><option value="delivered">Entregada</option><option value="accepted">Aceptada</option><option value="running">En curso</option><option value="succeeded">Completada</option><option value="rejected">Rechazada</option><option value="failed">Fallida</option><option value="unknown">Desconocida</option><option value="cancelled">Cancelada</option></select><button class="btn" type="submit">Aplicar filtros</button>
   </form>
   <div id="tasks-notice" role="status" aria-live="polite" class="muted">Sin consultar.</div>
-  <section class="panel"><div class="table-wrap"><table><caption class="sr-only">Tareas reales del Master</caption><thead><tr><th>Tarea</th><th>Worker</th><th>Estado</th><th>Creada</th></tr></thead><tbody id="tasks-table"></tbody></table></div><p id="tasks-empty" class="empty">Consulta la bandeja para ver tareas reales.</p>
+  <section class="panel"><div class="table-wrap"><table><caption class="sr-only">Tareas reales del Master</caption><thead><tr><th>Tarea</th><th>Worker</th><th>Estado</th><th>Creada</th></tr></thead><tbody id="tasks-table"></tbody></table></div><p id="tasks-empty" class="empty">Actualiza para consultar tus tareas.</p>
   <div class="top-actions"><button id="tasks-prev" class="btn" type="button" disabled>Anterior</button><span id="tasks-page" class="muted">—</span><button id="tasks-next" class="btn" type="button" disabled>Siguiente</button></div></section>
   <section id="task-detail" class="panel hidden" aria-labelledby="task-detail-title"><div class="panel-head"><h3 id="task-detail-title" tabindex="-1">Detalle de tarea</h3><button id="task-detail-close" class="btn" type="button">Cerrar detalle</button></div><div id="task-detail-body"></div></section>
 </section>
-<section id="page-system" class="page hidden">
-  <div class="pagehead"><div><div class="eyebrow">CONFIGURACIÓN</div><h2>Sistema</h2><p>Estado de conexión, seguridad y documentación del proyecto.</p></div><a class="btn" href="https://github.com/D3ckardCain/Geelark-IA" target="_blank" rel="noopener noreferrer">Repositorio ↗</a></div>
-  <div class="system-grid">
-    <div class="system-item"><div class="k">API de snapshots</div><div class="v" id="audit-api">Sin conectar</div></div>
-    <div class="system-item"><div class="k">Autenticación</div><div class="v">Sesión local · cookie segura</div></div>
-    <div class="system-item"><div class="k">Base de datos</div><div class="v">PostgreSQL · acceso de solo lectura</div></div>
-    <div class="system-item"><div class="k">Exposición de red</div><div class="v">Solo loopback · 127.0.0.1</div></div>
-    <div class="system-item"><div class="k">Coste obligatorio</div><div class="v green-text">Objetivo $0 USD</div></div>
-    <div class="system-item"><div class="k">Motor Android</div><div class="v">Redroid · pendiente de validación del worker</div></div>
+<section id="page-system" class="page hidden" aria-labelledby="help-title">
+  <div class="pagehead"><div><h2 id="help-title">Ayuda</h2><p>Cómo operar tus perfiles.</p></div></div>
+  <div class="help-grid">
+    <article class="panel"><h3>Abrir una pantalla</h3><p class="muted">En Perfiles, pulsa Abrir pantalla. El worker debe estar encendido y conectado.</p></article>
+    <article class="panel"><h3>Cerrar una conexión</h3><p class="muted">Cierra la pantalla y desconecta el control. Android y sus aplicaciones continúan ejecutándose.</p></article>
+    <article class="panel"><h3>Recuperar un perfil</h3><p class="muted">Si Android no responde, pulsa Recuperar. Reinicia ese perfil y conserva sus datos. Las operaciones en curso se interrumpen.</p></article>
+    <article class="panel"><h3>Consultar tus equipos</h3><p class="muted">En Workers puedes revisar la conexión y el estado de los equipos registrados.</p></article>
   </div>
-  <section class="panel" style="margin-top:15px"><div class="panel-head"><h3>Configuración del acceso</h3><span class="pill green">Activos en esta UI</span></div><div class="feature-list"><div class="feature-row"><span>Datos reales</span><strong>Solo con sesión válida</strong></div><div class="feature-row"><span>Control Android</span><strong>Operaciones locales delimitadas</strong></div><div class="feature-row"><span>Workers pendientes</span><strong>No reciben tareas</strong></div><div class="feature-row"><span>Secretos en navegador</span><strong>No se almacenan</strong></div><div class="feature-row"><span>GitHub Actions</span><a href="https://github.com/D3ckardCain/Geelark-IA/actions" target="_blank" rel="noopener noreferrer">Ver ejecuciones ↗</a></div></div></section>
-<div class="tools"><!-- OPTIONAL_DIAGNOSTICS --></div></section>
-<footer class="foot"><span><strong>GeeLark-IA</strong> · PC-MASTER · Centro de control local</span><span id="last-refresh">Última consulta: nunca</span></footer>
+  <div class="tools"><!-- OPTIONAL_DIAGNOSTICS --></div>
+</section>
+<footer class="foot"><span><strong>GeeLark-IA</strong> · Operación local</span><span id="last-refresh">Última consulta: nunca</span></footer>
 </main>
 </div>
 <script>
@@ -120,17 +151,20 @@ function esc(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;"
 function pill(value){const k=String(value??"unknown");return '<span class="pill '+(classes[k]||"gray")+'">'+esc(labels[k]||k)+'</span>'}
 function date(value){if(!value)return "Sin reporte";const d=new Date(value);return Number.isNaN(d.getTime())?"Fecha inválida":d.toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"})}
 function validatePayload(data){if(!data||data.schema_version!=="1.0"||!Array.isArray(data.snapshots)||data.snapshots.length>500)throw new Error("Respuesta inválida del servicio de snapshots.");for(const s of data.snapshots){if(!s||!s.node||typeof s.node.node_id!=="string"||typeof s.node.display_name!=="string"||!s.freshness||!Array.isArray(s.node.modules)||!Array.isArray(s.node.capabilities))throw new Error("Snapshot inválido: faltan campos obligatorios.");}return data.snapshots}
-function updateNotice(kind,title,message){const box=el("connection-notice");box.className="notice "+kind;box.replaceChildren();const icon=document.createElement("span");icon.setAttribute("aria-hidden","true");icon.textContent=kind==="ok"?"✓":kind==="error"?"!":"◈";const body=document.createElement("div"),strong=document.createElement("strong"),p=document.createElement("p");strong.textContent=title;p.textContent=message;body.append(strong,p);box.append(icon,body);const chip=el("connection-chip");chip.replaceChildren();const dot=document.createElement("span");dot.className="dot "+(kind==="ok"?"green":kind==="error"?"amber":"amber");const label=document.createElement("span");label.textContent=state.connected?"Master conectado":"Master desconectado";chip.append(dot,label)}
-function nodeRow(s){const n=s.node;return '<tr><td><div class="node-name"><button type="button" class="node-open" data-node-id="'+esc(n.node_id)+'" aria-controls="node-detail" aria-expanded="'+(state.selectedNodeId===n.node_id?'true':'false')+'">'+esc(n.display_name)+'</button></div><div class="node-id">'+esc(n.node_id)+'</div></td><td>'+pill(n.authorization_state)+'</td><td>'+pill(n.health_state)+'</td><td>'+pill(s.freshness.state)+'<div class="node-id">'+esc(s.freshness.age_seconds===null?"—":s.freshness.age_seconds+" s")+'</div></td></tr>'}
+function updateNotice(kind,title,message){const box=el("connection-notice");box.className="notice "+kind;box.classList.toggle("hidden",kind==="ok");box.replaceChildren();const icon=document.createElement("span");icon.setAttribute("aria-hidden","true");icon.textContent=kind==="ok"?"✓":kind==="error"?"!":"◈";const body=document.createElement("div"),strong=document.createElement("strong"),p=document.createElement("p");strong.textContent=title;p.textContent=message;body.append(strong,p);box.append(icon,body);const chip=el("connection-chip");chip.replaceChildren();const dot=document.createElement("span");dot.className="dot "+(kind==="ok"?"green":kind==="error"?"amber":"amber");const label=document.createElement("span");label.textContent=state.authenticated?"Sesión activa":"Sesión no iniciada";chip.append(dot,label)}
+function nodeRow(s){const n=s.node;return '<tr><td><button type="button" class="node-open" data-node-id="'+esc(n.node_id)+'" aria-controls="node-detail" aria-expanded="'+(state.selectedNodeId===n.node_id?'true':'false')+'">'+esc(n.display_name)+'</button></td><td>'+pill(n.authorization_state)+'</td><td>'+pill(n.health_state)+'</td><td>'+esc(date(n.last_heartbeat_at))+'</td></tr>'}
 function filterNodes(){const q=el("node-search")?.value.toLowerCase()||"";const authorization=el("node-authorization")?.value||"";const health=el("node-health")?.value||"";return state.snapshots.filter(s=>(s.node.display_name+" "+s.node.node_id).toLowerCase().includes(q)&&(!authorization||s.node.authorization_state===authorization)&&(!health||s.node.health_state===health))}
 
 function nodeDetails(snapshot){
   const n=snapshot.node;
-  const field=(name,value)=>'<div><dt>'+esc(name)+'</dt><dd>'+esc(value??"Sin reporte")+'</dd></div>';
-  const fields=field("Identificador",n.node_id)+field("Versión del agente",n.agent_version)+field("Último heartbeat",date(n.last_heartbeat_at))+field("Snapshot generado",date(snapshot.generated_at))+field("Salud reportada",labels[n.reported_health_state]||n.reported_health_state||"Sin reporte")+field("Antigüedad al consultar",snapshot.freshness.age_seconds===null?"Sin reporte":snapshot.freshness.age_seconds+" s");
-  const capabilities=n.capabilities.length?'<ul class="capabilities">'+n.capabilities.map(c=>'<li>'+esc(c)+'</li>').join("")+'</ul>':'<p class="muted">Sin capacidades reportadas.</p>';
-  const modules=n.modules.length?'<div class="table-wrap"><table><caption class="sr-only">Todos los módulos del worker seleccionado</caption><thead><tr><th>Módulo</th><th>Estado</th><th>Versión</th><th>Comprobado</th><th>Fuente</th><th>Error</th></tr></thead><tbody>'+n.modules.map(m=>'<tr><td>'+esc(m.module_id)+'</td><td>'+pill(m.state)+'</td><td>'+esc(m.version??"Sin reporte")+'</td><td>'+esc(date(m.checked_at))+'</td><td>'+esc(m.source??"Sin reporte")+'</td><td>'+esc(m.error_code??"—")+'</td></tr>').join("")+'</tbody></table></div>':'<p class="muted">Sin módulos reportados. No se infiere instalación.</p>';
-  return '<p>'+pill(n.authorization_state)+' '+pill(n.health_state)+' '+pill(snapshot.freshness.state)+'</p><dl class="detail-grid">'+fields+'</dl><p class="muted">La antigüedad corresponde al snapshot recibido. Actualiza el estado para consultar de nuevo al Master.</p><h4>Capacidades reportadas</h4>'+capabilities+'<h4>Inventario completo de módulos</h4>'+modules;
+  const field=(name,value)=>'<div><dt>'+esc(name)+'</dt><dd>'+esc(value??"No disponible")+'</dd></div>';
+  return '<dl class="detail-grid">'+field("Equipo",n.display_name)+field("Acceso",labels[n.authorization_state]||"Desconocido")+field("Estado",labels[n.health_state]||"Desconocido")+field("Última señal",date(n.last_heartbeat_at))+'</dl>';
+}
+function workerName(id){return state.snapshots.find(s=>s.node.node_id===id)?.node.display_name||"Equipo no disponible"}
+function renderWorkerFilter(){
+  const select=el("tasks-node"),selected=select.value;
+  select.innerHTML='<option value="">Todos los workers</option>'+state.snapshots.map(s=>'<option value="'+esc(s.node.node_id)+'">'+esc(s.node.display_name)+'</option>').join("");
+  if(state.snapshots.some(s=>s.node.node_id===selected))select.value=selected;
 }
 function renderNodeDetails(){
   const snapshot=state.authenticated?state.snapshots.find(s=>s.node.node_id===state.selectedNodeId):null;
@@ -143,20 +177,16 @@ function renderNodeDetails(){
 
 const taskLabels={"queued":"En cola","delivered":"Entregada","accepted":"Aceptada","running":"En curso","succeeded":"Completada","rejected":"Rechazada","failed":"Fallida","unknown":"Desconocida","cancelled":"Cancelada"};
 function taskDetails(t){
-  const fields={Tarea:t.task_id,Worker:t.node_id,Instancia:t.instance_id,Operación:t.operation_id,
-    "Epoch de asignación":t.assignment_epoch,Estado:taskLabels[t.status]||t.status,
-    "Intentos de entrega":t.delivery_attempts,Creada:date(t.created_at),Actualizada:date(t.updated_at),
-    Entregada:date(t.delivered_at),Aceptada:date(t.accepted_at),Finalizada:date(t.completed_at),
-    "Código de error":t.last_error_code||"Sin código"};
-  return '<dl class="detail-grid">'+Object.entries(fields).map(([k,v])=>'<div><dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd></div>').join("")+'</dl><p class="muted">El resultado visible es el estado registrado y su código de error. Los payloads y resultados libres no se consultan.</p>';
+  const fields={Referencia:String(t.task_id).slice(0,8),Equipo:workerName(t.node_id),Estado:taskLabels[t.status]||"Desconocida",Creada:date(t.created_at),Actualizada:date(t.updated_at),Finalizada:date(t.completed_at)};
+  return '<dl class="detail-grid">'+Object.entries(fields).map(([k,v])=>'<div><dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd></div>').join("")+'</dl>';
 }
 function clearTasks(){state.tasks=[];state.selectedTaskId=null;state.tasksHasMore=false;state.tasksGenerated=null;state.tasksError=null;state.tasksOffset=0;state.tasksFilterKey=null;state.tasksRequest++;state.tasksBusy=false}
 function renderTasks(){
   const tasks=state.authenticated?state.tasks:[];
-  el("tasks-table").innerHTML=tasks.map(t=>'<tr><td><button class="node-open" type="button" data-task-id="'+esc(t.task_id)+'">'+esc(t.task_id)+'</button></td><td>'+esc(t.node_id)+'</td><td>'+esc(taskLabels[t.status]||t.status)+'</td><td>'+esc(date(t.created_at))+'</td></tr>').join("");
+  el("tasks-table").innerHTML=tasks.map(t=>'<tr><td><button class="node-open" type="button" data-task-id="'+esc(t.task_id)+'">'+esc(String(t.task_id).slice(0,8))+'</button></td><td>'+esc(workerName(t.node_id))+'</td><td>'+esc(taskLabels[t.status]||t.status)+'</td><td>'+esc(date(t.created_at))+'</td></tr>').join("");
   el("tasks-empty").classList.toggle("hidden",tasks.length>0);
-  el("tasks-empty").textContent=state.tasksError?"No se pudieron consultar las tareas.":state.tasksGenerated?"Sin tareas para estos filtros.":"Consulta la bandeja para ver tareas reales.";
-  el("tasks-notice").textContent=state.tasksBusy?"Consultando tareas…":state.tasksError|| (state.tasksGenerated?"Consulta PostgreSQL: "+date(state.tasksGenerated)+" · solo lectura":"Sin consultar.");
+  el("tasks-empty").textContent=state.tasksError?"No se pudieron consultar las tareas.":state.tasksGenerated?"Sin tareas para estos filtros.":"Actualiza para consultar tus tareas.";
+  el("tasks-notice").textContent=state.tasksBusy?"Consultando tareas…":state.tasksError|| (state.tasksGenerated?"Actualizado: "+date(state.tasksGenerated):"Sin consultar.");
   el("tasks-refresh").disabled=state.tasksBusy||!state.authenticated;
   el("tasks-prev").disabled=state.tasksBusy||state.tasksOffset===0||!state.authenticated;
   el("tasks-next").disabled=state.tasksBusy||!state.tasksHasMore||state.tasksOffset>=10000||!state.authenticated;
@@ -190,7 +220,20 @@ async function refreshTasks(reset=false){
   finally{if(request===state.tasksRequest){state.tasksBusy=false;renderTasks()}}
 }
 
-function render(){const nodes=state.snapshots.map(s=>s.node);const visibleNodes=filterNodes();const modules=state.snapshots.flatMap(s=>s.node.modules.map(m=>({m,n:s.node})));const healthy=nodes.filter(n=>n.health_state==="healthy"&&n.authorization_state==="active").length;const alerts=nodes.filter(n=>n.health_state!=="healthy"||n.authorization_state!=="active").length;el("metric-nodes").textContent=String(nodes.length);el("metric-healthy").textContent=String(healthy);el("metric-alerts").textContent=String(alerts);el("metric-modules").textContent=String(modules.length);el("nodes-count").textContent=visibleNodes.length===nodes.length?nodes.length+" nodos":visibleNodes.length+" de "+nodes.length+" nodos";el("nodes-table").innerHTML=visibleNodes.map(nodeRow).join("");el("nodes-empty").classList.toggle("hidden",visibleNodes.length>0);el("nodes-empty").textContent=nodes.length?"Sin nodos que coincidan con la búsqueda.":"Aún no hay snapshots reales disponibles.";el("modules-summary").innerHTML=modules.slice(0,8).map(({m,n})=>'<div class="feature-row"><span>'+esc(m.module_id)+' · '+esc(n.display_name)+'</span>'+pill(m.state)+'</div>').join("");el("modules-empty").classList.toggle("hidden",modules.length>0);el("data-mode").textContent=(state.connected?"Fuente: Master · "+API_PATH:"Fuente: no disponible")+" · última consulta: "+(state.lastRefresh?date(state.lastRefresh):"nunca");el("last-refresh").textContent="Última consulta: "+(state.lastRefresh?date(state.lastRefresh):"nunca");el("audit-api").textContent=state.connected?"Conectado · "+nodes.length+" snapshots":state.error||"Sin conectar";el("logout").classList.toggle("hidden",!state.authenticated);renderNodeDetails();renderTasks()}
+function render(){
+  const nodes=state.snapshots.map(s=>s.node),visible=filterNodes();
+  el("metric-nodes").textContent=String(nodes.length);
+  el("metric-healthy").textContent=String(nodes.filter(n=>n.health_state==="healthy"&&n.authorization_state==="active").length);
+  el("metric-alerts").textContent=String(nodes.filter(n=>n.health_state!=="healthy"||n.authorization_state!=="active").length);
+  el("nodes-count").textContent=visible.length+" de "+nodes.length+" equipos";
+  el("nodes-table").innerHTML=visible.map(nodeRow).join("");
+  el("nodes-empty").classList.toggle("hidden",visible.length>0);
+  el("nodes-empty").textContent=nodes.length?"No hay equipos que coincidan con los filtros.":"No hay workers registrados.";
+  el("data-mode").textContent="Actualizado: "+(state.lastRefresh?date(state.lastRefresh):"sin consultar");
+  el("last-refresh").textContent="Última consulta: "+(state.lastRefresh?date(state.lastRefresh):"sin consultar");
+  el("logout").classList.toggle("hidden",!state.authenticated);
+  renderWorkerFilter();renderNodeDetails();renderTasks();
+}
 async function refresh(){
   if(state.busy||!state.authenticated)return;
   const version=state.sessionVersion, request=++state.snapshotsRequest;
@@ -205,21 +248,30 @@ async function refresh(){
     const payload=await response.json();
     if(!current())return;
     state.snapshots=validatePayload(payload);state.connected=true;state.lastRefresh=new Date().toISOString();
-    updateNotice("ok","Conectado al PC-MASTER",state.snapshots.length+" snapshots reales recibidos. Inventario y tareas mantienen acceso de solo lectura.");
+    updateNotice("ok","Equipos actualizados","");
   }catch(error){
     if(!current())return;
     state.connected=false;state.snapshots=[];state.error=error instanceof Error?error.message:"Error de conexión";
-    updateNotice("error","No se pudo consultar el estado real",state.error+" No se mostrarán datos ficticios.");
+    updateNotice("error","No se pudieron actualizar los equipos","Comprueba la conexión e inténtalo de nuevo.");
   }finally{
     if(request===state.snapshotsRequest){state.busy=false;el("refresh").disabled=!state.authenticated;render()}
   }
 }
-function showPage(page){if(page==="tasks"&&state.authenticated)refreshTasks();document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));el("page-"+page).classList.remove("hidden");document.querySelectorAll("[data-page]").forEach(b=>{const active=b.dataset.page===page;b.classList.toggle("active",active);if(active)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")})}
+function showPage(page){if(page==="nodes"&&state.authenticated)refresh();if(page==="tasks"&&state.authenticated)refreshTasks();document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));el("page-"+page).classList.remove("hidden");document.querySelectorAll("[data-page]").forEach(b=>{const active=b.dataset.page===page;b.classList.toggle("active",active);if(active)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")})}
 function showLogin(message=""){clearAndroid();state.sessionVersion++;state.snapshotsRequest++;state.busy=false;state.lastRefresh=null;state.selectedNodeId=null;el("refresh").disabled=true;clearTasks();state.snapshots=[];state.connected=false;el("connection-chip").textContent="Sesión no iniciada";el("connection-notice").className="notice warn";el("connection-notice").innerHTML="<div><strong>Sesión no iniciada</strong><p>Inicia sesión para consultar el estado actual del Master.</p></div>";el("login-gate").classList.remove("hidden");el("login-error").textContent=message;el("logout").classList.add("hidden");el("operator-password").focus({preventScroll:true})}
 function hideLogin(){refreshAndroid();el("login-gate").classList.add("hidden");el("login-error").textContent=""}
-async function checkSession(){try{const r=await fetch("/admin/v1/session",{method:"GET",headers:{"Accept":"application/json"},credentials:"same-origin",cache:"no-store",redirect:"error"});if(!r.ok)throw new Error("No se pudo comprobar la sesión.");const data=await r.json();state.authenticated=data.authenticated===true;if(state.authenticated){hideLogin();await refresh()}else{state.snapshots=[];state.connected=false;showLogin("")}}catch(e){state.authenticated=false;showLogin("Servicio local no disponible. Comprueba que PC-MASTER esté iniciado con HTTPS.")}render()}
-let androidConfigured=false, androidBusy=false, androidFetch=false, androidRequest=0;
-function clearAndroid(){androidRequest++;androidFetch=false;androidConfigured=false;androidBusy=false;el("android-recovery").close?.();el("recovery-password").value="";el("android-name").textContent="Conexión Android";el("android-badge").textContent="Sin consultar";el("android-message").textContent="Inicia sesión para consultar el dispositivo configurado.";for(const id of ["android-open","android-disconnect","android-recover"])el(id).disabled=true}
+async function checkSession(){try{const r=await fetch("/admin/v1/session",{method:"GET",headers:{"Accept":"application/json"},credentials:"same-origin",cache:"no-store",redirect:"error"});if(!r.ok)throw new Error("No se pudo comprobar la sesión.");const data=await r.json();state.authenticated=data.authenticated===true;if(state.authenticated){hideLogin();await refresh()}else{state.snapshots=[];state.connected=false;showLogin("")}}catch(e){state.authenticated=false;showLogin("No se pudo conectar. Comprueba que el panel esté iniciado.")}render()}
+let androidConfigured=false, androidBusy=false, androidFetch=false, androidRequest=0, androidScreenOpen=false, androidPhase="idle", androidListMessage="Actualizando perfiles…";
+function filterProfiles(){
+  const query=el("profile-search").value.trim().toLocaleLowerCase("es"),filter=el("profile-state").value;
+  const matches=androidConfigured&&el("android-name").textContent.toLocaleLowerCase("es").includes(query)&&(!filter||(filter==="open"&&androidScreenOpen)||(filter==="closed"&&!androidScreenOpen)||(filter==="error"&&androidPhase==="error"));
+  el("android-profile-row").classList.toggle("hidden",!matches);
+  el("profiles-empty").classList.toggle("hidden",matches);
+  el("profiles-empty").textContent=!state.authenticated?"Inicia sesión para consultar tus perfiles.":androidConfigured?"No hay perfiles que coincidan con los filtros.":androidListMessage;
+  el("profiles-count").textContent=androidConfigured?(matches?"1 perfil":"0 de 1 perfil"):"";
+}
+
+function clearAndroid(){androidRequest++;androidFetch=false;androidConfigured=false;androidBusy=false;el("android-recovery").close?.();el("recovery-password").value="";el("android-name").textContent="Perfil Android";el("android-badge").textContent="Sin consultar";el("android-message").textContent="Inicia sesión para consultar tus perfiles.";androidScreenOpen=false;androidPhase="idle";filterProfiles();for(const id of ["android-open","android-disconnect","android-recover"])el(id).disabled=true}
 async function refreshAndroid(){
   if(!state.authenticated||androidFetch)return;
   androidFetch=true;const request=++androidRequest,version=state.sessionVersion;
@@ -227,17 +279,17 @@ async function refreshAndroid(){
     const r=await fetch("/admin/v1/android",{credentials:"same-origin",cache:"no-store",redirect:"error"});
     if(version!==state.sessionVersion||!state.authenticated)return;
     if(r.status===401){state.authenticated=false;showLogin("La sesión ha caducado.");render();return}
-    if(r.status===503){androidConfigured=false;el("android-message").textContent="Configura la conexión del dispositivo en este PC-MASTER para habilitar el control.";el("android-badge").textContent="Sin configurar";return}
+    if(r.status===503){androidConfigured=false;androidListMessage="No tienes perfiles conectados. Configura una conexión Android en el lanzador.";el("android-badge").textContent="Sin configurar";return}
     if(!r.ok)throw new Error("No se pudo consultar la conexión.");
     const data=await r.json();
     if(version!==state.sessionVersion||!state.authenticated)return;
     if(data.configured!==true||typeof data.busy!=="boolean"||typeof data.screen_open!=="boolean")throw new Error("Estado de conexión inválido.");
-    androidConfigured=true;androidBusy=data.busy;
+    androidConfigured=true;androidBusy=data.busy;androidScreenOpen=data.screen_open;androidPhase=data.phase;
     el("android-name").textContent=data.name;el("android-message").textContent=data.message;
     el("android-badge").textContent=data.busy?"En curso":data.phase==="error"?"Requiere atención":data.screen_open?"Pantalla abierta":"Pantalla cerrada";
     el("android-badge").className="pill "+(data.busy?"amber":data.phase==="error"?"red":data.screen_open?"green":"gray");
-  }catch(error){if(version===state.sessionVersion){androidConfigured=false;el("android-message").textContent="PC-MASTER no responde. Comprueba su conexión.";el("android-badge").textContent="Sin conexión"}}
-  finally{if(request===androidRequest)androidFetch=false;for(const id of ["android-open","android-disconnect","android-recover"])el(id).disabled=!state.authenticated||!androidConfigured||androidBusy}
+  }catch(error){if(version===state.sessionVersion){androidConfigured=false;androidListMessage="No se pudieron consultar los perfiles. Pulsa Actualizar para intentarlo de nuevo.";el("android-badge").textContent="Sin conexión"}}
+  finally{if(request===androidRequest)androidFetch=false;filterProfiles();for(const id of ["android-open","android-disconnect","android-recover"])el(id).disabled=!state.authenticated||!androidConfigured||androidBusy}
 }
 async function androidAction(action,password){
   if(!state.authenticated||!androidConfigured||androidBusy)return;
@@ -275,6 +327,8 @@ el("tasks-table").addEventListener("click",event=>{const button=event.target.clo
 el("task-detail-close").addEventListener("click",()=>{state.selectedTaskId=null;renderTasks();el("tasks-refresh").focus({preventScroll:true})});
 
 
+el("profile-search").addEventListener("input",filterProfiles);
+el("profile-state").addEventListener("change",filterProfiles);
 el("android-refresh").addEventListener("click",refreshAndroid);
 el("android-open").addEventListener("click",()=>androidAction("open"));
 el("android-disconnect").addEventListener("click",()=>androidAction("disconnect"));
@@ -282,9 +336,9 @@ el("android-recover").addEventListener("click",()=>{el("recovery-password").valu
 el("recovery-cancel").addEventListener("click",()=>el("android-recovery").close());
 el("android-recovery").addEventListener("close",()=>{el("recovery-password").value=""});
 el("recovery-form").addEventListener("submit",event=>{event.preventDefault();let password=el("recovery-password").value;el("recovery-password").value="";el("android-recovery").close();androidAction("recover",password);password=""});
-setInterval(()=>{if(state.authenticated&&androidConfigured&&!document.hidden)refreshAndroid()},3000);
+setInterval(()=>{if(state.authenticated&&!document.hidden)refreshAndroid()},3000);
 
-render();checkSession();
+filterProfiles();render();checkSession();
 </script>
 </body>
 </html>
