@@ -1,13 +1,29 @@
 """Inventario del worker y aislamiento de operaciones entre perfiles descubiertos."""
 import json
 import threading
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
+from fastapi.testclient import TestClient
 
+from geelark_master_admin import create_admin_app, hash_operator_password
 from geelark_master_admin.android_control import AndroidConfig
 from geelark_master_admin.android_discovery import AndroidRegistry, parse_inventory
-from .test_android_control import client, login
+
+
+def client(tmp_path, registry, diagnostics=False):
+    app=create_admin_app(connect=lambda:None,
+        operator_password_hash=hash_operator_password('test-password-1234'),
+        session_db_path=str(tmp_path/'private'/'session.sqlite3'),
+        panel_path=Path(__file__).parents[1]/'src/geelark_master_admin/panel.html',
+        android_control=registry,diagnostics_enabled=diagnostics)
+    return TestClient(app,base_url='https://master.test')
+
+
+def login(c):
+    assert c.post('/admin/v1/login',json={'password':'test-password-1234'},
+                  headers={'Origin':'https://master.test'}).status_code==200
 
 
 def record(name='phone-02', port=5556, ident='b'*64, state='running'):
