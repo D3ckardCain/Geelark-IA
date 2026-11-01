@@ -150,6 +150,31 @@ def _panel_window_action(pid: int, *, close: bool) -> None:
     user32.EnumWindows(visit, 0)
 
 
+def _panel_browser_pids(profile: Path, executable: Path) -> list[int]:
+    """Resuelve el proceso real cuando Edge delega la apertura a otra instancia."""
+    powershell = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    script = r'''
+$ErrorActionPreference = 'Stop'
+$profile = [regex]::Escape($env:GEELARK_BROWSER_PROFILE)
+$pattern = '(?i)(?:^|\s)"?--user-data-dir="?' + $profile + '"?(?=\s|$)'
+$ids = @(Get-CimInstance Win32_Process -Filter ("Name='" + $env:GEELARK_BROWSER_NAME + "'") | Where-Object {
+    $_.ExecutablePath -and [StringComparer]::OrdinalIgnoreCase.Equals($_.ExecutablePath,$env:GEELARK_BROWSER_EXE) -and
+    $_.CommandLine -and $_.CommandLine -match $pattern -and $_.CommandLine -notmatch '(?:^|\s)--type='
+} | ForEach-Object { [int]$_.ProcessId })
+[Console]::Out.WriteLine((ConvertTo-Json -InputObject @($ids) -Compress))
+'''
+    env = os.environ.copy()
+    env.update(GEELARK_BROWSER_PROFILE=str(profile.resolve()), GEELARK_BROWSER_EXE=str(executable.resolve()),
+               GEELARK_BROWSER_NAME=executable.name)
+    result = subprocess.run([str(powershell), "-NoProfile", "-NonInteractive", "-Command", script],
+                            env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                            timeout=10, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), check=True)
+    pids = json.loads(result.stdout.strip())
+    if not isinstance(pids, list) or len(pids)>20 or any(type(pid) is not int or pid<=0 for pid in pids):
+        raise RuntimeError("No se pudo identificar la ventana del panel.")
+    return sorted(set(pids))
+
+
 def _safe_dsn(value: str) -> bool:
     """Reject passwords embedded in PostgreSQL URLs or keyword DSNs."""
     value = value.strip()
@@ -495,12 +520,26 @@ class PcMasterApp(tk.Tk):
             return True
         browser = self.__dict__.get("browser_process")
         try:
+            profile = self.__dict__.get("browser_profile_dir")
+            executable = self.__dict__.get("browser_executable")
+            if profile is not None and executable is not None:
+                roots = _panel_browser_pids(profile, executable)
+                if roots:
+                    for pid in roots:
+                        _panel_window_action(pid, close=False)
+                    return True
             if browser is not None and browser.poll() is None:
                 _panel_window_action(browser.pid, close=False)
                 return True
             executable = _panel_browser_executable()
             profile = CONFIG_DIR / "panel-browser-local"
             profile.mkdir(parents=True, exist_ok=True)
+            self.browser_profile_dir, self.browser_executable = profile, executable
+            roots = _panel_browser_pids(profile, executable)
+            if roots:
+                for pid in roots:
+                    _panel_window_action(pid, close=False)
+                return True
             self.browser_process = subprocess.Popen(
                 [str(executable), f"--app=https://localhost:{port}/", f"--user-data-dir={profile}",
                  "--guest", "--no-first-run", "--no-default-browser-check", "--disable-background-mode"],
@@ -508,15 +547,42 @@ class PcMasterApp(tk.Tk):
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
             return True
-        except OSError as exc:
+        except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:
             messagebox.showerror("No se pudo abrir la ventana", f"El panel está activo, pero su ventana no se abrió.\n{exc}", parent=self)
             return False
 
     def _close_panel_window(self) -> bool:
         browser = self.__dict__.get("browser_process")
-        if browser is None:
-            return True
+        profile = self.__dict__.get("browser_profile_dir")
+        executable = self.__dict__.get("browser_executable")
         try:
+            if profile is not None and executable is not None:
+                roots = _panel_browser_pids(profile, executable)
+                for pid in roots:
+                    _panel_window_action(pid, close=True)
+                deadline = time.monotonic()+4
+                while roots and time.monotonic()<deadline:
+                    time.sleep(.15)
+                    roots = _panel_browser_pids(profile, executable)
+                # Comprobar de nuevo firma del proceso antes de cada fallback.
+                for pid in roots:
+                    if pid in _panel_browser_pids(profile, executable):
+                        taskkill = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32/taskkill.exe"
+                        subprocess.run([str(taskkill), "/PID", str(pid), "/T", "/F"],
+                                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), timeout=10, check=False)
+                if _panel_browser_pids(profile, executable):
+                    raise RuntimeError("La ventana del panel sigue ejecutándose.")
+                # El Popen original puede ser un relay ya terminado. Solo esperar
+                # si aún vive; nunca asumir que su salida cerró la ventana real.
+                if browser is not None and browser.poll() is None:
+                    browser.wait(timeout=4)
+                if _panel_browser_pids(profile, executable):
+                    raise RuntimeError("La ventana del panel sigue ejecutándose.")
+                self.browser_process = None
+                return True
+            if browser is None:
+                return True
             if browser.poll() is None:
                 _panel_window_action(browser.pid, close=True)
                 try:
@@ -529,7 +595,7 @@ class PcMasterApp(tk.Tk):
                     browser.wait(timeout=4)
             self.browser_process = None
             return True
-        except (OSError, subprocess.TimeoutExpired):
+        except (OSError, RuntimeError, ValueError, subprocess.SubprocessError):
             self.status_var.set("Panel detenido · ventana pendiente de cerrar")
             messagebox.showwarning("Cerrar ventana del panel", "El panel se detuvo, pero no se confirmó el cierre de su ventana. Ciérrala antes de volver a iniciar.", parent=self)
             return False

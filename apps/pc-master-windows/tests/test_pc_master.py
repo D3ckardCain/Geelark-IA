@@ -283,11 +283,12 @@ class PcMasterSingleInstanceTests(unittest.TestCase):
 
 
 class PanelWindowTests(unittest.TestCase):
+    @mock.patch.object(module, "_panel_browser_pids", return_value=[])
     @mock.patch.object(module.sys, "platform", "win32")
     @mock.patch.object(module, "_panel_window_action")
     @mock.patch.object(module, "_panel_browser_executable", return_value=Path("browser.exe"))
     @mock.patch.object(module.subprocess, "Popen")
-    def test_open_reuses_owned_process_and_separates_personal_profile(self, popen, executable, window_action):
+    def test_open_reuses_owned_process_and_separates_personal_profile(self, popen, executable, window_action, roots):
         app = _bare_app(None)
         browser = _FakeProcess()
         popen.return_value = browser
@@ -301,6 +302,27 @@ class PanelWindowTests(unittest.TestCase):
             self.assertIn("--guest", args)
             self.assertFalse(any("ignore-certificate" in arg or "remote-debugging" in arg for arg in args))
             window_action.assert_called_once_with(browser.pid, close=False)
+
+    @mock.patch.object(module, "_panel_browser_pids", side_effect=[[9876], [], [], []])
+    @mock.patch.object(module, "_panel_window_action")
+    def test_close_resolves_real_browser_after_relay_exits(self, window_action, roots):
+        app = _bare_app(None)
+        app.browser_process = mock.Mock()
+        app.browser_process.poll.return_value = 0
+        app.browser_profile_dir = Path("owned-profile")
+        app.browser_executable = Path("browser.exe")
+        self.assertTrue(app._close_panel_window())
+        window_action.assert_called_once_with(9876, close=True)
+        self.assertIsNone(app.browser_process)
+
+    @mock.patch.object(module, "_panel_browser_pids", side_effect=RuntimeError("No se pudo consultar"))
+    @mock.patch.object(module.messagebox, "showwarning")
+    def test_unknown_browser_state_is_not_reported_as_closed(self, warning, roots):
+        app = _bare_app(None)
+        app.browser_profile_dir = Path("owned-profile")
+        app.browser_executable = Path("browser.exe")
+        self.assertFalse(app._close_panel_window())
+        warning.assert_called_once()
 
     @mock.patch.object(module, "_panel_window_action")
     @mock.patch.object(module.subprocess, "run")
