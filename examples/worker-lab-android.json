@@ -1,0 +1,8 @@
+{
+  "name": "Android · worker-lab-01",
+  "host": "192.168.0.11",
+  "user": "geelarkia",
+  "container": "android-lab-01",
+  "key": "~/.ssh/geelark_worker_lab",
+  "port": 15557
+}

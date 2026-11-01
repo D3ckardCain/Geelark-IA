@@ -64,6 +64,9 @@ def validate_settings(settings: dict[str, str]) -> list[str]:
         raw = settings.get(key, "").strip()
         if raw and not Path(raw).expanduser().is_file():
             errors.append(f"No existe el {label} indicado.")
+    android_config = settings.get("android_config_file", "").strip()
+    if android_config and not Path(android_config).expanduser().is_file():
+        errors.append("No existe el archivo de conexión Android indicado.")
     raw_dir = settings.get("state_dir", "").strip()
     if raw_dir and not Path(raw_dir).expanduser().is_dir():
         errors.append("El directorio de estado no existe. Créalo y restringe sus permisos NTFS antes de continuar.")
@@ -106,7 +109,7 @@ class PcMasterApp(tk.Tk):
         style.configure("Status.TLabel", font=("Segoe UI Semibold", 10), foreground="#93c5fd")
 
     def _load_settings(self) -> dict[str, str]:
-        defaults = {"operator_auth_file": "", "state_dir": str(CONFIG_DIR / "state"), "database_url": "postgresql://geelark_master_reader@localhost:5432/geelark?sslmode=disable", "tls_cert": "", "tls_key": "", "pgpassfile": "", "port": PORT_DEFAULT}
+        defaults = {"operator_auth_file": "", "state_dir": str(CONFIG_DIR / "state"), "database_url": "postgresql://geelark_master_reader@localhost:5432/geelark?sslmode=disable", "tls_cert": "", "tls_key": "", "pgpassfile": "", "port": PORT_DEFAULT, "android_config_file": ""}
         try:
             data = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
             if isinstance(data, dict):
@@ -144,6 +147,7 @@ class PcMasterApp(tk.Tk):
             ("tls_key", "Clave privada TLS (.key/.pem)", True),
             ("pgpassfile", "Archivo PGPASSFILE privado", True),
             ("port", "Puerto local", False),
+            ("android_config_file", "Conexión Android (JSON, opcional)", True),
         ]
         for row, (key, label, browse) in enumerate(fields, start=1):
             ttk.Label(form, text=label, style="Panel.TLabel").grid(row=row, column=0, sticky="w", padx=(0, 12), pady=5)
@@ -154,6 +158,8 @@ class PcMasterApp(tk.Tk):
             if browse:
                 ttk.Button(form, text="Examinar…", command=lambda k=key: self._browse(k)).grid(row=row, column=2, padx=(8, 0), pady=5)
         form.columnconfigure(1, weight=1)
+        self.diagnostics_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(form, text="Habilitar diagnóstico técnico solo en esta sesión", variable=self.diagnostics_var).grid(row=len(fields)+1, column=0, columnspan=3, sticky="w", pady=8)
 
         buttons = ttk.Frame(outer)
         buttons.pack(fill="x", pady=(14, 8))
@@ -164,7 +170,7 @@ class PcMasterApp(tk.Tk):
 
         footer = ttk.Frame(outer)
         footer.pack(fill="x", pady=(8, 0))
-        ttk.Label(footer, text="La configuración guarda rutas y parámetros, nunca contraseñas. No se conecta a dispositivos ni ejecuta comandos remotos.", style="Sub.TLabel", wraplength=880).pack(anchor="w")
+        ttk.Label(footer, text="La configuración guarda rutas y parámetros, nunca contraseñas. El panel gestiona dispositivos solo cuando se configura una conexión Android.", style="Sub.TLabel", wraplength=880).pack(anchor="w")
         ttk.Label(footer, text="Manual: apps/pc-master-windows/README.md", style="Sub.TLabel").pack(anchor="w", pady=(4, 0))
 
     def _browse(self, key: str) -> None:
@@ -227,6 +233,15 @@ class PcMasterApp(tk.Tk):
             "GEELARK_ADMIN_PORT": settings.get("port", PORT_DEFAULT),
         })
         env.pop("GEELARK_ADMIN_ALLOW_REMOTE", None)
+        diagnostic_option = self.__dict__.get("diagnostics_var")
+        if diagnostic_option is not None and diagnostic_option.get():
+            env["GEELARK_ADMIN_DIAGNOSTICS"] = "1"
+        else:
+            env.pop("GEELARK_ADMIN_DIAGNOSTICS", None)
+        if settings.get("android_config_file", "").strip():
+            env["GEELARK_ADMIN_ANDROID_CONFIG"] = settings["android_config_file"]
+        else:
+            env.pop("GEELARK_ADMIN_ANDROID_CONFIG", None)
         env["PGPASSFILE"] = settings["pgpassfile"]
         try:
             CONFIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -476,3 +491,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

@@ -135,12 +135,19 @@ def build_app():
     if os.name == "posix" and stat.S_IMODE(state_dir.stat().st_mode) & 0o077:
         raise PermissionError("GEELARK_ADMIN_STATE_DIR debe tener permisos 0700.")
 
+    android_control = None
+    android_config = os.environ.get("GEELARK_ADMIN_ANDROID_CONFIG", "").strip()
+    if android_config:
+        from .android_control import load_control
+        android_control = load_control(android_config)
     return create_admin_app(
         connect=_database_connector(),
         operator_password_hash=_load_password_hash(),
         session_db_path=str(state_dir / "operator-sessions.sqlite3"),
         secure_cookie=True,
         panel_path=Path(__file__).with_name("panel.html"),
+        android_control=android_control,
+        diagnostics_enabled=os.environ.get("GEELARK_ADMIN_DIAGNOSTICS") == "1",
     )
 
 
@@ -217,3 +224,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
