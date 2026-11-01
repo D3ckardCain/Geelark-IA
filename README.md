@@ -46,7 +46,7 @@ Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la refer
 
 ## Arquitectura acordada y validación pendiente
 
-El PC-MASTER se mantiene como aplicación Windows. Los PC WORKER son equipos físicos con Debian 13 como sistema base previsto; PC-MASTER deberá descubrirlos, solicitar aprobación de adopción y automatizar el aprovisionamiento del agente y del entorno Android. Las capacidades y el rendimiento se validarán paso a paso.
+El PC-MASTER se mantiene como aplicación Windows. Los PC WORKER usarán siempre Debian 13 en modo consola, sin instalar ni iniciar un escritorio gráfico. El arranque predeterminado será `multi-user.target`; SSH, Docker y redroid deberán funcionar como servicios sin requerir inicio de sesión local. Esta regla se aplica a todos los workers y al futuro aprovisionamiento automatizado. Los PC WORKER son equipos físicos con Debian 13 como sistema base previsto; PC-MASTER deberá descubrirlos, solicitar aprobación de adopción y automatizar el aprovisionamiento del agente y del entorno Android. Las capacidades y el rendimiento se validarán paso a paso.
 
 ## Seguridad
 

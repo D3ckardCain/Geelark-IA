@@ -157,6 +157,7 @@ foreach ($entry in $acl.Access) {
             text=True,
             timeout=30,
             env=env,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
     except Exception:
         raise PermissionError("No se pudieron verificar las ACL NTFS de la ruta protegida.") from None
@@ -181,6 +182,7 @@ def _restrict_windows_acl(path: Path, *, directory: bool) -> None:
             "text": True,
             "encoding": "utf-8",
             "errors": "replace",
+            "creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0),
         }
         identity_result = subprocess.run(
             [str(whoami)],
@@ -335,3 +337,4 @@ class SessionStore:
         with self._connect() as conn:
             conn.execute("DELETE FROM operator_sessions WHERE token_hash = ?", (self._token_hash(token),))
             conn.commit()
+
