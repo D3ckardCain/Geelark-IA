@@ -121,6 +121,29 @@ class Controller:
         threading.Thread(target=monitor, args=(self.screen,), daemon=True).start()
         self.emit("Pantalla iniciada.")
 
+    def recover(self, password):
+        self.close()
+        self.emit("Reiniciando únicamente android-lab-01. No se borra ni recrea el contenedor.")
+        result = subprocess.run(self.ssh() + [WORKER, "sudo -S -p '' docker restart android-lab-01"],
+                                input=password + "\n", stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                encoding="utf-8", errors="replace", timeout=60, creationflags=FLAGS)
+        # Nunca registrar la entrada enviada a sudo.
+        self.emit(result.stdout.replace(password, "[oculto]") if password else result.stdout)
+        if result.returncode:
+            raise RuntimeError("No se pudo reiniciar Android. Comprueba el mensaje de sudo.")
+        adb = self.require("adb")
+        self.run([adb, "disconnect", SERIAL])
+        deadline = time.monotonic() + 90
+        while time.monotonic() < deadline:
+            try:
+                if healthy(self.android_status()):
+                    self.emit("Android recuperado. Ya puedes pulsar Abrir Android.")
+                    return
+            except (RuntimeError, subprocess.TimeoutExpired) as error:
+                self.emit(str(error))
+            time.sleep(3)
+        raise RuntimeError("Android no recuperó sus servicios. Pulsa Diagnosticar; no se repetirá el reinicio.")
+
     def close(self):
         # Solo procesos creados por esta ventana; no adb kill-server ni taskkill global.
         for proc in (self.screen, self.tunnel):
@@ -138,7 +161,7 @@ class Controller:
 def main():
     import tkinter as tk
     from tkinter.scrolledtext import ScrolledText
-    from tkinter import messagebox
+    from tkinter import messagebox, simpledialog
     root = tk.Tk()
     root.title("GeeLark-IA · Control del laboratorio")
     root.geometry("850x560")
@@ -179,6 +202,18 @@ def main():
         button = tk.Button(bar, text=label, command=lambda f=fn: action(f), padx=15)
         button.pack(side="left", padx=5)
         buttons.append(button)
+
+    def request_recovery():
+        if busy:
+            return
+        if not messagebox.askyesno("Recuperar Android", "Se reiniciará solo android-lab-01 y se cerrará su pantalla. Las operaciones en curso se interrumpirán. ¿Continuar?"):
+            return
+        password = simpledialog.askstring("Contraseña Debian", "Contraseña de geelarkia (no se guardará):", show="*")
+        if password is not None:
+            action(lambda: controller.recover(password))
+    recovery = tk.Button(bar, text="Recuperar Android", command=request_recovery, padx=15)
+    recovery.pack(side="left", padx=5)
+    buttons.append(recovery)
 
     def finish_close():
         controller.close()
