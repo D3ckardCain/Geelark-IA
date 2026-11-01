@@ -23,9 +23,10 @@ def main():
             "status": "succeeded", "created_at": "2026-11-01T11:59:00Z", "completed_at": "2026-11-01T12:00:00Z"}
     posted = []
     authenticated = True
+    logout_fail = True
 
     def route_request(route):
-        nonlocal authenticated
+        nonlocal authenticated, logout_fail
         path = route.request.url.split("https://panel.test", 1)[1].split("?", 1)[0]
         if path == "/":
             route.fulfill(status=200, content_type="text/html", body=HTML)
@@ -42,6 +43,10 @@ def main():
         elif path == "/admin/v1/tasks":
             data = {"schema_version": "1.0", "generated_at": "2026-11-01T12:00:00Z", "tasks": [task], "has_more": False}
         elif path == "/admin/v1/logout":
+            if logout_fail:
+                logout_fail = False
+                route.fulfill(status=503, content_type="application/json", body="{}")
+                return
             authenticated = False
             data = {"authenticated": False}
         else:
@@ -95,6 +100,9 @@ def main():
                 rect = page.locator(f"#{control}").bounding_box()
                 assert rect and rect["x"] >= 0 and rect["x"] + rect["width"] <= width, (width, control, rect)
             page.screenshot(path=str(OUTPUT / f"perfiles-{width}.png"), full_page=True)
+        page.locator("#logout").click()
+        expect(page.locator("#session-notice")).to_be_visible()
+        expect(page.locator("#login-gate")).to_be_hidden()
         page.locator("#logout").click()
         expect(page.locator("#login-gate")).to_be_visible()
         expect(page.locator("#android-profile-row")).to_be_hidden()
