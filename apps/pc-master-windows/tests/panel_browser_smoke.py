@@ -91,6 +91,9 @@ def main():
             page.set_viewport_size({"width": width, "height": 800})
             expect(page.locator("#android-open")).to_be_visible()
             assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+            for control in ["android-open", "android-disconnect", "android-recover"]:
+                rect = page.locator(f"#{control}").bounding_box()
+                assert rect and rect["x"] >= 0 and rect["x"] + rect["width"] <= width, (width, control, rect)
             page.screenshot(path=str(OUTPUT / f"perfiles-{width}.png"), full_page=True)
         page.locator("#logout").click()
         expect(page.locator("#login-gate")).to_be_visible()
