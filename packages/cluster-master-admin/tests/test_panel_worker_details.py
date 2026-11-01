@@ -42,9 +42,10 @@ el("node-search").value="";assert.deepEqual(filterNodes(),[pending]);
 el("node-authorization").value="";el("node-health").value="offline";
 assert.deepEqual(filterNodes(),[snapshot]);
 const detail=nodeDetails(snapshot);
-assert.ok(detail.includes("module-11"));assert.ok(detail.includes("REPORT_STALE"));
-assert.ok(detail.includes("heartbeat-v1"));assert.ok(detail.includes("120 s"));
-const hostile={...snapshot,node:{...snapshot.node,node_id:'"><img src=x onerror=alert(1)>',
+assert.ok(detail.includes("WORKER-UNO"));assert.ok(detail.includes("Desconectado"));
+assert.ok(!detail.includes("module-11"));assert.ok(!detail.includes("REPORT_STALE"));
+assert.ok(!detail.includes("heartbeat-v1"));
+const hostile={...snapshot,node:{...snapshot.node,node_id:'"><img src=x onerror=alert(1)>',display_name:'<script>alert(1)</script>',
   capabilities:["<script>alert(1)</script>"],modules:[{module_id:"<svg/onload=alert(1)>",
   state:"unknown",version:'"><img src=x>',source:"<iframe>",error_code:"<bad>"}]}};
 const escaped=nodeDetails(hostile)+nodeRow(hostile);
@@ -52,7 +53,7 @@ assert.ok(!escaped.includes("<script>"));assert.ok(!escaped.includes("<img"));
 assert.ok(!escaped.includes("<svg"));assert.ok(!escaped.includes("<iframe"));
 assert.ok(escaped.includes("&lt;script&gt;"));
 state.authenticated=true;state.selectedNodeId="worker-1";renderNodeDetails();
-assert.equal(el("node-detail").hidden,false);assert.ok(el("node-detail-body").innerHTML.includes("module-11"));
+assert.equal(el("node-detail").hidden,false);assert.ok(el("node-detail-body").innerHTML.includes("WORKER-UNO"));
 state.snapshots=[];renderNodeDetails();
 assert.equal(el("node-detail").hidden,true);assert.equal(el("node-detail-body").innerHTML,"");
 assert.equal(state.selectedNodeId,null);
@@ -61,3 +62,4 @@ assert.equal(el("node-detail-body").innerHTML,"");assert.equal(state.selectedNod
 """
     completed = subprocess.run([node, "-e", harness], capture_output=True, text=True, timeout=15)
     assert completed.returncode == 0, completed.stderr
+

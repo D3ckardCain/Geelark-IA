@@ -38,7 +38,8 @@ el("tasks-status").value="queued";
 await refreshTasks();
 assert.ok(requested.url.includes("offset=0"));assert.ok(requested.url.includes("status=queued"));
 state.tasksOffset=50;await refreshTasks();assert.ok(requested.url.includes("offset=50"));
-state.selectedTaskId="task-1";renderTasks();assert.ok(el("task-detail-body").innerHTML.includes("ENGINE_ERROR"));
+state.selectedTaskId="task-1";renderTasks();assert.ok(el("task-detail-body").innerHTML.includes("Fallida"));
+assert.ok(!el("task-detail-body").innerHTML.includes("ENGINE_ERROR"));
 const hostile=taskDetails({...task,task_id:"<script>alert(1)</script>",node_id:'<img src=x onerror=alert(1)>'});
 assert.ok(!hostile.includes("<script>"));assert.ok(!hostile.includes("<img"));
 assert.ok(hostile.includes("&lt;script&gt;"));
@@ -57,3 +58,4 @@ assert.ok(el("login-error").textContent.includes("Sesión requerida"));
 """
     result = subprocess.run([node, "-e", harness], capture_output=True, text=True, timeout=15)
     assert result.returncode == 0, result.stderr
+
