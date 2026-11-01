@@ -55,6 +55,46 @@ def test_invalid_operator_password_does_not_create_directory(tmp_path,monkeypatc
     assert not (tmp_path/'new').exists()
 
 
+def test_failed_provision_removes_admin_passfile_and_keeps_no_active_config(tmp_path,monkeypatch):
+    import geelark_master_admin.auth as auth
+    monkeypatch.setattr(setup,'require_normal_user',lambda:None)
+    monkeypatch.setattr(setup,'locate_openssl',lambda:'openssl')
+    monkeypatch.setattr(auth,'_restrict_windows_acl',lambda *args,**kwargs:None)
+    def fail(passfile,password,report):
+        assert 'admin-temporary' in passfile.read_text()
+        raise RuntimeError('database unavailable')
+    monkeypatch.setattr(setup,'prepare_database',fail)
+    directory=tmp_path/'private'
+    with pytest.raises(RuntimeError,match='database unavailable'):
+        setup.provision('admin-temporary','operator-valid-123','',Mock(),directory=directory)
+    assert list(directory.iterdir())==[]
+
+
+def test_success_publishes_hash_and_paths_without_admin_secret(tmp_path,monkeypatch):
+    import geelark_master_admin.auth as auth
+    monkeypatch.setattr(setup,'require_normal_user',lambda:None)
+    monkeypatch.setattr(setup,'locate_openssl',lambda:'openssl')
+    monkeypatch.setattr(auth,'_restrict_windows_acl',lambda *args,**kwargs:None)
+    monkeypatch.setattr(setup,'prepare_database',lambda *args:None)
+    def certificate(args,**kwargs):
+        Path(args[args.index('-keyout')+1]).write_text('private-key-fixture')
+        Path(args[args.index('-out')+1]).write_text('certificate-fixture')
+    monkeypatch.setattr(setup.subprocess,'run',certificate)
+    directory=tmp_path/'private'
+    report=Mock()
+    setup.provision('admin-temporary','operator-valid-123','worker.json',report,directory=directory)
+    settings=json.loads((directory/'settings.json').read_text())
+    assert settings['android_config_file']=='worker.json'
+    assert all((directory/name).exists() for name in setup.ARTIFACTS)
+    digest=json.loads((directory/'operator-auth.json').read_text())['password_hash']
+    assert auth.verify_operator_password('operator-valid-123',digest)
+    for file in directory.iterdir():
+        if file.is_file():
+            text=file.read_text()
+            assert 'admin-temporary' not in text and 'operator-valid-123' not in text
+    assert 'admin-temporary' not in str(report.call_args_list)
+
+
 @pytest.mark.skipif(not os.environ.get('TEST_DATABASE_URL'),reason='Requiere PostgreSQL desechable')
 def test_generated_scram_authenticates_in_postgresql():
     import psycopg
