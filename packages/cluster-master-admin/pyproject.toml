@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "geelark-cluster-master-admin"
 version = "0.1.0"
-description = "API administrativa local de solo lectura para PC-MASTER"
+description = "API administrativa local con control Android opcional para PC-MASTER"
 requires-python = ">=3.11"
 dependencies = ["fastapi>=0.115,<1", "geelark-cluster-persistence", "psycopg[binary]>=3.2,<4", "uvicorn>=0.30,<1"]
 
@@ -20,4 +20,5 @@ testpaths = ["tests"]
 addopts = "-ra"
 
 [tool.setuptools.package-data]
-geelark_master_admin = ["panel.html"]
+geelark_master_admin = ["panel.html", "diagnostics.html"]
+
