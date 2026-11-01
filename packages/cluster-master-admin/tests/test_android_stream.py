@@ -2,12 +2,28 @@ import socket
 import struct
 import threading
 import io
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
 from geelark_master_admin.android_stream import EmbeddedScreen, read_packet, MAX_PACKET
-from test_android_control import client, login
+from fastapi.testclient import TestClient
+from geelark_master_admin import create_admin_app, hash_operator_password
+
+
+def client(tmp_path, service):
+    app=create_admin_app(connect=lambda:None,
+        operator_password_hash=hash_operator_password('test-password-1234'),
+        session_db_path=str(tmp_path/'private'/'session.sqlite3'),
+        panel_path=Path(__file__).parents[1]/'src/geelark_master_admin/panel.html',
+        android_control=service)
+    return TestClient(app,base_url='https://master.test')
+
+
+def login(c):
+    assert c.post('/admin/v1/login',json={'password':'test-password-1234'},
+                  headers={'Origin':'https://master.test'}).status_code==200
 
 
 def test_packets_survive_fragmented_socket_reads_and_rotation():
