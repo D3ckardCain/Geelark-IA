@@ -98,14 +98,16 @@ class AndroidRegistry:
             records=parse_inventory(result.stdout)
             with self.registry_lock:
                 if self.shutting_down:return
+                for record in records:
+                    existing=self.entries.get(self.identity(record['container']))
+                    if existing and existing.config.adb_port!=record['adb_port']:
+                        raise ValueError('Cambió el puerto de un perfil ya registrado')
                 used={s.config.port for s in self.entries.values()}
                 additions={}
                 for record in records:
                     ident=self.identity(record['container'])
                     existing=self.entries.get(ident)
                     if existing:
-                        if existing.config.adb_port!=record['adb_port']:
-                            raise ValueError('Cambió el puerto de un perfil ya registrado')
                         continue
                     with socket.socket() as probe:
                         probe.bind(('127.0.0.1',0));port=probe.getsockname()[1]
