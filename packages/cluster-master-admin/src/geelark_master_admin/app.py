@@ -1,4 +1,4 @@
-"""API HTTP administrativa de solo lectura para PC-MASTER.
+"""API administrativa de PC-MASTER: inventario de solo lectura y control Android opcional.
 
 La fábrica no abre sockets. El proceso anfitrión debe montarla detrás de HTTPS,
 en el mismo origen del panel, y proporcionar una conexión PostgreSQL SELECT-only.
@@ -9,6 +9,8 @@ import base64
 import hashlib
 import json
 import re
+import asyncio
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Literal
@@ -30,6 +32,12 @@ MAX_RESPONSE_BYTES = 1_048_576
 class LoginPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
     password: str = Field(min_length=1, max_length=1024)
+
+
+class AndroidActionPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["open", "disconnect", "recover"]
+    password: str | None = Field(default=None, max_length=1024)
 
 
 class RequireHTTPSMiddleware:
@@ -202,13 +210,23 @@ def create_admin_app(
     secure_cookie: bool = True,
     rate_limiter: LoginRateLimiter | None = None,
     panel_path: str | Path | None = None,
+    android_control: Any = None,
+    diagnostics_enabled: bool = False,
 ) -> FastAPI:
     """Crea rutas admin con autenticación local; no inicia listener ni hace deploy."""
     if not isinstance(operator_password_hash, str) or not operator_password_hash.startswith("pbkdf2_sha256$"):
         raise ValueError("operator_password_hash debe ser un hash PBKDF2 generado localmente.")
     sessions = SessionStore(session_db_path)
     limiter = rate_limiter or LoginRateLimiter()
-    app = FastAPI(title="GeeLark-IA Master Admin API", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None)
+    @asynccontextmanager
+    async def lifespan(application):
+        try:
+            yield
+        finally:
+            if android_control is not None:
+                await asyncio.to_thread(android_control.close)
+
+    app = FastAPI(title="GeeLark-IA Master Admin API", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.add_middleware(BodyLimitMiddleware, max_bytes=16_384)
     app.add_middleware(RequireHTTPSMiddleware)
 
@@ -227,7 +245,9 @@ def create_admin_app(
             return _security_headers(JSONResponse({"error": {"code": "PANEL_NOT_CONFIGURED"}}, status_code=503))
         panel_file = Path(panel_path)
         return HTMLResponse(
-            content=panel_file.read_text(encoding="utf-8"),
+            content=panel_file.read_text(encoding="utf-8").replace(
+                '<!-- OPTIONAL_DIAGNOSTICS -->',
+                '<a class="btn" href="/diagnostics">Diagnóstico técnico</a>' if diagnostics_enabled else ""),
             headers={
                 "Cache-Control": "no-store, max-age=0",
                 "X-Content-Type-Options": "nosniff",
@@ -291,4 +311,63 @@ def create_admin_app(
             return _security_headers(JSONResponse({"error": {"code": "RESPONSE_TOO_LARGE"}}, status_code=503))
         return _security_headers(Response(content=encoded, media_type="application/json"))
 
+    def control_error(request, *, write=False):
+        if not sessions.valid(request.cookies.get(SESSION_COOKIE)):
+            return _security_headers(JSONResponse({"error": {"code": "AUTHENTICATION_REQUIRED"}}, status_code=401))
+        if write and not _same_origin(request):
+            return _security_headers(JSONResponse({"error": {"code": "ORIGIN_REJECTED"}}, status_code=403))
+        if android_control is None:
+            return _security_headers(JSONResponse({"error": {"code": "ANDROID_NOT_CONFIGURED"}}, status_code=503))
+        return None
+
+    @app.get("/admin/v1/android")
+    def android_status(request: Request):
+        error = control_error(request)
+        if error is not None:
+            return error
+        return _security_headers(JSONResponse(android_control.status()))
+
+    @app.post("/admin/v1/android/actions")
+    def android_action(payload: AndroidActionPayload, request: Request):
+        error = control_error(request, write=True)
+        if error is not None:
+            return error
+        if payload.action != "recover" and payload.password is not None:
+            return _security_headers(JSONResponse({"error": {"code": "INVALID_REQUEST"}}, status_code=400))
+        accepted = android_control.submit(payload.action, payload.password)
+        return _security_headers(JSONResponse({"accepted": accepted}, status_code=202 if accepted else 409))
+
+    @app.get("/diagnostics", include_in_schema=False)
+    def diagnostics_page(request: Request):
+        if not diagnostics_enabled:
+            return _security_headers(JSONResponse({"error": {"code": "NOT_FOUND"}}, status_code=404))
+        error = control_error(request)
+        if error is not None:
+            return error
+        page = Path(__file__).with_name("diagnostics.html")
+        return HTMLResponse(page.read_text(encoding="utf-8"), headers={
+            "Cache-Control": "no-store, max-age=0", "X-Content-Type-Options": "nosniff",
+            "Referrer-Policy": "no-referrer", "Content-Security-Policy": _panel_csp(page)})
+
+    @app.get("/admin/v1/diagnostics/android")
+    def diagnostics_log(request: Request):
+        if not diagnostics_enabled:
+            return _security_headers(JSONResponse({"error": {"code": "NOT_FOUND"}}, status_code=404))
+        error = control_error(request)
+        if error is not None:
+            return error
+        return _security_headers(JSONResponse({"status": android_control.status(), "log": android_control.diagnostics()}))
+
+    @app.post("/admin/v1/diagnostics/android")
+    def diagnostics_run(request: Request):
+        if not diagnostics_enabled:
+            return _security_headers(JSONResponse({"error": {"code": "NOT_FOUND"}}, status_code=404))
+        error = control_error(request, write=True)
+        if error is not None:
+            return error
+        from .android_diagnostics import collect
+        accepted = android_control.submit("diagnose", diagnostic=collect)
+        return _security_headers(JSONResponse({"accepted": accepted}, status_code=202 if accepted else 409))
+
     return app
+
