@@ -121,3 +121,20 @@ def test_one_operation_at_a_time_and_shutdown_owned_controller(tmp_path):
 def test_android_boot_flag_without_services_is_rejected():
     assert not healthy('1\nService input: not found\nService activity: not found')
     assert healthy('1\nService input: found\nService activity: found')
+
+
+def test_exited_scrcpy_does_not_report_success(tmp_path):
+    key=tmp_path/'key'
+    key.write_text('fixture')
+    controller=Mock()
+    controller.screen.poll.return_value=1
+    service=AndroidControl(AndroidConfig('Device','worker.local','operator','device',key,15557),factory=lambda *_:controller)
+    try:
+        service.action='open'
+        service.phase='ready'
+        service.message='Pantalla iniciada'
+        status=service.status()
+        assert not status['screen_open'] and status['phase']=='error'
+        assert 'Pantalla iniciada' not in status['message']
+    finally:
+        service.close()
