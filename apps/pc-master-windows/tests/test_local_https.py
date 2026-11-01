@@ -79,6 +79,8 @@ def test_windows_trust_and_real_https_without_browser_bypass(tmp_path, monkeypat
     import socket
     import ssl
     import threading
+    import ctypes
+    from ctypes import wintypes
 
     module = load()
     settings = certificate(module, tmp_path)
@@ -86,6 +88,57 @@ def test_windows_trust_and_real_https_without_browser_bypass(tmp_path, monkeypat
     powershell = Path(os.environ.get('SystemRoot', r'C:\Windows'))/'System32/WindowsPowerShell/v1.0/powershell.exe'
     server = None
     browser = None
+    # La importación de Root pide confirmación nativa. Aceptar en esta prueba
+    # solo el diálogo del PowerShell creado aquí y con la huella de su certificado.
+    owned_powershell = set()
+    original_popen = subprocess.Popen
+    def tracked_popen(*args, **kwargs):
+        process = original_popen(*args, **kwargs)
+        command = args[0] if args else kwargs.get('args', [])
+        if command and str(command[0]).lower() == str(powershell).lower() and kwargs.get('env', {}).get('GEELARK_LOCAL_CERT_THUMBPRINT') == thumbprint:
+            owned_powershell.add(process.pid)
+        return process
+    monkeypatch.setattr(subprocess, 'Popen', tracked_popen)
+    done = threading.Event()
+    approved = []
+    def confirm_fixture():
+        user32 = ctypes.windll.user32
+        callback = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        user32.EnumWindows.argtypes = [callback, wintypes.LPARAM]
+        user32.EnumChildWindows.argtypes = [wintypes.HWND, callback, wintypes.LPARAM]
+        user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+        user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
+        user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+        user32.GetDlgItem.argtypes = [wintypes.HWND, ctypes.c_int]
+        user32.GetDlgItem.restype = wintypes.HWND
+        user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+        @callback
+        def inspect(window, _):
+            owner = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(window, ctypes.byref(owner))
+            if owner.value not in owned_powershell:
+                return True
+            text = []
+            @callback
+            def child(handle, _):
+                length = user32.GetWindowTextLengthW(handle)
+                value = ctypes.create_unicode_buffer(length+1)
+                user32.GetWindowTextW(handle, value, length+1)
+                text.append(value.value)
+                return True
+            user32.EnumChildWindows(window, child, 0)
+            import re
+            normalized = re.sub('[^0-9A-F]', '', ' '.join(text).upper())
+            if thumbprint in normalized:
+                yes = user32.GetDlgItem(window, 6)  # IDYES
+                if yes:
+                    approved.append(thumbprint)
+                    user32.PostMessageW(yes, 0x00F5, 0, 0)  # BM_CLICK
+            return True
+        while not done.wait(.1):
+            user32.EnumWindows(inspect, 0)
+    confirmer = threading.Thread(target=confirm_fixture, daemon=True)
+    confirmer.start()
     try:
         assert module._prepare_panel_https(settings) == settings
         assert module._prepare_panel_https(settings) == settings
@@ -113,6 +166,8 @@ def test_windows_trust_and_real_https_without_browser_bypass(tmp_path, monkeypat
         output, _ = browser.communicate(timeout=25)
         assert b'PCMASTER_TLS_OK' in output, output[-1500:]
     finally:
+        done.set()
+        confirmer.join(timeout=2)
         if server:
             server.shutdown()
             server.server_close()
