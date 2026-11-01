@@ -6,16 +6,19 @@ remotos y no persiste secretos. La API debe instalarse por separado desde el rep
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import http.client
 import ssl
 import json
 import os
 import re
 import socket
+import shutil
 import subprocess
 import sys
 import threading
 import time
+import tempfile
 import tkinter as tk
 import webbrowser
 from pathlib import Path
@@ -25,6 +28,81 @@ APP_TITLE = "GeeLark-IA · PC-MASTER"
 PORT_DEFAULT = "8765"
 CONFIG_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "GeeLark-IA" / "pc-master"
 CONFIG_FILE = CONFIG_DIR / "settings.json"
+
+
+def _local_certificate_trust(cert: Path) -> str:
+    """Confía en este certificado público en CurrentUser; nunca en todo el equipo."""
+    thumbprint = hashlib.sha1(ssl.PEM_cert_to_DER_cert(cert.read_text(encoding="ascii"))).hexdigest().upper()
+    powershell = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    script = r'''
+$ErrorActionPreference = 'Stop'
+$pem = [IO.File]::ReadAllText($env:GEELARK_LOCAL_CERT)
+$body = $pem -replace '-----BEGIN CERTIFICATE-----','' -replace '-----END CERTIFICATE-----','' -replace '\s',''
+$certificate = [Security.Cryptography.X509Certificates.X509Certificate2]::new([Convert]::FromBase64String($body))
+if ($certificate.Thumbprint -ne $env:GEELARK_LOCAL_CERT_THUMBPRINT) { throw 'CERTIFICATE_CHANGED' }
+if ($certificate.NotBefore -gt (Get-Date) -or $certificate.NotAfter -le (Get-Date)) { throw 'CERTIFICATE_DATE_INVALID' }
+$store = [Security.Cryptography.X509Certificates.X509Store]::new('Root','CurrentUser')
+try {
+    $store.Open([Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+    $found = $store.Certificates.Find([Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint,$certificate.Thumbprint,$false)
+    if ($found.Count -eq 0) { $store.Add($certificate) }
+    $verified = $store.Certificates.Find([Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint,$certificate.Thumbprint,$false)
+    if ($verified.Count -ne 1) { throw 'CERTIFICATE_TRUST_NOT_CONFIRMED' }
+} finally { $store.Close() }
+[Console]::Out.WriteLine('OK')
+'''
+    env = os.environ.copy()
+    env.update(GEELARK_LOCAL_CERT=str(cert.resolve()), GEELARK_LOCAL_CERT_THUMBPRINT=thumbprint)
+    result = subprocess.run([str(powershell), "-NoProfile", "-NonInteractive", "-Command", script],
+                            env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                            timeout=30, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), check=True)
+    if result.stdout.strip() != "OK":
+        raise RuntimeError("No se confirmó la confianza del certificado local.")
+    return thumbprint
+
+
+def _prepare_panel_https(settings: dict[str, str]) -> dict[str, str]:
+    """Valida certificado/clave locales y prepara confianza sin omitir errores TLS."""
+    from geelark_master_admin.auth import _restrict_windows_acl
+    executable = shutil.which("openssl")
+    if not executable:
+        candidate = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Git/usr/bin/openssl.exe"
+        if candidate.is_file():
+            executable = str(candidate)
+    if not executable:
+        raise RuntimeError("No se encuentra OpenSSL. Se puede usar el incluido con Git para Windows.")
+    def command(*args):
+        return subprocess.run([executable, *map(str, args)], stdin=subprocess.DEVNULL,
+                              capture_output=True, text=True, encoding="utf-8", errors="replace",
+                              timeout=30, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), check=True).stdout
+    result = dict(settings)
+    cert, key = Path(settings["tls_cert"]), Path(settings["tls_key"])
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(str(cert), str(key))
+    # Solo se acepta la identidad de localhost, no cualquier certificado elegido.
+    command("verify", "-CAfile", cert, "-check_ss_sig", "-purpose", "sslserver", "-verify_hostname", "localhost", cert)
+    command("verify", "-CAfile", cert, "-check_ss_sig", "-purpose", "sslserver", "-verify_ip", "127.0.0.1", cert)
+    constraints = command("x509", "-in", cert, "-noout", "-ext", "basicConstraints")
+    # El certificado del servidor no debe servir como CA para otros certificados.
+    if "CA:FALSE" not in constraints:
+        directory = CONFIG_DIR / "https-local"
+        directory.mkdir(parents=True, exist_ok=True)
+        _restrict_windows_acl(directory, directory=True)
+        with tempfile.TemporaryDirectory(prefix="server-", dir=directory) as folder:
+            generated_cert, generated_key = Path(folder)/"localhost.crt", Path(folder)/"localhost.key"
+            command("req", "-x509", "-newkey", "rsa:2048", "-sha256", "-days", "365", "-nodes",
+                    "-subj", "/CN=localhost", "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1",
+                    "-addext", "basicConstraints=critical,CA:FALSE", "-addext", "extendedKeyUsage=serverAuth",
+                    "-addext", "keyUsage=critical,digitalSignature,keyEncipherment",
+                    "-keyout", generated_key, "-out", generated_cert)
+            _restrict_windows_acl(generated_key, directory=False)
+            tag = hashlib.sha256(ssl.PEM_cert_to_DER_cert(generated_cert.read_text(encoding="ascii"))).hexdigest()[:20]
+            cert, key = directory/(tag+".crt"), directory/(tag+".key")
+            generated_key.rename(key)
+            generated_cert.rename(cert)
+        result.update(tls_cert=str(cert), tls_key=str(key))
+    _local_certificate_trust(cert)
+    return result
 
 
 def _panel_browser_executable() -> Path:
@@ -311,6 +389,14 @@ class PcMasterApp(tk.Tk):
         if errors:
             messagebox.showerror("No se puede iniciar", "Corrige estos puntos antes de iniciar:\n\n" + "\n".join(f"• {e}" for e in errors), parent=self)
             return
+        if sys.platform == "win32":
+            try:
+                settings = _prepare_panel_https(settings)
+                for key in ("tls_cert", "tls_key"):
+                    self.vars[key].set(settings[key])
+            except (OSError, RuntimeError, ValueError, ImportError, ssl.SSLError, subprocess.SubprocessError) as exc:
+                messagebox.showerror("No se pudo preparar HTTPS local", f"El panel no se inició.\n{exc}", parent=self)
+                return
         if not self._save_settings(quiet=True):
             return
         env = os.environ.copy()
@@ -413,11 +499,11 @@ class PcMasterApp(tk.Tk):
                 _panel_window_action(browser.pid, close=False)
                 return True
             executable = _panel_browser_executable()
-            profile = CONFIG_DIR / "panel-browser"
+            profile = CONFIG_DIR / "panel-browser-local"
             profile.mkdir(parents=True, exist_ok=True)
             self.browser_process = subprocess.Popen(
                 [str(executable), f"--app=https://localhost:{port}/", f"--user-data-dir={profile}",
-                 "--no-first-run", "--no-default-browser-check", "--disable-background-mode"],
+                 "--guest", "--no-first-run", "--no-default-browser-check", "--disable-background-mode"],
                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
