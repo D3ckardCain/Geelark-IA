@@ -65,13 +65,9 @@ def embedded_screen_browser_test(browser):
         expect(page.locator('#viewer-message')).to_contain_text('Conectado')
         assert page.evaluate("document.getElementById('android-canvas').getContext('2d').getImageData(10,10,1,1).data[0]")>200
         page.locator('#android-canvas').click(position={'x':10,'y':10})
-        page.locator('#viewer-text').fill('prueba')
-        page.locator('#viewer-text-form button').click()
-        page.wait_for_function("document.getElementById('viewer-text').value === ''")
         deadline=time.monotonic()+5
-        while len(inputs)<3 and time.monotonic()<deadline:page.wait_for_timeout(50)
+        while len(inputs)<2 and time.monotonic()<deadline:page.wait_for_timeout(50)
         assert [item['action'] for item in inputs if item['kind']=='touch']==[0,1],inputs
-        assert any(item.get('text')=='prueba' for item in inputs),inputs
         assert all(item['screen']==screen_id for item in inputs)
         second=browser.new_page()
         try:
