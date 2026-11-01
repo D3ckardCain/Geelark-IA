@@ -18,7 +18,7 @@ from uuid import UUID
 
 from fastapi import FastAPI, Request, Query
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from geelark_cluster_persistence.status_snapshot import build_status_snapshot
@@ -38,6 +38,17 @@ class AndroidActionPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
     action: Literal["open", "disconnect", "recover"]
     password: str | None = Field(default=None, max_length=1024)
+
+
+class AndroidInputPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    screen: str = Field(pattern=r"^[0-9a-f]{32}$")
+    kind: Literal["touch", "key", "text"]
+    action: int = Field(default=0, ge=0, le=2)
+    x: int = Field(default=0, ge=0, le=8191)
+    y: int = Field(default=0, ge=0, le=8191)
+    key: Literal[3, 4, 187] = 3
+    text: str = Field(default="", max_length=300)
 
 
 class RequireHTTPSMiddleware:
@@ -336,6 +347,37 @@ def create_admin_app(
             return _security_headers(JSONResponse({"error": {"code": "INVALID_REQUEST"}}, status_code=400))
         accepted = android_control.submit(payload.action, payload.password)
         return _security_headers(JSONResponse({"accepted": accepted}, status_code=202 if accepted else 409))
+
+    @app.get("/admin/v1/android/video")
+    def android_video(request: Request, screen: str):
+        error = control_error(request)
+        if error is not None:
+            return error
+        with android_control.lock:
+            current = android_control.controller.screen
+            if (android_control.busy or current is None or getattr(current, "id", None) != screen
+                    or current.poll() is not None or not current.claim.acquire(blocking=False)):
+                return _security_headers(JSONResponse({"error": {"code": "SCREEN_UNAVAILABLE"}}, status_code=409))
+        token = request.cookies.get(SESSION_COOKIE)
+        def valid():
+            return sessions.valid(token) and android_control.controller.screen is current
+        return _security_headers(StreamingResponse(current.frames(valid), media_type="application/x-ndjson",
+                                                   headers={"X-Accel-Buffering": "no"}))
+
+    @app.post("/admin/v1/android/input")
+    def android_input(payload: AndroidInputPayload, request: Request):
+        error = control_error(request, write=True)
+        if error is not None:
+            return error
+        with android_control.lock:
+            current = android_control.controller.screen
+            if android_control.busy or current is None or getattr(current, "id", None) != payload.screen:
+                return _security_headers(JSONResponse({"error": {"code": "SCREEN_UNAVAILABLE"}}, status_code=409))
+            try:
+                current.input(payload.model_dump())
+            except (ValueError, OSError):
+                return _security_headers(JSONResponse({"error": {"code": "INPUT_REJECTED"}}, status_code=400))
+        return _security_headers(JSONResponse({"accepted": True}))
 
     @app.get("/diagnostics", include_in_schema=False)
     def diagnostics_page(request: Request):
