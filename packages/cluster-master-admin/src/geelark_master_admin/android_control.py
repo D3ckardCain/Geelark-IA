@@ -19,6 +19,7 @@ class AndroidConfig:
     container: str
     key: Path
     port: int
+    adb_port: int = 5555
 
     def __post_init__(self):
         if not isinstance(self.name, str) or not 1 <= len(self.name) <= 80:
@@ -30,6 +31,8 @@ class AndroidConfig:
                 raise ValueError("Configuración Android inválida")
         if type(self.port) is not int or not 1024 <= self.port <= 65535:
             raise ValueError("Puerto local inválido")
+        if type(self.adb_port) is not int or not 1024 <= self.adb_port <= 65535:
+            raise ValueError("Puerto ADB del worker inválido")
         if not self.key.is_absolute() or not self.key.is_file():
             raise ValueError("Falta la clave privada local configurada")
 
@@ -44,7 +47,7 @@ class AndroidConfig:
 
 def load_control(path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    if set(data) != {"name", "host", "user", "container", "key", "port"}:
+    if set(data) - {"adb_port"} != {"name", "host", "user", "container", "key", "port"}:
         raise ValueError("Campos de configuración Android inválidos")
     data["key"] = Path(data["key"]).expanduser()
     return AndroidControl(AndroidConfig(**data))
