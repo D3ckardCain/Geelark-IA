@@ -60,9 +60,10 @@ class Controller:
         self.tunnel = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                        stderr=subprocess.PIPE, creationflags=FLAGS)
         # Drenar stderr para evitar bloqueo del proceso por llenar la tubería.
+        emit = self.emit
         def errors(proc):
             for line in iter(proc.stderr.readline, b""):
-                self.emit(line.decode("utf-8", "replace").strip())
+                emit(line.decode("utf-8", "replace").strip())
             proc.stderr.close()
         threading.Thread(target=errors, args=(self.tunnel,), daemon=True).start()
         deadline = time.monotonic() + 12
@@ -106,11 +107,12 @@ class Controller:
                                         "--max-size=720", "--max-fps=15"],
                                        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                        stderr=subprocess.STDOUT, creationflags=FLAGS)
+        emit = self.emit
         def monitor(proc):
             for line in iter(proc.stdout.readline, b""):
-                self.emit(line.decode("utf-8", "replace").strip())
+                emit(line.decode("utf-8", "replace").strip())
             proc.stdout.close()
-            self.emit(f"Pantalla cerrada (código {proc.wait()}).")
+            emit(f"Pantalla cerrada (código {proc.wait()}).")
         threading.Thread(target=monitor, args=(self.screen,), daemon=True).start()
         self.emit("Pantalla iniciada.")
 

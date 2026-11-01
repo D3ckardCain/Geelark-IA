@@ -74,6 +74,55 @@ def test_without_config_no_operations(tmp_path):
     assert c.post('/admin/v1/android/actions', json={'action':'open'},headers={'Origin':'https://master.test'}).status_code == 503
 
 
+def test_clear_diagnostics_is_opt_in_authenticated_and_same_origin(tmp_path):
+    service = Mock()
+    service.clear_diagnostics.return_value = True
+    c = client(tmp_path, service)
+    assert c.post('/admin/v1/diagnostics/android/clear').status_code == 404
+    c = client(tmp_path, service, diagnostics=True)
+    assert c.post('/admin/v1/diagnostics/android/clear').status_code == 401
+    login(c)
+    assert c.post('/admin/v1/diagnostics/android/clear', headers={'Origin':'https://evil.test'}).status_code == 403
+    service.clear_diagnostics.assert_not_called()
+    assert c.post('/admin/v1/diagnostics/android/clear', headers={'Origin':'https://master.test'}).json() == {'cleared':True}
+    service.clear_diagnostics.return_value = False
+    assert c.post('/admin/v1/diagnostics/android/clear', headers={'Origin':'https://master.test'}).status_code == 409
+
+
+def test_records_preserve_crash_header_and_reject_old_attempt_emitters(tmp_path):
+    key = tmp_path/'key'
+    key.write_text('fixture')
+    controller = Mock(screen=None)
+    service = AndroidControl(AndroidConfig('Device','worker.local','operator','device',key,15557), factory=lambda *_:controller)
+    emitters = []
+    def collect(*_):
+        emitters.append(controller.emit)
+        controller.emit('CURRENT-HEADER\n'+'\n'.join('crash-frame-'+str(i)+'-'*40 for i in range(100)))
+    try:
+        service.record('OLD-DIAGNOSIS')
+        assert service.submit('diagnose', diagnostic=collect)
+        service.executor.submit(lambda: None).result(timeout=2)
+        assert 'OLD-DIAGNOSIS' not in service.diagnostics()
+        assert 'CURRENT-HEADER' in service.diagnostics()
+        assert 'crash-frame-99' in service.diagnostics()
+        assert service.clear_diagnostics()
+        emitters[0]('STALE-SCREEN-OUTPUT')
+        assert service.diagnostics() == ''
+        service.busy = True
+        service.record('ACTIVE-OPERATION')
+        assert not service.clear_diagnostics()
+        assert 'ACTIVE-OPERATION' in service.diagnostics()
+        service.busy = False
+        service.record('BETWEEN-ATTEMPTS')
+        assert service.submit('diagnose', diagnostic=collect)
+        service.executor.submit(lambda: None).result(timeout=2)
+        assert 'BETWEEN-ATTEMPTS' not in service.diagnostics()
+        emitters[0]('FIRST-ATTEMPT-LATE-OUTPUT')
+        assert 'FIRST-ATTEMPT-LATE-OUTPUT' not in service.diagnostics()
+    finally:
+        service.close()
+
+
 def test_recovery_password_not_returned_or_accepted_for_open(tmp_path):
     service = Mock()
     service.submit.return_value = True

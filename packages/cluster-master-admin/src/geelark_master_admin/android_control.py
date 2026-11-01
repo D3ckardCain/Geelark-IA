@@ -5,6 +5,7 @@ import threading
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .android_process import Controller
@@ -54,7 +55,8 @@ class AndroidControl:
         self.config = config
         self.lock = threading.RLock()
         self.logs = deque(maxlen=150)
-        self.controller = factory(config, self.record)
+        self.log_generation = 0
+        self.controller = factory(config, lambda text: self.record(text, 0))
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="android-control")
         self.busy = False
         self.closed = False
@@ -62,11 +64,21 @@ class AndroidControl:
         self.message = "Listo para conectar"
         self.action = None
 
-    def record(self, text):
+    def record(self, text, generation=None):
         # Registro técnico en memoria acotada; nunca forma parte del estado operativo.
         with self.lock:
+            if generation is not None and generation != self.log_generation:
+                return
             if text:
-                self.logs.append(str(text)[-2000:])
+                self.logs.extend(line[:2000] for line in str(text).splitlines())
+
+    def clear_diagnostics(self):
+        with self.lock:
+            if self.busy:
+                return False
+            self.log_generation += 1
+            self.logs.clear()
+            return True
 
     def status(self):
         with self.lock:
@@ -89,6 +101,11 @@ class AndroidControl:
         with self.lock:
             if self.busy or self.closed:
                 return False
+            self.log_generation += 1
+            generation = self.log_generation
+            self.logs.clear()
+            self.controller.emit = lambda text: self.record(text, generation)
+            self.logs.append(f"=== Intento {generation}: {action} · {datetime.now(timezone.utc).isoformat()} ===")
             self.busy = True
             self.action = action
             self.phase = "working"
