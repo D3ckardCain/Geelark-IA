@@ -100,8 +100,10 @@ def test_expired_session_cleans_stream_before_reading():
     current.claim.release()
 
 
-def test_server_handshake_video_control_and_cleanup_over_real_sockets(tmp_path,monkeypatch):
+@pytest.mark.parametrize('early_eof',[False,True])
+def test_server_handshake_video_control_and_cleanup_over_real_sockets(tmp_path,monkeypatch,early_eof):
     listener=socket.socket();listener.bind(('127.0.0.1',0));listener.listen(2)
+    listener.settimeout(5)
     executable=tmp_path/'scrcpy.exe';executable.touch();(tmp_path/'scrcpy-server').touch()
     proc=Mock();proc.stdout=io.BytesIO();proc.poll.return_value=None
     proc.terminate.side_effect=lambda:setattr(proc.poll,'return_value',0)
@@ -115,13 +117,15 @@ def test_server_handshake_video_control_and_cleanup_over_real_sockets(tmp_path,m
     received=[];errors=[]
     def server():
         try:
+            if early_eof:
+                premature,_=listener.accept();premature.close()
             video,_=listener.accept();video.settimeout(5);video.sendall(b'\0')
             control,_=listener.accept();control.settimeout(5)
             with video,control:
                 video.sendall(b'h264'+struct.pack('>III',0x80000000,32,64))
                 received.append(control.recv(14))
         except Exception as error:errors.append(error)
-    worker=threading.Thread(target=server);worker.start()
+    worker=threading.Thread(target=server,daemon=True);worker.start()
     monkeypatch.setattr('geelark_master_admin.android_stream.subprocess.Popen',Mock(return_value=proc))
     current=EmbeddedScreen(c)
     try:
@@ -129,6 +133,8 @@ def test_server_handshake_video_control_and_cleanup_over_real_sockets(tmp_path,m
         current.input(dict(screen=current.id,kind='key',key=3))
         worker.join(timeout=5);assert not worker.is_alive();assert not errors
         assert received[0].startswith(struct.pack('>BBiii',0,0,3,0,0))
+        if early_eof:
+            assert any('Esperando al servidor' in str(call) for call in c.emit.call_args_list)
         current.terminate();current.terminate()
         removals=[call for call in c.run.call_args_list if '--remove' in call.args[0]]
         assert len(removals)==1
