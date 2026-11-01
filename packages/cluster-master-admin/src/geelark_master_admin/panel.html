@@ -85,10 +85,10 @@ dialog{width:min(480px,calc(100% - 30px));background:var(--surface);color:var(--
     </tbody></table></div>
     <p id="profiles-empty" class="empty" role="status" aria-live="polite">Inicia sesión para consultar tus perfiles.</p>
   </section>
-  <p class="action-help muted">Cerrar conexión deja Android encendido. Recuperar reinicia el perfil y conserva sus datos.</p>
+  <p class="action-help muted">Cerrar conexión deja Android encendido. Recuperar repara el servicio gráfico o reinicia el perfil; conserva sus datos.</p>
 </section>
 <dialog id="android-recovery" aria-labelledby="recovery-title">
-  <form id="recovery-form"><h2 id="recovery-title">Recuperar perfil</h2><p>Se reiniciará este perfil. Sus datos se conservan y las operaciones en curso se interrumpen.</p>
+  <form id="recovery-form"><h2 id="recovery-title">Recuperar perfil</h2><p>Se intentará reparar el servicio gráfico si presenta el fallo conocido. Si no basta, se reiniciará este perfil. Sus datos se conservan; las operaciones en curso pueden interrumpirse.</p>
   <label for="recovery-password">Contraseña del worker</label><input id="recovery-password" type="password" maxlength="1024" autocomplete="off" required>
   <p class="muted">Se utilizará una sola vez y no se guardará.</p><div class="tools"><button class="btn primary" type="submit">Reiniciar perfil</button><button id="recovery-cancel" class="btn" type="button">Cancelar</button></div></form>
 </dialog>
@@ -134,7 +134,7 @@ dialog{width:min(480px,calc(100% - 30px));background:var(--surface);color:var(--
   <div class="help-grid">
     <article class="panel"><h3>Abrir una pantalla</h3><p class="muted">En Perfiles, pulsa Abrir pantalla. El worker debe estar encendido y conectado.</p></article>
     <article class="panel"><h3>Cerrar una conexión</h3><p class="muted">Cierra la pantalla y desconecta el control. Android y sus aplicaciones continúan ejecutándose.</p></article>
-    <article class="panel"><h3>Recuperar un perfil</h3><p class="muted">Si Android no responde, pulsa Recuperar. Reinicia ese perfil y conserva sus datos. Las operaciones en curso se interrumpen.</p></article>
+    <article class="panel"><h3>Recuperar un perfil</h3><p class="muted">Si Android no responde, pulsa Recuperar. Intenta reparar el fallo gráfico conocido o reinicia ese perfil. Conserva sus datos; las operaciones en curso pueden interrumpirse.</p></article>
     <article class="panel"><h3>Consultar tus equipos</h3><p class="muted">En Workers puedes revisar la conexión y el estado de los equipos registrados.</p></article>
   </div>
   <div class="tools"><!-- OPTIONAL_DIAGNOSTICS --></div>
