@@ -79,8 +79,10 @@ class PcMasterApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title(APP_TITLE)
-        self.geometry("960x720")
-        self.minsize(820, 620)
+        width = min(960, max(640, self.winfo_screenwidth() - 80))
+        height = min(720, max(480, self.winfo_screenheight() - 100))
+        self.geometry(f"{width}x{height}")
+        self.minsize(min(720, width), min(480, height))
         self.configure(bg="#101827")
         self.process: subprocess.Popen | None = None
         self.settings = self._load_settings()
@@ -121,23 +123,53 @@ class PcMasterApp(tk.Tk):
         return defaults
 
     def _build_ui(self) -> None:
-        outer = ttk.Frame(self, padding=24)
+        outer = ttk.Frame(self, padding=16)
         outer.pack(fill="both", expand=True)
+        outer.columnconfigure(0, weight=1)
+        outer.rowconfigure(2, weight=1)
         header = ttk.Frame(outer)
-        header.pack(fill="x", pady=(0, 18))
+        header.grid(row=0, column=0, sticky="ew", pady=(0, 12))
         ttk.Label(header, text="GeeLark-IA", style="Title.TLabel").pack(anchor="w")
         ttk.Label(header, text="PC-MASTER · escritorio Windows · versión inicial de pruebas", style="Sub.TLabel").pack(anchor="w", pady=(4, 0))
 
         status = ttk.Frame(outer, style="Panel.TFrame", padding=16)
-        status.pack(fill="x", pady=(0, 14))
+        status.grid(row=1, column=0, sticky="ew", pady=(0, 10))
         ttk.Label(status, text="ESTADO DEL PANEL", style="Panel.TLabel").grid(row=0, column=0, sticky="w")
         self.status_var = tk.StringVar(value="Sin iniciar")
         ttk.Label(status, textvariable=self.status_var, style="Status.TLabel").grid(row=0, column=1, sticky="e", padx=(12, 0))
         status.columnconfigure(0, weight=1)
         ttk.Label(status, text="Confinado a este equipo: 127.0.0.1 · sin acceso LAN", style="Panel.TLabel").grid(row=1, column=0, columnspan=2, sticky="w", pady=(8, 0))
 
-        form = ttk.Frame(outer, style="Panel.TFrame", padding=16)
-        form.pack(fill="both", expand=True)
+        viewport = ttk.Frame(outer)
+        viewport.grid(row=2, column=0, sticky="nsew")
+        viewport.rowconfigure(0, weight=1)
+        viewport.columnconfigure(0, weight=1)
+        canvas = tk.Canvas(viewport, bg="#192437", highlightthickness=0, height=180)
+        self.form_canvas = canvas
+        canvas.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(viewport, orient="vertical", command=canvas.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        form = ttk.Frame(canvas, style="Panel.TFrame", padding=16)
+        window_id = canvas.create_window((0, 0), window=form, anchor="nw")
+        form.bind("<Configure>", lambda event: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind("<Configure>", lambda event: canvas.itemconfigure(window_id, width=event.width))
+
+        def scroll_form(event):
+            if canvas.bbox("all") and canvas.bbox("all")[3] > canvas.winfo_height():
+                canvas.yview_scroll(-1 if event.delta > 0 or event.num == 4 else 1, "units")
+                return "break"
+
+        def reveal_control(event):
+            widget = event.widget
+            top = widget.winfo_rooty() - canvas.winfo_rooty() + canvas.canvasy(0)
+            bottom = top + widget.winfo_height()
+            visible_top = canvas.canvasy(0)
+            extent = max(1, form.winfo_height())
+            if top < visible_top:
+                canvas.yview_moveto(max(0, top / extent))
+            elif bottom > visible_top + canvas.winfo_height():
+                canvas.yview_moveto(max(0, (bottom - canvas.winfo_height()) / extent))
         ttk.Label(form, text="Configuración local", style="Panel.TLabel", font=("Segoe UI Semibold", 13)).grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 12))
         fields = [
             ("operator_auth_file", "Archivo hash operador (JSON)", True),
@@ -154,24 +186,35 @@ class PcMasterApp(tk.Tk):
             var = tk.StringVar(value=self.settings.get(key, ""))
             self.vars[key] = var
             # Se muestra la ruta de la clave, nunca su contenido.
-            ttk.Entry(form, textvariable=var, width=68).grid(row=row, column=1, sticky="ew", pady=5)
+            entry = ttk.Entry(form, textvariable=var, width=24)
+            entry.grid(row=row, column=1, sticky="ew", pady=5)
+            entry.bind("<FocusIn>", reveal_control)
             if browse:
                 ttk.Button(form, text="Examinar…", command=lambda k=key: self._browse(k)).grid(row=row, column=2, padx=(8, 0), pady=5)
         form.columnconfigure(1, weight=1)
         self.diagnostics_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(form, text="Habilitar diagnóstico técnico solo en esta sesión", variable=self.diagnostics_var).grid(row=len(fields)+1, column=0, columnspan=3, sticky="w", pady=8)
+        # Enlaces locales a este formulario: no capturar rueda de otras ventanas.
+        for widget in (canvas, form, *form.winfo_children()):
+            widget.bind("<MouseWheel>", scroll_form)
+            widget.bind("<Button-4>", scroll_form)
+            widget.bind("<Button-5>", scroll_form)
+            if not isinstance(widget, ttk.Entry):
+                widget.bind("<FocusIn>", reveal_control)
 
         buttons = ttk.Frame(outer)
-        buttons.pack(fill="x", pady=(14, 8))
+        self.controls_frame = buttons
+        buttons.grid(row=3, column=0, sticky="ew", pady=(12, 8))
         ttk.Button(buttons, text="Guardar configuración", command=self._save_settings).pack(side="left")
         ttk.Button(buttons, text="Diagnosticar", command=self._diagnose).pack(side="left", padx=(8, 0))
         ttk.Button(buttons, text="Iniciar panel", style="Primary.TButton", command=self._start_panel).pack(side="right")
         ttk.Button(buttons, text="Detener panel", command=self._stop_panel).pack(side="right", padx=(0, 8))
 
         footer = ttk.Frame(outer)
-        footer.pack(fill="x", pady=(8, 0))
+        footer.grid(row=4, column=0, sticky="ew", pady=(4, 0))
         ttk.Label(footer, text="La configuración guarda rutas y parámetros, nunca contraseñas. El panel gestiona dispositivos solo cuando se configura una conexión Android.", style="Sub.TLabel", wraplength=880).pack(anchor="w")
         ttk.Label(footer, text="Manual: apps/pc-master-windows/README.md", style="Sub.TLabel").pack(anchor="w", pady=(4, 0))
+        footer.bind("<Configure>", lambda event: [label.configure(wraplength=max(250, event.width)) for label in footer.winfo_children()])
 
     def _browse(self, key: str) -> None:
         selected = filedialog.askdirectory(title="Selecciona el directorio privado de estado") if key == "state_dir" else filedialog.askopenfilename(title="Selecciona un archivo local")
