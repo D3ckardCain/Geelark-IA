@@ -139,7 +139,9 @@ def build_app():
     android_config = os.environ.get("GEELARK_ADMIN_ANDROID_CONFIG", "").strip()
     if android_config:
         from .android_control import load_control
-        android_control = load_control(android_config)
+        from .android_discovery import AndroidRegistry
+        android_control = AndroidRegistry(load_control(android_config))
+        android_control.discover()
     return create_admin_app(
         connect=_database_connector(),
         operator_password_hash=_load_password_hash(),
