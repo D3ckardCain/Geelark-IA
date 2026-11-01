@@ -369,5 +369,15 @@ def create_admin_app(
         accepted = android_control.submit("diagnose", diagnostic=collect)
         return _security_headers(JSONResponse({"accepted": accepted}, status_code=202 if accepted else 409))
 
+    @app.post("/admin/v1/diagnostics/android/clear")
+    def diagnostics_clear(request: Request):
+        if not diagnostics_enabled:
+            return _security_headers(JSONResponse({"error": {"code": "NOT_FOUND"}}, status_code=404))
+        error = control_error(request, write=True)
+        if error is not None:
+            return error
+        accepted = android_control.clear_diagnostics()
+        return _security_headers(JSONResponse({"cleared": accepted}, status_code=200 if accepted else 409))
+
     return app
 
