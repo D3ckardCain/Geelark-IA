@@ -1,8 +1,13 @@
 # Estado del proyecto Geelark-IA
 
-**Actualizado:** 2026-10-09  
-**Fase:** A — inventario funcional de GeeLark y estudio de viabilidad de Android virtualizado local.  
-**Implementación:** no hay módulos declarados como terminados o verificados.
+**Actualizado:** 2026-11-01.  
+**Fase vigente:** base PC-MASTER Windows y control de una instancia redroid operativos en laboratorio; expansión por módulos aún pendiente.  
+**Guía vigente:** [Plan maestro de paridad](PLAN_PARIDAD_GEELARK.md), revisión 1.0, 119 requisitos en 18 módulos; [fuentes](FUENTES_GUIA_GEELARK.md).  
+**Validado por el operador:** panel abre sin CMD/parpadeos, Android abre/cierra/recupera; worker Debian 13 consola con Docker/SSH activos y Android disponible tras reinicio sin login. Evidencia #146/#147, ramas de revisión, sin equivalencia global ni cierre #77.  
+**Decisión permanente:** todos los workers Debian 13 sin escritorio gráfico; redroid, ejecución en hardware propio, sin nube de emulación.  
+**Siguiente incremento propuesto:** registrar el Android ya existente como perfil persistente en el panel. Esta actualización solo documenta; no inicia implementación.
+
+Las secciones con fechas anteriores conservan el historial. Sus propuestas pendientes y referencias de alternativas no sustituyen las decisiones vigentes ni autorizan recuperar tecnologías descartadas.
 
 ## Objetivo acordado
 
