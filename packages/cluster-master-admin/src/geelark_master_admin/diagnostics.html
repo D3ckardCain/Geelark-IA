@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Diagnóstico técnico · GeeLark-IA</title>
+<style>:root{color-scheme:dark}body{background:#0d1117;color:#e6edf3;font:15px/1.5 system-ui;margin:32px auto;padding:0 20px;max-width:1100px}a{color:#58a6ff}button{background:#21262d;border:1px solid #30363d;border-radius:6px;color:inherit;padding:10px 16px;cursor:pointer}button:disabled{opacity:.5}pre{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:18px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:65vh;overflow:auto}p{color:#8b949e}</style></head>
+<body><a href="/">← Volver al PC-MASTER</a><h1>Diagnóstico técnico</h1><p>Consulta temporal para investigar incidencias. Los controles habituales de dispositivos están en PC-MASTER. Esta vista puede deshabilitarse sin afectar su operación.</p><button id="run">Recoger diagnóstico</button> <button id="copy">Copiar registro</button><p id="status" role="status" aria-live="polite">Preparado.</p><pre id="log" tabindex="0"></pre>
+<script>
+"use strict";
+const run=document.getElementById("run"),log=document.getElementById("log"),status=document.getElementById("status");let busy=false;
+async function update(){try{const r=await fetch("/admin/v1/diagnostics/android",{credentials:"same-origin",cache:"no-store",redirect:"error"});if(!r.ok)throw new Error();const data=await r.json();log.textContent=data.log;busy=data.status.busy;run.disabled=busy;status.textContent=data.status.message}catch(e){status.textContent="Diagnóstico no disponible o sesión caducada. Vuelve al PC-MASTER."}}
+run.addEventListener("click",async()=>{if(busy)return;busy=true;run.disabled=true;try{const r=await fetch("/admin/v1/diagnostics/android",{method:"POST",credentials:"same-origin",cache:"no-store",redirect:"error"});if(!r.ok&&r.status!==409)throw new Error();await update()}catch(e){busy=false;run.disabled=false;status.textContent="No se pudo iniciar el diagnóstico."}});
+document.getElementById("copy").addEventListener("click",async()=>{try{await navigator.clipboard.writeText(log.textContent);status.textContent="Registro copiado."}catch(e){status.textContent="Selecciona el registro y pulsa Ctrl+C."}});
+setInterval(()=>{if(!document.hidden)update()},2500);update();
+</script></body></html>
