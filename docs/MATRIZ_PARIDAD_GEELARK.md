@@ -158,3 +158,31 @@ Las notas v4.5.1 y v4.5.2 se incorporaron al catálogo (sección 28). Las funcio
 
 
 Las notas históricas v3.6–v3.9 se documentaron en el catálogo, sección 30. Sus límites y opciones no se consideran garantía actual ni límites que debamos copiar; la implementación local deberá validarse con pruebas propias.
+
+
+## Revisión vigente — 2026-11-01
+
+La [guía maestra](PLAN_PARIDAD_GEELARK.md) revisión 1.0 organiza 119 requisitos M00.01–M17.04 en 18 módulos. Los identificadores P anteriores se conservan como historial; no se renumeran ni se declaran equivalentes. Las pruebas de la guía son aceptación pendiente salvo evidencia explícita.
+
+| Cobertura | Referencia | Situación local actual | Siguiente aceptación |
+|---|---|---|---|
+| M00 | Menú, ayuda, API/CLI, notas y captura U01 | Guía y fuentes revisadas | Resolver G01–G09 dentro de cada módulo |
+| M01 | Android e infraestructura propia | Un worker Debian consola y un redroid Android 12; reinicio validado | Compatibilidad/recursos de más imágenes e instancias |
+| M02 | Panel y administración | Panel Windows operativo, inventario/contratos parciales | Inventario real, adopción y ejecución integrada |
+| M03 | Perfiles, grupos, etiquetas y ciclo de vida | Una conexión fija, no gestión completa de perfiles | Registrar perfil existente, persistencia y estado real |
+| M04 | Pantalla, ADB, cámara y herramientas | Abrir/cerrar/reabrir/recuperar una conexión probado | Generalizar por perfil y herramientas avanzadas |
+| M05 | Apps y Biblioteca | No se acredita paridad desde panel | APK/medios, versiones y operaciones por destino |
+| M06 | Proxies y red | No se acredita módulo completo | Ruta efectiva desde Android y errores |
+| M07 | RPA | Contratos/documentación; no editor/motor completos acreditados | Flujo mínimo en app propia |
+| M08 | Sincronizador | Pendiente | Maestro/dos perfiles y fallo parcial |
+| M09 | Tareas/calendario | Persistencia/contratos no equivalen a ejecución integrada | Publicar/ejecutar/cancelar/reiniciar |
+| M10 | API/CLI/MCP/eventos | API del panel no equivale al API funcional completo | Contrato de cada operación y adaptadores propios |
+| M11 | Analítica/registros/consumo | Vistas y lectura parciales, no analítica social acreditada | Fuentes reales y auditoría por ejecución |
+| M12 | Miembros | Login de un operador, no colaboración completa | Matriz de permisos con dos usuarios |
+| M13 | AI/AIGC | Pendiente; sin dependencia pagada aprobada | Modalidad local con benchmark/licencia |
+| M14 | Plantillas/recursos | Inventario documental | Una plantilla propia probada |
+| M15 | Continuidad | Worker reiniciado y Android accesible sin login | Master/worker/red y tareas interrumpidas |
+| M16 | Instalación | Asistente y lanzador en revisión; arranque corregido validado | Windows limpio, agente y aprovisionamiento |
+| M17 | Calidad/paridad | Pruebas parciales, sin equivalencia global ni cierre #77 | Manual/contraste y aceptación por ID |
+
+Evidencia del laboratorio y correcciones registrada en #146/#147. No es aceptación de 50 instancias, PXE, LAN ni identidad física. Ver [fuentes y lagunas](FUENTES_GUIA_GEELARK.md).
