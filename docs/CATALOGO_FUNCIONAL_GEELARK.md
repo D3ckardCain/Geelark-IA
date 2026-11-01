@@ -1,9 +1,13 @@
 # Catálogo funcional detallado de GeeLark — avance de auditoría
 
-**Fecha de actualización:** 2026-10-09  
+**Última revisión de continuidad:** 2026-11-01; el detalle inferior conserva fechas y fuentes históricas.  
 **Versión del catálogo:** 0.1  
 **Estado:** parcial; basado en documentación pública oficial y notas de versión. No equivale a inspección exhaustiva del cliente ni a pruebas prácticas.  
 **Idioma:** español.
+
+## Guía vigente de construcción
+
+La revisión 1.0 de [PLAN_PARIDAD_GEELARK.md](PLAN_PARIDAD_GEELARK.md) consolida el menú de la captura del operador, adaptación local y 119 requisitos en 18 módulos. El registro [FUENTES_GUIA_GEELARK.md](FUENTES_GUIA_GEELARK.md) identifica fuentes actuales y lagunas. Este catálogo conserva investigación histórica; no usar sus límites/versiones como contrato actual sin comprobar. La versión 0.1 indicada arriba describe ese material histórico, no el avance total del proyecto.
 
 ## 1. Propósito y reglas
 
