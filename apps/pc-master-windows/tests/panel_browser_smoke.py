@@ -95,7 +95,8 @@ def embedded_screen_browser_test(browser, multiple=False):
         for width in [1366,390]:
             page.set_viewport_size({'width':width,'height':900})
             assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
-            page.screenshot(path=str(OUTPUT/f'{'dos-android' if multiple else 'pantalla-integrada'}-{width}.png'),full_page=True)
+            label='dos-android' if multiple else 'pantalla-integrada'
+            page.screenshot(path=str(OUTPUT/f'{label}-{width}.png'),full_page=True)
         if multiple:
             page.locator(second_prefix+'android-disconnect').click()
             expect(page.locator(second_prefix+'android-viewer')).to_be_hidden()
