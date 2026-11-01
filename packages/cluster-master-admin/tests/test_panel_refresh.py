@@ -15,6 +15,7 @@ def test_snapshot_responses_are_discarded_after_session_change():
     harness = r"""
 const assert=require("node:assert/strict");
 const controls=new Map();
+function stopEmbedded(){} function startEmbedded(){}
 global.document={getElementById(id){
   if(!controls.has(id))controls.set(id,{value:"",innerHTML:"",textContent:"",disabled:false,
     classList:{toggle(){},add(){},remove(){}},focus(){}});
@@ -70,3 +71,4 @@ assert.equal(state.error,null);
 """
     result = subprocess.run([node, "-e", harness], capture_output=True, text=True, timeout=15)
     assert result.returncode == 0, result.stderr
+

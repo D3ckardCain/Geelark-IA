@@ -14,6 +14,7 @@ def test_android_session_race_and_recovery_payload():
     functions=source.split('<script>',1)[1].split('</script>',1)[0].split('el("login-form").addEventListener',1)[0]
     harness=r'''
 const assert=require('node:assert/strict');const controls=new Map();
+function stopEmbedded(){} function startEmbedded(){}
 global.document={getElementById(id){if(!controls.has(id))controls.set(id,{value:'',textContent:'',innerHTML:'',disabled:false,hidden:false,close(){},focus(){},classList:{add(){},remove(){},toggle(name,value){controls.get(id).hidden=Boolean(value)}}});return controls.get(id)}};
 ''' + functions + r'''
 (async()=>{

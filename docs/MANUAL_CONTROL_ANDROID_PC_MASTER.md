@@ -32,7 +32,7 @@ Para una sesión de soporte, marcar Habilitar diagnóstico técnico solo en esta
 ## Operación diaria
 
 1. Iniciar PC-MASTER y autenticarse con la contraseña del operador habitual.
-2. Entrar en Dispositivos y pulsar Abrir pantalla. PC-MASTER comprueba ADB y los servicios input/activity, además del arranque completado. La ventana scrcpy se abre localmente en Windows; no es un streaming dentro del navegador.
+2. Entrar en Dispositivos y pulsar Abrir pantalla. PC-MASTER comprueba ADB y los servicios input/activity, además del arranque completado. La pantalla aparece dentro de Perfiles, en el panel web; no se abre una ventana independiente de scrcpy.
 3. Cerrar conexión termina exclusivamente los procesos SSH/scrcpy propios. Android continúa en el worker. Se puede abrir de nuevo sin reiniciarlo.
 4. Si falla Android, Recuperar dispositivo pide confirmación y contraseña del worker mediante un diálogo específico. Reinicia solo el contenedor configurado y comprueba servicios antes de anunciar recuperación. Conserva datos, pero interrumpe operaciones en curso. Nunca reinicia automáticamente ante un error.
 
@@ -104,3 +104,18 @@ Recuperar mantiene confirmación y contraseña del worker. Si Android responde y
 Abrir pantalla y Diagnosticar no reinician servicios. La reparación gráfica realiza una solicitud por fase y como máximo cinco comprobaciones; no reinicia en bucle. No recrea el contenedor ni borra datos, pero puede interrumpir operaciones gráficas. Si se repite el fallo, recoger un diagnóstico nuevo y revisar su causa.
 
 Aceptación del lanzador #153: el operador confirmó cierre de la ventana web al detener y reapertura correcta. Reinicio del worker: primer intento dejó pantalla negra y SSH sin respuesta; un segundo reinicio manual arrancó con Docker/SSH activos y Android accesible sin login Debian. El journal previo llegó a apagado ordenado; VirtualBox registró una corrección de reloj de unos 102 minutos. La causa del bloqueo sigue pendiente, no se atribuye automáticamente a Gralloc ni al reloj.
+
+
+## Pantalla integrada en Perfiles
+
+Esta revisión sustituye la ventana SDL independiente por un visor dentro del panel. Se requiere scrcpy 5.0.1 instalado con scrcpy-server junto a su ejecutable (se resuelven enlaces de WinGet), ADB y el túnel existente. No instala Node, Appium, servicios de nube ni decodificadores externos. La dependencia ya existente de scrcpy y su licencia Apache 2.0 se conserva sin redistribuir su binario.
+
+Procedimiento: pulsar Abrir pantalla y esperar el visor bajo la tabla de Perfiles. Pulsar o arrastrar dentro de la imagen; los botones Atrás, Inicio y Recientes actúan sobre el perfil abierto. Texto envía al campo activo un máximo de 300 bytes UTF-8 por envío mediante la inyección de texto de Android; algunos caracteres/teclados no son compatibles con ese mecanismo. Pantalla completa amplía el visor en el navegador. Cerrar conexión cierra transmisión, controles y túnel propios, conservando Android. Recuperar mantiene su confirmación y puede interrumpir operaciones gráficas.
+
+Requisitos de navegador: contexto HTTPS local y VideoDecoder/WebCodecs con H.264, como Edge/Chrome compatibles. El panel comprueba compatibilidad y comunica el fallo si no puede decodificar; no abre una ventana externa como fallback. El vídeo se codifica en Android (720 px máximo, 15 fps, 2 Mbps objetivo, sin audio), se transporta por SSH/ADB y HTTPS local como paquetes NDJSON/base64 y se decodifica en un canvas. No se guardan grabaciones ni imágenes. Base64 aumenta aproximadamente un tercio el tamaño de los paquetes; evaluar recursos con varios perfiles antes de ampliar. El alcance sigue siendo una conexión real, no 50 perfiles validados.
+
+El servidor admite un lector de vídeo por pantalla. Cada apertura tiene una identidad aleatoria; controles o respuestas de una pantalla anterior no afectan a una nueva. El cierre del flujo, logout/caducidad de sesión o parada del backend termina sockets y procesos propios y elimina solo el forward y JAR de esa apertura. La sesión se comprueba durante el flujo, incluido cuando el vídeo está estático mediante heartbeat. No se borran datos del contenedor ni se usa adb kill-server. El backend solo admite controles tipados y coordenadas dentro de las dimensiones recibidas; no recibe comandos shell del navegador.
+
+No incluye audio, teclado físico completo, portapapeles sincronizado, multitáctil, grabación ni reproducción simultánea multiinstancia. Las pruebas de navegador usan un vídeo rojo H.264 generado para comprobar decodificación y controles, no representan una prueba Android real. La prueba de sockets simula el servidor Android según el protocolo. La aceptación con redroid en la laptop sigue pendiente.
+
+Fuentes técnicas fijadas a v5.0.1 (consulta 01-11-2026): https://github.com/Genymobile/scrcpy/blob/v5.0.1/doc/develop.md ; https://github.com/Genymobile/scrcpy/blob/v5.0.1/server/src/main/java/com/genymobile/scrcpy/device/Streamer.java ; https://github.com/Genymobile/scrcpy/blob/v5.0.1/server/src/main/java/com/genymobile/scrcpy/device/DesktopConnection.java ; https://github.com/Genymobile/scrcpy/blob/v5.0.1/server/src/main/java/com/genymobile/scrcpy/control/ControlMessageReader.java . El protocolo es interno y puede cambiar entre versiones: se rechazan versiones distintas, no se asume compatibilidad.

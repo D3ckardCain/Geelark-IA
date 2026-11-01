@@ -1,5 +1,10 @@
 """Aceptación UI en navegador real con fixtures aislados; ejecutar directamente en CI."""
 import json
+import base64
+import struct
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright, expect
@@ -8,6 +13,86 @@ from playwright.sync_api import sync_playwright, expect
 ROOT = Path(__file__).resolve().parents[3]
 HTML = (ROOT / "packages/cluster-master-admin/src/geelark_master_admin/panel.html").read_text(encoding="utf-8")
 OUTPUT = ROOT / "panel-ui-artifacts"
+
+
+def embedded_screen_browser_test(browser):
+    """Decodifica H.264 real (fixture roja propia), controla y desconecta sin otra ventana."""
+    screen_id = 'a'*32
+    inputs=[]
+    actions=[]
+    stop=threading.Event()
+    profile={'configured':True,'name':'Perfil integrado de prueba','busy':False,'phase':'ready',
+             'message':'Pantalla iniciada','screen_open':True,'screen_id':screen_id}
+    config=base64.b64decode('AAAAAWdCwAraImwEQAAAAwBAAAADAKPEiagAAAABaM4PyA==')
+    keyframe=base64.b64decode('AAAAAWWIhDoRigACGPHAAED2OAAIeUnXXXXXXg==')
+    packets=[struct.pack('>III',0x80000000,32,64),struct.pack('>QI',1<<62,len(config))+config,
+             struct.pack('>QI',1<<61,len(keyframe))+keyframe]
+    class Handler(BaseHTTPRequestHandler):
+        protocol_version='HTTP/1.1'
+        def log_message(self,*args):pass
+        def send_body(self,body,kind='application/json'):
+            self.send_response(200);self.send_header('Content-Type',kind)
+            self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
+        def do_GET(self):
+            if self.path.startswith('/admin/v1/android/video?'):
+                self.send_response(200);self.send_header('Content-Type','application/x-ndjson')
+                self.send_header('Transfer-Encoding','chunked');self.end_headers()
+                try:
+                    for packet in packets:
+                        body=(json.dumps({'packet':base64.b64encode(packet).decode()})+'\n').encode()
+                        self.wfile.write(f'{len(body):x}\r\n'.encode()+body+b'\r\n');self.wfile.flush()
+                    while not stop.wait(.1):
+                        self.wfile.write(b'1\r\n\n\r\n');self.wfile.flush()
+                    self.wfile.write(b'0\r\n\r\n');self.wfile.flush()
+                except (BrokenPipeError,ConnectionResetError):pass
+                return
+            data={'authenticated':True} if self.path=='/admin/v1/session' else profile if self.path=='/admin/v1/android' else {'snapshots':[],'tasks':[]}
+            self.send_body(HTML.encode(),'text/html') if self.path=='/' else self.send_body(json.dumps(data).encode())
+        def do_POST(self):
+            data=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+            if self.path=='/admin/v1/android/input':inputs.append(data)
+            elif self.path=='/admin/v1/android/actions':
+                actions.append(data)
+                if data.get('action')=='disconnect':profile['screen_open']=False
+            self.send_body(b'{"accepted":true}')
+    server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
+    thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+    page=browser.new_page(viewport={'width':1366,'height':900})
+    errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+    try:
+        page.goto(f'http://127.0.0.1:{server.server_port}/')
+        expect(page.locator('#viewer-message')).to_contain_text('Conectado')
+        assert page.evaluate("document.getElementById('android-canvas').getContext('2d').getImageData(10,10,1,1).data[0]")>200
+        page.locator('[data-android-key="3"]').click()
+        page.locator('#android-canvas').click(position={'x':10,'y':10})
+        page.locator('#viewer-text').fill('prueba')
+        page.locator('#viewer-text-form button').click()
+        page.wait_for_function("document.getElementById('viewer-text').value === ''")
+        deadline=time.monotonic()+5
+        while len(inputs)<4 and time.monotonic()<deadline:page.wait_for_timeout(50)
+        assert any(item.get('key')==3 for item in inputs),inputs
+        assert [item['action'] for item in inputs if item['kind']=='touch']==[0,1],inputs
+        assert any(item.get('text')=='prueba' for item in inputs),inputs
+        assert all(item['screen']==screen_id for item in inputs)
+        second=browser.new_page()
+        try:
+            second.route('**/admin/v1/android/video?*',lambda route:route.fulfill(status=409,body='{}'))
+            second.goto(f'http://127.0.0.1:{server.server_port}/')
+            expect(second.locator('#android-message')).to_contain_text('ocupada')
+            assert not actions, 'Un visor rechazado no debe desconectar al visor propietario'
+            assert profile['screen_open']
+            expect(page.locator('#android-viewer')).to_be_visible()
+        finally:second.close()
+        for width in [1366,390]:
+            page.set_viewport_size({'width':width,'height':900})
+            assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+            page.screenshot(path=str(OUTPUT/f'pantalla-integrada-{width}.png'),full_page=True)
+        page.locator('#android-disconnect').click()
+        expect(page.locator('#android-viewer')).to_be_hidden()
+        assert not errors,errors
+        assert len(page.context.pages)==1
+    finally:
+        stop.set();page.close();server.shutdown();server.server_close();thread.join(timeout=3)
 
 
 def main():
@@ -107,6 +192,7 @@ def main():
         expect(page.locator("#login-gate")).to_be_visible()
         expect(page.locator("#android-profile-row")).to_be_hidden()
         assert not errors, errors
+        embedded_screen_browser_test(browser)
         browser.close()
     print("UI: filtros, acciones, recuperación/cancelación, navegación, sesión y anchos 1366/960/390 correctos.")
 

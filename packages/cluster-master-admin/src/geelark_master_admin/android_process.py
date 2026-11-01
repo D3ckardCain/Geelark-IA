@@ -7,6 +7,7 @@ import subprocess
 import threading
 import time
 from pathlib import Path
+from .android_stream import EmbeddedScreen
 
 FLAGS = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
 
@@ -104,18 +105,10 @@ class Controller:
             return
         if not healthy(self.android_status()):
             raise RuntimeError("Android no está operativo. Pulsa Diagnosticar; no se reiniciará automáticamente.")
-        self.screen = subprocess.Popen([self.require("scrcpy"), "-s", self.config.serial, "--no-audio",
-                                        "--max-size=720", "--max-fps=15"],
-                                       stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                                       stderr=subprocess.STDOUT, creationflags=FLAGS)
-        emit = self.emit
-        def monitor(proc):
-            for line in iter(proc.stdout.readline, b""):
-                emit(line.decode("utf-8", "replace").strip())
-            proc.stdout.close()
-            emit(f"Pantalla cerrada (código {proc.wait()}).")
-        threading.Thread(target=monitor, args=(self.screen,), daemon=True).start()
-        self.emit("Pantalla iniciada.")
+        screen = EmbeddedScreen(self)
+        screen.start()
+        self.screen = screen
+        self.emit("Pantalla integrada iniciada.")
 
     def recover(self, password):
         # Solo una recuperación solicitada puede reiniciar el servicio gráfico.
@@ -192,6 +185,9 @@ class Controller:
     def close(self):
         # Solo procesos creados por esta ventana; no adb kill-server ni taskkill global.
         for proc in (self.screen, self.tunnel):
+            if isinstance(proc, EmbeddedScreen):
+                proc.terminate()
+                continue
             if proc and proc.poll() is None:
                 proc.terminate()
                 try:
