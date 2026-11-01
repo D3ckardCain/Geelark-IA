@@ -91,7 +91,8 @@ class AndroidControl:
                     message = "Pantalla cerrada" if code == 0 else "La pantalla se cerró con un error. Revisa el dispositivo."
             return {"configured": True, "name": self.config.name, "busy": self.busy,
                     "phase": phase, "message": message,
-                    "screen_open": bool(screen and screen.poll() is None)}
+                    "screen_open": bool(screen and screen.poll() is None),
+                    "screen_id": getattr(screen, "id", None) if screen and screen.poll() is None else None}
 
     def submit(self, action, password=None, diagnostic=None):
         if action not in {"open", "disconnect", "recover", "diagnose"}:
