@@ -15,6 +15,7 @@ def test_tasks_ui_reads_filters_and_discards_late_responses():
     harness = r"""
 const assert=require("node:assert/strict");
 const controls=new Map();
+function stopEmbedded(){} function startEmbedded(){}
 global.document={getElementById(id){
   if(!controls.has(id))controls.set(id,{value:"",innerHTML:"",textContent:"",disabled:false,
     classList:{toggle(){},add(){},remove(){}},focus(){}});
