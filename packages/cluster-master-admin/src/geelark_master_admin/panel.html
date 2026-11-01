@@ -86,6 +86,13 @@ dialog{width:min(480px,calc(100% - 30px));background:var(--surface);color:var(--
     <p id="profiles-empty" class="empty" role="status" aria-live="polite">Inicia sesión para consultar tus perfiles.</p>
   </section>
   <p class="action-help muted">Cerrar conexión deja Android encendido. Recuperar repara el servicio gráfico o reinicia el perfil; conserva sus datos.</p>
+  <section id="android-viewer" class="panel hidden" aria-label="Pantalla Android integrada">
+    <div class="tools"><strong>Pantalla Android</strong><button id="viewer-fullscreen" class="btn" type="button">Pantalla completa</button></div>
+    <p id="viewer-message" class="muted" role="status">Conectando vídeo…</p>
+    <canvas id="android-canvas" tabindex="0" aria-label="Pantalla táctil Android; pulsa y arrastra para navegar" style="display:block;max-width:100%;max-height:70vh;width:auto;height:auto;touch-action:none;background:#000;margin:auto"></canvas>
+    <div class="tools" style="justify-content:center;margin-top:12px"><button class="btn" type="button" data-android-key="4">Atrás</button><button class="btn" type="button" data-android-key="3">Inicio</button><button class="btn" type="button" data-android-key="187">Recientes</button></div>
+    <form id="viewer-text-form" class="tools"><label for="viewer-text">Texto</label><input id="viewer-text" maxlength="300" autocomplete="off" placeholder="Escribe para enviar al campo activo"><button class="btn" type="submit">Enviar texto</button></form>
+  </section>
 </section>
 <dialog id="android-recovery" aria-labelledby="recovery-title">
   <form id="recovery-form"><h2 id="recovery-title">Recuperar perfil</h2><p>Se intentará reparar el servicio gráfico si presenta el fallo conocido. Si no basta, se reiniciará este perfil. Sus datos se conservan; las operaciones en curso pueden interrumpirse.</p>
@@ -273,7 +280,7 @@ function filterProfiles(){
   el("profiles-count").textContent=androidConfigured?(matches?"1 perfil":"0 de 1 perfil"):"";
 }
 
-function clearAndroid(){androidRequest++;androidFetch=false;androidConfigured=false;androidBusy=false;el("android-recovery").close?.();el("recovery-password").value="";el("android-name").textContent="Perfil Android";el("android-badge").textContent="Sin consultar";el("android-message").textContent="Inicia sesión para consultar tus perfiles.";androidScreenOpen=false;androidPhase="idle";filterProfiles();for(const id of ["android-open","android-disconnect","android-recover"])el(id).disabled=true}
+function clearAndroid(){stopEmbedded();androidRequest++;androidFetch=false;androidConfigured=false;androidBusy=false;el("android-recovery").close?.();el("recovery-password").value="";el("android-name").textContent="Perfil Android";el("android-badge").textContent="Sin consultar";el("android-message").textContent="Inicia sesión para consultar tus perfiles.";androidScreenOpen=false;androidPhase="idle";filterProfiles();for(const id of ["android-open","android-disconnect","android-recover"])el(id).disabled=true}
 async function refreshAndroid(){
   if(!state.authenticated||androidFetch)return;
   androidFetch=true;const request=++androidRequest,version=state.sessionVersion;
@@ -287,6 +294,7 @@ async function refreshAndroid(){
     if(version!==state.sessionVersion||!state.authenticated)return;
     if(data.configured!==true||typeof data.busy!=="boolean"||typeof data.screen_open!=="boolean")throw new Error("Estado de conexión inválido.");
     androidConfigured=true;androidBusy=data.busy;androidScreenOpen=data.screen_open;androidPhase=data.phase;
+    if(data.screen_open&&data.screen_id&&!data.busy)startEmbedded(data.screen_id);else if(!data.screen_open)stopEmbedded();
     el("android-name").textContent=data.name;el("android-message").textContent=data.message;
     el("android-badge").textContent=data.busy?"En curso":data.phase==="error"?"Requiere atención":data.screen_open?"Pantalla abierta":"Pantalla cerrada";
     el("android-badge").className="pill "+(data.busy?"amber":data.phase==="error"?"red":data.screen_open?"green":"gray");
@@ -295,6 +303,7 @@ async function refreshAndroid(){
 }
 async function androidAction(action,password){
   if(!state.authenticated||!androidConfigured||androidBusy)return;
+  if(action!=="open")stopEmbedded();
   androidBusy=true;const version=state.sessionVersion;
   for(const id of ["android-open","android-disconnect","android-recover"])el(id).disabled=true;
   try{
@@ -340,6 +349,39 @@ el("android-recovery").addEventListener("close",()=>{el("recovery-password").val
 el("recovery-form").addEventListener("submit",event=>{event.preventDefault();let password=el("recovery-password").value;el("recovery-password").value="";el("android-recovery").close();androidAction("recover",password);password=""});
 setInterval(()=>{if(state.authenticated&&!document.hidden)refreshAndroid()},3000);
 
+let embedded=null,inputQueue=Promise.resolve(),pointerActive=false,lastMove=0;
+const canvas=el("android-canvas");
+function stopEmbedded(){const current=embedded;embedded=null;pointerActive=false;el("viewer-text").value="";if(current){current.abort.abort();if(current.decoder?.state!=="closed")current.decoder?.close()}canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);el("android-viewer").classList.add("hidden")}
+function sendEmbedded(payload){const current=embedded;if(!current||!state.authenticated||androidBusy)return;
+  inputQueue=inputQueue.catch(()=>{}).then(async()=>{if(embedded!==current||!state.authenticated)return;const r=await fetch("/admin/v1/android/input",{method:"POST",credentials:"same-origin",cache:"no-store",redirect:"error",headers:{"Content-Type":"application/json"},body:JSON.stringify({screen:current.id,...payload}),signal:current.abort.signal});if(!r.ok)throw Error("No se pudo enviar el control.")}).catch(error=>{if(embedded===current&&error.name!=="AbortError")el("viewer-message").textContent="No se pudo enviar el control. Actualiza la conexión."})
+}
+function spsCodec(bytes){for(let i=0;i+7<bytes.length;i++){let start=-1;if(bytes[i]===0&&bytes[i+1]===0&&bytes[i+2]===1)start=i+3;else if(bytes[i]===0&&bytes[i+1]===0&&bytes[i+2]===0&&bytes[i+3]===1)start=i+4;if(start>=0&&(bytes[start]&31)===7)return "avc1."+Array.from(bytes.slice(start+1,start+4),n=>n.toString(16).padStart(2,"0")).join("")}throw Error("Configuración H.264 inválida")}
+async function startEmbedded(id){if(embedded?.id===id)return;stopEmbedded();const current={id,abort:new AbortController(),decoder:null,config:null,needKey:true};embedded=current;el("android-viewer").classList.remove("hidden");el("viewer-message").textContent="Conectando vídeo…";
+  try{if(!window.VideoDecoder)throw Error("Este navegador no permite decodificar la pantalla Android.");
+    current.decoder=new VideoDecoder({output:frame=>{try{if(embedded!==current)return;canvas.width=frame.displayWidth;canvas.height=frame.displayHeight;canvas.getContext("2d").drawImage(frame,0,0,canvas.width,canvas.height);el("viewer-message").textContent="Conectado · pulsa y arrastra sobre la pantalla"}finally{frame.close()}},error:()=>{current.abort.abort()}});
+    const response=await fetch("/admin/v1/android/video?screen="+id,{credentials:"same-origin",cache:"no-store",redirect:"error",signal:current.abort.signal});if(!response.ok||!response.body)throw Error("No se pudo conectar el vídeo.");
+    const reader=response.body.getReader(),textDecoder=new TextDecoder();let pending="";
+    while(embedded===current){const {value,done}=await reader.read();if(done)break;pending+=textDecoder.decode(value,{stream:true});if(pending.length>6000000)throw Error("Paquete de vídeo demasiado grande");let newline;
+      while((newline=pending.indexOf("\n"))>=0){const line=pending.slice(0,newline);pending=pending.slice(newline+1);if(!line)continue;const data=JSON.parse(line);const packet=Uint8Array.from(atob(data.packet),v=>v.charCodeAt(0)),view=new DataView(packet.buffer);if(packet.length<12)throw Error("Paquete incompleto");
+        if(packet[0]&128){current.needKey=true;continue}
+        const bytes=packet.subarray(12);if(packet[0]&64){current.config=bytes;current.needKey=true;const codec=spsCodec(bytes);const support=await VideoDecoder.isConfigSupported({codec,optimizeForLatency:true});if(!support.supported)throw Error("El navegador no admite el vídeo H.264 de Android");if(embedded!==current)return;current.decoder.configure(support.config);continue}
+        const key=Boolean(packet[0]&32);if(current.needKey&&!key)continue;if(!current.config)continue;
+        if(current.decoder.decodeQueueSize>30)throw Error("El navegador no consigue procesar el vídeo a tiempo");
+        let content=bytes;if(current.needKey){content=new Uint8Array(current.config.length+bytes.length);content.set(current.config);content.set(bytes,current.config.length);current.needKey=false}
+        const timestamp=Number(view.getBigUint64(0)&((1n<<61n)-1n));current.decoder.decode(new EncodedVideoChunk({type:key?"key":"delta",timestamp,data:content}));
+      }
+    }
+    if(embedded===current)throw Error("La transmisión se cerró. Puedes volver a abrir la pantalla.");
+  }catch(error){if(embedded===current){const message=error.name==="AbortError"?"La transmisión se interrumpió. Vuelve a abrir la pantalla.":error.message;stopEmbedded();el("android-message").textContent=message;androidAction("disconnect")}}
+}
+function touch(event,action){if(!embedded||!canvas.width||!canvas.height)return;const rect=canvas.getBoundingClientRect();const x=Math.max(0,Math.min(canvas.width-1,Math.floor((event.clientX-rect.left)*canvas.width/rect.width))),y=Math.max(0,Math.min(canvas.height-1,Math.floor((event.clientY-rect.top)*canvas.height/rect.height)));sendEmbedded({kind:"touch",action,x,y})}
+canvas.addEventListener("pointerdown",event=>{if(pointerActive||event.button!==0)return;event.preventDefault();pointerActive=true;canvas.setPointerCapture(event.pointerId);touch(event,0)});
+canvas.addEventListener("pointermove",event=>{if(pointerActive&&event.timeStamp-lastMove>50){lastMove=event.timeStamp;touch(event,2)}});
+for(const name of ["pointerup","pointercancel"])canvas.addEventListener(name,event=>{if(pointerActive){touch(event,1);pointerActive=false}});
+document.querySelectorAll("[data-android-key]").forEach(button=>button.addEventListener("click",()=>sendEmbedded({kind:"key",key:Number(button.dataset.androidKey)})));
+el("viewer-fullscreen").addEventListener("click",()=>el("android-viewer").requestFullscreen?.().catch(()=>{}));
+el("viewer-text-form").addEventListener("submit",event=>{event.preventDefault();const text=el("viewer-text").value;if(new TextEncoder().encode(text).length>300){el("viewer-message").textContent="El texto admite hasta 300 bytes por envío.";return}if(text)sendEmbedded({kind:"text",text});el("viewer-text").value=""});
+window.addEventListener("pagehide",stopEmbedded);
 filterProfiles();render();checkSession();
 </script>
 </body>
