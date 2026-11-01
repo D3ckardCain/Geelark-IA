@@ -202,6 +202,7 @@ class PcMasterRuntimeLogRegressionTests(unittest.TestCase):
             "port": "18765",
         }
         app = _bare_app(None)
+        app.vars = {key: mock.Mock() for key in ("tls_cert", "tls_key")}
         app._current_settings = mock.Mock(return_value=settings)
         app._save_settings = mock.Mock(return_value=True)
 
@@ -213,6 +214,7 @@ class PcMasterRuntimeLogRegressionTests(unittest.TestCase):
             with (
                 mock.patch.object(module, "CONFIG_DIR", config_dir),
                 mock.patch.object(module, "validate_settings", return_value=[]),
+                mock.patch.object(module, "_prepare_panel_https", side_effect=lambda value: value),
                 mock.patch.object(
                     module.subprocess, "Popen", return_value=process
                 ) as popen,
@@ -295,7 +297,8 @@ class PanelWindowTests(unittest.TestCase):
             popen.assert_called_once()
             args = popen.call_args.args[0]
             self.assertIn("--app=https://localhost:8765/", args)
-            self.assertIn("--user-data-dir="+str(Path(folder)/"panel-browser"), args)
+            self.assertIn("--user-data-dir="+str(Path(folder)/"panel-browser-local"), args)
+            self.assertIn("--guest", args)
             self.assertFalse(any("ignore-certificate" in arg or "remote-debugging" in arg for arg in args))
             window_action.assert_called_once_with(browser.pid, close=False)
 
