@@ -41,6 +41,24 @@ class Checks(unittest.TestCase):
                 c.start_tunnel()
             popen.assert_not_called()
 
+    def test_recovery_targets_only_lab_and_redacts_password(self):
+        emit = Mock()
+        c = control.Controller(emit)
+        result = Mock(returncode=0, stdout='android-lab-01\n')
+        with patch.object(c, 'ssh', return_value=['ssh']), patch.object(c, 'run'), patch.object(c, 'require', return_value='adb'), patch.object(c, 'android_status', return_value='1\nService input: found\nService activity: found'), patch.object(control.subprocess, 'run', return_value=result) as run:
+            c.recover('secret-test')
+            args, kwargs = run.call_args
+            self.assertEqual(args[0][-1], "sudo -S -p '' docker restart android-lab-01")
+            self.assertEqual(kwargs['input'], 'secret-test\n')
+            self.assertNotIn('secret-test', str(emit.call_args_list))
+
+    def test_rejected_sudo_does_not_retry_restart(self):
+        c = control.Controller(Mock())
+        with patch.object(c, 'ssh', return_value=['ssh']), patch.object(control.subprocess, 'run', return_value=Mock(returncode=1, stdout='rechazado')) as run:
+            with self.assertRaisesRegex(RuntimeError, 'No se pudo reiniciar'):
+                c.recover('secret-test')
+            self.assertEqual(run.call_count, 1)
+
 
 if __name__ == '__main__':
     unittest.main()
