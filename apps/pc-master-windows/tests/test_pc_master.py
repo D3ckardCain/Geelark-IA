@@ -188,6 +188,8 @@ class PcMasterCloseRegressionTests(unittest.TestCase):
 
 
 class PcMasterRuntimeLogRegressionTests(unittest.TestCase):
+    @mock.patch.object(module.sys, "platform", "win32")
+    @mock.patch.object(module.sys, "executable", str(Path("/runtime/pythonw.exe")))
     def test_start_appends_runtime_log_and_redirects_backend_output(self):
         process = _FakeProcess()
         settings = {
@@ -224,6 +226,8 @@ class PcMasterRuntimeLogRegressionTests(unittest.TestCase):
                 "===== INICIO PC-MASTER BACKEND =====", contents
             )
 
+            self.assertEqual(popen.call_args.args[0], [str(Path(module.sys.executable).with_name("python.exe")), "-m", "geelark_master_admin.runtime"])
+            self.assertIn("creationflags", popen.call_args.kwargs)
             kwargs = popen.call_args.kwargs
             self.assertEqual(kwargs["stdout"].name, str(log_path))
             self.assertIs(kwargs["stderr"], module.subprocess.STDOUT)
@@ -278,3 +282,4 @@ class PcMasterSingleInstanceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
