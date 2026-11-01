@@ -6,6 +6,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import urlsplit, parse_qs
 
 from playwright.sync_api import sync_playwright, expect
 
@@ -16,7 +17,7 @@ HTML = (ROOT / "packages/cluster-master-admin/src/geelark_master_admin/panel.htm
 OUTPUT = ROOT / "panel-ui-artifacts"
 
 
-def embedded_screen_browser_test(browser):
+def embedded_screen_browser_test(browser, multiple=False):
     """Decodifica H.264 real (fixture roja propia), controla y desconecta sin otra ventana."""
     screen_id = 'a'*32
     inputs=[]
@@ -24,6 +25,9 @@ def embedded_screen_browser_test(browser):
     stop=threading.Event()
     profile={'configured':True,'name':'Perfil integrado de prueba','busy':False,'phase':'ready',
              'message':'Pantalla iniciada','screen_open':True,'screen_id':screen_id}
+    profile_id='c'*32
+    second_profile=dict(profile,name='Segundo Android detectado',screen_id='b'*32,profile_id=profile_id,primary=False)
+    second_prefix='#profile-'+profile_id+'-'
     config=base64.b64decode('AAAAAWdCwAraImwEQAAAAwBAAAADAKPEiagAAAABaM4PyA==')
     keyframe=base64.b64decode('AAAAAWWIhDoRigACGPHAAED2OAAIeUnXXXXXXg==')
     packets=[struct.pack('>III',0x80000000,32,64),struct.pack('>QI',1<<62,len(config))+config,
@@ -47,14 +51,17 @@ def embedded_screen_browser_test(browser):
                     self.wfile.write(b'0\r\n\r\n');self.wfile.flush()
                 except (BrokenPipeError,ConnectionResetError):pass
                 return
-            data={'authenticated':True} if self.path=='/admin/v1/session' else profile if self.path=='/admin/v1/android' else {'snapshots':[],'tasks':[]}
+            inventory=dict(profile,profiles=[dict(profile,primary=True,profile_id='d'*32),second_profile],discovery={'busy':False,'phase':'ready','message':'2 Android detectados en el worker'}) if multiple else profile
+            data={'authenticated':True} if self.path=='/admin/v1/session' else inventory if self.path=='/admin/v1/android' else {'snapshots':[],'tasks':[]}
             self.send_body(HTML.encode(),'text/html') if self.path=='/' else self.send_body(json.dumps(data).encode())
         def do_POST(self):
             data=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
-            if self.path=='/admin/v1/android/input':inputs.append(data)
-            elif self.path=='/admin/v1/android/actions':
+            path=urlsplit(self.path);query=parse_qs(path.query)
+            if path.path=='/admin/v1/android/input':inputs.append(data)
+            elif path.path=='/admin/v1/android/actions':
                 actions.append(data)
-                if data.get('action')=='disconnect':profile['screen_open']=False
+                target=second_profile if query.get('profile')==[profile_id] else profile
+                if data.get('action')=='disconnect':target['screen_open']=False
             self.send_body(b'{"accepted":true}')
     server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
     thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
@@ -69,6 +76,13 @@ def embedded_screen_browser_test(browser):
         while len(inputs)<2 and time.monotonic()<deadline:page.wait_for_timeout(50)
         assert [item['action'] for item in inputs if item['kind']=='touch']==[0,1],inputs
         assert all(item['screen']==screen_id for item in inputs)
+        if multiple:
+            expect(page.locator(second_prefix+'viewer-message')).to_contain_text('Conectado')
+            expect(page.locator('#profiles-count')).to_have_text('2 de 2 perfiles')
+            page.locator(second_prefix+'android-canvas').click(position={'x':10,'y':10})
+            deadline=time.monotonic()+5
+            while len(inputs)<4 and time.monotonic()<deadline:page.wait_for_timeout(50)
+            assert [item['screen'] for item in inputs]==[screen_id,screen_id,'b'*32,'b'*32],inputs
         second=browser.new_page()
         try:
             second.route('**/admin/v1/android/video?*',lambda route:route.fulfill(status=409,body='{}'))
@@ -81,7 +95,12 @@ def embedded_screen_browser_test(browser):
         for width in [1366,390]:
             page.set_viewport_size({'width':width,'height':900})
             assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
-            page.screenshot(path=str(OUTPUT/f'pantalla-integrada-{width}.png'),full_page=True)
+            page.screenshot(path=str(OUTPUT/f'{'dos-android' if multiple else 'pantalla-integrada'}-{width}.png'),full_page=True)
+        if multiple:
+            page.locator(second_prefix+'android-disconnect').click()
+            expect(page.locator(second_prefix+'android-viewer')).to_be_hidden()
+            expect(page.locator('#android-viewer')).to_be_visible()
+            assert profile['screen_open']
         page.locator('#android-disconnect').click()
         expect(page.locator('#android-viewer')).to_be_hidden()
         assert not errors,errors
@@ -189,6 +208,7 @@ def main():
         expect(page.locator("#android-profile-row")).to_be_hidden()
         assert not errors, errors
         embedded_screen_browser_test(browser)
+        embedded_screen_browser_test(browser,multiple=True)
         browser.close()
     print("UI: filtros, acciones, recuperación/cancelación, navegación, sesión y anchos 1366/960/390 correctos.")
 
