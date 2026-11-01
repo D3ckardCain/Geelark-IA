@@ -68,7 +68,73 @@ def test_recovery_after_close_does_not_disconnect_absent_serial(monkeypatch):
     c.ssh=Mock(return_value=['ssh'])
     c.run=Mock(side_effect=AssertionError('No debe desconectar de nuevo'))
     c.android_status=Mock(return_value='1\nService input: found\nService activity: found')
+    c.allocator_status=Mock(return_value='ready')
     monkeypatch.setattr(subprocess,'run',Mock(return_value=SimpleNamespace(returncode=0,stdout='android-01')))
     c.recover('test-secret')
-    c.android_status.assert_called_once()
+    assert c.android_status.call_count == 2
     c.run.assert_not_called()
+
+
+def test_recovery_repairs_confirmed_gralloc_fault_without_container_restart(monkeypatch):
+    c=controller()
+    c.android_status=Mock(return_value='1\nService input: found\nService activity: found')
+    c.allocator_status=Mock(return_value='failed')
+    c.repair_allocator=Mock(return_value=True)
+    c.close=Mock()
+    restart=Mock(side_effect=AssertionError('No debe reiniciar el contenedor'))
+    monkeypatch.setattr(subprocess,'run',restart)
+    c.recover('test-secret')
+    c.repair_allocator.assert_called_once()
+    restart.assert_not_called()
+
+
+def test_unconfirmed_graphic_repair_falls_back_to_requested_container_restart(monkeypatch):
+    c=controller()
+    c.config.target='operator@worker.local'
+    c.config.container='android-01'
+    c.ssh=Mock(return_value=['ssh'])
+    c.close=Mock()
+    c.android_status=Mock(return_value='1\nService input: found\nService activity: found')
+    c.allocator_status=Mock(side_effect=['failed','ready'])
+    c.repair_allocator=Mock(return_value=False)
+    restart=Mock(return_value=SimpleNamespace(returncode=0,stdout='android-01'))
+    monkeypatch.setattr(subprocess,'run',restart)
+    c.recover('test-secret')
+    c.repair_allocator.assert_called_once()
+    restart.assert_called_once()
+    assert restart.call_args.args[0][-1] == "sudo -S -p '' docker restart android-01"
+    assert all('test-secret' not in str(call) for call in c.emit.call_args_list)
+
+
+@pytest.mark.parametrize('output,expected', [
+    ("Warning: Skipping android.hardware.graphics.allocator@2.0::IAllocator/default: interfaceChain fails: Status(EX_TRANSACTION_FAILED)", 'failed'),
+    ('DM,FC Y android.hardware.graphics.allocator@2.0::IAllocator/default N/A 78 78', 'ready'),
+    ('DM,FC ? android.hardware.graphics.allocator@2.0::IAllocator/default N/A N/A', 'unknown'),
+    ('X ? android.hardware.graphics.allocator@2.0::IAllocator/default N/A 78', 'unknown'),
+])
+def test_allocator_requires_live_service_and_checks_transaction_failure(output, expected):
+    c=controller()
+    c.run=Mock(return_value=output)
+    assert c.allocator_status() == expected
+
+
+def test_repair_checks_service_and_android_before_success(monkeypatch):
+    c=controller()
+    c.run=Mock()
+    c.allocator_status=Mock(side_effect=['failed','ready'])
+    c.android_status=Mock(return_value='1\nService input: found\nService activity: found')
+    monkeypatch.setattr('geelark_master_admin.android_process.time.sleep',lambda _:None)
+    assert c.repair_allocator()
+    c.run.assert_called_once_with(['adb','-s',c.config.serial,'shell',
+                                  'su 0 setprop ctl.restart vendor.gralloc-2-0'],timeout=10)
+
+
+def test_failed_repair_is_bounded_and_not_reported_as_success(monkeypatch):
+    c=controller()
+    c.run=Mock()
+    c.allocator_status=Mock(return_value='failed')
+    c.android_status=Mock()
+    monkeypatch.setattr('geelark_master_admin.android_process.time.sleep',lambda _:None)
+    assert not c.repair_allocator()
+    assert c.allocator_status.call_count == 5
+    c.android_status.assert_not_called()

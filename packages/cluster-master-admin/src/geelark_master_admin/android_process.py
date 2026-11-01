@@ -1,5 +1,6 @@
 """Procesos locales de pantalla Android. Sin valores de laboratorio ni UI de diagnóstico."""
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -117,6 +118,17 @@ class Controller:
         self.emit("Pantalla iniciada.")
 
     def recover(self, password):
+        # Solo una recuperación solicitada puede reiniciar el servicio gráfico.
+        # Abrir pantalla y diagnosticar siguen siendo operaciones sin reparación.
+        try:
+            if healthy(self.android_status()) and self.allocator_status() == "failed":
+                self.close()
+                self.android_status()
+                if self.repair_allocator():
+                    self.emit("Servicio gráfico recuperado. Ya puedes abrir la pantalla.")
+                    return
+        except (OSError, RuntimeError, subprocess.TimeoutExpired):
+            self.emit("No se confirmó la reparación gráfica; se aplicará la recuperación completa solicitada.")
         self.close()
         self.emit("Reiniciando la instancia seleccionada. No se borra ni recrea el contenedor.")
         result = subprocess.run(self.ssh() + [self.config.target, "sudo -S -p '' docker restart " + self.config.container],
@@ -127,15 +139,55 @@ class Controller:
         if result.returncode:
             raise RuntimeError("No se pudo reiniciar Android. Comprueba el mensaje de sudo.")
         deadline = time.monotonic() + 90
+        allocator_repair_attempted = False
         while time.monotonic() < deadline:
             try:
                 if healthy(self.android_status()):
+                    allocator = self.allocator_status()
+                    if allocator == "failed":
+                        if allocator_repair_attempted:
+                            raise RuntimeError("El servicio gráfico sigue fallando tras la recuperación.")
+                        allocator_repair_attempted = True
+                        if not self.repair_allocator():
+                            raise RuntimeError("El servicio gráfico sigue fallando tras la recuperación.")
+                    if allocator == "unknown":
+                        raise RuntimeError("No se pudo verificar el servicio gráfico tras la recuperación.")
                     self.emit("Android recuperado. Ya puedes pulsar Abrir Android.")
                     return
             except (RuntimeError, subprocess.TimeoutExpired) as error:
                 self.emit(str(error))
             time.sleep(3)
         raise RuntimeError("Android no recuperó sus servicios. Pulsa Diagnosticar; no se repetirá el reinicio.")
+
+    def allocator_status(self):
+        interface = "android.hardware.graphics.allocator@2.0::IAllocator/default"
+        output = self.run([self.require("adb"), "-s", self.config.serial, "shell",
+                           "su 0 lshal 2>&1 | grep -F '" + interface + "'"], timeout=15)
+        lines = output.splitlines()
+        if any(interface in line and ("EX_TRANSACTION_FAILED" in line or "interfaceChain fails" in line)
+               for line in lines):
+            return "failed"
+        # Exigir una fila del servicio publicado con PID, no solo su declaración.
+        for line in lines:
+            fields = line.split()
+            if interface in fields and fields.index(interface) >= 2:
+                tail = fields[fields.index(interface)+1:]
+                if fields[0] != "X" and any(re.fullmatch(r"[1-9][0-9]*", field) for field in tail):
+                    return "ready"
+        return "unknown"
+
+    def repair_allocator(self):
+        self.emit("Reiniciando únicamente el servicio gráfico de Android; se conservan sus datos.")
+        self.run([self.require("adb"), "-s", self.config.serial, "shell",
+                  "su 0 setprop ctl.restart vendor.gralloc-2-0"], timeout=10)
+        for _ in range(5):
+            time.sleep(2)
+            try:
+                if self.allocator_status() == "ready" and healthy(self.android_status()):
+                    return True
+            except (RuntimeError, subprocess.TimeoutExpired):
+                pass
+        return False
 
     def close(self):
         # Solo procesos creados por esta ventana; no adb kill-server ni taskkill global.
