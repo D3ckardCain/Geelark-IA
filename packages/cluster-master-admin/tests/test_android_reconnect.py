@@ -59,3 +59,16 @@ def test_close_without_owned_transport_does_not_disconnect_other_clients():
     c.run=Mock()
     c.close()
     c.run.assert_not_called()
+
+
+def test_recovery_after_close_does_not_disconnect_absent_serial(monkeypatch):
+    c=controller()
+    c.config.target='operator@worker.local'
+    c.config.container='android-01'
+    c.ssh=Mock(return_value=['ssh'])
+    c.run=Mock(side_effect=AssertionError('No debe desconectar de nuevo'))
+    c.android_status=Mock(return_value='1\nService input: found\nService activity: found')
+    monkeypatch.setattr(subprocess,'run',Mock(return_value=SimpleNamespace(returncode=0,stdout='android-01')))
+    c.recover('test-secret')
+    c.android_status.assert_called_once()
+    c.run.assert_not_called()
