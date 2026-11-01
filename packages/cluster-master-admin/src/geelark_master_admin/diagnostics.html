@@ -5,13 +5,14 @@
 <script>
 "use strict";
 const run=document.getElementById("run"),clear=document.getElementById("clear"),copy=document.getElementById("copy"),log=document.getElementById("log"),status=document.getElementById("status");
-let busy=false,pending=false,revision=0,read=0;
-function controls(){run.disabled=clear.disabled=busy||pending;copy.disabled=busy||pending||!log.textContent}
+let busy=false,pending=false,revision=0,read=0,profileId="";
+function diagnosticPath(suffix=""){return "/admin/v1/diagnostics/android"+suffix+(profileId?"?profile="+encodeURIComponent(profileId):"")}
+function controls(){run.disabled=clear.disabled=busy||pending;copy.disabled=busy||pending||!log.textContent;const selection=document.getElementById("diagnostic-profile");if(selection)selection.disabled=pending}
 async function update(){
   if(pending)return;
   const generation=revision,request=++read;
   try{
-    const r=await fetch("/admin/v1/diagnostics/android",{credentials:"same-origin",cache:"no-store",redirect:"error"});
+    const r=await fetch(diagnosticPath(),{credentials:"same-origin",cache:"no-store",redirect:"error"});
     if(!r.ok)throw new Error();
     const data=await r.json();
     if(generation!==revision||request!==read||pending)return;
@@ -26,7 +27,7 @@ async function mutate(action){
   pending=true;revision++;read++;log.textContent="";controls();
   status.textContent=action==="clear"?"Limpiando registro…":"Iniciando nuevo diagnóstico…";
   try{
-    const path="/admin/v1/diagnostics/android"+(action==="clear"?"/clear":"");
+    const path=diagnosticPath(action==="clear"?"/clear":"");
     const r=await fetch(path,{method:"POST",credentials:"same-origin",cache:"no-store",redirect:"error"});
     if(!r.ok&&r.status!==409)throw new Error();
   }catch(e){status.textContent=action==="clear"?"No se confirmó la limpieza del registro.":"No se pudo iniciar el diagnóstico."}
@@ -34,6 +35,10 @@ async function mutate(action){
   await update();
 }
 run.addEventListener("click",()=>mutate("run"));
+const selector=document.createElement("select"),selectorLabel=document.createElement("label");selector.id="diagnostic-profile";selectorLabel.htmlFor=selector.id;selectorLabel.textContent="Perfil Android ";selectorLabel.append(selector);run.before(selectorLabel,document.createElement("br"));
+selector.addEventListener("change",()=>{profileId=selector.value;revision++;read++;log.textContent="";busy=false;controls();update()});
+async function loadProfiles(){try{const response=await fetch("/admin/v1/android",{credentials:"same-origin",cache:"no-store",redirect:"error"});if(!response.ok)return;const data=await response.json();for(const profile of data.profiles||[]){const option=document.createElement("option");option.value=profile.primary?"":profile.profile_id;option.textContent=profile.name;selector.append(option)}if(!selector.options.length)selector.add(new Option(data.name||"Android",""))}catch(e){status.textContent="No se pudo consultar la lista de perfiles."}}
+loadProfiles();
 clear.addEventListener("click",()=>mutate("clear"));
 copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(log.textContent);status.textContent="Registro copiado."}catch(e){status.textContent="Selecciona el registro y pulsa Ctrl+C."}});
 setInterval(()=>{if(!document.hidden)update()},2500);update();
