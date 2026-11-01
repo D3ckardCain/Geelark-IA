@@ -22,8 +22,10 @@ El puerto local dedicado es 15557 y escucha exclusivamente en 127.0.0.1. Si est�
 
 Docker se consulta mediante sudo -n: si requiere contraseña, se registra que esa parte quedó pendiente; no se añaden permisos ni se guarda contraseña. El diagnóstico Android usa ADB mediante SSH, no necesita sudo. Tiempo límite de consultas remotas y ADB; la interfaz permanece disponible mientras trabaja. Al cerrar durante una consulta espera su tiempo límite antes de terminar procesos propios.
 
-No modifica el contenedor, sus opciones, la red ni las claves. No soluciona aún el fallo de servicios de Android ni la pérdida de IPv4. El dispositivo fijo corresponde al laboratorio virtualizado, no a una validación de capacidad física. Para usar otro worker hay que modificar las constantes del archivo Python; configuración visual y enlace al panel quedan pendientes.
+Recuperar Android solicita confirmación y contraseña de Debian mediante un cuadro oculto. Envía la contraseña por stdin a sudo a través de SSH, sin guardarla ni registrarla. Reinicia únicamente android-lab-01, sin borrar ni recrear el contenedor; interrumpe operaciones en curso. Cierra sus procesos propios y reconecta solo su serial ADB. Comprueba hasta 90 segundos entre intentos (cada consulta tiene además su límite) y no repite automáticamente el reinicio.
+
+No modifica las opciones del contenedor, la red ni las claves. El reinicio intenta recuperar el servicio, pero no corrige la causa del fallo de Android ni la pérdida de IPv4. El dispositivo fijo corresponde al laboratorio virtualizado, no a una validación de capacidad física. Para usar otro worker hay que modificar las constantes del archivo Python; configuración visual y enlace al panel quedan pendientes.
 
 ## Validación
 
-Pruebas locales con procesos simulados: rechazo de boot_completed sin servicios, servicios obligatorios, bloqueo de scrcpy con Android incompleto, cierre limitado a procesos propios y rechazo de puerto ocupado. Validación gráfica Windows y conexión real pendientes; no se afirma que estas pruebas simulen Android/SSH reales.
+Siete pruebas locales con procesos simulados: recuperación limitada al contenedor previsto, contraseña fuera del registro, rechazo de sudo sin repetir reinicio, rechazo de boot_completed sin servicios, servicios obligatorios, bloqueo de scrcpy con Android incompleto, cierre limitado a procesos propios y rechazo de puerto ocupado. Validación gráfica Windows y conexión real pendientes; no se afirma que estas pruebas simulen Android/SSH reales.
