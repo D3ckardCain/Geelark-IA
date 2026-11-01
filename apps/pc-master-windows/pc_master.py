@@ -293,7 +293,7 @@ class PcMasterApp(tk.Tk):
                 log_stream.write("\n\n===== INICIO PC-MASTER BACKEND =====\n")
                 log_stream.flush()
                 self.process = subprocess.Popen(
-                    [sys.executable, "-m", "geelark_master_admin.runtime"],
+                    [str(Path(sys.executable).with_name("python.exe")) if sys.platform == "win32" else sys.executable, "-m", "geelark_master_admin.runtime"],
                     env=env,
                     stdin=subprocess.PIPE,
                     stdout=log_stream,
