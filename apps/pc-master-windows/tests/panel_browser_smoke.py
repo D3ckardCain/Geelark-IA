@@ -11,7 +11,8 @@ from playwright.sync_api import sync_playwright, expect
 
 
 ROOT = Path(__file__).resolve().parents[3]
-HTML = (ROOT / "packages/cluster-master-admin/src/geelark_master_admin/panel.html").read_text(encoding="utf-8")
+HTML = (ROOT / "packages/cluster-master-admin/src/geelark_master_admin/panel.html").read_text(encoding="utf-8").replace(
+    '<!-- OPTIONAL_DIAGNOSTICS -->', '<a class="btn" href="/diagnostics">Diagnóstico técnico</a>')
 OUTPUT = ROOT / "panel-ui-artifacts"
 
 
@@ -148,6 +149,7 @@ def main():
         page.goto("https://panel.test/")
         expect(page.locator("#login-gate")).to_be_hidden()
         expect(page.locator("#android-profile-row")).to_be_visible()
+        expect(page.locator('nav a[href="/diagnostics"]')).to_be_visible()
         page.screenshot(path=str(OUTPUT / "perfiles-desktop.png"), full_page=True)
         page.locator("#profile-search").fill("no existe")
         expect(page.locator("#android-profile-row")).to_be_hidden()

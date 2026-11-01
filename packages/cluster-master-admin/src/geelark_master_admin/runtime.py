@@ -147,7 +147,7 @@ def build_app():
         secure_cookie=True,
         panel_path=Path(__file__).with_name("panel.html"),
         android_control=android_control,
-        diagnostics_enabled=os.environ.get("GEELARK_ADMIN_DIAGNOSTICS") == "1",
+        diagnostics_enabled=True,
     )
 
 

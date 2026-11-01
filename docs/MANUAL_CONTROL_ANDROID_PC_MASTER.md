@@ -4,7 +4,7 @@
 
 Perfiles es la vista habitual: tabla con nombre configurado, estado de pantalla, Abrir pantalla, Cerrar conexión y Recuperar. Puede buscarse por nombre y filtrarse por pantalla abierta, cerrada o requiere atención. Estos filtros solo cambian la lista, nunca detienen ni reinician Android. Conserva el estilo oscuro del panel. No contiene terminales, registros, pruebas de memoria, rutas de claves, IP del laboratorio ni comandos técnicos.
 
-Diagnóstico técnico es una página independiente (/diagnostics), desactivada por defecto. Su módulo recolector está separado del gestor de procesos. Desactivarla no afecta abrir, cerrar ni recuperar. No es una segunda consola de operación. La página y sus API responden 404 cuando está desactivada; los registros nunca se incluyen en la API operativa.
+Diagnóstico técnico es una página independiente (/diagnostics), siempre disponible en PC-MASTER desde el menú Soporte. Su módulo recolector está separado del gestor de procesos. No es una segunda consola de operación y los registros nunca se incluyen en la API operativa. Requiere la sesión del operador; recoger y limpiar requieren el mismo origen.
 
 ## Configuración local inicial
 
@@ -27,7 +27,7 @@ Sustituir los valores por los de la instalación. La clave debe existir y estar 
 
 En el lanzador, seleccionar el archivo en Conexión Android (JSON). La opción es opcional: sin ella, el panel conserva inventario/tareas y muestra Android sin configurar. Para el laboratorio ya probado se incluye examples/worker-lab-android.json: puede seleccionarse directamente sin escribir comandos ni modificar JSON. Sus valores son configuración de ejemplo separada del software operativo. No existe dependencia de la utilidad Tkinter de laboratorio ni de sus archivos.
 
-Para una sesión de soporte, marcar Habilitar diagnóstico técnico solo en esta sesión en el lanzador antes de iniciar el panel (equivale a GEELARK_ADMIN_DIAGNOSTICS=1). La casilla no se guarda en la configuración. El enlace Diagnóstico técnico aparece en Sistema; requiere sesión válida. Desmarcar la casilla y reiniciar PC-MASTER elimina la vista y sus API. Las rutas del diagnóstico y el marcador de navegación no contienen controles operativos permanentes.
+Diagnóstico técnico está siempre disponible en el menú Soporte del panel. No hay casilla de activación en el lanzador ni es necesario reiniciar para habilitarlo. PC-MASTER lo activa al arrancar, independientemente del antiguo GEELARK_ADMIN_DIAGNOSTICS. Estar disponible no ejecuta consultas automáticamente: Recoger diagnóstico se pulsa cuando sea necesario.
 
 ## Operación diaria
 
@@ -40,7 +40,7 @@ La contraseña de recuperación se envía por HTTPS a PC-MASTER y por stdin a su
 
 ## Diagnóstico temporal
 
-En Sistema, abrir Diagnóstico técnico cuando esté habilitado. Recoger diagnóstico consulta Debian, recursos, red, Docker y Android. sudo no interactivo puede rechazar consultas Docker y se documenta ese resultado; los controles habituales siguen disponibles. Copiar registro facilita comunicar una incidencia sin abrir PowerShell. Los registros pueden contener datos del dispositivo: revisar antes de compartir. Se conservan únicamente en memoria acotada del backend; se pierden al cerrarlo.
+En Soporte, abrir Diagnóstico técnico. Recoger diagnóstico consulta Debian, recursos, red, Docker y Android. sudo no interactivo puede rechazar consultas Docker y se documenta ese resultado; los controles habituales siguen disponibles. Copiar registro facilita comunicar una incidencia sin abrir PowerShell. Los registros pueden contener datos del dispositivo: revisar antes de compartir. Se conservan únicamente en memoria acotada del backend; se pierden al cerrarlo.
 
 ## Conexión, concurrencia y cierre
 
@@ -61,7 +61,7 @@ La causa original de Android offline/servicios ausentes sigue pendiente. La recu
 
 El menú contiene Perfiles, Workers, Tareas y Ayuda. No muestra hojas de ruta, GitHub Actions, costes objetivo, endpoints, epochs, capacidades de protocolo ni declaraciones de implementación. Workers conserva nombre, acceso, estado y última señal; Tareas conserva referencia abreviada, nombre del equipo, estado y fechas. La ausencia de nombre del equipo se indica como no disponible, sin inventarlo. El filtro de tareas permite elegir un worker por nombre.
 
-Ayuda explica abrir/cerrar/recuperar y consultar equipos. El enlace Diagnóstico técnico solo aparece si fue habilitado en el lanzador para esa sesión; sigue siendo otra página protegida. No se elimina información de base de datos ni se alteran permisos por limpiar la interfaz.
+Ayuda explica abrir/cerrar/recuperar y consultar equipos. El enlace Diagnóstico técnico aparece siempre en Soporte, como una página independiente protegida. No se elimina información de base de datos ni se alteran permisos por limpiar la interfaz.
 
 Esta revisión presenta la conexión existente en una tabla; no crea un inventario persistente multiinstancia, grupos ficticios, nuevas imágenes ni botones sin servicio implementado. El nombre proviene del JSON ya configurado. Cerrar conexión conserva Android; Recuperar reinicia el perfil previa confirmación y contraseña efímera.
 
@@ -119,3 +119,10 @@ El servidor admite un lector de vídeo por pantalla. Cada apertura tiene una ide
 No incluye audio, teclado físico completo, portapapeles sincronizado, multitáctil, grabación ni reproducción simultánea multiinstancia. Las pruebas de navegador usan un vídeo rojo H.264 generado para comprobar decodificación y controles, no representan una prueba Android real. La prueba de sockets simula el servidor Android según el protocolo. La aceptación con redroid en la laptop sigue pendiente.
 
 Fuentes técnicas fijadas a v5.0.1 (consulta 01-11-2026): https://github.com/Genymobile/scrcpy/blob/v5.0.1/doc/develop.md ; https://github.com/Genymobile/scrcpy/blob/v5.0.1/server/src/main/java/com/genymobile/scrcpy/device/Streamer.java ; https://github.com/Genymobile/scrcpy/blob/v5.0.1/server/src/main/java/com/genymobile/scrcpy/device/DesktopConnection.java ; https://github.com/Genymobile/scrcpy/blob/v5.0.1/server/src/main/java/com/genymobile/scrcpy/control/ControlMessageReader.java . El protocolo es interno y puede cambiar entre versiones: se rechazan versiones distintas, no se asume compatibilidad.
+
+
+## Diagnóstico permanente en PC-MASTER
+
+Por solicitud del operador, se elimina la casilla del lanzador. El runtime de PC-MASTER activa siempre la vista y la enlaza directamente en el menú Soporte, junto a Ayuda. No mezcla los registros técnicos con Perfiles, Workers o Tareas. La fábrica de la API conserva su parámetro interno para pruebas aisladas; no es una opción de usuario del producto.
+
+Para investigar una apertura fallida: entrar en Diagnóstico técnico y pulsar Copiar registro sin pulsar Recoger diagnóstico, pues cada operación nueva sustituye el intento anterior. Recoger diagnóstico inicia una consulta nueva; Limpiar registro elimina el registro temporal anterior. La habilitación permanente no altera el borrado por intento ni registra contraseñas ni realiza consultas periódicas de Docker.

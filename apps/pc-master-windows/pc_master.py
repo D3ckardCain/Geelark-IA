@@ -341,8 +341,6 @@ class PcMasterApp(tk.Tk):
             if browse:
                 ttk.Button(form, text="Examinar…", command=lambda k=key: self._browse(k)).grid(row=row, column=2, padx=(8, 0), pady=5)
         form.columnconfigure(1, weight=1)
-        self.diagnostics_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(form, text="Habilitar diagnóstico técnico solo en esta sesión", variable=self.diagnostics_var).grid(row=len(fields)+1, column=0, columnspan=3, sticky="w", pady=8)
         # Enlaces locales a este formulario: no capturar rueda de otras ventanas.
         for widget in (canvas, form, *form.winfo_children()):
             widget.bind("<MouseWheel>", scroll_form)
@@ -435,11 +433,7 @@ class PcMasterApp(tk.Tk):
             "GEELARK_ADMIN_PORT": settings.get("port", PORT_DEFAULT),
         })
         env.pop("GEELARK_ADMIN_ALLOW_REMOTE", None)
-        diagnostic_option = self.__dict__.get("diagnostics_var")
-        if diagnostic_option is not None and diagnostic_option.get():
-            env["GEELARK_ADMIN_DIAGNOSTICS"] = "1"
-        else:
-            env.pop("GEELARK_ADMIN_DIAGNOSTICS", None)
+        env.pop("GEELARK_ADMIN_DIAGNOSTICS", None)
         if settings.get("android_config_file", "").strip():
             env["GEELARK_ADMIN_ANDROID_CONFIG"] = settings["android_config_file"]
         else:

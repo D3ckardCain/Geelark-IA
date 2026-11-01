@@ -8,6 +8,19 @@ import pytest
 import geelark_master_admin.runtime as runtime
 from geelark_master_admin.runtime import _database_connector, _request_shutdown, main
 
+
+def test_launched_panel_keeps_diagnostics_available_without_session_checkbox(tmp_path, monkeypatch):
+    tmp_path.chmod(0o700)
+    monkeypatch.setattr(runtime, '_required_directory', lambda name: tmp_path)
+    monkeypatch.setattr(runtime, '_database_connector', lambda: lambda: None)
+    monkeypatch.setattr(runtime, '_load_password_hash', lambda: 'test-hash')
+    monkeypatch.delenv('GEELARK_ADMIN_ANDROID_CONFIG', raising=False)
+    monkeypatch.setenv('GEELARK_ADMIN_DIAGNOSTICS', '0')
+    captured={}
+    monkeypatch.setattr(runtime, 'create_admin_app', lambda **kwargs: captured.update(kwargs))
+    runtime.build_app()
+    assert captured['diagnostics_enabled'] is True
+
 def test_database_connector_requires_dedicated_reader_role(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GEELARK_ADMIN_DATABASE_URL", "postgresql://postgres:secret@localhost:5432/geelark")
     with pytest.raises(RuntimeError, match="geelark_master_reader"):
@@ -100,3 +113,4 @@ def test_stdin_error_requests_server_exit(monkeypatch: pytest.MonkeyPatch) -> No
     runtime._watch_stdin_for_shutdown(server)
 
     assert server.should_exit is True
+
