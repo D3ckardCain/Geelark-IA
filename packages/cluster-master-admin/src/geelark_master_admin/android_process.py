@@ -124,8 +124,6 @@ class Controller:
         self.emit(result.stdout.replace(password, "[oculto]") if password else result.stdout)
         if result.returncode:
             raise RuntimeError("No se pudo reiniciar Android. Comprueba el mensaje de sudo.")
-        adb = self.require("adb")
-        self.run([adb, "disconnect", self.config.serial])
         deadline = time.monotonic() + 90
         while time.monotonic() < deadline:
             try:
