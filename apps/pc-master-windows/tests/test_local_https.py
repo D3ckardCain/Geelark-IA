@@ -88,6 +88,9 @@ def test_windows_trust_and_real_https_without_browser_bypass(tmp_path, monkeypat
     powershell = Path(os.environ.get('SystemRoot', r'C:\Windows'))/'System32/WindowsPowerShell/v1.0/powershell.exe'
     server = None
     browser = None
+    app = None
+    loaded = threading.Event()
+    monkeypatch.setattr(module, 'CONFIG_DIR', tmp_path/'browser-master')
     # La importación de Root pide confirmación nativa. Aceptar en esta prueba
     # solo el diálogo del PowerShell creado aquí y con la huella de su certificado.
     owned_powershell = set()
@@ -144,9 +147,11 @@ def test_windows_trust_and_real_https_without_browser_bypass(tmp_path, monkeypat
         assert module._prepare_panel_https(settings) == settings
         class Handler(http.server.BaseHTTPRequestHandler):
             def do_GET(self):
+                if self.path == '/browser-ok':
+                    loaded.set()
                 self.send_response(200)
                 self.end_headers()
-                self.wfile.write(b'<html><body>PCMASTER_TLS_OK</body></html>')
+                self.wfile.write(b'<html><body>PCMASTER_TLS_OK<script>fetch("/browser-ok")</script></body></html>')
             def log_message(self, *_args): pass
         server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -157,17 +162,19 @@ def test_windows_trust_and_real_https_without_browser_bypass(tmp_path, monkeypat
         with socket.create_connection(('127.0.0.1', port), timeout=5) as plain:
             with ssl.create_default_context().wrap_socket(plain, server_hostname='localhost') as secured:
                 assert secured.getpeercert()['subjectAltName']
-        executable = module._panel_browser_executable()
-        browser = subprocess.Popen([str(executable), '--headless=new', '--disable-gpu', '--guest',
-                                    '--no-first-run', f'--user-data-dir={tmp_path / "tls-browser"}',
-                                    '--dump-dom', f'https://localhost:{port}/'],
-                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                   creationflags=subprocess.CREATE_NO_WINDOW)
-        output, _ = browser.communicate(timeout=25)
-        assert b'PCMASTER_TLS_OK' in output, output[-1500:]
+        app = module.PcMasterApp.__new__(module.PcMasterApp)
+        class Status:
+            def set(self, value): pass
+        app.status_var = Status()
+        assert app._open_panel_window(port)
+        browser = app.browser_process
+        assert loaded.wait(20), 'La ventana invitada no ejecutó la página HTTPS confiada'
+        assert app._close_panel_window()
     finally:
         done.set()
         confirmer.join(timeout=2)
+        if app is not None:
+            app._close_panel_window()
         if server:
             server.shutdown()
             server.server_close()
