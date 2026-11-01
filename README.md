@@ -2,7 +2,7 @@
 
 Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la referencia funcional para las capacidades que decidamos implementar. Este repositorio documenta requisitos y decisiones confirmados durante este proyecto; no se importará código, arquitectura, datos ni soluciones de proyectos o conversaciones anteriores.
 
-> **Estado actual:** fase A — auditoría funcional de GeeLark y viabilidad de Android virtualizado local. La documentación y matriz están en construcción. No hay módulos implementados ni se ha seleccionado un motor Android.
+> **Estado actual (2026-11-01):** PC-MASTER Windows y control de un Android redroid funcionan en laboratorio; workers Debian 13 en consola. La guía de construcción local organiza 119 requisitos en 18 módulos, con diferencias y aceptación por función. No hay equivalencia global declarada con GeeLark; ver [guía maestra](docs/PLAN_PARIDAD_GEELARK.md) y [fuentes](docs/FUENTES_GUIA_GEELARK.md).
 
 ## Reglas de trabajo
 
@@ -26,6 +26,9 @@ Proyecto nuevo que construiremos desde cero, paso a paso. GeeLark será la refer
 7. Solo entonces avanzar.
 
 ## Documentación
+
+- [Guía maestra de construcción local](docs/PLAN_PARIDAD_GEELARK.md): funciones de GeeLark, adaptación, 119 requisitos, dependencias y orden de trabajo.
+- [Fuentes y lagunas de evidencia](docs/FUENTES_GUIA_GEELARK.md): revisión oficial y captura del operador, con límites explícitos.
 
 - `docs/ESTADO_PROYECTO.md`: etapa actual, acuerdos y preguntas abiertas.
 - `docs/REQUISITOS.md`: requisitos confirmados y criterios de aceptación.
