@@ -231,8 +231,13 @@ def test_panel_matches_preview_tabs_without_fabricating_real_workers() -> None:
     assert 'data-page="tasks"' in source
     assert 'data-page="system"' in source
     assert "GeeLark-IA" in source and "PC-MASTER" in source
-    assert "Redroid" in source and "Planificado" in source
-    assert "No se mostrarán datos ficticios" in source
+    assert 'data-page="android" aria-current="page">Perfiles' in source
+    assert 'id="profile-search"' in source
+    assert 'id="profile-state"' in source
+    assert "GitHub Actions" not in source
+    assert "API de snapshots" not in source
+    assert "Coste operativo objetivo" not in source
+    assert "Planificado" not in source
     assert "WORKER-DEMO-01" not in source
     assert "localStorage" not in source
     assert "sessionStorage" not in source
@@ -316,8 +321,8 @@ def test_panel_node_search_visible_accessible_and_wired() -> None:
     assert controls.inputs[0]["type"] == "search"
     assert controls.labels and controls.labels[0]["class"] == "sr-only"
     assert 'el("node-search")?.addEventListener("input",render)' in source
-    assert "const visibleNodes=filterNodes()" in source
-    assert "Sin nodos que coincidan con la búsqueda." in source
+    assert "visible=filterNodes()" in source
+    assert "No hay equipos que coincidan con los filtros." in source
 
 
 @pytest.mark.parametrize("database_offset", [-3600, 3600])
@@ -398,3 +403,4 @@ def test_admin_snapshots_read_reported_health_and_database_clock_in_postgres():
             assert before <= observed <= after
         finally:
             admin.execute("DELETE FROM geelark_control.nodes WHERE node_id = %s", (node_id,))
+
