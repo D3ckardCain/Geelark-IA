@@ -19,6 +19,7 @@ def embedded_screen_browser_test(browser):
     """Decodifica H.264 real (fixture roja propia), controla y desconecta sin otra ventana."""
     screen_id = 'a'*32
     inputs=[]
+    actions=[]
     stop=threading.Event()
     profile={'configured':True,'name':'Perfil integrado de prueba','busy':False,'phase':'ready',
              'message':'Pantalla iniciada','screen_open':True,'screen_id':screen_id}
@@ -50,7 +51,9 @@ def embedded_screen_browser_test(browser):
         def do_POST(self):
             data=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
             if self.path=='/admin/v1/android/input':inputs.append(data)
-            elif data.get('action')=='disconnect':profile['screen_open']=False
+            elif self.path=='/admin/v1/android/actions':
+                actions.append(data)
+                if data.get('action')=='disconnect':profile['screen_open']=False
             self.send_body(b'{"accepted":true}')
     server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
     thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
@@ -71,6 +74,15 @@ def embedded_screen_browser_test(browser):
         assert [item['action'] for item in inputs if item['kind']=='touch']==[0,1],inputs
         assert any(item.get('text')=='prueba' for item in inputs),inputs
         assert all(item['screen']==screen_id for item in inputs)
+        second=browser.new_page()
+        try:
+            second.route('**/admin/v1/android/video?*',lambda route:route.fulfill(status=409,body='{}'))
+            second.goto(f'http://127.0.0.1:{server.server_port}/')
+            expect(second.locator('#android-message')).to_contain_text('ocupada')
+            assert not actions, 'Un visor rechazado no debe desconectar al visor propietario'
+            assert profile['screen_open']
+            expect(page.locator('#android-viewer')).to_be_visible()
+        finally:second.close()
         for width in [1366,390]:
             page.set_viewport_size({'width':width,'height':900})
             assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
