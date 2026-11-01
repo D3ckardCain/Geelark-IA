@@ -55,7 +55,7 @@ try {
     env.update(GEELARK_LOCAL_CERT=str(cert.resolve()), GEELARK_LOCAL_CERT_THUMBPRINT=thumbprint)
     result = subprocess.run([str(powershell), "-NoProfile", "-NonInteractive", "-Command", script],
                             env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True,
-                            timeout=30, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), check=True)
+                            timeout=120, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), check=True)
     if result.stdout.strip() != "OK":
         raise RuntimeError("No se confirmó la confianza del certificado local.")
     return thumbprint
