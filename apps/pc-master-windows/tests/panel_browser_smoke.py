@@ -140,6 +140,12 @@ def embedded_screen_browser_test(browser, multiple=False):
         for width in [1366,390]:
             page.set_viewport_size({'width':width,'height':900})
             assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+            for prefix in ['#']+([second_prefix] if multiple else []):
+                recover=page.locator(prefix+'android-recover').bounding_box()
+                diagnostic=page.locator(prefix+'android-diagnostics').bounding_box()
+                assert recover and diagnostic
+                assert abs((recover['y']+recover['height']/2)-(diagnostic['y']+diagnostic['height']/2))<2,(width,recover,diagnostic)
+                assert diagnostic['x']>=recover['x']+recover['width'],(width,recover,diagnostic)
             label='dos-android' if multiple else 'pantalla-integrada'
             page.screenshot(path=str(OUTPUT/f'{label}-{width}.png'),full_page=True)
         if multiple:

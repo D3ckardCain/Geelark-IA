@@ -34,7 +34,7 @@ dialog{width:min(480px,calc(100% - 30px));background:var(--surface);color:var(--
 .profiles-panel{padding:0;overflow:hidden}.profiles-panel th{padding:15px 20px;background:#21262d66;font-size:11px;text-transform:none;letter-spacing:0}
 .profiles-panel td{padding:22px 20px;vertical-align:top}.profiles-panel td:first-child{min-width:250px;white-space:normal}
 .profiles-panel h3{font-size:14px;margin:0 0 7px}.profiles-panel p{font-size:12px;margin:0;max-width:400px}
-.profiles-panel .profile-actions{flex-wrap:wrap;max-width:400px;margin:0}.profile-actions .btn{font-size:12px;padding:8px 11px;white-space:nowrap}
+.profiles-panel .profile-actions{flex-wrap:wrap;max-width:none;margin:0}.profile-actions .btn{font-size:12px;padding:8px 11px;white-space:nowrap}.profile-support-actions{display:inline-flex;flex-wrap:nowrap;align-items:center;gap:9px}
 .profiles-panel .empty{padding:48px 20px;max-width:none;margin:0}.action-help{font-size:12px;margin:14px 2px}
 .help-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.help-grid .panel{margin:0}.help-grid h3{margin:0 0 10px;font-size:14px}
 .help-grid p{margin:0;font-size:13px}.foot{margin-top:28px;border-top:1px solid var(--line);padding-top:14px}
@@ -82,7 +82,7 @@ dialog{width:min(480px,calc(100% - 30px));background:var(--surface);color:var(--
     <div class="table-wrap"><table><caption class="sr-only">Perfiles Android configurados</caption><thead><tr><th>Nombre</th><th>Estado de pantalla</th><th>Acciones</th></tr></thead><tbody>
       <tr id="android-profile-row" class="hidden"><td><h3 id="android-name">Perfil Android</h3><p id="android-message" class="muted" role="status" aria-live="polite">Inicia sesión para consultar tus perfiles.</p></td>
       <td><span id="android-badge" class="pill gray">Sin consultar</span></td>
-      <td><div class="tools profile-actions"><button class="btn primary" type="button" id="android-open" disabled>Abrir pantalla</button><button class="btn" type="button" id="android-disconnect" disabled>Cerrar conexión</button><button class="btn" type="button" id="android-recover" disabled>Recuperar</button><!-- OPTIONAL_DIAGNOSTICS --></div></td></tr>
+      <td><div class="tools profile-actions"><button class="btn primary" type="button" id="android-open" disabled>Abrir pantalla</button><button class="btn" type="button" id="android-disconnect" disabled>Cerrar conexión</button><span class="profile-support-actions"><button class="btn" type="button" id="android-recover" disabled>Recuperar</button><!-- OPTIONAL_DIAGNOSTICS --></span></div></td></tr>
     </tbody></table></div>
     <p id="profiles-empty" class="empty" role="status" aria-live="polite">Inicia sesión para consultar tus perfiles.</p>
   </section>
