@@ -58,7 +58,7 @@ class Controller:
             except OSError:
                 raise RuntimeError(f"Puerto {self.config.port} ocupado. No se modificó el proceso que lo usa.")
         args = self.ssh() + ["-o", "ExitOnForwardFailure=yes", "-N", "-L",
-                             f"127.0.0.1:{self.config.port}:127.0.0.1:5555", self.config.target]
+                             f"127.0.0.1:{self.config.port}:127.0.0.1:{getattr(self.config, 'adb_port', 5555)}", self.config.target]
         self.tunnel = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                        stderr=subprocess.PIPE, creationflags=FLAGS)
         # Drenar stderr para evitar bloqueo del proceso por llenar la tubería.

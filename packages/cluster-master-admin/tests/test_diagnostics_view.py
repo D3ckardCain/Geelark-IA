@@ -29,6 +29,13 @@ fetch=async(url,options)=>options?.method==='POST'?{ok:true,status:202}:{ok:true
 await mutate('run');assert.equal(log.textContent,'CURRENT DIAGNOSIS');
 assert.equal(copy.disabled,false);
 busy=true;let called=false;fetch=()=>{called=true};await mutate('clear');assert.equal(called,false);
+busy=false;profileId='c'.repeat(32);const scoped=[];
+fetch=async(url,options)=>{scoped.push(url);return options?.method==='POST'?{ok:true,status:202}:{ok:true,json:async()=>({log:'SECOND PROFILE',status:{name:'Android · second',busy:false,message:'Finished'}})}};
+await update();await mutate('run');await mutate('clear');
+assert.ok(scoped.length>=5);
+assert.ok(scoped.every(url=>url.endsWith('?profile='+profileId)));
+assert.ok(scoped.includes('/admin/v1/diagnostics/android/clear?profile='+profileId));
+assert.equal(document.getElementById('diagnostic-name').textContent,'Android · second');
 })().catch(e=>{console.error(e);process.exitCode=1});
 '''
     r = subprocess.run([node, '-e', harness], capture_output=True, text=True, timeout=10)
