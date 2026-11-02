@@ -13,7 +13,7 @@ from playwright.sync_api import sync_playwright, expect
 
 ROOT = Path(__file__).resolve().parents[3]
 HTML = (ROOT / "packages/cluster-master-admin/src/geelark_master_admin/panel.html").read_text(encoding="utf-8").replace(
-    '<!-- OPTIONAL_DIAGNOSTICS -->', '<a class="btn" href="/diagnostics">Diagnóstico técnico</a>')
+    '<!-- OPTIONAL_DIAGNOSTICS -->', '<a class="btn" href="/diagnostics" target="_blank" rel="noopener">Diagnóstico técnico</a>')
 OUTPUT = ROOT / "panel-ui-artifacts"
 
 
@@ -22,6 +22,7 @@ def embedded_screen_browser_test(browser, multiple=False):
     screen_id = 'a'*32
     inputs=[]
     actions=[]
+    video_connections=[]
     stop=threading.Event()
     profile={'configured':True,'name':'Perfil integrado de prueba','busy':False,'phase':'ready',
              'message':'Pantalla iniciada','screen_open':True,'screen_id':screen_id}
@@ -40,6 +41,7 @@ def embedded_screen_browser_test(browser, multiple=False):
             self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
         def do_GET(self):
             if self.path.startswith('/admin/v1/android/video?'):
+                video_connections.append(self.path)
                 self.send_response(200);self.send_header('Content-Type','application/x-ndjson')
                 self.send_header('Transfer-Encoding','chunked');self.end_headers()
                 try:
@@ -53,7 +55,10 @@ def embedded_screen_browser_test(browser, multiple=False):
                 return
             inventory=dict(profile,profiles=[dict(profile,primary=True,profile_id='d'*32),second_profile],discovery={'busy':False,'phase':'ready','message':'2 Android detectados en el worker'}) if multiple else profile
             data={'authenticated':True} if self.path=='/admin/v1/session' else inventory if self.path=='/admin/v1/android' else {'snapshots':[],'tasks':[]}
-            self.send_body(HTML.encode(),'text/html') if self.path=='/' else self.send_body(json.dumps(data).encode())
+            if self.path=='/diagnostics':
+                self.send_body(b'<!doctype html><html><h1>Diagnostico tecnico</h1></html>','text/html')
+            else:
+                self.send_body(HTML.encode(),'text/html') if self.path=='/' else self.send_body(json.dumps(data).encode())
         def do_POST(self):
             data=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
             path=urlsplit(self.path);query=parse_qs(path.query)
@@ -83,6 +88,26 @@ def embedded_screen_browser_test(browser, multiple=False):
             deadline=time.monotonic()+5
             while len(inputs)<4 and time.monotonic()<deadline:page.wait_for_timeout(50)
             assert [item['screen'] for item in inputs]==[screen_id,screen_id,'b'*32,'b'*32],inputs
+            before_connections=list(video_connections)
+            for section in ['nodes','tasks','system']:
+                page.locator(f'[data-page="{section}"]').click()
+                expect(page.locator(f'#page-{section}')).to_be_visible()
+                page.locator('[data-page="android"]').click()
+                expect(page.locator('#android-viewer')).to_be_visible()
+                expect(page.locator(second_prefix+'android-viewer')).to_be_visible()
+            with page.expect_popup() as popup:
+                page.get_by_role('link',name='Diagnóstico técnico').click()
+            diagnostic=popup.value
+            try:
+                diagnostic.wait_for_load_state()
+                assert diagnostic.url.endswith('/diagnostics')
+                assert page.url.endswith('/')
+            finally:diagnostic.close()
+            page.bring_to_front()
+            expect(page.locator('#android-viewer')).to_be_visible()
+            expect(page.locator(second_prefix+'android-viewer')).to_be_visible()
+            assert video_connections==before_connections,'Cambiar de sección no debe abrir otra transmisión'
+            assert not actions,'Navegar no debe enviar órdenes Android'
         second=browser.new_page()
         try:
             second.route('**/admin/v1/android/video?*',lambda route:route.fulfill(status=409,body='{}'))

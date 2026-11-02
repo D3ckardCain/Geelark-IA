@@ -1,6 +1,8 @@
 """Inventario del worker y aislamiento de operaciones entre perfiles descubiertos."""
 import json
+import subprocess
 import threading
+from html.parser import HTMLParser
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -78,11 +80,72 @@ def test_discovery_preserves_existing_connection_and_assigns_independent_ports(r
 
 
 def test_failed_authorization_does_not_change_known_connections(registry):
-    with patch('geelark_master_admin.android_discovery.subprocess.run',return_value=Mock(returncode=1,stderr='secret')):
+    with patch('geelark_master_admin.android_discovery.subprocess.run',return_value=Mock(returncode=1,stderr='sudo: a password is required')):
         registry._discover(None)
     assert len(registry.entries)==1
     assert registry.status()['discovery']['phase']=='needs_auth'
     assert 'secret' not in json.dumps(registry.status())
+
+
+@pytest.mark.parametrize(('code','stderr','phase'),[
+    (255,'ssh: connect to host worker.local port 22: Connection timed out','offline'),
+    (255,'ssh: Could not resolve hostname worker.local','offline'),
+    (255,'Host key verification failed.','error'),
+    (255,'Permission denied (publickey).','error'),
+    (1,'sudo: 1 incorrect password attempt','needs_auth'),
+    (1,'Cannot connect to the Docker daemon','error'),
+])
+def test_discovery_distinguishes_network_access_and_docker_failures(registry,code,stderr,phase):
+    discover(registry)
+    previous=dict(registry.entries)
+    with patch('geelark_master_admin.android_discovery.subprocess.run',return_value=Mock(returncode=code,stderr=stderr+'\nprivate-detail')):
+        registry._discover('temporary-password')
+    status=registry.status()
+    assert status['discovery']['phase']==phase
+    assert not status['discovery']['busy']
+    assert registry.entries==previous
+    assert 'temporary-password' not in json.dumps(status)
+    assert 'private-detail' not in json.dumps(status)
+    if phase!='needs_auth':assert 'contraseña' not in status['discovery']['message']
+
+
+def test_discovery_timeout_preserves_profiles_without_requesting_sudo(registry):
+    discover(registry)
+    previous=dict(registry.entries)
+    with patch('geelark_master_admin.android_discovery.subprocess.run',side_effect=subprocess.TimeoutExpired('ssh',45)):
+        registry._discover(None)
+    assert registry.status()['discovery']['phase']=='offline'
+    assert not registry.status()['discovery']['busy']
+    assert registry.entries==previous
+
+
+def test_names_match_in_inventory_selection_and_diagnostics_without_reconfiguring(tmp_path,registry):
+    seed_config=registry.primary.config
+    discover(registry)
+    ident=registry.identity('phone-02')
+    second=registry.select(ident)
+    c=client(tmp_path,registry,diagnostics=True);login(c)
+    inventory=c.get('/admin/v1/android').json()
+    assert inventory['name']=='Android · phone-01'
+    assert [p['name'] for p in inventory['profiles']]==['Android · phone-01','Android · phone-02']
+    assert c.get('/admin/v1/android?profile='+ident).json()['name']=='Android · phone-02'
+    assert c.get('/admin/v1/diagnostics/android?profile='+ident).json()['status']['name']=='Android · phone-02'
+    assert registry.primary.config is seed_config
+    assert registry.primary.config.name=='Existing phone'
+    assert second.config.container=='phone-02'
+    assert second.config.adb_port==5556
+
+
+def test_diagnostics_link_preserves_the_owner_document(tmp_path,registry):
+    class Links(HTMLParser):
+        def __init__(self):super().__init__();self.items=[]
+        def handle_starttag(self,tag,attrs):
+            if tag=='a':self.items.append(dict(attrs))
+    c=client(tmp_path,registry,diagnostics=True);login(c)
+    parser=Links();parser.feed(c.get('/').text)
+    link=next(item for item in parser.items if item.get('href')=='/diagnostics')
+    assert link['target']=='_blank'
+    assert 'noopener' in link['rel'].split()
 
 
 @pytest.mark.parametrize('output',[

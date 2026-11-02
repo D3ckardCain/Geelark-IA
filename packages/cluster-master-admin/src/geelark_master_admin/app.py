@@ -281,7 +281,7 @@ def create_admin_app(
         return HTMLResponse(
             content=panel_file.read_text(encoding="utf-8").replace(
                 '<!-- OPTIONAL_DIAGNOSTICS -->',
-                '<a class="btn" href="/diagnostics">Diagnóstico técnico</a>' if diagnostics_enabled else ""),
+                '<a class="btn" href="/diagnostics" target="_blank" rel="noopener">Diagnóstico técnico</a>' if diagnostics_enabled else ""),
             headers={
                 "Cache-Control": "no-store, max-age=0",
                 "X-Content-Type-Options": "nosniff",
@@ -350,6 +350,11 @@ def create_admin_app(
             return android_control.select(request.query_params.get('profile'))
         return android_control if request.query_params.get('profile') is None else None
 
+    def control_status(control):
+        if isinstance(android_control, AndroidRegistry) and control is not android_control:
+            return android_control.describe(control)
+        return control.status()
+
     def control_error(request, *, write=False):
         if not sessions.valid(request.cookies.get(SESSION_COOKIE)):
             return _security_headers(JSONResponse({"error": {"code": "AUTHENTICATION_REQUIRED"}}, status_code=401))
@@ -376,7 +381,7 @@ def create_admin_app(
         if error is not None:
             return error
         control=android_control if request.query_params.get('profile') is None else selected_control(request)
-        return _security_headers(JSONResponse(control.status()))
+        return _security_headers(JSONResponse(control_status(control)))
 
     @app.post("/admin/v1/android/actions")
     def android_action(payload: AndroidActionPayload, request: Request):
@@ -460,7 +465,7 @@ def create_admin_app(
         if error is not None:
             return error
         control=selected_control(request)
-        return _security_headers(JSONResponse({"status": control.status(), "log": control.diagnostics()}))
+        return _security_headers(JSONResponse({"status": control_status(control), "log": control.diagnostics()}))
 
     @app.post("/admin/v1/diagnostics/android")
     def diagnostics_run(request: Request):

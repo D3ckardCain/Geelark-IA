@@ -16,6 +16,23 @@ INSPECT = ('[{{json .Id}},{{json .Name}},{{json .State.Status}},'
 SCRIPT = "set -eu\nids=$(docker ps -aq --no-trunc)\nif [ -n \"$ids\" ]; then docker inspect --format " + shlex.quote(INSPECT) + " $ids; fi"
 
 
+def discovery_failure(returncode, stderr, password_supplied):
+    """Clasifica sin exponer la salida remota ni solicitar sudo ante un fallo SSH."""
+    message = stderr.casefold()
+    if returncode == 255:
+        if 'host key verification failed' in message or 'remote host identification has changed' in message:
+            return 'error', 'La identidad SSH del worker necesita revisión antes de conectar.'
+        if 'permission denied' in message:
+            return 'error', 'El worker rechazó la clave SSH configurada. Revisa el acceso del equipo.'
+        return 'offline', 'No se pudo conectar con el worker. Comprueba que esté encendido y conectado a la red.'
+    if 'sudo:' in message and any(value in message for value in (
+            'password is required', 'incorrect password', 'no password was provided',
+            'try again', 'authentication failure')):
+        return ('needs_auth', 'El worker rechazó la autorización. Introduce de nuevo su contraseña.'
+                if password_supplied else 'Autoriza la consulta del worker para detectar sus Android')
+    return 'error', 'El worker respondió, pero no se pudo consultar Docker. Revisa sus servicios y permisos.'
+
+
 def parse_inventory(output):
     if len(output.encode('utf-8')) > 1048576:
         raise ValueError('Inventario demasiado grande')
@@ -68,12 +85,16 @@ class AndroidRegistry:
             return self.primary if ident is None else self.entries.get(ident)
 
     def status(self):
-        result=self.primary.status()
+        result=self.describe(self.primary)
         with self.registry_lock:
-            result['profiles']=[dict(service.status(),profile_id=ident,primary=service is self.primary,
+            result['profiles']=[dict(self.describe(service),profile_id=ident,primary=service is self.primary,
                                      container_state=self.states.get(ident,'unknown')) for ident,service in self.entries.items()]
             result['discovery']=dict(self.discovery)
         return result
+
+    @staticmethod
+    def describe(service):
+        return dict(service.status(), name='Android · ' + service.config.container)
 
     def discover(self,password=None):
         with self.registry_lock:
@@ -86,14 +107,15 @@ class AndroidRegistry:
         try:
             c=self.primary.controller
             sudo="sudo -S -p '' " if password is not None else 'sudo -n '
-            command=sudo+'sh -c '+shlex.quote(SCRIPT)
+            command='LC_ALL=C '+sudo+'sh -c '+shlex.quote(SCRIPT)
             result=subprocess.run(c.ssh()+[self.primary.config.target,command],
                                   input=password+'\n' if password is not None else None,
                                   stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding='utf-8',errors='replace',
                                   timeout=45,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
             if result.returncode:
+                phase,message=discovery_failure(result.returncode,result.stderr,password is not None)
                 with self.registry_lock:
-                    self.discovery={'busy':False,'phase':'needs_auth','message':'Autoriza la consulta del worker para detectar sus Android'}
+                    self.discovery={'busy':False,'phase':phase,'message':message}
                 return
             records=parse_inventory(result.stdout)
             with self.registry_lock:
@@ -121,6 +143,9 @@ class AndroidRegistry:
                 self.entries.update(additions)
                 self.states={self.identity(r['container']):r['container_state'] for r in records}
                 self.discovery={'busy':False,'phase':'ready','message':f'{len(records)} Android detectados en el worker'}
+        except subprocess.TimeoutExpired:
+            with self.registry_lock:
+                self.discovery={'busy':False,'phase':'offline','message':'El worker no respondió a tiempo. Comprueba su conexión de red.'}
         except Exception:
             with self.registry_lock:
                 self.discovery={'busy':False,'phase':'error','message':'No se pudo completar la detección. Comprueba el acceso al worker.'}
