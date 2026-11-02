@@ -146,6 +146,7 @@ def test_diagnostics_link_preserves_the_owner_document(tmp_path,registry):
     link=next(item for item in parser.items if item.get('href')=='/diagnostics')
     assert link['target']=='_blank'
     assert 'noopener' in link['rel'].split()
+    assert link['id']=='android-diagnostics'
 
 
 @pytest.mark.parametrize('output',[
@@ -178,6 +179,10 @@ def test_actions_and_diagnostics_are_scoped_to_selected_profile(tmp_path,registr
     assert c.get('/admin/v1/diagnostics/android?profile='+ident).json()['log']=='phone-02-log'
     assert c.post('/admin/v1/diagnostics/android/clear?profile='+ident,headers=headers).status_code==200
     second.clear_diagnostics.assert_called_once()
+    registry.primary.clear_diagnostics.assert_not_called()
+    assert c.get('/diagnostics?profile=unknown').status_code==404
+    assert c.get('/admin/v1/diagnostics/android?profile=unknown').status_code==404
+    assert c.post('/admin/v1/diagnostics/android/clear?profile=unknown',headers=headers).status_code==404
     registry.primary.clear_diagnostics.assert_not_called()
     assert c.post('/admin/v1/android/actions?profile=unknown',json={'action':'open'},headers=headers).status_code==404
     registry.primary.submit.assert_not_called()

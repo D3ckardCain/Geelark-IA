@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Diagnóstico técnico · GeeLark-IA</title>
 <style>:root{color-scheme:dark}body{background:#0d1117;color:#e6edf3;font:15px/1.5 system-ui;margin:32px auto;padding:0 20px;max-width:1100px}a{color:#58a6ff}button{background:#21262d;border:1px solid #30363d;border-radius:6px;color:inherit;padding:10px 16px;cursor:pointer;margin:4px}button:disabled{opacity:.5}pre{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:18px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:65vh;overflow:auto}p{color:#8b949e}</style></head>
-<body><a href="/">← Volver al PC-MASTER</a><h1>Diagnóstico técnico</h1><p>Cada operación reemplaza el registro anterior. Recoger un diagnóstico inicia una captura nueva; Limpiar registro elimina el texto de este registro temporal.</p><button id="run">Recoger nuevo diagnóstico</button><button id="clear">Limpiar registro</button><button id="copy" disabled>Copiar registro</button><p id="status" role="status" aria-live="polite">Preparado.</p><pre id="log" tabindex="0"></pre>
+<body><a href="/">← Volver al PC-MASTER</a><h1>Diagnóstico técnico</h1><p id="diagnostic-name" aria-live="polite">Cargando perfil Android…</p><p>Cada operación reemplaza el registro anterior de este Android. Recoger un diagnóstico inicia una captura nueva; Limpiar registro elimina su registro temporal.</p><button id="run">Recoger nuevo diagnóstico</button><button id="clear">Limpiar registro</button><button id="copy" disabled>Copiar registro</button><p id="status" role="status" aria-live="polite">Preparado.</p><pre id="log" tabindex="0"></pre>
 <script>
 "use strict";
 const run=document.getElementById("run"),clear=document.getElementById("clear"),copy=document.getElementById("copy"),log=document.getElementById("log"),status=document.getElementById("status");
 let busy=false,pending=false,revision=0,read=0,profileId="";
 function diagnosticPath(suffix=""){return "/admin/v1/diagnostics/android"+suffix+(profileId?"?profile="+encodeURIComponent(profileId):"")}
-function controls(){run.disabled=clear.disabled=busy||pending;copy.disabled=busy||pending||!log.textContent;const selection=document.getElementById("diagnostic-profile");if(selection)selection.disabled=pending}
+function controls(){run.disabled=clear.disabled=busy||pending;copy.disabled=busy||pending||!log.textContent}
 async function update(){
   if(pending)return;
   const generation=revision,request=++read;
@@ -18,6 +18,7 @@ async function update(){
     if(generation!==revision||request!==read||pending)return;
     if(typeof data.log!=="string"||typeof data.status.busy!=="boolean")throw new Error();
     log.textContent=data.log;busy=data.status.busy;
+    document.getElementById("diagnostic-name").textContent=data.status.name||"Perfil Android";
     status.textContent=data.log||busy?data.status.message:"Registro vacío. Puedes recoger un nuevo diagnóstico.";
     controls();
   }catch(e){if(generation===revision&&request===read)status.textContent="Diagnóstico no disponible o sesión caducada. Vuelve al PC-MASTER."}
@@ -35,10 +36,7 @@ async function mutate(action){
   await update();
 }
 run.addEventListener("click",()=>mutate("run"));
-const selector=document.createElement("select"),selectorLabel=document.createElement("label");selector.id="diagnostic-profile";selectorLabel.htmlFor=selector.id;selectorLabel.textContent="Perfil Android ";selectorLabel.append(selector);run.before(selectorLabel,document.createElement("br"));
-selector.addEventListener("change",()=>{profileId=selector.value;revision++;read++;log.textContent="";busy=false;controls();update()});
-async function loadProfiles(){try{const response=await fetch("/admin/v1/android",{credentials:"same-origin",cache:"no-store",redirect:"error"});if(!response.ok)return;const data=await response.json();for(const profile of data.profiles||[]){const option=document.createElement("option");option.value=profile.primary?"":profile.profile_id;option.textContent=profile.name;selector.append(option)}if(!selector.options.length)selector.add(new Option(data.name||"Android",""))}catch(e){status.textContent="No se pudo consultar la lista de perfiles."}}
-loadProfiles();
+profileId=new URLSearchParams(window.location.search).get("profile")||"";
 clear.addEventListener("click",()=>mutate("clear"));
 copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(log.textContent);status.textContent="Registro copiado."}catch(e){status.textContent="Selecciona el registro y pulsa Ctrl+C."}});
 setInterval(()=>{if(!document.hidden)update()},2500);update();

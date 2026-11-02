@@ -13,7 +13,8 @@ from playwright.sync_api import sync_playwright, expect
 
 ROOT = Path(__file__).resolve().parents[3]
 HTML = (ROOT / "packages/cluster-master-admin/src/geelark_master_admin/panel.html").read_text(encoding="utf-8").replace(
-    '<!-- OPTIONAL_DIAGNOSTICS -->', '<a class="btn" href="/diagnostics" target="_blank" rel="noopener">Diagnóstico técnico</a>')
+    '<!-- OPTIONAL_DIAGNOSTICS -->', '<a id="android-diagnostics" class="btn" href="/diagnostics" target="_blank" rel="noopener">Diagnóstico</a>')
+DIAGNOSTICS = (ROOT / "packages/cluster-master-admin/src/geelark_master_admin/diagnostics.html").read_text(encoding="utf-8")
 OUTPUT = ROOT / "panel-ui-artifacts"
 
 
@@ -23,6 +24,8 @@ def embedded_screen_browser_test(browser, multiple=False):
     inputs=[]
     actions=[]
     video_connections=[]
+    diagnostic_requests=[]
+    diagnostic_logs={'primary':'REGISTRO-ANDROID-01','c'*32:'REGISTRO-ANDROID-02'}
     stop=threading.Event()
     profile={'configured':True,'name':'Perfil integrado de prueba','busy':False,'phase':'ready',
              'message':'Pantalla iniciada','screen_open':True,'screen_id':screen_id}
@@ -55,18 +58,28 @@ def embedded_screen_browser_test(browser, multiple=False):
                 return
             inventory=dict(profile,profiles=[dict(profile,primary=True,profile_id='d'*32),second_profile],discovery={'busy':False,'phase':'ready','message':'2 Android detectados en el worker'}) if multiple else profile
             data={'authenticated':True} if self.path=='/admin/v1/session' else inventory if self.path=='/admin/v1/android' else {'snapshots':[],'tasks':[]}
-            if self.path=='/diagnostics':
-                self.send_body(b'<!doctype html><html><h1>Diagnostico tecnico</h1></html>','text/html')
+            path=urlsplit(self.path);query=parse_qs(path.query)
+            if path.path=='/diagnostics':
+                self.send_body(DIAGNOSTICS.encode(),'text/html')
+            elif path.path=='/admin/v1/diagnostics/android':
+                selected=profile_id if query.get('profile')==[profile_id] else 'primary'
+                diagnostic_requests.append(selected)
+                target=second_profile if selected==profile_id else profile
+                self.send_body(json.dumps({'status':target,'log':diagnostic_logs[selected]}).encode())
             else:
                 self.send_body(HTML.encode(),'text/html') if self.path=='/' else self.send_body(json.dumps(data).encode())
         def do_POST(self):
-            data=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+            body=self.rfile.read(int(self.headers.get('Content-Length','0')))
+            data=json.loads(body) if body else {}
             path=urlsplit(self.path);query=parse_qs(path.query)
             if path.path=='/admin/v1/android/input':inputs.append(data)
             elif path.path=='/admin/v1/android/actions':
                 actions.append(data)
                 target=second_profile if query.get('profile')==[profile_id] else profile
                 if data.get('action')=='disconnect':target['screen_open']=False
+            elif path.path=='/admin/v1/diagnostics/android/clear':
+                selected=profile_id if query.get('profile')==[profile_id] else 'primary'
+                diagnostic_logs[selected]=''
             self.send_body(b'{"accepted":true}')
     server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
     thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
@@ -96,11 +109,18 @@ def embedded_screen_browser_test(browser, multiple=False):
                 expect(page.locator('#android-viewer')).to_be_visible()
                 expect(page.locator(second_prefix+'android-viewer')).to_be_visible()
             with page.expect_popup() as popup:
-                page.get_by_role('link',name='Diagnóstico técnico').click()
+                page.locator(second_prefix+'android-diagnostics').click()
             diagnostic=popup.value
             try:
                 diagnostic.wait_for_load_state()
-                assert diagnostic.url.endswith('/diagnostics')
+                assert diagnostic.url.endswith('/diagnostics?profile='+profile_id)
+                expect(diagnostic.locator('#diagnostic-name')).to_have_text(second_profile['name'])
+                expect(diagnostic.locator('#log')).to_have_text('REGISTRO-ANDROID-02')
+                expect(diagnostic.locator('select')).to_have_count(0)
+                assert diagnostic_requests and set(diagnostic_requests)=={profile_id}
+                diagnostic.locator('#clear').click()
+                expect(diagnostic.locator('#log')).to_have_text('')
+                assert diagnostic_logs['primary']=='REGISTRO-ANDROID-01'
                 assert page.url.endswith('/')
             finally:diagnostic.close()
             page.bring_to_front()
@@ -188,7 +208,8 @@ def main():
         page.goto("https://panel.test/")
         expect(page.locator("#login-gate")).to_be_hidden()
         expect(page.locator("#android-profile-row")).to_be_visible()
-        expect(page.locator('nav a[href="/diagnostics"]')).to_be_visible()
+        expect(page.locator('#android-profile-row .profile-actions a#android-diagnostics')).to_be_visible()
+        expect(page.locator('nav a[href^="/diagnostics"]')).to_have_count(0)
         page.screenshot(path=str(OUTPUT / "perfiles-desktop.png"), full_page=True)
         page.locator("#profile-search").fill("no existe")
         expect(page.locator("#android-profile-row")).to_be_hidden()

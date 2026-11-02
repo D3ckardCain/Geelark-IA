@@ -281,7 +281,7 @@ def create_admin_app(
         return HTMLResponse(
             content=panel_file.read_text(encoding="utf-8").replace(
                 '<!-- OPTIONAL_DIAGNOSTICS -->',
-                '<a class="btn" href="/diagnostics" target="_blank" rel="noopener">Diagnóstico técnico</a>' if diagnostics_enabled else ""),
+                '<a id="android-diagnostics" class="btn" href="/diagnostics" target="_blank" rel="noopener">Diagnóstico</a>' if diagnostics_enabled else ""),
             headers={
                 "Cache-Control": "no-store, max-age=0",
                 "X-Content-Type-Options": "nosniff",

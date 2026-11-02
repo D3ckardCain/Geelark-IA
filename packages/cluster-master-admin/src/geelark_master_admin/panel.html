@@ -68,7 +68,6 @@ dialog{width:min(480px,calc(100% - 30px));background:var(--surface);color:var(--
   <button data-page="tasks">Tareas</button>
   <span class="nav-label">Soporte</span>
   <button data-page="system">Ayuda</button>
-  <!-- OPTIONAL_DIAGNOSTICS -->
 </nav>
 <main>
 <section id="page-android" class="page" aria-labelledby="android-title">
@@ -83,7 +82,7 @@ dialog{width:min(480px,calc(100% - 30px));background:var(--surface);color:var(--
     <div class="table-wrap"><table><caption class="sr-only">Perfiles Android configurados</caption><thead><tr><th>Nombre</th><th>Estado de pantalla</th><th>Acciones</th></tr></thead><tbody>
       <tr id="android-profile-row" class="hidden"><td><h3 id="android-name">Perfil Android</h3><p id="android-message" class="muted" role="status" aria-live="polite">Inicia sesión para consultar tus perfiles.</p></td>
       <td><span id="android-badge" class="pill gray">Sin consultar</span></td>
-      <td><div class="tools profile-actions"><button class="btn primary" type="button" id="android-open" disabled>Abrir pantalla</button><button class="btn" type="button" id="android-disconnect" disabled>Cerrar conexión</button><button class="btn" type="button" id="android-recover" disabled>Recuperar</button></div></td></tr>
+      <td><div class="tools profile-actions"><button class="btn primary" type="button" id="android-open" disabled>Abrir pantalla</button><button class="btn" type="button" id="android-disconnect" disabled>Cerrar conexión</button><button class="btn" type="button" id="android-recover" disabled>Recuperar</button><!-- OPTIONAL_DIAGNOSTICS --></div></td></tr>
     </tbody></table></div>
     <p id="profiles-empty" class="empty" role="status" aria-live="polite">Inicia sesión para consultar tus perfiles.</p>
   </section>
@@ -400,6 +399,7 @@ function createProfile(profileId){
   document.getElementById("android-viewers").append(roots[1]);document.body.append(roots[2]);
   const fields=new Map();for(const root of roots)for(const node of [root,...root.querySelectorAll("[data-field]")])fields.set(node.dataset.field,node);
   const el=id=>fields.get(id);let androidBusy=false,profile=null,actionPending=false;
+  if(el("android-diagnostics"))el("android-diagnostics").href="/diagnostics?profile="+encodeURIComponent(profileId);
 let embedded=null,blockedScreen=null,inputQueue=Promise.resolve(),pointerActive=false,lastMove=0;
 const canvas=el("android-canvas");
 function stopEmbedded(){const current=embedded;embedded=null;pointerActive=false;if(current){current.abort.abort();if(current.decoder?.state!=="closed")current.decoder?.close()}canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);el("android-viewer").classList.add("hidden")}
@@ -465,6 +465,8 @@ el("viewer-fullscreen").addEventListener("click",()=>el("android-viewer").reques
 }
 function updateDiscoveredProfiles(data){
   const records=Array.isArray(data.profiles)?data.profiles:[];
+  const primary=records.find(item=>item.primary);
+  if(primary&&/^[a-f0-9]{32}$/.test(primary.profile_id)&&el("android-diagnostics"))el("android-diagnostics").href="/diagnostics?profile="+encodeURIComponent(primary.profile_id);
   for(const item of records){if(item.primary||!/^([a-f0-9]{32})$/.test(item.profile_id))continue;
     if(!extraProfiles.has(item.profile_id))extraProfiles.set(item.profile_id,createProfile(item.profile_id));extraProfiles.get(item.profile_id).update(item);
   }
